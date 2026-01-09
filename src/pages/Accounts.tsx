@@ -8,6 +8,7 @@ import {
   EditableCurrencyCell,
   EditableSelectCell,
 } from "@/components/editable-cells"
+import { DataTable, type ColumnDef } from "@/components/data-table"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -15,14 +16,6 @@ import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
 import {
   Dialog,
   DialogContent,
@@ -117,6 +110,238 @@ function maskAccountNumber(num: string | null): string {
   if (num.length <= 4) return num
   return "****" + num.slice(-4)
 }
+
+// Bank Accounts column configuration
+const createBankAccountColumns = (
+  updateBankAccount: (id: string, data: any) => Promise<any>,
+  handleDeleteBank: (id: string) => void
+): ColumnDef<any>[] => [
+  {
+    key: "institution",
+    header: "Institution",
+    render: (account) => (
+      <EditableTextCell
+        value={account.institution}
+        onSave={async (val) => {
+          await updateBankAccount(account.id, { institution: val as string })
+        }}
+      />
+    ),
+  },
+  {
+    key: "accountName",
+    header: "Account Name",
+    render: (account) => (
+      <EditableTextCell
+        value={account.accountName}
+        onSave={async (val) => {
+          await updateBankAccount(account.id, { accountName: val })
+        }}
+      />
+    ),
+  },
+  {
+    key: "accountType",
+    header: "Type",
+    render: (account) => (
+      <Badge variant="secondary" className="font-normal">
+        {BANK_ACCOUNT_TYPES.find((t) => t.value === account.accountType)?.label}
+      </Badge>
+    ),
+  },
+  {
+    key: "accountNumber",
+    header: "Account #",
+    render: (account) => (
+      <code className="text-xs">{maskAccountNumber(account.accountNumber || "")}</code>
+    ),
+  },
+  {
+    key: "dodValue",
+    header: "DOD Balance",
+    render: (account) => (
+      <EditableCurrencyCell
+        value={account.dodValue}
+        onSave={async (val) => {
+          await updateBankAccount(account.id, { dodValue: val })
+        }}
+      />
+    ),
+  },
+  {
+    key: "status",
+    header: "Status",
+    render: (account) => (
+      <EditableSelectCell
+        value={account.status}
+        options={ACCOUNT_STATUS}
+        variants={STATUS_VARIANTS}
+        onSave={async (val) => {
+          await updateBankAccount(account.id, { status: val })
+        }}
+      />
+    ),
+  },
+  {
+    key: "transferStatus",
+    header: "Transfer",
+    render: (account) => (
+      <EditableSelectCell
+        value={account.transferStatus}
+        options={TRANSFER_STATUS}
+        variants={STATUS_VARIANTS}
+        onSave={async (val) => {
+          await updateBankAccount(account.id, { transferStatus: val })
+        }}
+      />
+    ),
+  },
+  {
+    key: "actions",
+    header: "Actions",
+    render: (account) => (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-destructive hover:text-destructive"
+              onClick={() => handleDeleteBank(account.id)}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Delete</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    ),
+  },
+]
+
+// Investment Accounts column configuration
+const createInvestmentAccountColumns = (
+  updateInvestmentAccount: (id: string, data: any) => Promise<any>,
+  handleDeleteInvestment: (id: string) => void
+): ColumnDef<any>[] => [
+  {
+    key: "institution",
+    header: "Institution",
+    render: (account) => (
+      <EditableTextCell
+        value={account.institution}
+        onSave={async (val) => {
+          await updateInvestmentAccount(account.id, { institution: val as string })
+        }}
+      />
+    ),
+  },
+  {
+    key: "accountName",
+    header: "Account Name",
+    render: (account) => (
+      <EditableTextCell
+        value={account.accountName}
+        onSave={async (val) => {
+          await updateInvestmentAccount(account.id, { accountName: val })
+        }}
+      />
+    ),
+  },
+  {
+    key: "accountType",
+    header: "Type",
+    render: (account) => (
+      <Badge variant="secondary" className="font-normal">
+        {INVESTMENT_ACCOUNT_TYPES.find((t) => t.value === account.accountType)?.label}
+      </Badge>
+    ),
+  },
+  {
+    key: "accountNumber",
+    header: "Account #",
+    render: (account) => (
+      <code className="text-xs">{maskAccountNumber(account.accountNumber || "")}</code>
+    ),
+  },
+  {
+    key: "dodValue",
+    header: "DOD Value",
+    render: (account) => (
+      <EditableCurrencyCell
+        value={account.dodValue}
+        onSave={async (val) => {
+          await updateInvestmentAccount(account.id, { dodValue: val })
+        }}
+      />
+    ),
+  },
+  {
+    key: "costBasis",
+    header: "Cost Basis",
+    render: (account) => (
+      <EditableCurrencyCell
+        value={account.costBasis}
+        onSave={async (val) => {
+          await updateInvestmentAccount(account.id, { costBasis: val })
+        }}
+      />
+    ),
+  },
+  {
+    key: "status",
+    header: "Status",
+    render: (account) => (
+      <EditableSelectCell
+        value={account.status}
+        options={ACCOUNT_STATUS}
+        variants={STATUS_VARIANTS}
+        onSave={async (val) => {
+          await updateInvestmentAccount(account.id, { status: val })
+        }}
+      />
+    ),
+  },
+  {
+    key: "transferStatus",
+    header: "Transfer",
+    render: (account) => (
+      <EditableSelectCell
+        value={account.transferStatus}
+        options={TRANSFER_STATUS}
+        variants={STATUS_VARIANTS}
+        onSave={async (val) => {
+          await updateInvestmentAccount(account.id, { transferStatus: val })
+        }}
+      />
+    ),
+  },
+  {
+    key: "actions",
+    header: "Actions",
+    render: (account) => (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-destructive hover:text-destructive"
+              onClick={() => handleDeleteInvestment(account.id)}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Delete</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    ),
+  },
+]
 
 export function Accounts() {
   // Use centralized hooks for data fetching
@@ -299,6 +524,10 @@ export function Accounts() {
     )
   }
 
+  // Create column configurations
+  const bankColumns = createBankAccountColumns(updateBankAccount, handleDeleteBank)
+  const investmentColumns = createInvestmentAccountColumns(updateInvestmentAccount, handleDeleteInvestment)
+
   const totalBankValue = bankAccounts.reduce(
     (sum, a) => sum + (parseFloat(a.dodValue || "0") || 0),
     0
@@ -354,113 +583,11 @@ export function Accounts() {
               </Button>
             </div>
 
-            {bankAccounts.length === 0 ? (
-              <Card>
-                <CardContent className="py-12">
-                  <p className="text-center text-muted-foreground">
-                    No bank accounts. Click Add to create one.
-                  </p>
-                </CardContent>
-              </Card>
-            ) : (
-              <Card>
-                <CardContent className="p-0">
-                  <div className="rounded-md border">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Institution</TableHead>
-                          <TableHead>Account Name</TableHead>
-                          <TableHead>Type</TableHead>
-                          <TableHead>Account #</TableHead>
-                          <TableHead>DOD Balance</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Transfer</TableHead>
-                          <TableHead className="w-[60px]">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {bankAccounts.map((a) => (
-                          <TableRow key={a.id}>
-                            <TableCell>
-                              <EditableTextCell
-                                value={a.institution}
-                                onSave={async (val) => {
-                                  await updateBankAccount(a.id, { institution: val as string })
-                                }}
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <EditableTextCell
-                                value={a.accountName}
-                                onSave={async (val) => {
-                                  await updateBankAccount(a.id, { accountName: val })
-                                }}
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant="secondary" className="font-normal">
-                                {BANK_ACCOUNT_TYPES.find((t) => t.value === a.accountType)?.label}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <code className="text-xs">{maskAccountNumber(a.accountNumber || "")}</code>
-                            </TableCell>
-                            <TableCell>
-                              <EditableCurrencyCell
-                                value={a.dodValue}
-                                onSave={async (val) => {
-                                  await updateBankAccount(a.id, { dodValue: val })
-                                }}
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <EditableSelectCell
-                                value={a.status}
-                                options={ACCOUNT_STATUS}
-                                variants={STATUS_VARIANTS}
-                                onSave={async (val) => {
-                                  await updateBankAccount(a.id, { status: val })
-                                }}
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <EditableSelectCell
-                                value={a.transferStatus}
-                                options={TRANSFER_STATUS}
-                                variants={STATUS_VARIANTS}
-                                onSave={async (val) => {
-                                  await updateBankAccount(a.id, { transferStatus: val })
-                                }}
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-8 w-8 text-destructive hover:text-destructive"
-                                      onClick={() => handleDeleteBank(a.id)}
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Delete</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+            <DataTable
+              columns={bankColumns}
+              data={bankAccounts}
+              onDelete={(account) => handleDeleteBank(account.id)}
+            />
           </TabsContent>
 
           <TabsContent value="investment" className="space-y-4">
@@ -471,122 +598,11 @@ export function Accounts() {
               </Button>
             </div>
 
-            {investmentAccounts.length === 0 ? (
-              <Card>
-                <CardContent className="py-12">
-                  <p className="text-center text-muted-foreground">
-                    No investment accounts. Click Add to create one.
-                  </p>
-                </CardContent>
-              </Card>
-            ) : (
-              <Card>
-                <CardContent className="p-0">
-                  <div className="rounded-md border">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Institution</TableHead>
-                          <TableHead>Account Name</TableHead>
-                          <TableHead>Type</TableHead>
-                          <TableHead>Account #</TableHead>
-                          <TableHead>DOD Value</TableHead>
-                          <TableHead>Cost Basis</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Transfer</TableHead>
-                          <TableHead className="w-[60px]">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {investmentAccounts.map((a) => (
-                          <TableRow key={a.id}>
-                            <TableCell>
-                              <EditableTextCell
-                                value={a.institution}
-                                onSave={async (val) => {
-                                  await updateInvestmentAccount(a.id, { institution: val as string })
-                                }}
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <EditableTextCell
-                                value={a.accountName}
-                                onSave={async (val) => {
-                                  await updateInvestmentAccount(a.id, { accountName: val })
-                                }}
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant="secondary" className="font-normal">
-                                {INVESTMENT_ACCOUNT_TYPES.find((t) => t.value === a.accountType)?.label}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <code className="text-xs">{maskAccountNumber(a.accountNumber || "")}</code>
-                            </TableCell>
-                            <TableCell>
-                              <EditableCurrencyCell
-                                value={a.dodValue}
-                                onSave={async (val) => {
-                                  await updateInvestmentAccount(a.id, { dodValue: val })
-                                }}
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <EditableCurrencyCell
-                                value={a.costBasis}
-                                onSave={async (val) => {
-                                  await updateInvestmentAccount(a.id, { costBasis: val })
-                                }}
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <EditableSelectCell
-                                value={a.status}
-                                options={ACCOUNT_STATUS}
-                                variants={STATUS_VARIANTS}
-                                onSave={async (val) => {
-                                  await updateInvestmentAccount(a.id, { status: val })
-                                }}
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <EditableSelectCell
-                                value={a.transferStatus}
-                                options={TRANSFER_STATUS}
-                                variants={STATUS_VARIANTS}
-                                onSave={async (val) => {
-                                  await updateInvestmentAccount(a.id, { transferStatus: val })
-                                }}
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-8 w-8 text-destructive hover:text-destructive"
-                                      onClick={() => handleDeleteInvestment(a.id)}
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Delete</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+            <DataTable
+              columns={investmentColumns}
+              data={investmentAccounts}
+              onDelete={(account) => handleDeleteInvestment(account.id)}
+            />
           </TabsContent>
         </Tabs>
       )}
