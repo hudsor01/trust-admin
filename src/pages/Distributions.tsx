@@ -34,6 +34,10 @@ import { Textarea } from "@/components/ui/textarea"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { formatDate, formatCurrency, calculateAge, getWithdrawalStatus } from "../utils/formatters"
 import { EditableTextCell } from "@/components/editable-cells"
+import { useEntities } from "@/hooks/entities/queries"
+import { useBeneficiaries } from "@/hooks/beneficiaries/queries"
+import { useWithdrawalRecords, useUpdateWithdrawalRecord } from "@/hooks/withdrawal-records/queries"
+import { useDistributions, useCreateDistribution, useUpdateDistribution } from "@/hooks/distributions/queries"
 
 interface Beneficiary {
   id: string
@@ -92,12 +96,19 @@ const PAYMENT_METHODS = [
 ]
 
 export function Distributions() {
-  const [beneficiaries, setBeneficiaries] = useState<Beneficiary[]>([])
-  const [withdrawalRecords, setWithdrawalRecords] = useState<WithdrawalRecord[]>([])
-  const [distributions, setDistributions] = useState<Distribution[]>([])
-  const [entities, setEntities] = useState<Entity[]>([])
+  // Use TanStack Query hooks
+  const { data: entities = [], isLoading: entitiesLoading } = useEntities()
   const [selectedEntity, setSelectedEntity] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
+  const { data: beneficiaries = [], isLoading: beneficiariesLoading } = useBeneficiaries(selectedEntity || undefined)
+  const { data: distributions = [], isLoading: distributionsLoading } = useDistributions(undefined, selectedEntity || undefined)
+  const createDistributionMutation = useCreateDistribution()
+  const updateDistributionMutation = useUpdateDistribution()
+
+  // Get all withdrawal records (not filtered by entity since they're filtered by beneficiary)
+  const { data: withdrawalRecords = [] } = useWithdrawalRecords()
+  const updateWithdrawalRecordMutation = useUpdateWithdrawalRecord()
+
+  const loading = entitiesLoading || beneficiariesLoading || distributionsLoading
   const [activeTab, setActiveTab] = useState("hems")
   const [showHemsForm, setShowHemsForm] = useState(false)
   const [showWithdrawalForm, setShowWithdrawalForm] = useState(false)
@@ -118,121 +129,40 @@ export function Distributions() {
     notes: "",
   })
 
+  // Auto-select first entity when entities load
   useEffect(() => {
-    fetchEntities()
-  }, [])
-
-  useEffect(() => {
-    if (selectedEntity) {
-      Promise.all([
-        fetchBeneficiaries(),
-        fetchWithdrawalRecords(),
-        fetchDistributions(),
-      ]).finally(() => setLoading(false))
+    if (entities.length > 0 && !selectedEntity) {
+      setSelectedEntity(entities[0].id)
     }
-  }, [selectedEntity])
-
-  const fetchEntities = async () => {
-    try {
-      const res = await fetch("/api/entities")
-      if (res.ok) {
-        const data = await res.json()
-        const sorted = data.sort((a: Entity, b: Entity) => {
-          if (a.dod && !b.dod) return -1
-          if (!a.dod && b.dod) return 1
-          if (a.name.includes("Hudson") && !b.name.includes("Hudson")) return -1
-          if (!a.name.includes("Hudson") && b.name.includes("Hudson")) return 1
-          return 0
-        })
-        setEntities(sorted)
-        if (sorted.length > 0) {
-          setSelectedEntity(sorted[0].id)
-        }
-      }
-    } catch (error) {
-      console.error("Failed to fetch entities:", error)
-    }
-  }
-
-  const fetchBeneficiaries = async () => {
-    try {
-      const res = await fetch("/api/beneficiaries")
-      if (res.ok) {
-        const data = await res.json()
-        const filtered = selectedEntity
-          ? data.filter((b: Beneficiary) => b.entityId === selectedEntity)
-          : data
-        setBeneficiaries(filtered)
-      }
-    } catch (error) {
-      console.error("Failed to fetch beneficiaries:", error)
-    }
-  }
-
-  const fetchWithdrawalRecords = async () => {
-    try {
-      const res = await fetch("/api/withdrawal-records")
-      if (res.ok) {
-        const data = await res.json()
-        const filtered = selectedEntity
-          ? data.filter((w: WithdrawalRecord) => w.entityId === selectedEntity)
-          : data
-        setWithdrawalRecords(filtered)
-      }
-    } catch (error) {
-      console.error("Failed to fetch withdrawal records:", error)
-    }
-  }
-
-  const fetchDistributions = async () => {
-    try {
-      const res = await fetch("/api/distributions")
-      if (res.ok) {
-        const data = await res.json()
-        const filtered = selectedEntity
-          ? data.filter((d: Distribution) => d.entityId === selectedEntity)
-          : data
-        setDistributions(filtered)
-      }
-    } catch (error) {
-      console.error("Failed to fetch distributions:", error)
-    }
-  }
+  }, [entities, selectedEntity])
 
   const submitHemsRequest = async () => {
     const amount = parseFloat(hemsFormData.amount.replace(/[,$]/g, ""))
     if (!hemsFormData.beneficiaryId || amount <= 0 || !selectedEntity) return
 
     try {
-      const res = await fetch("/api/distributions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          beneficiaryId: hemsFormData.beneficiaryId,
-          entityId: selectedEntity,
-          distributionDate: new Date().toISOString(),
-          amount: amount.toString(),
-          distributionType: "PRINCIPAL",
-          hemsCategory: hemsFormData.hemsCategory,
-          hemsJustification: hemsFormData.hemsJustification,
-          isWithdrawal: false,
-          paymentMethod: hemsFormData.paymentMethod,
-          notes: hemsFormData.notes || null,
-        }),
+      await createDistributionMutation.mutateAsync({
+        beneficiaryId: hemsFormData.beneficiaryId,
+        entityId: selectedEntity,
+        distributionDate: new Date().toISOString(),
+        amount: amount.toString(),
+        distributionType: "PRINCIPAL",
+        hemsCategory: hemsFormData.hemsCategory,
+        hemsJustification: hemsFormData.hemsJustification,
+        isWithdrawal: false,
+        paymentMethod: hemsFormData.paymentMethod,
+        notes: hemsFormData.notes || null,
       })
 
-      if (res.ok) {
-        setShowHemsForm(false)
-        setHemsFormData({
-          beneficiaryId: "",
-          amount: "",
-          hemsCategory: "HEALTH",
-          hemsJustification: "",
-          paymentMethod: "CHECK",
-          notes: "",
-        })
-        fetchDistributions()
-      }
+      setShowHemsForm(false)
+      setHemsFormData({
+        beneficiaryId: "",
+        amount: "",
+        hemsCategory: "HEALTH",
+        hemsJustification: "",
+        paymentMethod: "CHECK",
+        notes: "",
+      })
     } catch (error) {
       console.error("Failed to submit HEMS request:", error)
     }
@@ -243,58 +173,40 @@ export function Distributions() {
     if (!selectedWithdrawal || amount <= 0) return
 
     try {
-      const distRes = await fetch("/api/distributions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          beneficiaryId: selectedWithdrawal.beneficiaryId,
-          entityId: selectedWithdrawal.entityId,
-          distributionDate: new Date().toISOString(),
-          amount: amount.toString(),
-          distributionType: "PRINCIPAL",
-          hemsCategory: "WITHDRAWAL",
-          isWithdrawal: true,
-          withdrawalPercent: selectedWithdrawal.withdrawalType === "AGE_25" ? 50 : 50,
-          paymentMethod: withdrawalFormData.paymentMethod,
-          notes: withdrawalFormData.notes || `${selectedWithdrawal.withdrawalType} withdrawal`,
-        }),
+      // Create distribution first
+      const distData = await createDistributionMutation.mutateAsync({
+        beneficiaryId: selectedWithdrawal.beneficiaryId,
+        entityId: selectedWithdrawal.entityId,
+        distributionDate: new Date().toISOString(),
+        amount: amount.toString(),
+        distributionType: "PRINCIPAL",
+        hemsCategory: "WITHDRAWAL",
+        isWithdrawal: true,
+        paymentMethod: withdrawalFormData.paymentMethod,
+        notes: withdrawalFormData.notes || `${selectedWithdrawal.withdrawalType} withdrawal`,
       })
 
-      if (distRes.ok) {
-        const distData = await distRes.json()
+      // Then update the withdrawal record
+      await updateWithdrawalRecordMutation.mutateAsync({
+        id: selectedWithdrawal.id,
+        data: {
+          status: "COMPLETE",
+          withdrawnAmount: amount.toString(),
+          exercisedDate: new Date().toISOString(),
+          distributionId: distData.id,
+        },
+      })
 
-        await fetch(`/api/withdrawal-records/${selectedWithdrawal.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            status: "COMPLETE",
-            withdrawnAmount: amount.toString(),
-            exercisedDate: new Date().toISOString(),
-            distributionId: distData.id,
-          }),
-        })
-
-        setShowWithdrawalForm(false)
-        setSelectedWithdrawal(null)
-        setWithdrawalFormData({ amount: "", paymentMethod: "CHECK", notes: "" })
-        fetchWithdrawalRecords()
-        fetchDistributions()
-      }
+      setShowWithdrawalForm(false)
+      setSelectedWithdrawal(null)
+      setWithdrawalFormData({ amount: "", paymentMethod: "CHECK", notes: "" })
     } catch (error) {
       console.error("Failed to process withdrawal:", error)
     }
   }
 
   const updateDistribution = async (id: string, updates: Partial<Distribution>) => {
-    const res = await fetch(`/api/distributions/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(updates),
-    })
-    if (!res.ok) throw new Error("Failed to update")
-    setDistributions(distributions.map(d =>
-      d.id === id ? { ...d, ...updates } : d
-    ))
+    await updateDistributionMutation.mutateAsync({ id, data: updates })
   }
 
   // Get eligible withdrawals
