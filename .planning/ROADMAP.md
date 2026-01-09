@@ -96,7 +96,7 @@ Plans:
 
 Plans:
 - [x] 05-01: Extract dialog components (replace manual dialogs with ResourceDialog and useResourceForm)
-- [ ] 05-02: Extract PropertySummaryCards and refactor main page
+- [x] 05-02: Extract Rental Properties table (replace manual table with DataTable component)
 - [ ] 05-03: Verify functionality and update tests
 
 ### Phase 6: Accounting Page Refactor
