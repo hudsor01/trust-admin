@@ -1036,7 +1036,7 @@ describe("API Endpoints", () => {
         }
       );
 
-      expect(paymentResponse.status).toBe(200);
+      expect(paymentResponse.status).toBe(201);
       const paymentResult = await paymentResponse.json();
       expect(paymentResult.payment).toBeDefined();
       expect(paymentResult.liability).toBeDefined();
