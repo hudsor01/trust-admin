@@ -71,7 +71,7 @@ export function createInsertSchemaWithDefaults<T extends PgTable>(
 // ENTITY SCHEMAS
 // =============================================================================
 
-export const insertEntitySchema = createInsertSchema(entity, {
+export const insertEntitySchema = createInsertSchemaWithDefaults(entity, {
   name: (schema) => schema.min(1, "Name is required").max(255),
   ein: (schema) => schema.regex(/^\d{2}-\d{7}$/, "EIN must be in format XX-XXXXXXX").optional(),
   governingLaw: (schema) => schema.max(100).optional(),
@@ -87,7 +87,7 @@ export const updateEntitySchema = createUpdateSchema(entity, {
 // BENEFICIARY SCHEMAS
 // =============================================================================
 
-export const insertBeneficiarySchema = createInsertSchema(beneficiary, {
+export const insertBeneficiarySchema = createInsertSchemaWithDefaults(beneficiary, {
   firstName: (schema) => schema.min(1, "First name is required").max(100),
   lastName: (schema) => schema.min(1, "Last name is required").max(100),
   email: (schema) => schema.email("Invalid email address").optional(),
@@ -108,7 +108,7 @@ export const updateBeneficiarySchema = createUpdateSchema(beneficiary);
 // DISTRIBUTION SCHEMAS
 // =============================================================================
 
-export const insertDistributionSchema = createInsertSchema(distribution, {
+export const insertDistributionSchema = createInsertSchemaWithDefaults(distribution, {
   amount: (schema) => schema.refine(
     (val) => parseFloat(val) > 0,
     "Amount must be greater than 0"
@@ -123,7 +123,7 @@ export const updateDistributionSchema = createUpdateSchema(distribution);
 // VEHICLE SCHEMAS
 // =============================================================================
 
-export const insertVehicleSchema = createInsertSchema(vehicle, {
+export const insertVehicleSchema = createInsertSchemaWithDefaults(vehicle, {
   year: (schema) => schema.min(1900).max(new Date().getFullYear() + 1),
   vin: (schema) => schema.length(17, "VIN must be exactly 17 characters"),
   mileage: (schema) => schema.min(0).optional(),
@@ -137,7 +137,7 @@ export const updateVehicleSchema = createUpdateSchema(vehicle);
 // REAL PROPERTY SCHEMAS
 // =============================================================================
 
-export const insertHomesteadSchema = createInsertSchema(homestead, {
+export const insertHomesteadSchema = createInsertSchemaWithDefaults(homestead, {
   streetAddress: (schema) => schema.min(1, "Street address is required"),
   city: (schema) => schema.min(1, "City is required"),
   state: (schema) => schema.length(2, "State must be 2-letter code"),
@@ -151,7 +151,7 @@ export const selectHomesteadSchema = createSelectSchema(homestead);
 
 export const updateHomesteadSchema = createUpdateSchema(homestead);
 
-export const insertRentalPropertySchema = createInsertSchema(rentalProperty, {
+export const insertRentalPropertySchema = createInsertSchemaWithDefaults(rentalProperty, {
   name: (schema) => schema.min(1, "Property name is required"),
   streetAddress: (schema) => schema.min(1, "Street address is required"),
   city: (schema) => schema.min(1, "City is required"),
@@ -168,7 +168,7 @@ export const updateRentalPropertySchema = createUpdateSchema(rentalProperty);
 // FINANCIAL ACCOUNT SCHEMAS
 // =============================================================================
 
-export const insertBankAccountSchema = createInsertSchema(bankAccount, {
+export const insertBankAccountSchema = createInsertSchemaWithDefaults(bankAccount, {
   institution: (schema) => schema.min(1, "Institution is required"),
   accountNumber: (schema) => schema.min(4, "Account number is required"),
   routingNumber: (schema) => schema.length(9, "Routing number must be 9 digits").optional(),
@@ -178,7 +178,7 @@ export const selectBankAccountSchema = createSelectSchema(bankAccount);
 
 export const updateBankAccountSchema = createUpdateSchema(bankAccount);
 
-export const insertInvestmentAccountSchema = createInsertSchema(investmentAccount, {
+export const insertInvestmentAccountSchema = createInsertSchemaWithDefaults(investmentAccount, {
   institution: (schema) => schema.min(1, "Institution is required"),
   accountNumber: (schema) => schema.min(4, "Account number is required"),
 });
@@ -191,7 +191,7 @@ export const updateInvestmentAccountSchema = createUpdateSchema(investmentAccoun
 // INSURANCE SCHEMAS
 // =============================================================================
 
-export const insertInsurancePolicySchema = createInsertSchema(insurancePolicy, {
+export const insertInsurancePolicySchema = createInsertSchemaWithDefaults(insurancePolicy, {
   carrier: (schema) => schema.min(1, "Carrier is required"),
   policyNumber: (schema) => schema.min(1, "Policy number is required"),
 });
@@ -204,7 +204,7 @@ export const updateInsurancePolicySchema = createUpdateSchema(insurancePolicy);
 // PERSONAL PROPERTY SCHEMAS
 // =============================================================================
 
-export const insertPersonalPropertySchema = createInsertSchema(personalProperty, {
+export const insertPersonalPropertySchema = createInsertSchemaWithDefaults(personalProperty, {
   name: (schema) => schema.min(1, "Name is required"),
 });
 
@@ -212,7 +212,7 @@ export const selectPersonalPropertySchema = createSelectSchema(personalProperty)
 
 export const updatePersonalPropertySchema = createUpdateSchema(personalProperty);
 
-export const insertArtworkSchema = createInsertSchema(artwork, {
+export const insertArtworkSchema = createInsertSchemaWithDefaults(artwork, {
   title: (schema) => schema.min(1, "Title is required"),
 });
 
@@ -224,7 +224,7 @@ export const updateArtworkSchema = createUpdateSchema(artwork);
 // VALUATION SCHEMAS
 // =============================================================================
 
-export const insertValuationSchema = createInsertSchema(valuation, {
+export const insertValuationSchema = createInsertSchemaWithDefaults(valuation, {
   value: (schema) => schema.refine(
     (val) => parseFloat(val) >= 0,
     "Value must be non-negative"
@@ -237,7 +237,7 @@ export const selectValuationSchema = createSelectSchema(valuation);
 // DOCUMENT SCHEMAS
 // =============================================================================
 
-export const insertDocumentSchema = createInsertSchema(document, {
+export const insertDocumentSchema = createInsertSchemaWithDefaults(document, {
   name: (schema) => schema.min(1, "Document name is required"),
   filePath: (schema) => schema.min(1, "File path is required"),
 });
@@ -250,7 +250,7 @@ export const updateDocumentSchema = createUpdateSchema(document);
 // TRANSACTION SCHEMAS
 // =============================================================================
 
-export const insertTransactionSchema = createInsertSchema(transaction, {
+export const insertTransactionSchema = createInsertSchemaWithDefaults(transaction, {
   category: (schema) => schema.min(1, "Category is required"),
   amount: (schema) => schema.refine(
     (val) => parseFloat(val) !== 0,
@@ -266,7 +266,7 @@ export const updateTransactionSchema = createUpdateSchema(transaction);
 // CONTACT SCHEMAS
 // =============================================================================
 
-export const insertContactSchema = createInsertSchema(contact, {
+export const insertContactSchema = createInsertSchemaWithDefaults(contact, {
   name: (schema) => schema.min(1, "Name is required"),
   email: (schema) => schema.email("Invalid email address").optional(),
   phone: (schema) => schema.regex(/^[\d\s\-\+\(\)]+$/, "Invalid phone number").optional(),
@@ -277,7 +277,7 @@ export const selectContactSchema = createSelectSchema(contact);
 
 export const updateContactSchema = createUpdateSchema(contact);
 
-export const insertContactAssociationSchema = createInsertSchema(contactAssociation);
+export const insertContactAssociationSchema = createInsertSchemaWithDefaults(contactAssociation);
 
 export const selectContactAssociationSchema = createSelectSchema(contactAssociation);
 
@@ -285,7 +285,7 @@ export const selectContactAssociationSchema = createSelectSchema(contactAssociat
 // TASK SCHEMAS
 // =============================================================================
 
-export const insertTaskSchema = createInsertSchema(task, {
+export const insertTaskSchema = createInsertSchemaWithDefaults(task, {
   title: (schema) => schema.min(1, "Title is required").max(500),
 });
 
@@ -297,7 +297,7 @@ export const updateTaskSchema = createUpdateSchema(task);
 // TRUSTEE SCHEMAS
 // =============================================================================
 
-export const insertTrusteeSchema = createInsertSchema(trustee, {
+export const insertTrusteeSchema = createInsertSchemaWithDefaults(trustee, {
   name: (schema) => schema.min(1, "Name is required"),
   order: (schema) => schema.min(1, "Order must be at least 1"),
 });
@@ -310,7 +310,7 @@ export const updateTrusteeSchema = createUpdateSchema(trustee);
 // SPECIFIC BEQUEST SCHEMAS
 // =============================================================================
 
-export const insertSpecificBequestSchema = createInsertSchema(specificBequest, {
+export const insertSpecificBequestSchema = createInsertSchemaWithDefaults(specificBequest, {
   description: (schema) => schema.min(1, "Description is required"),
 });
 
@@ -322,7 +322,7 @@ export const updateSpecificBequestSchema = createUpdateSchema(specificBequest);
 // TRUST ACCOUNTING SCHEMAS
 // =============================================================================
 
-export const insertTrustAccountingSchema = createInsertSchema(trustAccounting, {
+export const insertTrustAccountingSchema = createInsertSchemaWithDefaults(trustAccounting, {
   entryType: z.enum(["INCOME", "EXPENSE"]),
   description: (schema) => schema.min(1, "Description is required"),
   amount: (schema) => schema.refine(
@@ -339,7 +339,7 @@ export const updateTrustAccountingSchema = createUpdateSchema(trustAccounting);
 // WITHDRAWAL RECORD SCHEMAS
 // =============================================================================
 
-export const insertWithdrawalRecordSchema = createInsertSchema(withdrawalRecord, {
+export const insertWithdrawalRecordSchema = createInsertSchemaWithDefaults(withdrawalRecord, {
   withdrawalType: (schema) => schema.min(1, "Withdrawal type is required"),
 });
 
@@ -351,7 +351,7 @@ export const updateWithdrawalRecordSchema = createUpdateSchema(withdrawalRecord)
 // ACTIVITY LOG SCHEMAS
 // =============================================================================
 
-export const insertActivityLogSchema = createInsertSchema(activityLog);
+export const insertActivityLogSchema = createInsertSchemaWithDefaults(activityLog);
 
 export const selectActivityLogSchema = createSelectSchema(activityLog);
 
@@ -393,7 +393,7 @@ export const updateLiabilitySchema = createUpdateSchema(liability, {
 // LIABILITY PAYMENT SCHEMAS
 // =============================================================================
 
-export const insertLiabilityPaymentSchema = createInsertSchema(liabilityPayment, {
+export const insertLiabilityPaymentSchema = createInsertSchemaWithDefaults(liabilityPayment, {
   amount: (schema) => schema.refine(
     (val) => parseFloat(val) > 0,
     "Payment amount must be greater than 0"
@@ -420,7 +420,7 @@ export const selectLiabilityPaymentSchema = createSelectSchema(liabilityPayment)
 // HEMS REQUEST SCHEMAS
 // =============================================================================
 
-export const insertHemsRequestSchema = createInsertSchema(hemsRequest, {
+export const insertHemsRequestSchema = createInsertSchemaWithDefaults(hemsRequest, {
   amountRequested: (schema) => schema.refine(
     (val) => parseFloat(val) > 0,
     "Amount requested must be greater than 0"
@@ -441,7 +441,7 @@ export const updateHemsRequestSchema = createUpdateSchema(hemsRequest, {
 // TRUSTEE FEE SCHEDULE SCHEMAS
 // =============================================================================
 
-export const insertTrusteeFeeScheduleSchema = createInsertSchema(trusteeFeeSchedule, {
+export const insertTrusteeFeeScheduleSchema = createInsertSchemaWithDefaults(trusteeFeeSchedule, {
   executorFeePercent: (schema) => schema.refine(
     (val) => val === null || (parseFloat(val) >= 0 && parseFloat(val) <= 100),
     "Executor fee percent must be between 0 and 100"
@@ -468,7 +468,7 @@ export const selectTrusteeFeeScheduleSchema = createSelectSchema(trusteeFeeSched
 // TRUSTEE FEE ENTRY SCHEMAS
 // =============================================================================
 
-export const insertTrusteeFeeEntrySchema = createInsertSchema(trusteeFeeEntry, {
+export const insertTrusteeFeeEntrySchema = createInsertSchemaWithDefaults(trusteeFeeEntry, {
   totalFee: (schema) => schema.refine(
     (val) => parseFloat(val) >= 0,
     "Total fee must be non-negative"
