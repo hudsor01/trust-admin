@@ -46,6 +46,8 @@ import { CopyButton } from "@/components/copy-button"
 import { useContacts, useCreateContact, useUpdateContact, useDeleteContact, type Contact } from "@/hooks/contacts/queries"
 import { contactFormDefaults } from "@/lib/form-factory"
 import { exportTablesInContainer } from "@/lib/csv"
+import { useResourceForm } from "@/hooks/use-resource-form"
+import { insertContactSchema } from "@/db/validation"
 
 type RoleFilter = "all" | "ATTORNEY" | "ACCOUNTANT" | "FINANCIAL_ADVISOR" | "INSURANCE_AGENT" | "BANKER" | "OTHER"
 
@@ -83,61 +85,41 @@ export function Contacts() {
   const [filter, setFilter] = useState<RoleFilter>("all")
   const [search, setSearch] = useState("")
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null)
-  const [showForm, setShowForm] = useState(false)
-  const [editingContact, setEditingContact] = useState<Contact | null>(null)
-  const [formData, setFormData] = useState(contactFormDefaults())
 
-  const saveContact = async () => {
-    if (!formData.name.trim()) return
+  // Use useResourceForm hook with TanStack Form validation
+  const contactForm = useResourceForm({
+    initialData: contactFormDefaults(),
+    onSubmit: async (data) => {
+      const payload = {
+        name: data.name,
+        company: data.company || null,
+        role: data.role,
+        email: data.email || null,
+        phone: data.phone || null,
+        dob: data.dob || null,
+        streetAddress: data.streetAddress || null,
+        city: data.city || null,
+        state: data.state || null,
+        zip: data.zip || null,
+        notes: data.notes || null,
+      }
 
-    const payload = {
-      name: formData.name,
-      company: formData.company || null,
-      role: formData.role,
-      email: formData.email || null,
-      phone: formData.phone || null,
-      dob: formData.dob || null,
-      streetAddress: formData.streetAddress || null,
-      city: formData.city || null,
-      state: formData.state || null,
-      zip: formData.zip || null,
-      notes: formData.notes || null,
-    }
-
-    try {
-      if (editingContact) {
-        await updateContactMutation.mutateAsync({ id: editingContact.id, data: payload })
+      if (contactForm.isEditing) {
+        // Get the editing contact id from form
+        const editingId = (contactForm.form as any).id
+        await updateContactMutation.mutateAsync({ id: editingId, data: payload })
       } else {
         await createContactMutation.mutateAsync(payload)
       }
-      setShowForm(false)
-      resetForm()
-    } catch (error) {
-      console.error("Failed to save contact:", error)
-    }
-  }
-
-  const resetForm = () => {
-    setFormData(contactFormDefaults())
-    setEditingContact(null)
-  }
+    },
+    schema: insertContactSchema,
+  })
 
   const openEditForm = (contact: Contact) => {
-    setEditingContact(contact)
-    setFormData({
-      name: contact.name,
-      company: contact.company,
-      role: contact.role,
-      email: contact.email,
-      phone: contact.phone,
-      dob: contact.dob,
-      streetAddress: contact.streetAddress,
-      city: contact.city,
-      state: contact.state,
-      zip: contact.zip,
-      notes: contact.notes,
+    contactForm.handleEdit({
+      ...contact,
+      id: contact.id, // Include id for update
     })
-    setShowForm(true)
   }
 
   const filteredContacts = useMemo(() => {
@@ -181,11 +163,7 @@ export function Contacts() {
             <Download className="h-4 w-4" />
             Export CSV
           </Button>
-          <Button onClick={() => {
-            setFormData(contactFormDefaults());
-            setEditingContact(null);
-            setShowForm(true);
-          }}>
+          <Button onClick={contactForm.handleAdd}>
             <Plus className="mr-2 h-4 w-4" />
             Add Contact
           </Button>
@@ -452,149 +430,235 @@ export function Contacts() {
       </Dialog>
 
       {/* Contact Form Dialog */}
-      <Dialog open={showForm} onOpenChange={setShowForm}>
-        <DialogContent className="max-w-md">
+      <Dialog open={contactForm.isOpen} onOpenChange={contactForm.close}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {editingContact ? "Edit Contact" : "Add Contact"}
+              {contactForm.isEditing ? "Edit Contact" : "Add Contact"}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 pt-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Name *</Label>
-              <Input
-                id="name"
-                placeholder="Full name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              />
-            </div>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              contactForm.handleSave()
+            }}
+            className="space-y-4 pt-4"
+          >
+            {/* Name */}
+            <contactForm.formInstance.Field name="name">
+              {(field) => (
+                <div className="space-y-2">
+                  <Label htmlFor="name">Name *</Label>
+                  <Input
+                    id="name"
+                    placeholder="Full name"
+                    value={field.state.value || ""}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    onBlur={field.handleBlur}
+                  />
+                  {field.state.meta.errors && field.state.meta.errors.length > 0 && (
+                    <p className="text-sm text-red-500">{field.state.meta.errors[0]}</p>
+                  )}
+                </div>
+              )}
+            </contactForm.formInstance.Field>
 
-            <div className="space-y-2">
-              <Label htmlFor="company">Company</Label>
-              <Input
-                id="company"
-                placeholder="Company name"
-                value={formData.company || ""}
-                onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-              />
-            </div>
+            {/* Company */}
+            <contactForm.formInstance.Field name="company">
+              {(field) => (
+                <div className="space-y-2">
+                  <Label htmlFor="company">Company</Label>
+                  <Input
+                    id="company"
+                    placeholder="Company name"
+                    value={field.state.value || ""}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    onBlur={field.handleBlur}
+                  />
+                </div>
+              )}
+            </contactForm.formInstance.Field>
 
-            <div className="space-y-2">
-              <Label htmlFor="role">Role</Label>
-              <Select
-                value={formData.role}
-                onValueChange={(v) => setFormData({ ...formData, role: v })}
-              >
-                <SelectTrigger id="role">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(ROLE_LABELS).map(([value, label]) => (
-                    <SelectItem key={value} value={value}>
-                      {label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {/* Role */}
+            <contactForm.formInstance.Field name="role">
+              {(field) => (
+                <div className="space-y-2">
+                  <Label htmlFor="role">Role</Label>
+                  <Select
+                    value={field.state.value || ""}
+                    onValueChange={(v) => field.handleChange(v)}
+                  >
+                    <SelectTrigger id="role" onBlur={field.handleBlur}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(ROLE_LABELS).map(([value, label]) => (
+                        <SelectItem key={value} value={value}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </contactForm.formInstance.Field>
 
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="email@example.com"
-                value={formData.email || ""}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              />
-            </div>
+            {/* Email */}
+            <contactForm.formInstance.Field name="email">
+              {(field) => (
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="email@example.com"
+                    value={field.state.value || ""}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    onBlur={field.handleBlur}
+                  />
+                  {field.state.meta.errors && field.state.meta.errors.length > 0 && (
+                    <p className="text-sm text-red-500">{field.state.meta.errors[0]}</p>
+                  )}
+                </div>
+              )}
+            </contactForm.formInstance.Field>
 
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone</Label>
-              <Input
-                id="phone"
-                placeholder="(555) 123-4567"
-                value={formData.phone || ""}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              />
-            </div>
+            {/* Phone */}
+            <contactForm.formInstance.Field name="phone">
+              {(field) => (
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone</Label>
+                  <Input
+                    id="phone"
+                    placeholder="(555) 123-4567"
+                    value={field.state.value || ""}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    onBlur={field.handleBlur}
+                  />
+                  {field.state.meta.errors && field.state.meta.errors.length > 0 && (
+                    <p className="text-sm text-red-500">{field.state.meta.errors[0]}</p>
+                  )}
+                </div>
+              )}
+            </contactForm.formInstance.Field>
 
-            <div className="space-y-2">
-              <Label htmlFor="dob">Birthday</Label>
-              <Input
-                id="dob"
-                type="date"
-                value={formData.dob || ""}
-                onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
-              />
-            </div>
+            {/* Birthday */}
+            <contactForm.formInstance.Field name="dob">
+              {(field) => (
+                <div className="space-y-2">
+                  <Label htmlFor="dob">Birthday</Label>
+                  <Input
+                    id="dob"
+                    type="date"
+                    value={field.state.value || ""}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    onBlur={field.handleBlur}
+                  />
+                </div>
+              )}
+            </contactForm.formInstance.Field>
 
-            <div className="space-y-2">
-              <Label htmlFor="streetAddress">Street Address</Label>
-              <Input
-                id="streetAddress"
-                placeholder="123 Main St"
-                value={formData.streetAddress || ""}
-                onChange={(e) => setFormData({ ...formData, streetAddress: e.target.value })}
-              />
-            </div>
+            {/* Street Address */}
+            <contactForm.formInstance.Field name="streetAddress">
+              {(field) => (
+                <div className="space-y-2">
+                  <Label htmlFor="streetAddress">Street Address</Label>
+                  <Input
+                    id="streetAddress"
+                    placeholder="123 Main St"
+                    value={field.state.value || ""}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    onBlur={field.handleBlur}
+                  />
+                </div>
+              )}
+            </contactForm.formInstance.Field>
 
+            {/* City, State, ZIP */}
             <div className="grid grid-cols-3 gap-3">
-              <div className="space-y-2">
-                <Label htmlFor="city">City</Label>
-                <Input
-                  id="city"
-                  placeholder="City"
-                  value={formData.city || ""}
-                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="state">State</Label>
-                <Input
-                  id="state"
-                  placeholder="ST"
-                  value={formData.state || ""}
-                  onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="zip">ZIP</Label>
-                <Input
-                  id="zip"
-                  placeholder="12345"
-                  value={formData.zip || ""}
-                  onChange={(e) => setFormData({ ...formData, zip: e.target.value })}
-                />
-              </div>
+              <contactForm.formInstance.Field name="city">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="city">City</Label>
+                    <Input
+                      id="city"
+                      placeholder="City"
+                      value={field.state.value || ""}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      onBlur={field.handleBlur}
+                    />
+                  </div>
+                )}
+              </contactForm.formInstance.Field>
+
+              <contactForm.formInstance.Field name="state">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="state">State</Label>
+                    <Input
+                      id="state"
+                      placeholder="ST"
+                      value={field.state.value || ""}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      onBlur={field.handleBlur}
+                    />
+                  </div>
+                )}
+              </contactForm.formInstance.Field>
+
+              <contactForm.formInstance.Field name="zip">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="zip">ZIP</Label>
+                    <Input
+                      id="zip"
+                      placeholder="12345"
+                      value={field.state.value || ""}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      onBlur={field.handleBlur}
+                    />
+                    {field.state.meta.errors && field.state.meta.errors.length > 0 && (
+                      <p className="text-sm text-red-500">{field.state.meta.errors[0]}</p>
+                    )}
+                  </div>
+                )}
+              </contactForm.formInstance.Field>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="notes">Notes</Label>
-              <Textarea
-                id="notes"
-                placeholder="Additional notes about this contact..."
-                value={formData.notes || ""}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              />
-            </div>
+            {/* Notes */}
+            <contactForm.formInstance.Field name="notes">
+              {(field) => (
+                <div className="space-y-2">
+                  <Label htmlFor="notes">Notes</Label>
+                  <Textarea
+                    id="notes"
+                    placeholder="Additional notes about this contact..."
+                    value={field.state.value || ""}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    onBlur={field.handleBlur}
+                  />
+                </div>
+              )}
+            </contactForm.formInstance.Field>
 
             <div className="flex justify-end gap-3 pt-4">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setShowForm(false)
-                  resetForm()
-                }}
-              >
+              <Button type="button" variant="outline" onClick={contactForm.close}>
                 Cancel
               </Button>
-              <Button onClick={saveContact}>
-                {editingContact ? "Update" : "Add"} Contact
+              <Button type="submit" disabled={contactForm.isSubmitting}>
+                {contactForm.isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : contactForm.isEditing ? (
+                  "Update Contact"
+                ) : (
+                  "Add Contact"
+                )}
               </Button>
             </div>
-          </div>
+          </form>
         </DialogContent>
       </Dialog>
     </div>
