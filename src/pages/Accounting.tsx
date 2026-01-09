@@ -21,12 +21,6 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -41,6 +35,8 @@ import {
 } from "@/components/ui/tooltip"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { EditableTextCell, EditableCurrencyCell } from "@/components/editable-cells"
+import { useResourceForm } from "@/hooks/use-resource-form"
+import { ResourceDialog } from "@/components/resource-dialog"
 
 interface TrustAccountingEntry {
   id: string
@@ -125,16 +121,29 @@ const EXPENSE_TYPES = [
   { value: "OTHER", label: "Other Expense" },
 ]
 
+interface AccountingFormData {
+  accountingDate: string
+  entryType: string
+  incomeType: string
+  expenseType: string
+  amount: string
+  description: string
+  isPrincipal: boolean
+  taxDeductible: boolean
+  referenceNumber: string
+}
+
 export function Accounting() {
   const [entries, setEntries] = useState<TrustAccountingEntry[]>([])
   const [entities, setEntities] = useState<Entity[]>([])
   const [selectedEntity, setSelectedEntity] = useState<string>("")
   const [loading, setLoading] = useState(true)
-  const [showForm, setShowForm] = useState(false)
-  const [editingEntry, setEditingEntry] = useState<TrustAccountingEntry | null>(null)
   const [activeTab, setActiveTab] = useState("all")
-  const [formData, setFormData] = useState({
-    accountingDate: new Date().toISOString().split("T")[0],
+  const [generatingReport, setGeneratingReport] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+
+  const defaultFormData: AccountingFormData = {
+    accountingDate: new Date().toISOString().split("T")[0] || "",
     entryType: "INCOME",
     incomeType: "INTEREST",
     expenseType: "PROFESSIONAL_FEE",
@@ -143,8 +152,54 @@ export function Accounting() {
     isPrincipal: false,
     taxDeductible: false,
     referenceNumber: "",
+  }
+
+  const {
+    isOpen: isDialogOpen,
+    close: closeDialog,
+    form: entryForm,
+    setForm: setEntryForm,
+    handleEdit: handleEditEntry,
+    handleAdd: handleAddEntry,
+    handleSave: handleSaveEntry,
+    isSubmitting: isEntrySaving,
+    isEditing,
+  } = useResourceForm<AccountingFormData>({
+    initialData: defaultFormData,
+    onSubmit: async (data) => {
+      if (!selectedEntity) return
+      const payload = {
+        entityId: selectedEntity,
+        accountingDate: data.accountingDate,
+        entryType: data.entryType,
+        incomeType: data.entryType === "INCOME" ? data.incomeType : null,
+        expenseType: data.entryType === "EXPENSE" ? data.expenseType : null,
+        amount: data.amount,
+        description: data.description || null,
+        isPrincipal: data.isPrincipal,
+        taxDeductible: data.taxDeductible,
+        referenceNumber: data.referenceNumber || null,
+        fiscalYear: data.accountingDate
+          ? new Date(data.accountingDate).getFullYear()
+          : new Date().getFullYear(),
+      }
+      if (isEditing && editingId) {
+        await fetch(`/api/trust-accounting/${editingId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        })
+      } else {
+        await fetch("/api/trust-accounting", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        })
+      }
+      setEditingId(null)
+      fetchEntries(selectedEntity)
+    },
   })
-  const [generatingReport, setGeneratingReport] = useState(false)
 
   useEffect(() => {
     fetchEntities()
@@ -193,50 +248,6 @@ export function Accounting() {
     }
   }
 
-  const saveEntry = async () => {
-    if (!formData.amount || parseFloat(formData.amount) <= 0 || !selectedEntity) return
-
-    const payload = {
-      entityId: selectedEntity,
-      accountingDate: formData.accountingDate,
-      entryType: formData.entryType,
-      incomeType: formData.entryType === "INCOME" ? formData.incomeType : null,
-      expenseType: formData.entryType === "EXPENSE" ? formData.expenseType : null,
-      amount: formData.amount,
-      description: formData.description || null,
-      isPrincipal: formData.isPrincipal,
-      taxDeductible: formData.taxDeductible,
-      referenceNumber: formData.referenceNumber || null,
-      fiscalYear: formData.accountingDate
-        ? new Date(formData.accountingDate).getFullYear()
-        : new Date().getFullYear(),
-    }
-
-    try {
-      let res
-      if (editingEntry) {
-        res = await fetch(`/api/trust-accounting/${editingEntry.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        })
-      } else {
-        res = await fetch("/api/trust-accounting", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        })
-      }
-
-      if (res.ok) {
-        setShowForm(false)
-        resetForm()
-        fetchEntries(selectedEntity)
-      }
-    } catch (error) {
-      console.error("Failed to save entry:", error)
-    }
-  }
 
   const deleteEntry = async (id: string) => {
     if (!confirm("Are you sure you want to delete this entry?")) return
@@ -261,36 +272,6 @@ export function Accounting() {
     setEntries(entries.map((e) => (e.id === id ? { ...e, ...updates } : e)))
   }
 
-  const resetForm = () => {
-    setFormData({
-      accountingDate: new Date().toISOString().split("T")[0],
-      entryType: "INCOME",
-      incomeType: "INTEREST",
-      expenseType: "PROFESSIONAL_FEE",
-      amount: "",
-      description: "",
-      isPrincipal: false,
-      taxDeductible: false,
-      referenceNumber: "",
-    })
-    setEditingEntry(null)
-  }
-
-  const openEditForm = (entry: TrustAccountingEntry) => {
-    setEditingEntry(entry)
-    setFormData({
-      accountingDate: entry.accountingDate?.split("T")[0] || "",
-      entryType: entry.entryType,
-      incomeType: entry.incomeType || "INTEREST",
-      expenseType: entry.expenseType || "PROFESSIONAL_FEE",
-      amount: entry.amount,
-      description: entry.description || "",
-      isPrincipal: entry.isPrincipal,
-      taxDeductible: entry.taxDeductible,
-      referenceNumber: entry.referenceNumber || "",
-    })
-    setShowForm(true)
-  }
 
   // Calculate totals - Texas 113.152(2) requires categorization by principal and income
   const {
@@ -798,12 +779,7 @@ export function Accounting() {
             )}
             Export Report
           </Button>
-          <Button
-            onClick={() => {
-              resetForm()
-              setShowForm(true)
-            }}
-          >
+          <Button onClick={handleAddEntry}>
             <Plus className="mr-2 h-4 w-4" />
             Add Entry
           </Button>
@@ -1026,7 +1002,20 @@ export function Accounting() {
                                       variant="ghost"
                                       size="icon"
                                       className="h-8 w-8"
-                                      onClick={() => openEditForm(entry)}
+                                      onClick={() => {
+                                        setEditingId(entry.id)
+                                        handleEditEntry({
+                                          accountingDate: entry.accountingDate?.split("T")[0] || "",
+                                          entryType: entry.entryType,
+                                          incomeType: entry.incomeType || "INTEREST",
+                                          expenseType: entry.expenseType || "PROFESSIONAL_FEE",
+                                          amount: entry.amount,
+                                          description: entry.description || "",
+                                          isPrincipal: entry.isPrincipal,
+                                          taxDeductible: entry.taxDeductible,
+                                          referenceNumber: entry.referenceNumber || "",
+                                        })
+                                      }}
                                     >
                                       <Pencil className="h-4 w-4" />
                                     </Button>
@@ -1063,164 +1052,146 @@ export function Accounting() {
       </Card>
 
       {/* Entry Form Dialog */}
-      <Dialog
-        open={showForm}
-        onOpenChange={() => {
-          setShowForm(false)
-          resetForm()
-        }}
+      <ResourceDialog
+        open={isDialogOpen}
+        onOpenChange={closeDialog}
+        title={isEditing ? "Edit Entry" : "Add Entry"}
+        onSubmit={handleSaveEntry}
+        isLoading={isEntrySaving}
       >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{editingEntry ? "Edit Entry" : "Add Entry"}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="date">Date</Label>
-              <Input
-                id="date"
-                type="date"
-                value={formData.accountingDate}
-                onChange={(e) => setFormData({ ...formData, accountingDate: e.target.value })}
-              />
-            </div>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="date">Date</Label>
+            <Input
+              id="date"
+              type="date"
+              value={entryForm.accountingDate}
+              onChange={(e) => setEntryForm({ ...entryForm, accountingDate: e.target.value })}
+            />
+          </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="entryType">Entry Type</Label>
+            <Select
+              value={entryForm.entryType}
+              onValueChange={(v) => setEntryForm({ ...entryForm, entryType: v })}
+            >
+              <SelectTrigger id="entryType">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="INCOME">Income</SelectItem>
+                <SelectItem value="EXPENSE">Expense</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {entryForm.entryType === "INCOME" ? (
             <div className="space-y-2">
-              <Label htmlFor="entryType">Entry Type</Label>
+              <Label htmlFor="incomeType">Income Category</Label>
               <Select
-                value={formData.entryType}
-                onValueChange={(v) => setFormData({ ...formData, entryType: v })}
+                value={entryForm.incomeType}
+                onValueChange={(v) => setEntryForm({ ...entryForm, incomeType: v })}
               >
-                <SelectTrigger id="entryType">
+                <SelectTrigger id="incomeType">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="INCOME">Income</SelectItem>
-                  <SelectItem value="EXPENSE">Expense</SelectItem>
+                  {INCOME_TYPES.map((t) => (
+                    <SelectItem key={t.value} value={t.value}>
+                      {t.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
-
-            {formData.entryType === "INCOME" ? (
-              <div className="space-y-2">
-                <Label htmlFor="incomeType">Income Category</Label>
-                <Select
-                  value={formData.incomeType}
-                  onValueChange={(v) => setFormData({ ...formData, incomeType: v })}
-                >
-                  <SelectTrigger id="incomeType">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {INCOME_TYPES.map((t) => (
-                      <SelectItem key={t.value} value={t.value}>
-                        {t.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <Label htmlFor="expenseType">Expense Category</Label>
-                <Select
-                  value={formData.expenseType}
-                  onValueChange={(v) => setFormData({ ...formData, expenseType: v })}
-                >
-                  <SelectTrigger id="expenseType">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {EXPENSE_TYPES.map((t) => (
-                      <SelectItem key={t.value} value={t.value}>
-                        {t.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
+          ) : (
             <div className="space-y-2">
-              <Label htmlFor="amount">Amount</Label>
-              <Input
-                id="amount"
-                type="number"
-                value={formData.amount}
-                onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                placeholder="$0.00"
-              />
+              <Label htmlFor="expenseType">Expense Category</Label>
+              <Select
+                value={entryForm.expenseType}
+                onValueChange={(v) => setEntryForm({ ...entryForm, expenseType: v })}
+              >
+                <SelectTrigger id="expenseType">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {EXPENSE_TYPES.map((t) => (
+                    <SelectItem key={t.value} value={t.value}>
+                      {t.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
+          )}
 
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Enter description..."
-              />
+          <div className="space-y-2">
+            <Label htmlFor="amount">Amount</Label>
+            <Input
+              id="amount"
+              type="number"
+              value={entryForm.amount}
+              onChange={(e) => setEntryForm({ ...entryForm, amount: e.target.value })}
+              placeholder="$0.00"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="description">Description</Label>
+            <Textarea
+              id="description"
+              value={entryForm.description}
+              onChange={(e) => setEntryForm({ ...entryForm, description: e.target.value })}
+              placeholder="Enter description..."
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="reference">Reference Number</Label>
+            <Input
+              id="reference"
+              value={entryForm.referenceNumber}
+              onChange={(e) => setEntryForm({ ...entryForm, referenceNumber: e.target.value })}
+              placeholder="Check #, invoice #, etc."
+            />
+          </div>
+
+          <Separator />
+
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label htmlFor="isPrincipal">Principal (not income)</Label>
+              <p className="text-xs text-muted-foreground">
+                Mark if this is a return of principal, not taxable income
+              </p>
             </div>
+            <Switch
+              id="isPrincipal"
+              checked={entryForm.isPrincipal}
+              onCheckedChange={(checked) => setEntryForm({ ...entryForm, isPrincipal: checked })}
+            />
+          </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="reference">Reference Number</Label>
-              <Input
-                id="reference"
-                value={formData.referenceNumber}
-                onChange={(e) => setFormData({ ...formData, referenceNumber: e.target.value })}
-                placeholder="Check #, invoice #, etc."
-              />
-            </div>
-
-            <Separator />
-
+          {entryForm.entryType === "EXPENSE" && (
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label htmlFor="isPrincipal">Principal (not income)</Label>
+                <Label htmlFor="taxDeductible">Tax Deductible</Label>
                 <p className="text-xs text-muted-foreground">
-                  Mark if this is a return of principal, not taxable income
+                  Mark if this expense is deductible on Form 1041
                 </p>
               </div>
               <Switch
-                id="isPrincipal"
-                checked={formData.isPrincipal}
-                onCheckedChange={(checked) => setFormData({ ...formData, isPrincipal: checked })}
+                id="taxDeductible"
+                checked={entryForm.taxDeductible}
+                onCheckedChange={(checked) =>
+                  setEntryForm({ ...entryForm, taxDeductible: checked })
+                }
               />
             </div>
-
-            {formData.entryType === "EXPENSE" && (
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label htmlFor="taxDeductible">Tax Deductible</Label>
-                  <p className="text-xs text-muted-foreground">
-                    Mark if this expense is deductible on Form 1041
-                  </p>
-                </div>
-                <Switch
-                  id="taxDeductible"
-                  checked={formData.taxDeductible}
-                  onCheckedChange={(checked) =>
-                    setFormData({ ...formData, taxDeductible: checked })
-                  }
-                />
-              </div>
-            )}
-
-            <div className="flex justify-end gap-2 pt-4">
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  setShowForm(false)
-                  resetForm()
-                }}
-              >
-                Cancel
-              </Button>
-              <Button onClick={saveEntry}>{editingEntry ? "Update" : "Add"} Entry</Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+          )}
+        </div>
+      </ResourceDialog>
     </div>
   )
 }
