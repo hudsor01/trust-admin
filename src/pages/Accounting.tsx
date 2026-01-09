@@ -30,6 +30,13 @@ import { EditableTextCell, EditableCurrencyCell } from "@/components/editable-ce
 import { useResourceForm } from "@/hooks/use-resource-form"
 import { ResourceDialog } from "@/components/resource-dialog"
 import { DataTable, type ColumnDef } from "@/components/data-table"
+import { useEntities } from "@/hooks/entities/queries"
+import {
+  useTrustAccounting,
+  useCreateTrustAccounting,
+  useUpdateTrustAccounting,
+  useDeleteTrustAccounting,
+} from "@/hooks/trust-accounting/queries"
 
 interface TrustAccountingEntry {
   id: string
@@ -127,13 +134,18 @@ interface AccountingFormData {
 }
 
 export function Accounting() {
-  const [entries, setEntries] = useState<TrustAccountingEntry[]>([])
-  const [entities, setEntities] = useState<Entity[]>([])
+  // Use TanStack Query hooks
+  const { data: entities = [], isLoading: entitiesLoading } = useEntities()
   const [selectedEntity, setSelectedEntity] = useState<string>("")
-  const [loading, setLoading] = useState(true)
+  const { data: entries = [], isLoading: entriesLoading } = useTrustAccounting(selectedEntity || undefined)
+  const createEntryMutation = useCreateTrustAccounting()
+  const updateEntryMutation = useUpdateTrustAccounting()
+  const deleteEntryMutation = useDeleteTrustAccounting()
+
   const [activeTab, setActiveTab] = useState("all")
   const [generatingReport, setGeneratingReport] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const loading = entitiesLoading || entriesLoading
 
   const defaultFormData: AccountingFormData = {
     accountingDate: new Date().toISOString().split("T")[0] || "",
@@ -177,92 +189,33 @@ export function Accounting() {
           : new Date().getFullYear(),
       }
       if (isEditing && editingId) {
-        await fetch(`/api/trust-accounting/${editingId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        })
+        await updateEntryMutation.mutateAsync({ id: editingId, data: payload })
       } else {
-        await fetch("/api/trust-accounting", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        })
+        await createEntryMutation.mutateAsync(payload)
       }
       setEditingId(null)
-      fetchEntries(selectedEntity)
     },
   })
 
+  // Auto-select first entity when entities load
   useEffect(() => {
-    fetchEntities()
-  }, [])
-
-  useEffect(() => {
-    if (selectedEntity) {
-      fetchEntries(selectedEntity)
+    if (entities.length > 0 && !selectedEntity) {
+      setSelectedEntity(entities[0].id)
     }
-  }, [selectedEntity])
-
-  const fetchEntities = async () => {
-    try {
-      const res = await fetch("/api/entities")
-      if (res.ok) {
-        const data = await res.json()
-        const sorted = data.sort((a: Entity, b: Entity) => {
-          if (a.dod && !b.dod) return -1
-          if (!a.dod && b.dod) return 1
-          if (a.name.includes("Hudson") && !b.name.includes("Hudson")) return -1
-          if (!a.name.includes("Hudson") && b.name.includes("Hudson")) return 1
-          return 0
-        })
-        setEntities(sorted)
-        if (sorted.length > 0) {
-          setSelectedEntity(sorted[0].id)
-        }
-      }
-    } catch (error) {
-      console.error("Failed to fetch entities:", error)
-    }
-  }
-
-  const fetchEntries = async (entityId: string) => {
-    setLoading(true)
-    try {
-      const res = await fetch(`/api/trust-accounting?entityId=${entityId}`)
-      if (res.ok) {
-        const data = await res.json()
-        setEntries(data)
-      }
-    } catch (error) {
-      console.error("Failed to fetch entries:", error)
-    } finally {
-      setLoading(false)
-    }
-  }
+  }, [entities, selectedEntity])
 
 
   const deleteEntry = async (id: string) => {
     if (!confirm("Are you sure you want to delete this entry?")) return
-
     try {
-      const res = await fetch(`/api/trust-accounting/${id}`, { method: "DELETE" })
-      if (res.ok && selectedEntity) {
-        fetchEntries(selectedEntity)
-      }
+      await deleteEntryMutation.mutateAsync(id)
     } catch (error) {
       console.error("Failed to delete entry:", error)
     }
   }
 
   const updateEntry = async (id: string, updates: Partial<TrustAccountingEntry>) => {
-    const res = await fetch(`/api/trust-accounting/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(updates),
-    })
-    if (!res.ok) throw new Error("Failed to update")
-    setEntries(entries.map((e) => (e.id === id ? { ...e, ...updates } : e)))
+    await updateEntryMutation.mutateAsync({ id, data: updates })
   }
 
 
