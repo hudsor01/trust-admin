@@ -32,14 +32,22 @@ import {
 } from "@/components/ui/tooltip"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 
-// Import types and hooks from centralized location
+// Import types and hooks from TanStack Query hooks
+import { useEntities } from "@/hooks/entities/queries"
 import {
-  useEntities,
   useHomesteads,
-  useRentalProperties,
+  useCreateHomestead,
+  useUpdateHomestead,
+  useDeleteHomestead,
   type Homestead,
+} from "@/hooks/homesteads/queries"
+import {
+  useRentalProperties,
+  useCreateRentalProperty,
+  useUpdateRentalProperty,
+  useDeleteRentalProperty,
   type RentalProperty,
-} from "@/hooks"
+} from "@/hooks/rental-properties/queries"
 import { useResourceForm } from "@/hooks/use-resource-form"
 import { ResourceDialog } from "@/components/resource-dialog"
 import {
@@ -193,19 +201,16 @@ const defaultRentalForm: RentalFormData = {
 }
 
 export function Properties() {
-  // Use centralized hooks for data fetching
-  const { data: entities, loading: entitiesLoading } = useEntities()
+  // Use TanStack Query hooks for data fetching
+  const { data: entities = [], isLoading: entitiesLoading } = useEntities()
   const [selectedEntity, setSelectedEntity] = useState<string>("")
   const [activeTab, setActiveTab] = useState("homestead")
 
-  // Homestead hook
-  const {
-    data: homesteads,
-    loading: homesteadsLoading,
-    create: createHomestead,
-    update: updateHomestead,
-    remove: deleteHomestead,
-  } = useHomesteads(selectedEntity || undefined)
+  // Homestead hooks
+  const { data: homesteads = [], isLoading: homesteadsLoading } = useHomesteads(selectedEntity || undefined)
+  const createHomesteadMutation = useCreateHomestead()
+  const updateHomesteadMutation = useUpdateHomestead()
+  const deleteHomesteadMutation = useDeleteHomestead()
 
   // Track editing ID for Homestead
   const [editingHomesteadId, setEditingHomesteadId] = useState<string | null>(null)
@@ -255,9 +260,9 @@ export function Properties() {
       }
 
       if (isEditingHomestead && editingHomesteadId) {
-        await updateHomestead(editingHomesteadId, payload)
+        await updateHomesteadMutation.mutateAsync({ id: editingHomesteadId, data: payload)
       } else {
-        await createHomestead(payload)
+        await createHomesteadMutation.mutateAsync(payload)
       }
     },
   })
@@ -293,14 +298,11 @@ export function Properties() {
     })
   }
 
-  // Rental hook
-  const {
-    data: rentals,
-    loading: rentalsLoading,
-    create: createRental,
-    update: updateRental,
-    remove: deleteRental,
-  } = useRentalProperties(selectedEntity || undefined)
+  // Rental hooks
+  const { data: rentals = [], isLoading: rentalsLoading } = useRentalProperties(selectedEntity || undefined)
+  const createRentalMutation = useCreateRentalProperty()
+  const updateRentalMutation = useUpdateRentalProperty()
+  const deleteRentalMutation = useDeleteRentalProperty()
 
   // Track editing ID for Rental
   const [editingRentalId, setEditingRentalId] = useState<string | null>(null)
@@ -355,9 +357,9 @@ export function Properties() {
       }
 
       if (isEditingRental && editingRentalId) {
-        await updateRental(editingRentalId, payload)
+        await updateRentalMutation.mutateAsync({ id: editingRentalId, data: payload)
       } else {
-        await createRental(payload)
+        await createRentalMutation.mutateAsync(payload)
       }
     },
   })
@@ -410,7 +412,7 @@ export function Properties() {
   const handleDeleteHomestead = async (id: string) => {
     if (!confirm("Are you sure you want to delete this homestead?")) return
     try {
-      await deleteHomestead(id)
+      await deleteHomesteadMutation.mutateAsync(id)
     } catch (err) {
       console.error("Failed to delete homestead:", err)
     }
@@ -419,7 +421,7 @@ export function Properties() {
   const handleDeleteRental = async (id: string) => {
     if (!confirm("Are you sure you want to delete this rental property?")) return
     try {
-      await deleteRental(id)
+      await deleteRentalMutation.mutateAsync(id)
     } catch (err) {
       console.error("Failed to delete rental:", err)
     }
