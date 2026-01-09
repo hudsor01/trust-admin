@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import {
   AlertTriangle,
   Check,
@@ -37,71 +37,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Separator } from "@/components/ui/separator"
 import { formatDate, formatCurrency, calculateAge, getWithdrawalStatus } from "../utils/formatters"
-
-interface Task {
-  id: string
-  title: string
-  category: string
-  completed: boolean
-  notes: string | null
-  dueDate: string | null
-  sortOrder: number
-}
-
-interface Beneficiary {
-  id: string
-  firstName: string
-  lastName: string
-  relationshipType: string
-  sharePercent: string
-  dob: string | null
-  withdrawalAge1: number | null
-  withdrawalAge2: number | null
-  withdrawalPct1: number | null
-  withdrawalPct2: number | null
-  parentId: string | null
-}
-
-interface WithdrawalRecord {
-  id: string
-  beneficiaryId: string
-  withdrawalType: string
-  eligibleDate: string
-  eligibleAmount: string
-  withdrawnAmount: string | null
-  status: string
-}
-
-interface TrustAccountingEntry {
-  id: string
-  entryType: string
-  incomeType: string | null
-  expenseType: string | null
-  amount: string
-  description: string | null
-  isPrincipal: boolean
-  taxDeductible: boolean
-  accountingDate: string
-}
-
-interface HemsRequest {
-  id: string
-  beneficiaryId: string
-  category: string
-  amountRequested: string
-  status: string
-  createdAt: string
-}
-
-interface Entity {
-  id: string
-  name: string
-  grantorName: string | null
-  decedent: string | null
-  dod: string | null
-  trustType: string | null
-  status: string
-}
+import { useEntities } from "@/hooks/entities/queries"
+import { useBeneficiaries } from "@/hooks/beneficiaries/queries"
+import { useWithdrawalRecords } from "@/hooks/withdrawal-records/queries"
+import { useTrustAccounting } from "@/hooks/trust-accounting/queries"
+import { useHemsRequests } from "@/hooks/hems-requests/queries"
+import { useTasks, useCreateTask, useUpdateTask, type Task } from "@/hooks/tasks/queries"
 
 const CATEGORIES = [
   { value: "INVENTORY", label: "Inventory & Documentation" },
@@ -113,122 +54,35 @@ const CATEGORIES = [
 ]
 
 export function Dashboard() {
-  const [tasks, setTasks] = useState<Task[]>([])
-  const [beneficiaries, setBeneficiaries] = useState<Beneficiary[]>([])
-  const [withdrawalRecords, setWithdrawalRecords] = useState<WithdrawalRecord[]>([])
-  const [accountingEntries, setAccountingEntries] = useState<TrustAccountingEntry[]>([])
-  const [hemsRequests, setHemsRequests] = useState<HemsRequest[]>([])
-  const [entity, setEntity] = useState<Entity | null>(null)
-  const [loading, setLoading] = useState(true)
+  // Use TanStack Query hooks for all data
+  const { data: allEntities = [], isLoading: entitiesLoading } = useEntities()
+  const { data: tasks = [], isLoading: tasksLoading } = useTasks()
+  const { data: beneficiaries = [], isLoading: beneficiariesLoading } = useBeneficiaries()
+  const { data: withdrawalRecords = [], isLoading: withdrawalRecordsLoading } = useWithdrawalRecords()
+  const { data: accountingEntries = [], isLoading: accountingLoading } = useTrustAccounting()
+  const { data: hemsRequests = [], isLoading: hemsLoading } = useHemsRequests()
+
+  const createTaskMutation = useCreateTask()
+  const updateTaskMutation = useUpdateTask()
+
+  const loading = entitiesLoading || tasksLoading || beneficiariesLoading || withdrawalRecordsLoading || accountingLoading || hemsLoading
+  
+  // Get primary entity
+  const entity = allEntities.length > 0 ? allEntities[0] : null
+
+  // Local UI state
   const [newTaskTitle, setNewTaskTitle] = useState("")
   const [newTaskCategory, setNewTaskCategory] = useState("OTHER")
   const [expandedTask, setExpandedTask] = useState<string | null>(null)
 
-  useEffect(() => {
-    Promise.all([
-      fetchTasks(),
-      fetchBeneficiaries(),
-      fetchWithdrawalRecords(),
-      fetchAccountingEntries(),
-      fetchHemsRequests(),
-      fetchEntity(),
-    ]).finally(() => setLoading(false))
-  }, [])
-
-  const fetchTasks = async () => {
-    try {
-      const res = await fetch("/api/tasks")
-      if (res.ok) {
-        const data = await res.json()
-        setTasks(data)
-      }
-    } catch (error) {
-      console.error("Failed to fetch tasks:", error)
-    }
-  }
-
-  const fetchBeneficiaries = async () => {
-    try {
-      const res = await fetch("/api/beneficiaries")
-      if (res.ok) {
-        const data = await res.json()
-        setBeneficiaries(data)
-      }
-    } catch (error) {
-      console.error("Failed to fetch beneficiaries:", error)
-    }
-  }
-
-  const fetchWithdrawalRecords = async () => {
-    try {
-      const res = await fetch("/api/withdrawal-records")
-      if (res.ok) {
-        const data = await res.json()
-        setWithdrawalRecords(data)
-      }
-    } catch (error) {
-      console.error("Failed to fetch withdrawal records:", error)
-    }
-  }
-
-  const fetchAccountingEntries = async () => {
-    try {
-      const res = await fetch("/api/trust-accounting")
-      if (res.ok) {
-        const data = await res.json()
-        setAccountingEntries(data)
-      }
-    } catch (error) {
-      console.error("Failed to fetch accounting entries:", error)
-    }
-  }
-
-  const fetchHemsRequests = async () => {
-    try {
-      const res = await fetch("/api/hems-requests")
-      if (res.ok) {
-        const data = await res.json()
-        setHemsRequests(data)
-      }
-    } catch (error) {
-      console.error("Failed to fetch HEMS requests:", error)
-    }
-  }
-
-  const fetchEntity = async () => {
-    try {
-      const res = await fetch("/api/entities")
-      if (res.ok) {
-        const data = await res.json()
-        if (data.length > 0) {
-          const prioritized = data.sort((a: Entity, b: Entity) => {
-            if (a.dod && !b.dod) return -1
-            if (!a.dod && b.dod) return 1
-            if (a.name.includes("Hudson") && !b.name.includes("Hudson")) return -1
-            if (!a.name.includes("Hudson") && b.name.includes("Hudson")) return 1
-            return 0
-          })
-          setEntity(prioritized[0])
-        }
-      }
-    } catch (error) {
-      console.error("Failed to fetch entity:", error)
-    }
-  }
-
   const toggleTask = async (task: Task) => {
-    const updated = { ...task, completed: !task.completed }
-    setTasks(tasks.map(t => t.id === task.id ? updated : t))
-
     try {
-      await fetch(`/api/tasks/${task.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ completed: !task.completed }),
+      await updateTaskMutation.mutateAsync({
+        id: task.id,
+        data: { completed: !task.completed },
       })
     } catch (error) {
       console.error("Failed to update task:", error)
-      setTasks(tasks)
     }
   }
 
@@ -236,20 +90,12 @@ export function Dashboard() {
     if (!newTaskTitle.trim()) return
 
     try {
-      const res = await fetch("/api/tasks", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: newTaskTitle,
-          category: newTaskCategory,
-          sortOrder: tasks.length,
-        }),
+      await createTaskMutation.mutateAsync({
+        title: newTaskTitle,
+        category: newTaskCategory,
+        sortOrder: tasks.length,
       })
-      if (res.ok) {
-        const newTask = await res.json()
-        setTasks([...tasks, newTask])
-        setNewTaskTitle("")
-      }
+      setNewTaskTitle("")
     } catch (error) {
       console.error("Failed to add task:", error)
     }
@@ -257,12 +103,10 @@ export function Dashboard() {
 
   const updateTaskNotes = async (taskId: string, notes: string) => {
     try {
-      await fetch(`/api/tasks/${taskId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ notes }),
+      await updateTaskMutation.mutateAsync({
+        id: taskId,
+        data: { notes },
       })
-      setTasks(tasks.map(t => t.id === taskId ? { ...t, notes } : t))
     } catch (error) {
       console.error("Failed to update notes:", error)
     }
