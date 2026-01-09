@@ -57,16 +57,14 @@ export function createCrud<
      * Create a new record
      */
     async create(data: Insert): Promise<Select> {
-      const values: any = {
+      const values = {
         ...data,
         id: (data as any).id || generateId(),
+        ...(hasUpdatedAt && { updatedAt: new Date().toISOString() }),
       };
-      if (hasUpdatedAt) {
-        values.updatedAt = new Date().toISOString();
-      }
       const [created] = await db
-        .insert(table as any)
-        .values(values)
+        .insert(table)
+        .values(values as any)
         .returning();
       return created as Select;
     },
@@ -75,13 +73,13 @@ export function createCrud<
      * Update a record by ID
      */
     async update(id: string, data: Partial<Insert>): Promise<Select | undefined> {
-      const values: any = { ...data };
-      if (hasUpdatedAt) {
-        values.updatedAt = new Date().toISOString();
-      }
+      const values = {
+        ...data,
+        ...(hasUpdatedAt && { updatedAt: new Date().toISOString() }),
+      };
       const [updated] = await db
-        .update(table as any)
-        .set(values)
+        .update(table)
+        .set(values as any)
         .where(eq((table as any).id, id))
         .returning();
       return updated as Select | undefined;
@@ -92,7 +90,7 @@ export function createCrud<
      */
     async delete(id: string): Promise<Select | undefined> {
       const [deleted] = await db
-        .delete(table as any)
+        .delete(table)
         .where(eq((table as any).id, id))
         .returning();
       return deleted as Select | undefined;
