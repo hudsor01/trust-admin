@@ -143,7 +143,7 @@ const createBankAccountColumns = (
       <EditableTextCell
         value={account.accountName}
         onSave={async (val) => {
-          await updateBankAccountMutation.mutateAsync({ id: account.id, data: { accountName: val })
+          await updateBankAccountMutation.mutateAsync({ id: account.id, data: { accountName: val } })
         }}
       />
     ),
@@ -171,7 +171,7 @@ const createBankAccountColumns = (
       <EditableCurrencyCell
         value={account.dodValue}
         onSave={async (val) => {
-          await updateBankAccountMutation.mutateAsync({ id: account.id, data: { dodValue: val })
+          await updateBankAccountMutation.mutateAsync({ id: account.id, data: { dodValue: val } })
         }}
       />
     ),
@@ -185,7 +185,7 @@ const createBankAccountColumns = (
         options={ACCOUNT_STATUS}
         variants={STATUS_VARIANTS}
         onSave={async (val) => {
-          await updateBankAccountMutation.mutateAsync({ id: account.id, data: { status: val })
+          await updateBankAccountMutation.mutateAsync({ id: account.id, data: { status: val } })
         }}
       />
     ),
@@ -199,7 +199,7 @@ const createBankAccountColumns = (
         options={TRANSFER_STATUS}
         variants={STATUS_VARIANTS}
         onSave={async (val) => {
-          await updateBankAccountMutation.mutateAsync({ id: account.id, data: { transferStatus: val })
+          await updateBankAccountMutation.mutateAsync({ id: account.id, data: { transferStatus: val } })
         }}
       />
     ),
@@ -253,7 +253,7 @@ const createInvestmentAccountColumns = (
       <EditableTextCell
         value={account.accountName}
         onSave={async (val) => {
-          await updateInvestmentAccountMutation.mutateAsync({ id: account.id, data: { accountName: val })
+          await updateInvestmentAccountMutation.mutateAsync({ id: account.id, data: { accountName: val } })
         }}
       />
     ),
@@ -281,7 +281,7 @@ const createInvestmentAccountColumns = (
       <EditableCurrencyCell
         value={account.dodValue}
         onSave={async (val) => {
-          await updateInvestmentAccountMutation.mutateAsync({ id: account.id, data: { dodValue: val })
+          await updateInvestmentAccountMutation.mutateAsync({ id: account.id, data: { dodValue: val } })
         }}
       />
     ),
@@ -293,7 +293,7 @@ const createInvestmentAccountColumns = (
       <EditableCurrencyCell
         value={account.costBasis}
         onSave={async (val) => {
-          await updateInvestmentAccountMutation.mutateAsync({ id: account.id, data: { costBasis: val })
+          await updateInvestmentAccountMutation.mutateAsync({ id: account.id, data: { costBasis: val } })
         }}
       />
     ),
@@ -307,7 +307,7 @@ const createInvestmentAccountColumns = (
         options={ACCOUNT_STATUS}
         variants={STATUS_VARIANTS}
         onSave={async (val) => {
-          await updateInvestmentAccountMutation.mutateAsync({ id: account.id, data: { status: val })
+          await updateInvestmentAccountMutation.mutateAsync({ id: account.id, data: { status: val } })
         }}
       />
     ),
@@ -321,7 +321,7 @@ const createInvestmentAccountColumns = (
         options={TRANSFER_STATUS}
         variants={STATUS_VARIANTS}
         onSave={async (val) => {
-          await updateInvestmentAccountMutation.mutateAsync({ id: account.id, data: { transferStatus: val })
+          await updateInvestmentAccountMutation.mutateAsync({ id: account.id, data: { transferStatus: val } })
         }}
       />
     ),
