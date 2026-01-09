@@ -123,7 +123,7 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 07-01: Extract LiabilityDialog and PaymentDialog
+- [x] 07-01: Extract LiabilityDialog and PaymentDialog
 - [ ] 07-02: Extract LiabilityTable and refactor Liabilities page
 - [ ] 07-03: Extract AccountDialog and AccountTable
 - [ ] 07-04: Refactor Accounts page and verify both
@@ -186,7 +186,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 4. Component Extraction Patterns | 4/4 | ✅ Complete | 2026-01-09 |
 | 5. Properties Page Refactor | 3/3 | ✅ Complete | 2026-01-09 |
 | 6. Accounting Page Refactor | 3/3 | ✅ Complete | 2026-01-09 |
-| 7. Liabilities & Accounts Refactor | 0/4 | Not started | - |
+| 7. Liabilities & Accounts Refactor | 1/4 | 🔄 In Progress | - |
 | 8. Type Safety Improvements | 0/4 | Not started | - |
 | 9. Performance Optimization | 0/3 | Not started | - |
 | 10. Quality Verification | 0/3 | Not started | - |
