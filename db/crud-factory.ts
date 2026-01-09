@@ -61,11 +61,11 @@ export function createCrud<
         if (filterValue && filterColumn) {
           const results = await db
             .select()
-            .from(table as any)
-            .where(eq((table as any)[filterColumn], filterValue));
+            .from(table)
+            .where(eq(table[filterColumn as keyof T], filterValue));
           return results;
         }
-        const results = await db.select().from(table as any);
+        const results = await db.select().from(table);
         return results;
       }
 
@@ -78,13 +78,13 @@ export function createCrud<
         if (filterValue && filterColumn) {
           const countResult = await db
             .select({ count: sql<number>`count(*)` })
-            .from(table as any)
-            .where(eq((table as any)[filterColumn], filterValue));
+            .from(table)
+            .where(eq(table[filterColumn as keyof T], filterValue));
           totalCount = countResult[0] ? Number(countResult[0].count) : 0;
         } else {
           const countResult = await db
             .select({ count: sql<number>`count(*)` })
-            .from(table as any);
+            .from(table);
           totalCount = countResult[0] ? Number(countResult[0].count) : 0;
         }
       }
@@ -94,12 +94,12 @@ export function createCrud<
       if (filterValue && filterColumn) {
         const query = db
           .select()
-          .from(table as any)
-          .where(eq((table as any)[filterColumn], filterValue));
+          .from(table)
+          .where(eq(table[filterColumn as keyof T], filterValue));
 
         data = await (limit ? query.limit(limit).offset(offset) : query);
       } else {
-        const query = db.select().from(table as any);
+        const query = db.select().from(table);
         data = await (limit ? query.limit(limit).offset(offset) : query);
       }
 
@@ -118,8 +118,8 @@ export function createCrud<
     async getById(id: string): Promise<Select | undefined> {
       const results = await db
         .select()
-        .from(table as any)
-        .where(eq((table as any).id, id));
+        .from(table)
+        .where(eq(table.id, id));
       return results[0];
     },
 
@@ -129,11 +129,13 @@ export function createCrud<
     async create(data: Insert): Promise<Select> {
       const values = {
         ...data,
+        // Type cast needed: Insert type may not have id, but we need to access/generate it
         id: (data as any).id || generateId(),
         ...(hasUpdatedAt && { updatedAt: new Date().toISOString() }),
       };
       const [created] = await db
         .insert(table)
+        // Type cast needed: Drizzle expects exact Insert type, but we've added id/updatedAt
         .values(values as any)
         .returning();
       return created as Select;
@@ -149,8 +151,9 @@ export function createCrud<
       };
       const [updated] = await db
         .update(table)
+        // Type cast needed: Drizzle expects exact Update type, but we've added updatedAt
         .set(values as any)
-        .where(eq((table as any).id, id))
+        .where(eq(table.id, id))
         .returning();
       return updated as Select | undefined;
     },
@@ -161,7 +164,7 @@ export function createCrud<
     async delete(id: string): Promise<Select | undefined> {
       const [deleted] = await db
         .delete(table)
-        .where(eq((table as any).id, id))
+        .where(eq(table.id, id))
         .returning();
       return deleted as Select | undefined;
     },
