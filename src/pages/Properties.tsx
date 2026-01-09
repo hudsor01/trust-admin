@@ -712,122 +712,18 @@ export function Properties() {
               </Button>
             </div>
 
-            {rentals.length === 0 ? (
-              <Card>
-                <CardContent className="flex justify-center py-12">
-                  <p className="text-muted-foreground">
-                    No rental properties. Click Add to create one.
-                  </p>
-                </CardContent>
-              </Card>
-            ) : (
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="rounded-md border">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Name</TableHead>
-                          <TableHead>Address</TableHead>
-                          <TableHead>Units</TableHead>
-                          <TableHead>Monthly Rent</TableHead>
-                          <TableHead>DOD Value</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Transfer</TableHead>
-                          <TableHead className="w-[80px]">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {rentals.map((r) => (
-                          <TableRow key={r.id}>
-                            <TableCell>
-                              <EditableTextCell
-                                value={r.name}
-                                onSave={async (v) => updateRental(r.id, { name: v })}
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <p className="text-sm">{r.streetAddress}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {r.city}, {r.state} {r.zip}
-                              </p>
-                            </TableCell>
-                            <TableCell>
-                              <EditableNumberCell
-                                value={r.units}
-                                onSave={async (v) => updateRental(r.id, { units: v })}
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <EditableCurrencyCell
-                                value={r.monthlyRent}
-                                onSave={async (v) => updateRental(r.id, { monthlyRent: v })}
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <EditableCurrencyCell
-                                value={r.dodValue}
-                                onSave={async (v) => updateRental(r.id, { dodValue: v })}
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <EditableSelectCell
-                                value={r.rentalStatus}
-                                options={RENTAL_STATUS}
-                                onSave={async (v) => updateRental(r.id, { rentalStatus: v })}
-                                variants={STATUS_VARIANTS}
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <EditableSelectCell
-                                value={r.transferStatus}
-                                options={TRANSFER_STATUS}
-                                onSave={async (v) => updateRental(r.id, { transferStatus: v })}
-                                variants={STATUS_VARIANTS}
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex gap-1">
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-8 w-8"
-                                        onClick={() => handleEditRental(r)}
-                                      >
-                                        <Pencil className="h-4 w-4" />
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>Edit</TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-8 w-8 text-destructive hover:text-destructive"
-                                        onClick={() => handleDeleteRental(r.id)}
-                                      >
-                                        <Trash2 className="h-4 w-4" />
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>Delete</TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+            <Card>
+              <CardContent className="pt-6">
+                <DataTable
+                  data={rentals}
+                  columns={rentalColumns}
+                  onEdit={handleEditRental}
+                  onDelete={(r) => handleDeleteRental(r.id)}
+                  isLoading={rentalsLoading}
+                  emptyMessage="No rental properties. Click Add to create one."
+                />
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       )}
