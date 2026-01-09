@@ -53,15 +53,10 @@ const CONTACT_ROLES = [
 ]
 
 // Import hooks
-import {
-  useEntities,
-  useBeneficiaries,
-  useTrustees,
-  useContacts,
-  type Beneficiary,
-  type Trustee,
-  type Contact,
-} from "@/hooks"
+import { useEntities } from "@/hooks/entities/queries"
+import { useBeneficiaries, useUpdateBeneficiary } from "@/hooks/beneficiaries/queries"
+import { useTrustees, useUpdateTrustee } from "@/hooks/trustees/queries"
+import { useContacts, useCreateContact, useUpdateContact } from "@/hooks/contacts/queries"
 
 // Person row component for beneficiaries/trustees
 function PersonRow({
@@ -150,7 +145,7 @@ function ContactRow({
 }
 
 export function Settings() {
-  const { data: entities, loading: entitiesLoading } = useEntities()
+  const { data: entities = [], isLoading: entitiesLoading } = useEntities()
   const [selectedEntity, setSelectedEntity] = useState<string>("")
   const [activeTab, setActiveTab] = useState("beneficiaries")
 
@@ -161,24 +156,15 @@ export function Settings() {
     }
   }, [entities, selectedEntity])
 
-  const {
-    data: beneficiaries,
-    loading: beneficiariesLoading,
-    update: updateBeneficiary,
-  } = useBeneficiaries(selectedEntity || undefined)
+  const { data: beneficiaries = [], isLoading: beneficiariesLoading } = useBeneficiaries(selectedEntity || undefined)
+  const updateBeneficiaryMutation = useUpdateBeneficiary()
 
-  const {
-    data: trustees,
-    loading: trusteesLoading,
-    update: updateTrustee,
-  } = useTrustees(selectedEntity || undefined)
+  const { data: trustees = [], isLoading: trusteesLoading } = useTrustees(selectedEntity || undefined)
+  const updateTrusteeMutation = useUpdateTrustee()
 
-  const {
-    data: contacts,
-    loading: contactsLoading,
-    update: updateContact,
-    create: createContact,
-  } = useContacts()
+  const { data: contacts = [], isLoading: contactsLoading } = useContacts()
+  const updateContactMutation = useUpdateContact()
+  const createContactMutation = useCreateContact()
 
   // New contact form state
   const [showAddContact, setShowAddContact] = useState(false)
@@ -195,7 +181,7 @@ export function Settings() {
     if (!newContact.name.trim()) return
     setCreatingContact(true)
     try {
-      await createContact({
+      await createContactMutation.mutateAsync({
         name: newContact.name.trim(),
         company: newContact.company.trim() || null,
         role: newContact.role,
@@ -322,13 +308,13 @@ export function Settings() {
                           email={b.email}
                           phone={b.phone}
                           onUpdateDob={async (val) => {
-                            await updateBeneficiary(b.id, { dob: val })
+                            await updateBeneficiaryMutation.mutateAsync({ id: b.id, data: { dob: val } })
                           }}
                           onUpdateEmail={async (val) => {
-                            await updateBeneficiary(b.id, { email: val })
+                            await updateBeneficiaryMutation.mutateAsync({ id: b.id, data: { email: val } })
                           }}
                           onUpdatePhone={async (val) => {
-                            await updateBeneficiary(b.id, { phone: val })
+                            await updateBeneficiaryMutation.mutateAsync({ id: b.id, data: { phone: val } })
                           }}
                         />
                       ))}
@@ -367,13 +353,13 @@ export function Settings() {
                           email={t.email}
                           phone={t.phone}
                           onUpdateDob={async (val) => {
-                            await updateTrustee(t.id, { dob: val })
+                            await updateTrusteeMutation.mutateAsync({ id: t.id, data: { dob: val } })
                           }}
                           onUpdateEmail={async (val) => {
-                            await updateTrustee(t.id, { email: val })
+                            await updateTrusteeMutation.mutateAsync({ id: t.id, data: { email: val } })
                           }}
                           onUpdatePhone={async (val) => {
-                            await updateTrustee(t.id, { phone: val })
+                            await updateTrusteeMutation.mutateAsync({ id: t.id, data: { phone: val } })
                           }}
                         />
                       ))}
@@ -500,10 +486,10 @@ export function Settings() {
                             email={c.email}
                             phone={c.phone}
                             onUpdateEmail={async (val) => {
-                              await updateContact(c.id, { email: val })
+                              await updateContactMutation.mutateAsync({ id: c.id, data: { email: val } })
                             }}
                             onUpdatePhone={async (val) => {
-                              await updateContact(c.id, { phone: val })
+                              await updateContactMutation.mutateAsync({ id: c.id, data: { phone: val } })
                             }}
                           />
                         ))}
