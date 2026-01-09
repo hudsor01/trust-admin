@@ -38,36 +38,17 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useEntities } from "@/hooks"
+import { useEntities } from "@/hooks/entities/queries"
+import {
+  useHemsRequests,
+  useApproveHemsRequest,
+  useDenyHemsRequest,
+  type HemsRequest as HemsRequestType,
+} from "@/hooks/hems-requests/queries"
 import { formatCurrency, formatDate } from "@/utils/formatters"
 import { STATUS_VARIANTS } from "@/lib/constants"
 
-interface Beneficiary {
-  id: string
-  firstName: string
-  lastName: string
-  email?: string
-  sharePercent?: string
-}
-
-interface HemsRequest {
-  id: string
-  beneficiaryId: string
-  entityId: string
-  category: string
-  amountRequested: string
-  justification: string
-  supportingDocPath?: string
-  status: string
-  reviewedBy?: string
-  reviewedAt?: string
-  reviewNotes?: string
-  approvedAmount?: string
-  distributionId?: string
-  createdAt: string
-  updatedAt: string
-  beneficiary: Beneficiary
-}
+// Interfaces imported from hooks
 
 const CATEGORY_LABELS: Record<string, string> = {
   HEALTH: "Health",
@@ -87,41 +68,22 @@ const STATUS_LABELS: Record<string, string> = {
 }
 
 export function HemsQueue() {
-  const { data: entities, loading: entitiesLoading } = useEntities()
+  const { data: entities = [], isLoading: entitiesLoading } = useEntities()
   const [selectedEntity, setSelectedEntity] = useState<string | null>(null)
-  const [requests, setRequests] = useState<HemsRequest[]>([])
-  const [loading, setLoading] = useState(false)
+  const { data: requests = [], isLoading: requestsLoading } = useHemsRequests(undefined, selectedEntity || undefined)
+  const approveRequestMutation = useApproveHemsRequest()
+  const denyRequestMutation = useDenyHemsRequest()
+
+  const loading = entitiesLoading || requestsLoading
   const [activeTab, setActiveTab] = useState("pending")
 
   // Review dialog state
-  const [reviewingRequest, setReviewingRequest] = useState<HemsRequest | null>(null)
+  const [reviewingRequest, setReviewingRequest] = useState<HemsRequestType | null>(null)
   const [approvedAmount, setApprovedAmount] = useState("")
   const [reviewNotes, setReviewNotes] = useState("")
   const [submitting, setSubmitting] = useState(false)
 
-  // Fetch requests when entity changes
-  const fetchRequests = async (entityId?: string) => {
-    setLoading(true)
-    try {
-      const url = entityId
-        ? `/api/hems-requests?entityId=${entityId}`
-        : "/api/hems-requests"
-      const res = await fetch(url)
-      if (res.ok) {
-        const data = await res.json()
-        setRequests(data)
-      }
-    } catch (err) {
-      console.error("Failed to fetch HEMS requests:", err)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // Initial load
-  useState(() => {
-    fetchRequests()
-  })
+  // No need for manual fetch - TanStack Query handles it automatically
 
   // Filter requests by status
   const pendingRequests = useMemo(
@@ -147,18 +109,12 @@ export function HemsQueue() {
     if (!reviewingRequest) return
     setSubmitting(true)
     try {
-      const res = await fetch(`/api/hems-requests/${reviewingRequest.id}/approve`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          approvedAmount,
-          reviewNotes,
-        }),
+      await approveRequestMutation.mutateAsync({
+        id: reviewingRequest.id,
+        approvedAmount,
+        reviewNotes,
       })
-      if (res.ok) {
-        await fetchRequests(selectedEntity || undefined)
-        setReviewingRequest(null)
-      }
+      setReviewingRequest(null)
     } catch (err) {
       console.error("Failed to approve request:", err)
     } finally {
@@ -171,15 +127,11 @@ export function HemsQueue() {
     if (!reviewingRequest) return
     setSubmitting(true)
     try {
-      const res = await fetch(`/api/hems-requests/${reviewingRequest.id}/deny`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reviewNotes }),
+      await denyRequestMutation.mutateAsync({
+        id: reviewingRequest.id,
+        reviewNotes,
       })
-      if (res.ok) {
-        await fetchRequests(selectedEntity || undefined)
-        setReviewingRequest(null)
-      }
+      setReviewingRequest(null)
     } catch (err) {
       console.error("Failed to deny request:", err)
     } finally {
@@ -210,7 +162,6 @@ export function HemsQueue() {
           onValueChange={(val) => {
             const entityId = val === "all" ? null : val
             setSelectedEntity(entityId)
-            fetchRequests(entityId || undefined)
           }}
         >
           <SelectTrigger className="w-[280px]">
