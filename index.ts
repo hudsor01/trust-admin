@@ -12,7 +12,7 @@ import { and, eq, isNotNull, lte, asc } from "drizzle-orm";
 import type { PgTable, TableConfig } from "drizzle-orm/pg-core";
 import type { ZodSchema } from "zod";
 import { db } from "./db";
-import { task, trustee } from "./db/schema";
+import { entity, liability, task, trustee } from "./db/schema";
 import type {
   Entity,
   Beneficiary,
@@ -251,7 +251,7 @@ function createRouteHandler(config: RouteConfig) {
           await validateReferences(validated as Record<string, unknown>, references);
         }
 
-        const item = await crud.update(id, validated);
+        const item = await crud.update(id, validated as any);
         if (!item) throw ApiError.notFound(name, id);
         return json(item);
       } catch (error) {
@@ -293,12 +293,12 @@ const scheduleRef = { field: "scheduleId", name: "fee schedule", getById: truste
 
 const resources: Record<string, RouteConfig> = {
   "entities": {
-    crud: entityCrud as any,
+    crud: entityCrud,
     name: "Entity",
     customGetById: getEntityById,
     insertSchema: insertEntitySchema,
     updateSchema: updateEntitySchema,
-  },
+  } satisfies ResourceConfig<typeof entity>,
   "beneficiaries": {
     crud: beneficiaryCrud as any,
     name: "Beneficiary",
@@ -314,11 +314,11 @@ const resources: Record<string, RouteConfig> = {
     updateSchema: updateContactSchema,
   },
   "tasks": {
-    crud: taskCrud as any,
+    crud: taskCrud,
     name: "Task",
     insertSchema: insertTaskSchema,
     updateSchema: updateTaskSchema,
-  },
+  } satisfies ResourceConfig<typeof task>,
   "vehicles": {
     crud: vehicleCrud as any,
     name: "Vehicle",
@@ -413,13 +413,13 @@ const resources: Record<string, RouteConfig> = {
   },
   // Texas 113.152(5) - Liabilities
   "liabilities": {
-    crud: liabilityCrud as any,
+    crud: liabilityCrud,
     name: "Liability",
     filterParam: "entityId",
     insertSchema: insertLiabilitySchema,
     updateSchema: updateLiabilitySchema,
     references: [entityRef],
-  },
+  } satisfies ResourceConfig<typeof liability>,
   "liability-payments": {
     crud: liabilityPaymentCrud as any,
     name: "Payment",
