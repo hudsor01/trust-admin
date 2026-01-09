@@ -419,7 +419,7 @@ export function Vehicles() {
                         onBlur={field.handleBlur}
                       />
                       {field.state.meta.errors && field.state.meta.errors.length > 0 && (
-                        <p className="text-sm text-red-500">{field.state.meta.errors[0]}</p>
+                        <p className="text-sm text-red-500">{field.state.meta.errors[0]?.message || field.state.meta.errors[0]}</p>
                       )}
                     </div>
                   )}
@@ -436,7 +436,7 @@ export function Vehicles() {
                         onBlur={field.handleBlur}
                       />
                       {field.state.meta.errors && field.state.meta.errors.length > 0 && (
-                        <p className="text-sm text-red-500">{field.state.meta.errors[0]}</p>
+                        <p className="text-sm text-red-500">{field.state.meta.errors[0]?.message || field.state.meta.errors[0]}</p>
                       )}
                     </div>
                   )}
@@ -453,7 +453,7 @@ export function Vehicles() {
                         onBlur={field.handleBlur}
                       />
                       {field.state.meta.errors && field.state.meta.errors.length > 0 && (
-                        <p className="text-sm text-red-500">{field.state.meta.errors[0]}</p>
+                        <p className="text-sm text-red-500">{field.state.meta.errors[0]?.message || field.state.meta.errors[0]}</p>
                       )}
                     </div>
                   )}
@@ -472,7 +472,7 @@ export function Vehicles() {
                         onBlur={field.handleBlur}
                       />
                       {field.state.meta.errors && field.state.meta.errors.length > 0 && (
-                        <p className="text-sm text-red-500">{field.state.meta.errors[0]}</p>
+                        <p className="text-sm text-red-500">{field.state.meta.errors[0]?.message || field.state.meta.errors[0]}</p>
                       )}
                     </div>
                   )}
@@ -488,7 +488,7 @@ export function Vehicles() {
                         onBlur={field.handleBlur}
                       />
                       {field.state.meta.errors && field.state.meta.errors.length > 0 && (
-                        <p className="text-sm text-red-500">{field.state.meta.errors[0]}</p>
+                        <p className="text-sm text-red-500">{field.state.meta.errors[0]?.message || field.state.meta.errors[0]}</p>
                       )}
                     </div>
                   )}
@@ -506,7 +506,7 @@ export function Vehicles() {
                         onBlur={field.handleBlur}
                       />
                       {field.state.meta.errors && field.state.meta.errors.length > 0 && (
-                        <p className="text-sm text-red-500">{field.state.meta.errors[0]}</p>
+                        <p className="text-sm text-red-500">{field.state.meta.errors[0]?.message || field.state.meta.errors[0]}</p>
                       )}
                     </div>
                   )}
@@ -523,7 +523,7 @@ export function Vehicles() {
                         onBlur={field.handleBlur}
                       />
                       {field.state.meta.errors && field.state.meta.errors.length > 0 && (
-                        <p className="text-sm text-red-500">{field.state.meta.errors[0]}</p>
+                        <p className="text-sm text-red-500">{field.state.meta.errors[0]?.message || field.state.meta.errors[0]}</p>
                       )}
                     </div>
                   )}
@@ -548,7 +548,7 @@ export function Vehicles() {
                         </SelectContent>
                       </Select>
                       {field.state.meta.errors && field.state.meta.errors.length > 0 && (
-                        <p className="text-sm text-red-500">{field.state.meta.errors[0]}</p>
+                        <p className="text-sm text-red-500">{field.state.meta.errors[0]?.message || field.state.meta.errors[0]}</p>
                       )}
                     </div>
                   )}
@@ -572,7 +572,7 @@ export function Vehicles() {
                         onBlur={field.handleBlur}
                       />
                       {field.state.meta.errors && field.state.meta.errors.length > 0 && (
-                        <p className="text-sm text-red-500">{field.state.meta.errors[0]}</p>
+                        <p className="text-sm text-red-500">{field.state.meta.errors[0]?.message || field.state.meta.errors[0]}</p>
                       )}
                     </div>
                   )}
@@ -589,7 +589,7 @@ export function Vehicles() {
                         onBlur={field.handleBlur}
                       />
                       {field.state.meta.errors && field.state.meta.errors.length > 0 && (
-                        <p className="text-sm text-red-500">{field.state.meta.errors[0]}</p>
+                        <p className="text-sm text-red-500">{field.state.meta.errors[0]?.message || field.state.meta.errors[0]}</p>
                       )}
                     </div>
                   )}
@@ -613,7 +613,7 @@ export function Vehicles() {
                         onBlur={field.handleBlur}
                       />
                       {field.state.meta.errors && field.state.meta.errors.length > 0 && (
-                        <p className="text-sm text-red-500">{field.state.meta.errors[0]}</p>
+                        <p className="text-sm text-red-500">{field.state.meta.errors[0]?.message || field.state.meta.errors[0]}</p>
                       )}
                     </div>
                   )}
@@ -630,7 +630,7 @@ export function Vehicles() {
                         onBlur={field.handleBlur}
                       />
                       {field.state.meta.errors && field.state.meta.errors.length > 0 && (
-                        <p className="text-sm text-red-500">{field.state.meta.errors[0]}</p>
+                        <p className="text-sm text-red-500">{field.state.meta.errors[0]?.message || field.state.meta.errors[0]}</p>
                       )}
                     </div>
                   )}
@@ -655,7 +655,7 @@ export function Vehicles() {
                         </SelectContent>
                       </Select>
                       {field.state.meta.errors && field.state.meta.errors.length > 0 && (
-                        <p className="text-sm text-red-500">{field.state.meta.errors[0]}</p>
+                        <p className="text-sm text-red-500">{field.state.meta.errors[0]?.message || field.state.meta.errors[0]}</p>
                       )}
                     </div>
                   )}
@@ -687,7 +687,7 @@ export function Vehicles() {
                         </SelectContent>
                       </Select>
                       {field.state.meta.errors && field.state.meta.errors.length > 0 && (
-                        <p className="text-sm text-red-500">{field.state.meta.errors[0]}</p>
+                        <p className="text-sm text-red-500">{field.state.meta.errors[0]?.message || field.state.meta.errors[0]}</p>
                       )}
                     </div>
                   )}
@@ -712,7 +712,7 @@ export function Vehicles() {
                         </SelectContent>
                       </Select>
                       {field.state.meta.errors && field.state.meta.errors.length > 0 && (
-                        <p className="text-sm text-red-500">{field.state.meta.errors[0]}</p>
+                        <p className="text-sm text-red-500">{field.state.meta.errors[0]?.message || field.state.meta.errors[0]}</p>
                       )}
                     </div>
                   )}
@@ -733,7 +733,7 @@ export function Vehicles() {
                     rows={3}
                   />
                   {field.state.meta.errors && field.state.meta.errors.length > 0 && (
-                    <p className="text-sm text-red-500">{field.state.meta.errors[0]}</p>
+                    <p className="text-sm text-red-500">{field.state.meta.errors[0]?.message || field.state.meta.errors[0]}</p>
                   )}
                 </div>
               )}
