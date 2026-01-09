@@ -40,7 +40,17 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { useEntities, useBeneficiaries } from "@/hooks"
+import { useEntities } from "@/hooks/entities/queries"
+import { useBeneficiaries } from "@/hooks/beneficiaries/queries"
+import { useTrustAccounting } from "@/hooks/trust-accounting/queries"
+import { useCreateDistribution } from "@/hooks/distributions/queries"
+import { useBankAccounts } from "@/hooks/bank-accounts/queries"
+import { useInvestmentAccounts } from "@/hooks/investment-accounts/queries"
+import { useHomesteads } from "@/hooks/homesteads/queries"
+import { useRentalProperties } from "@/hooks/rental-properties/queries"
+import { useVehicles } from "@/hooks/vehicles/queries"
+import { useArtwork } from "@/hooks/artwork/queries"
+import { usePersonalProperty } from "@/hooks/personal-property/queries"
 import { formatCurrency, formatPercent } from "@/utils/formatters"
 import {
   calculateDistribution,
@@ -57,10 +67,19 @@ interface PeriodData {
 }
 
 export function DistributionWizard() {
-  const { data: entities, loading: entitiesLoading } = useEntities()
+  const { data: entities = [], isLoading: entitiesLoading } = useEntities()
 
   const [selectedEntity, setSelectedEntity] = useState<string | null>(null)
-  const { data: beneficiariesRaw } = useBeneficiaries(selectedEntity ?? undefined)
+  const { data: beneficiariesRaw = [] } = useBeneficiaries(selectedEntity ?? undefined)
+  const { data: trustAccounting = [] } = useTrustAccounting(selectedEntity ?? undefined)
+  const { data: bankAccounts = [] } = useBankAccounts(selectedEntity ?? undefined)
+  const { data: investmentAccounts = [] } = useInvestmentAccounts(selectedEntity ?? undefined)
+  const { data: homesteads = [] } = useHomesteads(selectedEntity ?? undefined)
+  const { data: rentalProperties = [] } = useRentalProperties(selectedEntity ?? undefined)
+  const { data: vehicles = [] } = useVehicles(selectedEntity ?? undefined)
+  const { data: artwork = [] } = useArtwork(selectedEntity ?? undefined)
+  const { data: personalProperty = [] } = usePersonalProperty(selectedEntity ?? undefined)
+  const createDistributionMutation = useCreateDistribution()
 
   // Map to distribution calculator format
   const beneficiaries: Beneficiary[] = useMemo(() => {
@@ -95,62 +114,45 @@ export function DistributionWizard() {
   const [calculation, setCalculation] = useState<DistributionCalculation | null>(null)
 
   // Function to calculate auto-values from accounting records
-  const calculateAutoValues = async () => {
+  const calculateAutoValues = () => {
     if (!selectedEntity) return
 
     setLoadingAutoValues(true)
 
     try {
-      // Fetch trust accounting entries for the selected entity
-      const response = await fetch(`/api/trust-accounting?entityId=${selectedEntity}`)
-      if (!response.ok) {
-        throw new Error("Failed to fetch accounting records")
-      }
-
-      const entries = await response.json()
-
       // Calculate gross income (sum of all income entries)
-      const incomeEntries = entries.filter((entry: any) => entry.entryType === "INCOME")
-      const grossIncomeSum = incomeEntries.reduce((sum: number, entry: any) => {
-        return sum + parseFloat(entry.amount || "0")
-      }, 0)
+      const grossIncomeSum = trustAccounting
+        .filter((entry) => entry.entryType === "INCOME")
+        .reduce((sum, entry) => sum + parseFloat(entry.amount || "0"), 0)
 
       // Calculate total expenses (sum of all expense entries)
-      const expenseEntries = entries.filter((entry: any) => entry.entryType === "EXPENSE")
-      const expenseSum = expenseEntries.reduce((sum: number, entry: any) => {
-        return sum + parseFloat(entry.amount || "0")
-      }, 0)
+      const expenseSum = trustAccounting
+        .filter((entry) => entry.entryType === "EXPENSE")
+        .reduce((sum, entry) => sum + parseFloat(entry.amount || "0"), 0)
 
       // Calculate trust asset value (sum of all assets)
       let totalAssets = 0
 
-      // Process each asset type
-      const assetTypes = [
-        { endpoint: `/api/bank-accounts?entityId=${selectedEntity}`, valueField: 'currentBalance' },
-        { endpoint: `/api/investment-accounts?entityId=${selectedEntity}`, valueField: 'currentBalance' },
-        { endpoint: `/api/homesteads?entityId=${selectedEntity}`, valueField: 'dodValue' },
-        { endpoint: `/api/rental-properties?entityId=${selectedEntity}`, valueField: 'dodValue' },
-        { endpoint: `/api/vehicles?entityId=${selectedEntity}`, valueField: 'dodValue' },
-        { endpoint: `/api/artwork?entityId=${selectedEntity}`, valueField: 'dodValue' },
-        { endpoint: `/api/personal-property?entityId=${selectedEntity}`, valueField: 'dodValue' },
-      ]
+      // Sum bank accounts
+      totalAssets += bankAccounts.reduce((sum, a) => sum + parseFloat(a.currentBalance || "0"), 0)
 
-      for (const assetType of assetTypes) {
-        try {
-          const response = await fetch(assetType.endpoint)
-          if (response.ok) {
-            const data = await response.json()
-            for (const asset of data) {
-              const value = parseFloat(asset[assetType.valueField] || "0")
-              if (!isNaN(value)) {
-                totalAssets += value
-              }
-            }
-          }
-        } catch (error) {
-          console.error(`Error fetching ${assetType.endpoint}:`, error)
-        }
-      }
+      // Sum investment accounts
+      totalAssets += investmentAccounts.reduce((sum, a) => sum + parseFloat(a.currentBalance || "0"), 0)
+
+      // Sum homesteads
+      totalAssets += homesteads.reduce((sum, a) => sum + parseFloat(a.dodValue || "0"), 0)
+
+      // Sum rental properties
+      totalAssets += rentalProperties.reduce((sum, a) => sum + parseFloat(a.dodValue || "0"), 0)
+
+      // Sum vehicles
+      totalAssets += vehicles.reduce((sum, a) => sum + parseFloat(a.dodValue || "0"), 0)
+
+      // Sum artwork
+      totalAssets += artwork.reduce((sum, a) => sum + parseFloat(a.dodValue || "0"), 0)
+
+      // Sum personal property
+      totalAssets += personalProperty.reduce((sum, a) => sum + parseFloat(a.dodValue || "0"), 0)
 
       setAutoGrossIncome(grossIncomeSum)
       setAutoTotalExpenses(expenseSum)
@@ -243,17 +245,9 @@ export function DistributionWizard() {
           notes: `Share distribution (${share.sharePercent}%)`,
         }))
 
-      // Post each distribution
+      // Post each distribution using the mutation
       for (const dist of distributions) {
-        const res = await fetch("/api/distributions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(dist),
-        })
-
-        if (!res.ok) {
-          throw new Error(`Failed to create distribution for ${dist.beneficiaryId}`)
-        }
+        await createDistributionMutation.mutateAsync(dist)
       }
 
       setStep("complete")
