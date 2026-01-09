@@ -41,8 +41,15 @@ import {
   EditableSelectCell,
 } from "@/components/editable-cells"
 
-// Import hooks and form factory
-import { useEntities, useVehicles, type Vehicle } from "@/hooks"
+// Import TanStack Query hooks
+import { useEntities } from "@/hooks/queries/useEntities"
+import {
+  useVehicles,
+  useCreateVehicle,
+  useUpdateVehicle,
+  useDeleteVehicle,
+  type Vehicle
+} from "@/hooks/queries/useVehicles"
 import { vehicleFormDefaults, toDateInput } from "@/lib/form-factory"
 import { TRANSFER_STATUS, DOD_VALUE_TYPES, STATUS_VARIANTS } from "@/lib/constants"
 
@@ -68,16 +75,15 @@ const ASSET_STATUS = [
 // =============================================================================
 
 export function Vehicles() {
-  // Use query hooks instead of manual fetch
-  const { data: entities, loading: entitiesLoading } = useEntities()
+  // Use TanStack Query hooks
+  const { data: entities = [], isLoading: entitiesLoading } = useEntities()
   const [selectedEntity, setSelectedEntity] = useState<string | null>(null)
-  const {
-    data: vehicles,
-    loading: vehiclesLoading,
-    update: updateVehicle,
-    create: createVehicle,
-    remove: deleteVehicle,
-  } = useVehicles(selectedEntity || undefined)
+  const { data: vehicles = [], isLoading: vehiclesLoading } = useVehicles(selectedEntity || undefined)
+
+  // Mutation hooks
+  const createVehicleMutation = useCreateVehicle()
+  const updateVehicleMutation = useUpdateVehicle()
+  const deleteVehicleMutation = useDeleteVehicle()
 
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState<Vehicle | null>(null)
@@ -147,12 +153,13 @@ export function Vehicles() {
 
     try {
       if (editing) {
-        await updateVehicle(editing.id, payload)
+        await updateVehicleMutation.mutateAsync({ id: editing.id, data: payload })
       } else {
-        await createVehicle(payload)
+        await createVehicleMutation.mutateAsync(payload)
       }
       setShowForm(false)
     } catch (err) {
+      // Error already handled by mutation hooks
       console.error("Failed to save vehicle:", err)
     }
   }
@@ -160,14 +167,20 @@ export function Vehicles() {
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this vehicle?")) return
     try {
-      await deleteVehicle(id)
+      await deleteVehicleMutation.mutateAsync(id)
     } catch (err) {
+      // Error already handled by mutation hooks
       console.error("Failed to delete vehicle:", err)
     }
   }
 
   const handleInlineUpdate = async (id: string, updates: Partial<Vehicle>) => {
-    await updateVehicle(id, updates)
+    try {
+      await updateVehicleMutation.mutateAsync({ id, data: updates })
+    } catch (err) {
+      // Error already handled by mutation hooks
+      console.error("Failed to update vehicle:", err)
+    }
   }
 
   if (entitiesLoading) {
