@@ -50,6 +50,8 @@ import {
   EditableSelectCell,
 } from "@/components/editable-cells"
 import { STATUS_VARIANTS } from "@/lib/constants"
+import { useResourceForm } from "@/hooks/use-resource-form"
+import { ResourceDialog } from "@/components/resource-dialog"
 
 const LIABILITY_TYPES = [
   { value: "MORTGAGE", label: "Mortgage" },
@@ -155,15 +157,101 @@ export function Liabilities() {
     remove: deleteLiability,
   } = useLiabilities(selectedEntity || undefined)
 
-  const [showForm, setShowForm] = useState(false)
-  const [editing, setEditing] = useState<Liability | null>(null)
-  const [form, setForm] = useState(defaultFormData())
+  const [editingLiabilityId, setEditingLiabilityId] = useState<string | null>(null)
 
-  // Payment recording state
-  const [showPaymentForm, setShowPaymentForm] = useState(false)
-  const [payingLiability, setPayingLiability] = useState<Liability | null>(null)
-  const [paymentForm, setPaymentForm] = useState(defaultPaymentForm())
-  const [recordingPayment, setRecordingPayment] = useState(false)
+  const {
+    isOpen: isLiabilityOpen,
+    close: closeLiability,
+    form: liabilityForm,
+    setForm,
+    handleEdit: handleEditLiabilityForm,
+    handleAdd: handleAddLiability,
+    handleSave: handleSaveLiability,
+    isSubmitting: isLiabilitySaving,
+    isEditing: isEditingLiability,
+  } = useResourceForm<LiabilityFormData>({
+    initialData: defaultFormData(),
+    onSubmit: async (data) => {
+      if (!selectedEntity) return
+      const payload = {
+        entityId: selectedEntity,
+        liabilityType: data.liabilityType,
+        creditor: data.creditor,
+        description: data.description || null,
+        originalAmount: parseFloat(data.originalAmount) || 0,
+        currentBalance: parseFloat(data.currentBalance) || 0,
+        currentBalanceDate: data.currentBalanceDate || null,
+        interestRate: parseFloat(data.interestRate) || null,
+        monthlyPayment: parseFloat(data.monthlyPayment) || null,
+        dueDate: data.dueDate || null,
+        paymentDueDay: parseInt(data.paymentDueDay) || null,
+        allocationClass: data.allocationClass as "PRINCIPAL" | "INCOME",
+        status: data.status,
+        notes: data.notes || null,
+      }
+      if (isEditingLiability && editingLiabilityId) {
+        await updateLiability(editingLiabilityId, payload as any)
+      } else {
+        await createLiability(payload as any)
+      }
+      setEditingLiabilityId(null)
+    },
+  })
+
+  const [payingLiabilityId, setPayingLiabilityId] = useState<string | null>(null)
+
+  const {
+    isOpen: isPaymentOpen,
+    close: closePayment,
+    form: paymentFormData,
+    setForm: setPaymentForm,
+    handleEdit: handleOpenPayment,
+    handleSave: handleRecordPayment,
+    isSubmitting: isRecordingPayment,
+  } = useResourceForm<PaymentFormData>({
+    initialData: defaultPaymentForm(),
+    onSubmit: async (data) => {
+      if (!payingLiabilityId) return
+
+      const payload = {
+        paymentDate: data.paymentDate,
+        amount: parseFloat(data.amount) || 0,
+        principalPortion: parseFloat(data.principalPortion) || null,
+        interestPortion: parseFloat(data.interestPortion) || null,
+        escrowPortion: parseFloat(data.escrowPortion) || null,
+        paymentMethod: data.paymentMethod as "CHECK" | "ACH" | "WIRE" | "CREDIT_CARD" | "CASH" | "OTHER",
+        checkNumber: data.checkNumber || null,
+        confirmationNumber: data.confirmationNumber || null,
+        notes: data.notes || null,
+        createExpenseEntry: data.createExpenseEntry,
+      }
+
+      const res = await fetch(`/api/liabilities/${payingLiabilityId}/record-payment`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+
+      if (res.ok) {
+        const result = await res.json()
+        // Update local state with new balance
+        if (result.liability) {
+          await updateLiability(payingLiabilityId, {
+            currentBalance: result.liability.currentBalance,
+            currentBalanceDate: data.paymentDate,
+          })
+        }
+      } else {
+        const error = await res.json()
+        throw new Error(error.message || "Failed to record payment")
+      }
+
+      setPayingLiabilityId(null)
+      if (selectedEntity) {
+        // Refetch to update the list
+      }
+    },
+  })
 
   // Auto-select first entity
   useEffect(() => {
@@ -172,77 +260,23 @@ export function Liabilities() {
     }
   }, [entities, selectedEntity])
 
-  const handleAdd = () => {
-    setForm(defaultFormData())
-    setEditing(null)
-    setShowForm(true)
-  }
-
-  const handleEdit = (l: Liability) => {
-    setEditing(l)
-    setForm({
+  const handleEditLiability = (l: Liability) => {
+    setEditingLiabilityId(l.id)
+    handleEditLiabilityForm({
       liabilityType: l.liabilityType,
       creditor: l.creditor,
       description: l.description || "",
-      originalAmount: l.originalAmount || "0",
-      currentBalance: l.currentBalance || "0",
-      currentBalanceDate: toDateInput(l.currentBalanceDate),
-      interestRate: l.interestRate || "",
-      monthlyPayment: l.monthlyPayment || "",
-      dueDate: toDateInput(l.dueDate),
+      originalAmount: l.originalAmount?.toString() || "",
+      currentBalance: l.currentBalance?.toString() || "",
+      currentBalanceDate: toDateInput(l.currentBalanceDate) || null,
+      interestRate: l.interestRate?.toString() || "",
+      monthlyPayment: l.monthlyPayment?.toString() || "",
+      dueDate: toDateInput(l.dueDate) || null,
       paymentDueDay: l.paymentDueDay?.toString() || "",
       allocationClass: l.allocationClass || "PRINCIPAL",
       status: l.status,
       notes: l.notes || "",
     })
-    setShowForm(true)
-  }
-
-  const handleSave = async () => {
-    if (!selectedEntity) {
-      alert("Please select an entity first");
-      return;
-    }
-
-    // Validate required fields before saving
-    if (!form.creditor.trim()) {
-      alert("Creditor is required");
-      return;
-    }
-
-    if (!form.originalAmount || parseFloat(form.originalAmount) <= 0) {
-      alert("Original amount must be greater than 0");
-      return;
-    }
-
-    const payload = {
-      entityId: selectedEntity,
-      liabilityType: form.liabilityType,
-      creditor: form.creditor.trim(),
-      description: form.description || null,
-      originalAmount: form.originalAmount ? parseFloat(form.originalAmount).toString() : "0",
-      currentBalance: form.currentBalance ? parseFloat(form.currentBalance).toString() : "0",
-      currentBalanceDate: form.currentBalanceDate || null,
-      interestRate: form.interestRate ? parseFloat(form.interestRate).toString() : null,
-      monthlyPayment: form.monthlyPayment ? parseFloat(form.monthlyPayment).toString() : null,
-      dueDate: form.dueDate || null,
-      paymentDueDay: form.paymentDueDay ? parseInt(form.paymentDueDay) : null,
-      allocationClass: form.allocationClass,
-      status: form.status,
-      notes: form.notes || null,
-    }
-
-    try {
-      if (editing) {
-        await updateLiability(editing.id, payload)
-      } else {
-        await createLiability(payload)
-      }
-      setShowForm(false)
-    } catch (err) {
-      console.error("Failed to save liability:", err)
-      alert("Failed to save liability: " + (err instanceof Error ? err.message : "Unknown error"))
-    }
   }
 
   const handleDelete = async (id: string) => {
@@ -254,59 +288,20 @@ export function Liabilities() {
     }
   }
 
-  // Payment handlers
-  const handleRecordPayment = (l: Liability) => {
-    setPayingLiability(l)
-    setPaymentForm({
-      ...defaultPaymentForm(),
-      amount: l.monthlyPayment || "",
+  const openPaymentDialog = (l: Liability) => {
+    setPayingLiabilityId(l.id)
+    handleOpenPayment({
+      paymentDate: new Date().toISOString().split("T")[0] ?? "",
+      amount: l.monthlyPayment?.toString() || "",
+      principalPortion: "",
+      interestPortion: "",
+      escrowPortion: "",
+      paymentMethod: "CHECK",
+      checkNumber: "",
+      confirmationNumber: "",
+      notes: "",
+      createExpenseEntry: true,
     })
-    setShowPaymentForm(true)
-  }
-
-  const handleSavePayment = async () => {
-    if (!payingLiability || !paymentForm.amount) return
-
-    setRecordingPayment(true)
-    try {
-      const res = await fetch(`/api/liabilities/${payingLiability.id}/record-payment`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          paymentDate: paymentForm.paymentDate,
-          amount: paymentForm.amount,
-          principalPortion: paymentForm.principalPortion || null,
-          interestPortion: paymentForm.interestPortion || null,
-          escrowPortion: paymentForm.escrowPortion || null,
-          paymentMethod: paymentForm.paymentMethod || null,
-          checkNumber: paymentForm.checkNumber || null,
-          confirmationNumber: paymentForm.confirmationNumber || null,
-          notes: paymentForm.notes || null,
-          createExpenseEntry: paymentForm.createExpenseEntry,
-        }),
-      })
-
-      if (res.ok) {
-        const result = await res.json()
-        // Update local state with new balance
-        if (result.liability) {
-          await updateLiability(payingLiability.id, {
-            currentBalance: result.liability.currentBalance,
-            currentBalanceDate: paymentForm.paymentDate,
-          })
-        }
-        setShowPaymentForm(false)
-        setPayingLiability(null)
-        setPaymentForm(defaultPaymentForm())
-      } else {
-        const error = await res.json()
-        console.error("Failed to record payment:", error)
-      }
-    } catch (err) {
-      console.error("Failed to record payment:", err)
-    } finally {
-      setRecordingPayment(false)
-    }
   }
 
   if (entitiesLoading) {
@@ -391,7 +386,7 @@ export function Liabilities() {
 
           {/* Actions */}
           <div className="flex justify-end">
-            <Button onClick={handleAdd}>
+            <Button onClick={handleAddLiability}>
               <Plus className="h-4 w-4 mr-2" />
               Add Liability
             </Button>
@@ -496,7 +491,7 @@ export function Liabilities() {
                                         variant="ghost"
                                         size="icon"
                                         className="h-8 w-8"
-                                        onClick={() => handleRecordPayment(l)}
+                                        onClick={() => openPaymentDialog(l)}
                                       >
                                         <CreditCard className="h-4 w-4" />
                                       </Button>
@@ -538,13 +533,13 @@ export function Liabilities() {
       )}
 
       {/* Form Dialog */}
-      <Dialog open={showForm} onOpenChange={setShowForm}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              {editing ? "Edit Liability" : "Add Liability"}
-            </DialogTitle>
-          </DialogHeader>
+      <ResourceDialog
+        open={isLiabilityOpen}
+        onOpenChange={closeLiability}
+        title={isEditingLiability ? "Edit Liability" : "Add Liability"}
+        onSubmit={handleSaveLiability}
+        isLoading={isLiabilitySaving}
+      >
           <div className="space-y-6 pt-4">
             <div>
               <h4 className="text-sm font-medium mb-3">Liability Information</h4>
@@ -552,8 +547,8 @@ export function Liabilities() {
                 <div className="space-y-2">
                   <Label htmlFor="liability-type">Liability Type *</Label>
                   <Select
-                    value={form.liabilityType}
-                    onValueChange={(v) => setForm({ ...form, liabilityType: v })}
+                    value={liabilityForm.liabilityType}
+                    onValueChange={(v) => setForm({ ...liabilityForm, liabilityType: v })}
                   >
                     <SelectTrigger id="liability-type">
                       <SelectValue />
@@ -572,8 +567,8 @@ export function Liabilities() {
                   <Input
                     id="creditor"
                     placeholder="e.g., Bank of America"
-                    value={form.creditor}
-                    onChange={(e) => setForm({ ...form, creditor: e.target.value })}
+                    value={liabilityForm.creditor}
+                    onChange={(e) => setForm({ ...liabilityForm, creditor: e.target.value })}
                   />
                 </div>
               </div>
@@ -582,8 +577,8 @@ export function Liabilities() {
                 <Input
                   id="description"
                   placeholder="e.g., Primary residence mortgage"
-                  value={form.description}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })}
+                  value={liabilityForm.description}
+                  onChange={(e) => setForm({ ...liabilityForm, description: e.target.value })}
                 />
               </div>
             </div>
@@ -596,8 +591,8 @@ export function Liabilities() {
                   <Input
                     id="original-amount"
                     placeholder="$"
-                    value={form.originalAmount}
-                    onChange={(e) => setForm({ ...form, originalAmount: e.target.value })}
+                    value={liabilityForm.originalAmount}
+                    onChange={(e) => setForm({ ...liabilityForm, originalAmount: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
@@ -605,8 +600,8 @@ export function Liabilities() {
                   <Input
                     id="current-balance"
                     placeholder="$"
-                    value={form.currentBalance}
-                    onChange={(e) => setForm({ ...form, currentBalance: e.target.value })}
+                    value={liabilityForm.currentBalance}
+                    onChange={(e) => setForm({ ...liabilityForm, currentBalance: e.target.value })}
                   />
                 </div>
               </div>
@@ -616,8 +611,8 @@ export function Liabilities() {
                   <Input
                     id="interest-rate"
                     placeholder="e.g., 4.5"
-                    value={form.interestRate}
-                    onChange={(e) => setForm({ ...form, interestRate: e.target.value })}
+                    value={liabilityForm.interestRate}
+                    onChange={(e) => setForm({ ...liabilityForm, interestRate: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
@@ -625,8 +620,8 @@ export function Liabilities() {
                   <Input
                     id="monthly-payment"
                     placeholder="$"
-                    value={form.monthlyPayment}
-                    onChange={(e) => setForm({ ...form, monthlyPayment: e.target.value })}
+                    value={liabilityForm.monthlyPayment}
+                    onChange={(e) => setForm({ ...liabilityForm, monthlyPayment: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
@@ -637,8 +632,8 @@ export function Liabilities() {
                     min="1"
                     max="31"
                     placeholder="e.g., 15"
-                    value={form.paymentDueDay}
-                    onChange={(e) => setForm({ ...form, paymentDueDay: e.target.value })}
+                    value={liabilityForm.paymentDueDay}
+                    onChange={(e) => setForm({ ...liabilityForm, paymentDueDay: e.target.value })}
                   />
                 </div>
               </div>
@@ -648,8 +643,8 @@ export function Liabilities() {
                   <Input
                     id="due-date"
                     type="date"
-                    value={form.dueDate || ""}
-                    onChange={(e) => setForm({ ...form, dueDate: e.target.value || null })}
+                    value={liabilityForm.dueDate || ""}
+                    onChange={(e) => setForm({ ...liabilityForm, dueDate: e.target.value || null })}
                   />
                 </div>
                 <div className="space-y-2">
@@ -657,8 +652,8 @@ export function Liabilities() {
                   <Input
                     id="balance-date"
                     type="date"
-                    value={form.currentBalanceDate || ""}
-                    onChange={(e) => setForm({ ...form, currentBalanceDate: e.target.value || null })}
+                    value={liabilityForm.currentBalanceDate || ""}
+                    onChange={(e) => setForm({ ...liabilityForm, currentBalanceDate: e.target.value || null })}
                   />
                 </div>
               </div>
@@ -670,8 +665,8 @@ export function Liabilities() {
                 <div className="space-y-2">
                   <Label htmlFor="status">Status *</Label>
                   <Select
-                    value={form.status}
-                    onValueChange={(v) => setForm({ ...form, status: v })}
+                    value={liabilityForm.status}
+                    onValueChange={(v) => setForm({ ...liabilityForm, status: v })}
                   >
                     <SelectTrigger id="status">
                       <SelectValue />
@@ -688,8 +683,8 @@ export function Liabilities() {
                 <div className="space-y-2">
                   <Label htmlFor="allocation">Allocation Class (Texas 116.152)</Label>
                   <Select
-                    value={form.allocationClass}
-                    onValueChange={(v) => setForm({ ...form, allocationClass: v })}
+                    value={liabilityForm.allocationClass}
+                    onValueChange={(v) => setForm({ ...liabilityForm, allocationClass: v })}
                   >
                     <SelectTrigger id="allocation">
                       <SelectValue />
@@ -710,38 +705,26 @@ export function Liabilities() {
               <Label htmlFor="notes">Notes</Label>
               <Textarea
                 id="notes"
-                value={form.notes}
-                onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                value={liabilityForm.notes}
+                onChange={(e) => setForm({ ...liabilityForm, notes: e.target.value })}
                 rows={3}
               />
             </div>
-
-            <div className="flex justify-end gap-3 pt-4">
-              <Button variant="outline" onClick={() => setShowForm(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleSave}>Save</Button>
-            </div>
           </div>
-        </DialogContent>
-      </Dialog>
+      </ResourceDialog>
 
       {/* Payment Dialog */}
-      <Dialog open={showPaymentForm} onOpenChange={(open) => {
-        setShowPaymentForm(open)
-        if (!open) {
-          setPayingLiability(null)
-          setPaymentForm(defaultPaymentForm())
-        }
-      }}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <CreditCard className="h-5 w-5" />
-              Record Payment
-            </DialogTitle>
-          </DialogHeader>
-          {payingLiability && (
+      <ResourceDialog
+        open={isPaymentOpen}
+        onOpenChange={closePayment}
+        title="Record Payment"
+        onSubmit={handleRecordPayment}
+        isLoading={isRecordingPayment}
+      >
+          {payingLiabilityId && (() => {
+            const payingLiability = liabilities.find(l => l.id === payingLiabilityId)
+            if (!payingLiability) return null
+            return (
             <div className="space-y-6 pt-4">
               {/* Liability Info */}
               <div className="rounded-lg bg-muted/50 p-4">
@@ -765,8 +748,8 @@ export function Liabilities() {
                     <Input
                       id="payment-date"
                       type="date"
-                      value={paymentForm.paymentDate}
-                      onChange={(e) => setPaymentForm({ ...paymentForm, paymentDate: e.target.value })}
+                      value={paymentFormData.paymentDate}
+                      onChange={(e) => setPaymentForm({ ...paymentFormData, paymentDate: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
@@ -774,8 +757,8 @@ export function Liabilities() {
                     <Input
                       id="payment-amount"
                       placeholder="$0.00"
-                      value={paymentForm.amount}
-                      onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })}
+                      value={paymentFormData.amount}
+                      onChange={(e) => setPaymentForm({ ...paymentFormData, amount: e.target.value })}
                     />
                   </div>
                 </div>
@@ -790,8 +773,8 @@ export function Liabilities() {
                     <Input
                       id="principal-portion"
                       placeholder="$"
-                      value={paymentForm.principalPortion}
-                      onChange={(e) => setPaymentForm({ ...paymentForm, principalPortion: e.target.value })}
+                      value={paymentFormData.principalPortion}
+                      onChange={(e) => setPaymentForm({ ...paymentFormData, principalPortion: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
@@ -799,8 +782,8 @@ export function Liabilities() {
                     <Input
                       id="interest-portion"
                       placeholder="$"
-                      value={paymentForm.interestPortion}
-                      onChange={(e) => setPaymentForm({ ...paymentForm, interestPortion: e.target.value })}
+                      value={paymentFormData.interestPortion}
+                      onChange={(e) => setPaymentForm({ ...paymentFormData, interestPortion: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
@@ -808,8 +791,8 @@ export function Liabilities() {
                     <Input
                       id="escrow-portion"
                       placeholder="$"
-                      value={paymentForm.escrowPortion}
-                      onChange={(e) => setPaymentForm({ ...paymentForm, escrowPortion: e.target.value })}
+                      value={paymentFormData.escrowPortion}
+                      onChange={(e) => setPaymentForm({ ...paymentFormData, escrowPortion: e.target.value })}
                     />
                   </div>
                 </div>
@@ -820,8 +803,8 @@ export function Liabilities() {
                 <div className="space-y-2">
                   <Label htmlFor="payment-method">Payment Method</Label>
                   <Select
-                    value={paymentForm.paymentMethod}
-                    onValueChange={(v) => setPaymentForm({ ...paymentForm, paymentMethod: v })}
+                    value={paymentFormData.paymentMethod}
+                    onValueChange={(v) => setPaymentForm({ ...paymentFormData, paymentMethod: v })}
                   >
                     <SelectTrigger id="payment-method">
                       <SelectValue />
@@ -837,15 +820,15 @@ export function Liabilities() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="check-number">
-                    {paymentForm.paymentMethod === "CHECK" ? "Check #" : "Confirmation #"}
+                    {paymentFormData.paymentMethod === "CHECK" ? "Check #" : "Confirmation #"}
                   </Label>
                   <Input
                     id="check-number"
-                    placeholder={paymentForm.paymentMethod === "CHECK" ? "Check number" : "Confirmation"}
-                    value={paymentForm.paymentMethod === "CHECK" ? paymentForm.checkNumber : paymentForm.confirmationNumber}
+                    placeholder={paymentFormData.paymentMethod === "CHECK" ? "Check number" : "Confirmation"}
+                    value={paymentFormData.paymentMethod === "CHECK" ? paymentFormData.checkNumber : paymentFormData.confirmationNumber}
                     onChange={(e) => setPaymentForm({
-                      ...paymentForm,
-                      ...(paymentForm.paymentMethod === "CHECK"
+                      ...paymentFormData,
+                      ...(paymentFormData.paymentMethod === "CHECK"
                         ? { checkNumber: e.target.value }
                         : { confirmationNumber: e.target.value })
                     })}
@@ -858,8 +841,8 @@ export function Liabilities() {
                 <Label htmlFor="payment-notes">Notes</Label>
                 <Textarea
                   id="payment-notes"
-                  value={paymentForm.notes}
-                  onChange={(e) => setPaymentForm({ ...paymentForm, notes: e.target.value })}
+                  value={paymentFormData.notes}
+                  onChange={(e) => setPaymentForm({ ...paymentFormData, notes: e.target.value })}
                   rows={2}
                   placeholder="Optional notes about this payment"
                 />
@@ -877,44 +860,14 @@ export function Liabilities() {
                 </div>
                 <Switch
                   id="create-expense"
-                  checked={paymentForm.createExpenseEntry}
-                  onCheckedChange={(checked) => setPaymentForm({ ...paymentForm, createExpenseEntry: checked })}
+                  checked={paymentFormData.createExpenseEntry}
+                  onCheckedChange={(checked) => setPaymentForm({ ...paymentFormData, createExpenseEntry: checked })}
                 />
               </div>
-
-              {/* Actions */}
-              <div className="flex justify-end gap-3 pt-2">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setShowPaymentForm(false)
-                    setPayingLiability(null)
-                    setPaymentForm(defaultPaymentForm())
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleSavePayment}
-                  disabled={!paymentForm.amount || recordingPayment}
-                >
-                  {recordingPayment ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Recording...
-                    </>
-                  ) : (
-                    <>
-                      <CreditCard className="mr-2 h-4 w-4" />
-                      Record Payment
-                    </>
-                  )}
-                </Button>
-              </div>
             </div>
-          )}
-        </DialogContent>
-      </Dialog>
+            )
+          })()}
+      </ResourceDialog>
     </div>
   )
 }
