@@ -109,9 +109,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 06-01: Extract AccountingDialog and AccountingFilters
-- [ ] 06-02: Extract AccountingTable and refactor main page
-- [ ] 06-03: Verify functionality and update tests
+- [ ] 06-01: Extract Accounting Dialog Component (ResourceDialog + useResourceForm)
+- [ ] 06-02: Replace Accounting Table with DataTable Component
+- [ ] 06-03: Verify Accounting Page Refactor
 
 ### Phase 7: Liabilities & Accounts Refactor
 **Goal**: Break down Liabilities.tsx (920 lines) and Accounts.tsx (903 lines) using patterns
@@ -184,7 +184,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 2. Phase 3 Test Completion | 3/3 | ✅ Complete | 2026-01-09 |
 | 3. Error Notification System | 3/3 | ✅ Complete | 2026-01-09 |
 | 4. Component Extraction Patterns | 4/4 | ✅ Complete | 2026-01-09 |
-| 5. Properties Page Refactor | 3/3 | ✅ Complete | 2026-01-09 |
+| 5. Properties Page Refactor | 1/3 | In progress | - |
 | 6. Accounting Page Refactor | 0/3 | Not started | - |
 | 7. Liabilities & Accounts Refactor | 0/4 | Not started | - |
 | 8. Type Safety Improvements | 0/4 | Not started | - |

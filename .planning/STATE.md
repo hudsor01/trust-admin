@@ -12,8 +12,8 @@ See: .planning/PROJECT.md (updated 2026-01-09)
 
 Phase: 6 of 10 (Accounting Page Refactor)
 Plan: 0 of 3 in current phase
-Status: Not started
-Last activity: 2026-01-09 — Completed 05-03, Phase 5 complete
+Status: Planned (3 plans created, ready to execute)
+Last activity: 2026-01-09 — Phase 6 planning complete
 
 Progress: ███████████░ 47% (15/32 plans complete)
 
