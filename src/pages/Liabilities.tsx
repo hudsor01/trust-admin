@@ -38,11 +38,14 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 
+import { useEntities } from "@/hooks/entities/queries"
 import {
-  useEntities,
   useLiabilities,
+  useCreateLiability,
+  useUpdateLiability,
+  useDeleteLiability,
   type Liability,
-} from "@/hooks"
+} from "@/hooks/liabilities/queries"
 import { toDateInput } from "@/lib/form-factory"
 import {
   EditableTextCell,
@@ -147,16 +150,13 @@ const defaultPaymentForm = (): PaymentFormData => {
 }
 
 export function Liabilities() {
-  const { data: entities, loading: entitiesLoading } = useEntities()
+  const { data: entities = [], isLoading: entitiesLoading } = useEntities()
   const [selectedEntity, setSelectedEntity] = useState<string | null>(null)
 
-  const {
-    data: liabilities,
-    loading: liabilitiesLoading,
-    create: createLiability,
-    update: updateLiability,
-    remove: deleteLiability,
-  } = useLiabilities(selectedEntity || undefined)
+  const { data: liabilities = [], isLoading: liabilitiesLoading } = useLiabilities(selectedEntity || undefined)
+  const createLiabilityMutation = useCreateLiability()
+  const updateLiabilityMutation = useUpdateLiability()
+  const deleteLiabilityMutation = useDeleteLiability()
 
   const [editingLiabilityId, setEditingLiabilityId] = useState<string | null>(null)
 
@@ -191,9 +191,9 @@ export function Liabilities() {
         notes: data.notes || null,
       }
       if (isEditingLiability && editingLiabilityId) {
-        await updateLiability(editingLiabilityId, payload as any)
+        await updateLiabilityMutation.mutateAsync({ id: editingLiabilityId, data: payload as any)
       } else {
-        await createLiability(payload as any)
+        await createLiabilityMutation.mutateAsync(payload as any)
       }
       setEditingLiabilityId(null)
     },
@@ -237,10 +237,10 @@ export function Liabilities() {
         const result = await res.json()
         // Update local state with new balance
         if (result.liability) {
-          await updateLiability(payingLiabilityId, {
+          await updateLiabilityMutation.mutateAsync({ id: payingLiabilityId, data: {
             currentBalance: result.liability.currentBalance,
             currentBalanceDate: data.paymentDate,
-          })
+          } })
         }
       } else {
         const error = await res.json()
@@ -283,7 +283,7 @@ export function Liabilities() {
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this liability?")) return
     try {
-      await deleteLiability(id)
+      await deleteLiabilityMutation.mutateAsync(id)
     } catch (err) {
       console.error("Failed to delete liability:", err)
     }
