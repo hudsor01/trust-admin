@@ -57,8 +57,9 @@ import {
 } from "@/components/editable-cells"
 import { CopyButton } from "@/components/copy-button"
 
-// Import types and hooks from centralized location
-import { useEntities, useBeneficiaries, type Beneficiary } from "@/hooks"
+// Import types and hooks from TanStack Query hooks
+import { useEntities } from "@/hooks/entities/queries"
+import { useBeneficiaries, useUpdateBeneficiary, type Beneficiary } from "@/hooks/beneficiaries/queries"
 
 interface Distribution {
   id: string
@@ -127,17 +128,21 @@ function calculateEligibility(dob: string | null): {
 }
 
 export function Beneficiaries() {
-  // Use centralized hooks for data fetching
-  const { data: entities, loading: entitiesLoading } = useEntities()
+  // Use TanStack Query hooks for data fetching
+  const { data: entities = [], isLoading: entitiesLoading } = useEntities()
   const [selectedEntity, setSelectedEntity] = useState<string>("")
 
   const {
-    data: beneficiariesRaw,
-    loading: beneficiariesLoading,
-    update: updateBeneficiary,
-    setData: setBeneficiaries,
+    data: beneficiariesRaw = [],
+    isLoading: beneficiariesLoading,
     refetch: refetchBeneficiaries,
   } = useBeneficiaries(selectedEntity || undefined)
+  const updateBeneficiaryMutation = useUpdateBeneficiary()
+
+  // Wrapper function to match old API for child components
+  const updateBeneficiary = async (id: string, data: Partial<Beneficiary>) => {
+    return await updateBeneficiaryMutation.mutateAsync({ id, data })
+  }
 
   // Local state for beneficiaries with distributions loaded
   const [beneficiaries, setBeneficiariesWithDist] = useState<BeneficiaryWithDistributions[]>([])
@@ -373,7 +378,7 @@ export function Beneficiaries() {
                               <EditablePercentCell
                                 value={b.sharePercent}
                                 onSave={async (val) => {
-                                  await updateBeneficiary(b.id, {
+                                  await updateBeneficiaryMutation.mutateAsync({ id: b.id, data: {
                                     sharePercent: val,
                                   })
                                 }}
@@ -419,7 +424,7 @@ export function Beneficiaries() {
                                 value={b.distributionStandard || "HEMS"}
                                 options={DISTRIBUTION_STANDARDS}
                                 onSave={async (val) => {
-                                  await updateBeneficiary(b.id, { distributionStandard: val })
+                                  await updateBeneficiaryMutation.mutateAsync({ id: b.id, data: { distributionStandard: val } })
                                 }}
                               />
                             </TableCell>
@@ -431,7 +436,7 @@ export function Beneficiaries() {
                                   "h-7 w-7",
                                   b.informed && "bg-success hover:bg-success/90"
                                 )}
-                                onClick={() => updateBeneficiary(b.id, { informed: !b.informed })}
+                                onClick={() => updateBeneficiaryMutation.mutateAsync({ id: b.id, data: { informed: !b.informed } })}
                               >
                                 {b.informed ? (
                                   <Check className="h-3.5 w-3.5" />
@@ -449,7 +454,7 @@ export function Beneficiaries() {
                                   b.releaseSigned && "bg-success hover:bg-success/90"
                                 )}
                                 onClick={() =>
-                                  updateBeneficiary(b.id, { releaseSigned: !b.releaseSigned })
+                                  updateBeneficiaryMutation.mutateAsync({ id: b.id, data: { releaseSigned: !b.releaseSigned } })
                                 }
                               >
                                 {b.releaseSigned ? (
@@ -645,7 +650,7 @@ function BeneficiaryDialogContent({
                     <EditableTextCell
                       value={beneficiary.email}
                       onSave={async (val) => {
-                        await updateBeneficiary(beneficiary.id, { email: val })
+                        await updateBeneficiaryMutation.mutateAsync({ id: beneficiary.id, data: { email: val })
                         setSelectedBeneficiary({ ...beneficiary, email: val })
                       }}
                     />
@@ -656,7 +661,7 @@ function BeneficiaryDialogContent({
                     <EditableTextCell
                       value={beneficiary.phone}
                       onSave={async (val) => {
-                        await updateBeneficiary(beneficiary.id, { phone: val })
+                        await updateBeneficiaryMutation.mutateAsync({ id: beneficiary.id, data: { phone: val })
                         setSelectedBeneficiary({ ...beneficiary, phone: val })
                       }}
                     />
@@ -667,7 +672,7 @@ function BeneficiaryDialogContent({
                       <EditableTextCell
                         value={beneficiary.streetAddress}
                         onSave={async (val) => {
-                          await updateBeneficiary(beneficiary.id, { streetAddress: val })
+                          await updateBeneficiaryMutation.mutateAsync({ id: beneficiary.id, data: { streetAddress: val })
                           setSelectedBeneficiary({ ...beneficiary, streetAddress: val })
                         }}
                       />
@@ -675,21 +680,21 @@ function BeneficiaryDialogContent({
                         <EditableTextCell
                           value={beneficiary.city}
                           onSave={async (val) => {
-                            await updateBeneficiary(beneficiary.id, { city: val })
+                            await updateBeneficiaryMutation.mutateAsync({ id: beneficiary.id, data: { city: val })
                             setSelectedBeneficiary({ ...beneficiary, city: val })
                           }}
                         />
                         <EditableTextCell
                           value={beneficiary.state}
                           onSave={async (val) => {
-                            await updateBeneficiary(beneficiary.id, { state: val })
+                            await updateBeneficiaryMutation.mutateAsync({ id: beneficiary.id, data: { state: val })
                             setSelectedBeneficiary({ ...beneficiary, state: val })
                           }}
                         />
                         <EditableTextCell
                           value={beneficiary.zip}
                           onSave={async (val) => {
-                            await updateBeneficiary(beneficiary.id, { zip: val })
+                            await updateBeneficiaryMutation.mutateAsync({ id: beneficiary.id, data: { zip: val })
                             setSelectedBeneficiary({ ...beneficiary, zip: val })
                           }}
                         />
