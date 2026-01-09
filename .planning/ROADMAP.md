@@ -124,7 +124,7 @@ Plans:
 
 Plans:
 - [x] 07-01: Extract LiabilityDialog and PaymentDialog
-- [ ] 07-02: Extract LiabilityTable and refactor Liabilities page
+- [x] 07-02: Extract LiabilityTable and refactor Liabilities page
 - [ ] 07-03: Extract AccountDialog and AccountTable
 - [ ] 07-04: Refactor Accounts page and verify both
 
