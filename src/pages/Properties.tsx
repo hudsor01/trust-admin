@@ -260,7 +260,7 @@ export function Properties() {
       }
 
       if (isEditingHomestead && editingHomesteadId) {
-        await updateHomesteadMutation.mutateAsync({ id: editingHomesteadId, data: payload)
+        await updateHomesteadMutation.mutateAsync({ id: editingHomesteadId, data: payload })
       } else {
         await createHomesteadMutation.mutateAsync(payload)
       }
@@ -357,7 +357,7 @@ export function Properties() {
       }
 
       if (isEditingRental && editingRentalId) {
-        await updateRentalMutation.mutateAsync({ id: editingRentalId, data: payload)
+        await updateRentalMutation.mutateAsync({ id: editingRentalId, data: payload })
       } else {
         await createRentalMutation.mutateAsync(payload)
       }
