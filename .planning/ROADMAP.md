@@ -23,7 +23,8 @@ None (brownfield project with established patterns)
 - [ ] **Phase 7: Liabilities & Accounts Refactor** - Break down 920 and 903-line components
 - [ ] **Phase 8: Type Safety Improvements** - Eliminate `as any` casts
 - [ ] **Phase 9: Performance Optimization** - Add pagination and caching
-- [ ] **Phase 10: Quality Verification** - Comprehensive testing and validation
+- [ ] **Phase 10: TanStack Table & Form Integration** - Complete TanStack ecosystem adoption
+- [ ] **Phase 11: Quality Verification** - Comprehensive testing and validation
 
 ## Phase Details
 
@@ -159,48 +160,14 @@ Plans:
 - [x] 09-02: Implement simple request deduplication in query hook
 - [x] 09-03: Add pagination UI components to data tables
 
-### Phase 10: Quality Verification
-**Goal**: Comprehensive testing, documentation updates, and final validation
-
-**Depends on**: Phases 1-9 complete
-
-**Research**: Unlikely (validation and documentation)
-
-**Plans**: 3 plans
-
-Plans:
-- [ ] 10-01: Run full test suite and fix any regressions
-- [ ] 10-02: Update CONCERNS.md with resolved issues
-- [ ] 10-03: Create handoff documentation for next milestone
-
-## Progress
-
-**Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10
-
-| Phase | Plans Complete | Status | Completed |
-|-------|----------------|--------|-----------|
-| 1. Validation Schema Fix | 2/2 | ✅ Complete | 2026-01-09 |
-| 2. Phase 3 Test Completion | 3/3 | ✅ Complete | 2026-01-09 |
-| 3. Error Notification System | 3/3 | ✅ Complete | 2026-01-09 |
-| 4. Component Extraction Patterns | 4/4 | ✅ Complete | 2026-01-09 |
-| 5. Properties Page Refactor | 3/3 | ✅ Complete | 2026-01-09 |
-| 6. Accounting Page Refactor | 3/3 | ✅ Complete | 2026-01-09 |
-| 7. Liabilities & Accounts Refactor | 4/4 | ✅ Complete | 2026-01-09 |
-| 8. Type Safety Improvements | 4/4 | ✅ Complete | 2026-01-09 |
-| 9. Performance Optimization | 3/3 | ✅ Complete | 2026-01-09 |
-| 10. Quality Verification | 0/3 | Not started | - |
-
-## Future Phases (Next Milestone)
-
-### Phase 11: TanStack Table & Form Integration
+### Phase 10: TanStack Table & Form Integration
 **Goal**: Complete integration with TanStack Table and TanStack Form for improved UI components
 
-**Depends on**: Current milestone complete (Phases 1-10)
+**Depends on**: Phases 1-9 complete (TanStack Query already integrated in Phase 8)
 
 **Research**: Moderate (integration patterns, migration strategy for existing components)
 
-**Plans**: TBD
+**Plans**: TBD (will be broken down into detailed plans)
 
 **Scope**:
 - **TanStack Table**: Replace remaining custom table implementations (11 pages still using manual tables)
@@ -215,4 +182,35 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 
 **Note**: Phase 8 completed TanStack Query integration (data fetching). This phase completes the TanStack ecosystem adoption with Table and Form libraries.
 
-**Status**: Planned for next milestone after Phase 10 completion
+### Phase 11: Quality Verification
+**Goal**: Comprehensive testing, documentation updates, and final validation
+
+**Depends on**: Phases 1-10 complete
+
+**Research**: Unlikely (validation and documentation)
+
+**Plans**: 3 plans
+
+Plans:
+- [ ] 11-01: Run full test suite and fix any regressions
+- [ ] 11-02: Update CONCERNS.md with resolved issues
+- [ ] 11-03: Create handoff documentation for next milestone
+
+## Progress
+
+**Execution Order:**
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11
+
+| Phase | Plans Complete | Status | Completed |
+|-------|----------------|--------|-----------|
+| 1. Validation Schema Fix | 2/2 | ✅ Complete | 2026-01-09 |
+| 2. Phase 3 Test Completion | 3/3 | ✅ Complete | 2026-01-09 |
+| 3. Error Notification System | 3/3 | ✅ Complete | 2026-01-09 |
+| 4. Component Extraction Patterns | 4/4 | ✅ Complete | 2026-01-09 |
+| 5. Properties Page Refactor | 3/3 | ✅ Complete | 2026-01-09 |
+| 6. Accounting Page Refactor | 3/3 | ✅ Complete | 2026-01-09 |
+| 7. Liabilities & Accounts Refactor | 4/4 | ✅ Complete | 2026-01-09 |
+| 8. Type Safety Improvements | 4/4 | ✅ Complete | 2026-01-09 |
+| 9. Performance Optimization | 3/3 | ✅ Complete | 2026-01-09 |
+| 10. TanStack Table & Form Integration | 0/TBD | Not started | - |
+| 11. Quality Verification | 0/3 | Not started | - |
