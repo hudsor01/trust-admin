@@ -380,7 +380,7 @@ export function Beneficiaries() {
                                 onSave={async (val) => {
                                   await updateBeneficiaryMutation.mutateAsync({ id: b.id, data: {
                                     sharePercent: val,
-                                  })
+                                  } })
                                 }}
                               />
                             </TableCell>
@@ -650,7 +650,7 @@ function BeneficiaryDialogContent({
                     <EditableTextCell
                       value={beneficiary.email}
                       onSave={async (val) => {
-                        await updateBeneficiaryMutation.mutateAsync({ id: beneficiary.id, data: { email: val })
+                        await updateBeneficiaryMutation.mutateAsync({ id: beneficiary.id, data: { email: val } })
                         setSelectedBeneficiary({ ...beneficiary, email: val })
                       }}
                     />
@@ -661,7 +661,7 @@ function BeneficiaryDialogContent({
                     <EditableTextCell
                       value={beneficiary.phone}
                       onSave={async (val) => {
-                        await updateBeneficiaryMutation.mutateAsync({ id: beneficiary.id, data: { phone: val })
+                        await updateBeneficiaryMutation.mutateAsync({ id: beneficiary.id, data: { phone: val } })
                         setSelectedBeneficiary({ ...beneficiary, phone: val })
                       }}
                     />
@@ -672,7 +672,7 @@ function BeneficiaryDialogContent({
                       <EditableTextCell
                         value={beneficiary.streetAddress}
                         onSave={async (val) => {
-                          await updateBeneficiaryMutation.mutateAsync({ id: beneficiary.id, data: { streetAddress: val })
+                          await updateBeneficiaryMutation.mutateAsync({ id: beneficiary.id, data: { streetAddress: val } })
                           setSelectedBeneficiary({ ...beneficiary, streetAddress: val })
                         }}
                       />
@@ -680,21 +680,21 @@ function BeneficiaryDialogContent({
                         <EditableTextCell
                           value={beneficiary.city}
                           onSave={async (val) => {
-                            await updateBeneficiaryMutation.mutateAsync({ id: beneficiary.id, data: { city: val })
+                            await updateBeneficiaryMutation.mutateAsync({ id: beneficiary.id, data: { city: val } })
                             setSelectedBeneficiary({ ...beneficiary, city: val })
                           }}
                         />
                         <EditableTextCell
                           value={beneficiary.state}
                           onSave={async (val) => {
-                            await updateBeneficiaryMutation.mutateAsync({ id: beneficiary.id, data: { state: val })
+                            await updateBeneficiaryMutation.mutateAsync({ id: beneficiary.id, data: { state: val } })
                             setSelectedBeneficiary({ ...beneficiary, state: val })
                           }}
                         />
                         <EditableTextCell
                           value={beneficiary.zip}
                           onSave={async (val) => {
-                            await updateBeneficiaryMutation.mutateAsync({ id: beneficiary.id, data: { zip: val })
+                            await updateBeneficiaryMutation.mutateAsync({ id: beneficiary.id, data: { zip: val } })
                             setSelectedBeneficiary({ ...beneficiary, zip: val })
                           }}
                         />
