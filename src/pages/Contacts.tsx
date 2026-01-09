@@ -47,7 +47,7 @@ import { useContacts, useCreateContact, useUpdateContact, useDeleteContact, type
 import { contactFormDefaults } from "@/lib/form-factory"
 import { exportTablesInContainer } from "@/lib/csv"
 import { useResourceForm } from "@/hooks/use-resource-form"
-import { insertContactSchema } from "@/db/validation"
+import { insertContactSchema } from "../../db/validation"
 
 type RoleFilter = "all" | "ATTORNEY" | "ACCOUNTANT" | "FINANCIAL_ADVISOR" | "INSURANCE_AGENT" | "BANKER" | "OTHER"
 

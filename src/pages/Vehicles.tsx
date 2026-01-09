@@ -53,7 +53,7 @@ import {
 import { vehicleFormDefaults, toDateInput } from "@/lib/form-factory"
 import { TRANSFER_STATUS, DOD_VALUE_TYPES, STATUS_VARIANTS } from "@/lib/constants"
 import { useResourceForm } from "@/hooks/use-resource-form"
-import { insertVehicleSchema } from "@/db/validation"
+import { insertVehicleSchema } from "../../db/validation"
 
 // =============================================================================
 // CONSTANTS
