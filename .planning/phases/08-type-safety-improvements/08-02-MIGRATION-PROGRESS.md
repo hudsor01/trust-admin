@@ -1,23 +1,27 @@
 # TanStack Query Migration Progress
 
-## Completed (8 commits)
+## Completed (11 commits)
 
 ### Query Hooks Created (All 21 resources)
 - Simple: contacts, beneficiaries, trustees
 - Assets: entities, vehicles, bank-accounts, investment-accounts, homesteads, rental-properties, artwork, personal-property
 - Liabilities: liabilities, liability-payments
-- Trust Management: specific-bequests, trust-accounting, withdrawal-records, hems-requests
+- Trust Management: specific-bequests, trust-accounting, withdrawal-records, hems-requests, distributions
 - Administration: trustee-fee-schedules, trustee-fee-entries, activity-logs
 
 ### Refactored to queryOptions Pattern
 All 21 query hooks now use `queryOptions` for better type inference and reusability.
 
-### Pages Migrated (5 pages)
-1. **Contacts.tsx** - Simple page, no filtering
-2. **Beneficiaries.tsx** - Entity filtering, complex with distributions
-3. **Trustees.tsx** - Entity filtering with succession order
-4. **Vehicles.tsx** - Already done (entity filtering)
-5. **Accounts.tsx** - Dual resources (bank + investment accounts)
+### Pages Migrated (9 pages)
+1. ✅ **Contacts.tsx** - Simple page, no filtering
+2. ✅ **Beneficiaries.tsx** - Entity filtering, complex with distributions
+3. ✅ **Trustees.tsx** - Entity filtering with succession order
+4. ✅ **Vehicles.tsx** - Entity filtering (already done)
+5. ✅ **Accounts.tsx** - Dual resources (bank + investment accounts)
+6. ✅ **Liabilities.tsx** - Entity filtering with payment recording
+7. ✅ **Properties.tsx** - Dual resources (homesteads + rental properties)
+8. ✅ **Accounting.tsx** - Trust accounting entries, simplified by removing fetch functions
+9. ✅ **Distributions.tsx** - HEMS requests and withdrawals with complex workflows
 
 ## Migration Pattern
 
@@ -63,9 +67,8 @@ await deleteMutation.mutateAsync(id)
 
 ## Remaining Work
 
-### Pages to Migrate (10 pages)
-- **Filtered** (2): Liabilities.tsx, Properties.tsx
-- **Complex** (8): Accounting.tsx, Distributions.tsx, Dashboard.tsx, HemsQueue.tsx, Bequests.tsx, ActivityLog.tsx, Settings.tsx, DistributionWizard.tsx
+### Pages to Migrate (6 pages)
+- **Complex** (6): Dashboard.tsx, HemsQueue.tsx, Bequests.tsx, ActivityLog.tsx, Settings.tsx, DistributionWizard.tsx
 
 ### Cleanup
 - Remove old `src/hooks/use-query.ts`
@@ -112,4 +115,4 @@ git commit -m "feat(08-02): migrate PageName to TanStack Query hooks"
 
 ---
 
-**Status**: In Progress (5/15 pages migrated, 67% of hooks complete)
+**Status**: In Progress (9/15 pages migrated, 60% complete)
