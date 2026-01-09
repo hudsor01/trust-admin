@@ -11,11 +11,11 @@ See: .planning/PROJECT.md (updated 2026-01-09)
 ## Current Position
 
 Phase: 4 of 10 (Component Extraction Patterns)
-Plan: 2 of 4 in current phase
+Plan: 3 of 4 in current phase
 Status: In progress
-Last activity: 2026-01-09 — Completed 04-02 (Extract SummaryCard component)
+Last activity: 2026-01-09 — Completed 04-03 (Extract DataTable component)
 
-Progress: █████████░ 31% (10/32 plans complete)
+Progress: █████████░ 34% (11/32 plans complete)
 
 ## Performance Metrics
 
@@ -57,9 +57,11 @@ Recent decisions affecting current work:
 - Sonner over react-hot-toast for toast notifications (better TypeScript support, Tailwind integration) (Phase 3 Plan 03-01)
 - Three-tier error handling: ApiError → Error → unknown for comprehensive coverage (Phase 3 Plan 03-02)
 - Inline ErrorFallback in main.tsx rather than separate component file (simplicity, single use) (Phase 3 Plan 03-03)
-- Task consolidation: Include JSDoc documentation with component creation (better developer experience) (Phase 4 Plan 04-01)
+- Task consolidation: Include JSDoc documentation with component creation (better developer experience) (Phase 4 Plans 04-01, 04-02, 04-03)
 - Error handling delegation in useResourceForm: Delegate to onSubmit callback for toast integration (Phase 4 Plan 04-01)
 - Tailwind class mapping in SummaryCardGrid: Use explicit column class map (1-4) vs dynamic interpolation (Phase 4 Plan 04-02)
+- Sorting toggle cycle in DataTable: none → asc → desc → none (allows return to original order) (Phase 4 Plan 04-03)
+- Type-aware sorting in DataTable: automatic number vs string detection for proper comparison (Phase 4 Plan 04-03)
 
 ### Deferred Issues
 
