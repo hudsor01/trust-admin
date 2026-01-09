@@ -1,8 +1,12 @@
 import { useState } from "react"
+import { useForm } from "@tanstack/react-form"
+import { zodValidator } from "@tanstack/zod-form-adapter"
+import type { ZodSchema } from "zod"
 
 export interface UseResourceFormOptions<T> {
   initialData: T
   onSubmit: (data: T) => Promise<void>
+  schema?: ZodSchema<T> // Optional Zod schema for validation
 }
 
 export interface UseResourceFormReturn<T> {
@@ -16,6 +20,7 @@ export interface UseResourceFormReturn<T> {
   handleAdd: () => void
   handleSave: () => Promise<void>
   isSubmitting: boolean
+  formInstance: ReturnType<typeof useForm<T>> // TanStack Form instance
 }
 
 /**
@@ -48,42 +53,64 @@ export interface UseResourceFormReturn<T> {
 export function useResourceForm<T>({
   initialData,
   onSubmit,
+  schema,
 }: UseResourceFormOptions<T>): UseResourceFormReturn<T> {
   const [isOpen, setIsOpen] = useState(false)
   const [editing, setEditing] = useState<T | null>(null)
   const [form, setForm] = useState<T>(initialData)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  // TanStack Form instance
+  const formInstance = useForm<T>({
+    defaultValues: initialData,
+    validatorAdapter: zodValidator(),
+    validators: schema
+      ? {
+          onBlur: schema, // onBlur validation strategy
+        }
+      : undefined,
+    onSubmit: async ({ value }) => {
+      setIsSubmitting(true)
+      try {
+        await onSubmit(value)
+        close()
+      } catch (error) {
+        // Error handling delegated to onSubmit (should use toast notifications)
+        throw error
+      } finally {
+        setIsSubmitting(false)
+      }
+    },
+  })
+
   const open = () => setIsOpen(true)
   const close = () => {
     setIsOpen(false)
     setEditing(null)
     setForm(initialData)
+    formInstance.reset() // Reset TanStack Form
   }
 
   const handleEdit = (item: T) => {
     setEditing(item)
     setForm(item)
+    // Update form instance with item data
+    Object.entries(item as any).forEach(([key, value]) => {
+      formInstance.setFieldValue(key, value)
+    })
     setIsOpen(true)
   }
 
   const handleAdd = () => {
     setEditing(null)
     setForm(initialData)
+    formInstance.reset() // Reset to initialData
     setIsOpen(true)
   }
 
   const handleSave = async () => {
-    setIsSubmitting(true)
-    try {
-      await onSubmit(form)
-      close()
-    } catch (error) {
-      // Error handling delegated to onSubmit (should use toast notifications)
-      throw error
-    } finally {
-      setIsSubmitting(false)
-    }
+    // Trigger form submission (validates and calls onSubmit)
+    formInstance.handleSubmit()
   }
 
   return {
@@ -97,5 +124,6 @@ export function useResourceForm<T>({
     handleAdd,
     handleSave,
     isSubmitting,
+    formInstance,
   }
 }
