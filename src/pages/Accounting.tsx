@@ -13,14 +13,6 @@ import { Separator } from "@/components/ui/separator"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -745,6 +737,22 @@ export function Accounting() {
     incomeDisbursements,
   ])
 
+  // Handler for opening edit dialog from DataTable
+  const openEditForm = (entry: TrustAccountingEntry) => {
+    setEditingId(entry.id)
+    handleEditEntry({
+      accountingDate: entry.accountingDate?.split("T")[0] || "",
+      entryType: entry.entryType,
+      incomeType: entry.incomeType || "INTEREST",
+      expenseType: entry.expenseType || "PROFESSIONAL_FEE",
+      amount: entry.amount,
+      description: entry.description || "",
+      isPrincipal: entry.isPrincipal,
+      taxDeductible: entry.taxDeductible,
+      referenceNumber: entry.referenceNumber || "",
+    })
+  }
+
   // Column configuration for DataTable
   const accountingColumns: ColumnDef<TrustAccountingEntry>[] = [
     {
@@ -986,152 +994,14 @@ export function Accounting() {
 
           <TabsContent value={activeTab} className="m-0">
             <CardContent className="pt-4">
-              {loading ? (
-                <div className="flex justify-center py-12">
-                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                </div>
-              ) : filteredEntries.length === 0 ? (
-                <p className="py-12 text-center text-muted-foreground">
-                  No entries recorded yet. Click "Add Entry" to start tracking.
-                </p>
-              ) : (
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Category</TableHead>
-                        <TableHead>Description</TableHead>
-                        <TableHead className="text-right">Amount</TableHead>
-                        <TableHead>Flags</TableHead>
-                        <TableHead className="w-[80px]">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredEntries.map((entry) => (
-                        <TableRow key={entry.id}>
-                          <TableCell className="text-sm">
-                            {formatDate(entry.accountingDate)}
-                          </TableCell>
-                          <TableCell>
-                            <Badge
-                              variant={entry.entryType === "INCOME" ? "default" : "destructive"}
-                              className={cn(
-                                entry.entryType === "INCOME" && "bg-success hover:bg-success/90"
-                              )}
-                            >
-                              {entry.entryType}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-sm">
-                            {entry.entryType === "INCOME"
-                              ? INCOME_TYPES.find((t) => t.value === entry.incomeType)?.label ||
-                                entry.incomeType
-                              : EXPENSE_TYPES.find((t) => t.value === entry.expenseType)?.label ||
-                                entry.expenseType}
-                          </TableCell>
-                          <TableCell>
-                            <EditableTextCell
-                              value={entry.description}
-                              onSave={async (v) =>
-                                updateEntry(entry.id, { description: v || null })
-                              }
-                              placeholder="Add description"
-                            />
-                          </TableCell>
-                          <TableCell
-                            className={cn(
-                              "text-right",
-                              entry.entryType === "INCOME" ? "text-success" : "text-destructive"
-                            )}
-                          >
-                            <EditableCurrencyCell
-                              value={entry.amount}
-                              onSave={async (v) => updateEntry(entry.id, { amount: v || "" })}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex gap-1">
-                              {entry.isPrincipal && (
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Badge variant="outline" className="text-xs">
-                                        P
-                                      </Badge>
-                                    </TooltipTrigger>
-                                    <TooltipContent>Principal (not income)</TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              )}
-                              {entry.taxDeductible && (
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Badge variant="secondary" className="text-xs">
-                                        D
-                                      </Badge>
-                                    </TooltipTrigger>
-                                    <TooltipContent>Tax Deductible</TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex gap-1">
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-8 w-8"
-                                      onClick={() => {
-                                        setEditingId(entry.id)
-                                        handleEditEntry({
-                                          accountingDate: entry.accountingDate?.split("T")[0] || "",
-                                          entryType: entry.entryType,
-                                          incomeType: entry.incomeType || "INTEREST",
-                                          expenseType: entry.expenseType || "PROFESSIONAL_FEE",
-                                          amount: entry.amount,
-                                          description: entry.description || "",
-                                          isPrincipal: entry.isPrincipal,
-                                          taxDeductible: entry.taxDeductible,
-                                          referenceNumber: entry.referenceNumber || "",
-                                        })
-                                      }}
-                                    >
-                                      <Pencil className="h-4 w-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>Edit</TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-8 w-8 text-destructive hover:text-destructive"
-                                      onClick={() => deleteEntry(entry.id)}
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>Delete</TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
+              <DataTable
+                columns={accountingColumns}
+                data={filteredEntries}
+                isLoading={loading}
+                emptyMessage="No entries recorded yet. Click 'Add Entry' to start tracking."
+                onEdit={openEditForm}
+                onDelete={(entry) => deleteEntry(entry.id)}
+              />
             </CardContent>
           </TabsContent>
         </Tabs>
