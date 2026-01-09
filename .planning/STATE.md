@@ -6,33 +6,34 @@ See: .planning/PROJECT.md (updated 2026-01-09)
 
 **Core value:** Reliable trust administration - The API works without silent failures, users see clear error messages, and the codebase is maintainable for ongoing development.
 
-**Current focus:** Phase 1 — Validation Schema Fix
+**Current focus:** Phase 2 — Test Completion
 
 ## Current Position
 
-Phase: 1 of 10 (Validation Schema Fix)
-Plan: 2 of 2 in current phase
-Status: Complete
-Last activity: 2026-01-09 — Completed 01-02-PLAN.md
+Phase: 2 of 10 (Test Completion)
+Plan: 1 of 3 in current phase
+Status: In progress
+Last activity: 2026-01-09 — Completed 02-01-PLAN.md
 
-Progress: ██░░░░░░░░ 6% (2/32 plans complete)
+Progress: ███░░░░░░░ 9% (3/32 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 2
-- Average duration: 5 min
-- Total execution time: 10 min
+- Total plans completed: 3
+- Average duration: 4.3 min
+- Total execution time: 13 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 1 | 2/2 | 10 min | 5 min |
+| 2 | 1/3 | 3 min | 3 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (1 min), 01-02 (9 min)
-- Trend: Accelerating (Phase 1 complete)
+- Last 5 plans: 01-01 (1 min), 01-02 (9 min), 02-01 (3 min)
+- Trend: Steady (averaging 4.3 min/plan)
 
 ## Accumulated Context
 
@@ -49,6 +50,7 @@ Recent decisions affecting current work:
 - Apply wrapper to liability schema first as proof of concept (Phase 1)
 - Use sed for mass schema migration (faster than 30 individual edits) (Phase 1 Plan 01-02)
 - Test 3 diverse endpoints to verify fix (beneficiary, bank account, task) (Phase 1 Plan 01-02)
+- POST endpoints return 201 Created, not 200 OK (fix test assertions, not API) (Phase 2 Plan 02-01)
 
 ### Deferred Issues
 
@@ -64,11 +66,11 @@ None yet.
 - Resolution: Phase 1 complete, validation bug fully resolved
 
 **New Issues (Non-blocking):**
-- 3 integration tests fail on assertions (expect 200, receive 201) - to be fixed in Phase 2
+- 2 HEMS integration tests fail (1 status code, 1 type assertion) - fixing in Phase 2 Plan 02-02
 - TypeScript type errors in drizzle-orm (pre-existing, not validation related)
 
 ## Session Continuity
 
-Last session: 2026-01-09 02:45
-Stopped at: Phase 1 complete, ready for Phase 2
+Last session: 2026-01-09 02:49
+Stopped at: Completed 02-01, ready for 02-02
 Resume file: None
