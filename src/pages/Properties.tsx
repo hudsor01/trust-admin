@@ -308,30 +308,71 @@ export function Properties() {
     update: updateRental,
     remove: deleteRental,
   } = useRentalProperties(selectedEntity || undefined)
-  const [showRentalForm, setShowRentalForm] = useState(false)
-  const [editingRental, setEditingRental] = useState<RentalProperty | null>(null)
 
-  // Form data
-  const [rentalForm, setRentalForm] = useState<RentalFormData>(defaultRentalForm)
+  // Track editing ID for Rental
+  const [editingRentalId, setEditingRentalId] = useState<string | null>(null)
 
-  // Auto-select first entity
-  useEffect(() => {
-    if (entities.length > 0 && !selectedEntity && entities[0]) {
-      setSelectedEntity(entities[0].id)
-    }
-  }, [entities, selectedEntity])
+  // Rental form state
+  const {
+    isOpen: isRentalOpen,
+    close: closeRental,
+    form: rentalForm,
+    setForm: setRentalForm,
+    handleEdit: handleEditRentalForm,
+    handleAdd: handleAddRental,
+    handleSave: handleSaveRental,
+    isSubmitting: isRentalSubmitting,
+    isEditing: isEditingRental,
+  } = useResourceForm<RentalFormData>({
+    initialData: defaultRentalForm,
+    onSubmit: async (data) => {
+      if (!selectedEntity) return
 
-  const loading = entitiesLoading || homesteadsLoading || rentalsLoading
+      const payload = {
+        entityId: selectedEntity,
+        name: data.name,
+        streetAddress: data.streetAddress,
+        city: data.city,
+        state: data.state,
+        zip: data.zip,
+        county: data.county || null,
+        parcelNumber: data.parcelNumber || null,
+        propertyType: data.propertyType,
+        units: parseInt(data.units) || 1,
+        squareFeet: data.squareFeet ? parseInt(data.squareFeet) : null,
+        lotSizeAcres: data.lotSizeAcres ? parseFloat(data.lotSizeAcres) : null,
+        yearBuilt: data.yearBuilt ? parseInt(data.yearBuilt) : null,
+        rentalStatus: data.rentalStatus,
+        monthlyRent: data.monthlyRent || null,
+        leaseStart: data.leaseStart || null,
+        leaseEnd: data.leaseEnd || null,
+        propertyManager: data.propertyManager || null,
+        acquisitionDate: data.acquisitionDate || null,
+        acquisitionCost: data.acquisitionCost || null,
+        mortgageBalance: data.mortgageBalance || null,
+        dodValue: data.dodValue || null,
+        dodValueDate: data.dodValueDate || null,
+        dodValueType: data.dodValueType || null,
+        dodAffidavitFiled: data.dodAffidavitFiled,
+        dodAffidavitDate: data.dodAffidavitDate || null,
+        clerkFileNo: data.clerkFileNo || null,
+        status: data.status,
+        transferStatus: data.transferStatus,
+        notes: data.notes || null,
+      }
 
-  const handleAddRental = () => {
-    setRentalForm(defaultRentalForm)
-    setEditingRental(null)
-    setShowRentalForm(true)
-  }
+      if (isEditingRental && editingRentalId) {
+        await updateRental(editingRentalId, payload)
+      } else {
+        await createRental(payload)
+      }
+    },
+  })
 
+  // Custom edit handler to track ID and transform data
   const handleEditRental = (r: RentalProperty) => {
-    setEditingRental(r)
-    setRentalForm({
+    setEditingRentalId(r.id)
+    handleEditRentalForm({
       name: r.name || "",
       streetAddress: r.streetAddress,
       city: r.city,
@@ -362,56 +403,16 @@ export function Properties() {
       transferStatus: r.transferStatus,
       notes: r.notes || "",
     })
-    setShowRentalForm(true)
   }
 
-  const handleSaveRental = async () => {
-    if (!selectedEntity) return
-
-    const payload = {
-      entityId: selectedEntity,
-      name: rentalForm.name,
-      streetAddress: rentalForm.streetAddress,
-      city: rentalForm.city,
-      state: rentalForm.state,
-      zip: rentalForm.zip,
-      county: rentalForm.county || null,
-      parcelNumber: rentalForm.parcelNumber || null,
-      propertyType: rentalForm.propertyType,
-      units: parseInt(rentalForm.units) || 1,
-      squareFeet: rentalForm.squareFeet ? parseInt(rentalForm.squareFeet) : null,
-      lotSizeAcres: rentalForm.lotSizeAcres ? parseFloat(rentalForm.lotSizeAcres) : null,
-      yearBuilt: rentalForm.yearBuilt ? parseInt(rentalForm.yearBuilt) : null,
-      rentalStatus: rentalForm.rentalStatus,
-      monthlyRent: rentalForm.monthlyRent || null,
-      leaseStart: rentalForm.leaseStart || null,
-      leaseEnd: rentalForm.leaseEnd || null,
-      propertyManager: rentalForm.propertyManager || null,
-      acquisitionDate: rentalForm.acquisitionDate || null,
-      acquisitionCost: rentalForm.acquisitionCost || null,
-      mortgageBalance: rentalForm.mortgageBalance || null,
-      dodValue: rentalForm.dodValue || null,
-      dodValueDate: rentalForm.dodValueDate || null,
-      dodValueType: rentalForm.dodValueType || null,
-      dodAffidavitFiled: rentalForm.dodAffidavitFiled,
-      dodAffidavitDate: rentalForm.dodAffidavitDate || null,
-      clerkFileNo: rentalForm.clerkFileNo || null,
-      status: rentalForm.status,
-      transferStatus: rentalForm.transferStatus,
-      notes: rentalForm.notes || null,
+  // Auto-select first entity
+  useEffect(() => {
+    if (entities.length > 0 && !selectedEntity && entities[0]) {
+      setSelectedEntity(entities[0].id)
     }
+  }, [entities, selectedEntity])
 
-    try {
-      if (editingRental) {
-        await updateRental(editingRental.id, payload)
-      } else {
-        await createRental(payload)
-      }
-      setShowRentalForm(false)
-    } catch (err) {
-      console.error("Failed to save rental:", err)
-    }
-  }
+  const loading = entitiesLoading || homesteadsLoading || rentalsLoading
 
   const handleDeleteHomestead = async (id: string) => {
     if (!confirm("Are you sure you want to delete this homestead?")) return
@@ -429,11 +430,6 @@ export function Properties() {
     } catch (err) {
       console.error("Failed to delete rental:", err)
     }
-  }
-
-  // Inline update handler for editable cells
-  const handleUpdateRental = async (id: string, updates: Partial<RentalProperty>) => {
-    await updateRental(id, updates)
   }
 
   if (loading) {
@@ -1081,13 +1077,13 @@ export function Properties() {
       </ResourceDialog>
 
       {/* Rental Property Form Dialog */}
-      <Dialog open={showRentalForm} onOpenChange={setShowRentalForm}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              {editingRental ? "Edit Rental Property" : "Add Rental Property"}
-            </DialogTitle>
-          </DialogHeader>
+      <ResourceDialog
+        open={isRentalOpen}
+        onOpenChange={closeRental}
+        title={isEditingRental ? "Edit Rental Property" : "Add Rental Property"}
+        onSubmit={handleSaveRental}
+        isLoading={isRentalSubmitting}
+      >
           <div className="space-y-6">
             <div>
               <h4 className="mb-3 text-sm font-medium">Property Info</h4>
@@ -1431,15 +1427,8 @@ export function Properties() {
               />
             </div>
 
-            <div className="flex justify-end gap-2">
-              <Button variant="ghost" onClick={() => setShowRentalForm(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleSaveRental}>Save</Button>
-            </div>
           </div>
-        </DialogContent>
-      </Dialog>
+      </ResourceDialog>
     </div>
   )
 }
