@@ -11,18 +11,18 @@ See: .planning/PROJECT.md (updated 2026-01-09)
 ## Current Position
 
 Phase: 8 of 10 (Type Safety Improvements)
-Plan: 0 of 4 in current phase
-Status: 📋 Planned (ready to execute)
-Last activity: 2026-01-09 — Planned Phase 8 (4 plans created)
+Plan: 1 of 4 in current phase
+Status: ⚙️ In Progress
+Last activity: 2026-01-09 — Completed Plan 08-01 (Create Typed Resource Configuration Interface)
 
-Progress: ██████████████████ 69% (22/32 plans complete)
+Progress: ███████████████████ 72% (23/32 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 22
+- Total plans completed: 23
 - Average duration: 4.3 min
-- Total execution time: 120 min
+- Total execution time: 125 min
 
 **By Phase:**
 
@@ -35,10 +35,11 @@ Progress: ██████████████████ 69% (22/32 plan
 | 5 | 3/3 | 7 min | 2.3 min |
 | 6 | 3/3 | 25 min | 8.3 min |
 | 7 | 4/4 | 30 min | 7.5 min |
+| 8 | 1/4 | 5 min | 5 min |
 
 **Recent Trend:**
-- Last 5 plans: 07-01 (5 min), 07-02 (10 min), 07-03 (10 min), 07-04 (5 min), avg: 7.5 min
-- Trend: Stable (table refactoring with DataTable component, Phase 7 complete)
+- Last 5 plans: 07-02 (10 min), 07-03 (10 min), 07-04 (5 min), 08-01 (5 min), avg: 7.5 min
+- Trend: Fast (type safety improvements, straightforward pattern application)
 
 ## Accumulated Context
 
@@ -79,6 +80,8 @@ Recent decisions affecting current work:
 - ResourceDialog prop naming: Use open/onOpenChange/onSubmit/isLoading, not isOpen/onClose/onSave/isSaving (Phase 7 Plan 07-03)
 - Column factory function signatures: Use Promise<any> return type for update handlers, not Promise<void> (Phase 7 Plan 07-04)
 - Line count vs maintainability tradeoff: DataTable column configs add verbosity but improve consistency and features (Phase 7 Plan 07-04)
+- Generic ResourceConfig interface: Use `ResourceConfig<typeof tableName>` with `satisfies` pattern to eliminate `as any` casts while preserving type safety (Phase 8 Plan 08-01)
+- Validated data casting: Cast `validated` to `any` in generic handlers after Zod validation, actual type safety enforced by CRUD operations (Phase 8 Plan 08-01)
 
 ### Deferred Issues
 
@@ -109,6 +112,6 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-01-09
-Stopped at: Planned Phase 8 (4 plans created)
+Stopped at: Completed Plan 08-01 (Create Typed Resource Configuration Interface)
 Resume file: None
-Note: Phase 8 planned with 4 executable plans. Focus: Eliminate `as any` casts (22 in index.ts route factory, 11 in crud-factory.ts). Plans use proven pattern: create interface → apply to test resources → apply to all → verify. Ready to execute Plan 08-01.
+Note: Plan 08-01 complete - Generic `ResourceConfig<TTable>` interface created and applied to 3 test resources (entities, liabilities, tasks). Pattern proven: `satisfies ResourceConfig<typeof table>` eliminates `as any` casts. TypeScript compiles cleanly, all API endpoints work. Ready for Plan 08-02: Apply to remaining 19 resources.
