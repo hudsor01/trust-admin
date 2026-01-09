@@ -62,6 +62,7 @@ import {
   EditableSelectCell,
 } from "@/components/editable-cells"
 import { TRANSFER_STATUS, DOD_VALUE_TYPES, RENTAL_STATUS, STATUS_VARIANTS } from "@/lib/constants"
+import { DataTable, type ColumnDef } from "@/components/data-table"
 
 const PROPERTY_TYPES = [
   { value: "SINGLE_FAMILY", label: "Single Family" },
@@ -431,6 +432,90 @@ export function Properties() {
       console.error("Failed to delete rental:", err)
     }
   }
+
+  // Column configuration for Rental Properties table
+  const rentalColumns: ColumnDef<RentalProperty>[] = [
+    {
+      key: "name",
+      header: "Name",
+      sortable: true,
+      render: (item) => (
+        <EditableTextCell
+          value={item.name}
+          onSave={async (v) => updateRental(item.id, { name: v })}
+        />
+      ),
+    },
+    {
+      key: "streetAddress",
+      header: "Address",
+      render: (item) => (
+        <>
+          <p className="text-sm">{item.streetAddress}</p>
+          <p className="text-xs text-muted-foreground">
+            {item.city}, {item.state} {item.zip}
+          </p>
+        </>
+      ),
+    },
+    {
+      key: "units",
+      header: "Units",
+      sortable: true,
+      render: (item) => (
+        <EditableNumberCell
+          value={item.units}
+          onSave={async (v) => updateRental(item.id, { units: v })}
+        />
+      ),
+    },
+    {
+      key: "monthlyRent",
+      header: "Monthly Rent",
+      sortable: true,
+      render: (item) => (
+        <EditableCurrencyCell
+          value={item.monthlyRent}
+          onSave={async (v) => updateRental(item.id, { monthlyRent: v })}
+        />
+      ),
+    },
+    {
+      key: "dodValue",
+      header: "DOD Value",
+      sortable: true,
+      render: (item) => (
+        <EditableCurrencyCell
+          value={item.dodValue}
+          onSave={async (v) => updateRental(item.id, { dodValue: v })}
+        />
+      ),
+    },
+    {
+      key: "rentalStatus",
+      header: "Status",
+      render: (item) => (
+        <EditableSelectCell
+          value={item.rentalStatus}
+          options={RENTAL_STATUS}
+          onSave={async (v) => updateRental(item.id, { rentalStatus: v })}
+          variants={STATUS_VARIANTS}
+        />
+      ),
+    },
+    {
+      key: "transferStatus",
+      header: "Transfer",
+      render: (item) => (
+        <EditableSelectCell
+          value={item.transferStatus}
+          options={TRANSFER_STATUS}
+          onSave={async (v) => updateRental(item.id, { transferStatus: v })}
+          variants={STATUS_VARIANTS}
+        />
+      ),
+    },
+  ]
 
   if (loading) {
     return (
