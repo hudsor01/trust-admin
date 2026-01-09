@@ -52,6 +52,7 @@ import {
 import { STATUS_VARIANTS } from "@/lib/constants"
 import { useResourceForm } from "@/hooks/use-resource-form"
 import { ResourceDialog } from "@/components/resource-dialog"
+import { DataTable, type ColumnDef } from "@/components/data-table"
 
 const LIABILITY_TYPES = [
   { value: "MORTGAGE", label: "Mortgage" },
@@ -323,6 +324,107 @@ export function Liabilities() {
     0
   )
 
+  const liabilityColumns: ColumnDef<Liability>[] = [
+    {
+      key: "liabilityType",
+      header: "Type",
+      render: (liability) => {
+        const typeLabel = LIABILITY_TYPES.find((t) => t.value === liability.liabilityType)?.label || liability.liabilityType
+        return (
+          <Badge variant="outline" className="text-xs">
+            {typeLabel}
+          </Badge>
+        )
+      },
+    },
+    {
+      key: "creditor",
+      header: "Creditor",
+      render: (liability) => (
+        <EditableTextCell
+          value={liability.creditor}
+          onSave={async (v) => updateLiability(liability.id, { creditor: v || "" })}
+        />
+      ),
+    },
+    {
+      key: "originalAmount",
+      header: "Original Amount",
+      render: (liability) => (
+        <EditableCurrencyCell
+          value={liability.originalAmount}
+          onSave={async (v) => updateLiability(liability.id, { originalAmount: v || "0" })}
+        />
+      ),
+    },
+    {
+      key: "currentBalance",
+      header: "Current Balance",
+      render: (liability) => (
+        <EditableCurrencyCell
+          value={liability.currentBalance}
+          onSave={async (v) => updateLiability(liability.id, { currentBalance: v || "0" })}
+        />
+      ),
+    },
+    {
+      key: "monthlyPayment",
+      header: "Monthly Payment",
+      render: (liability) => (
+        <EditableCurrencyCell
+          value={liability.monthlyPayment}
+          onSave={async (v) => updateLiability(liability.id, { monthlyPayment: v })}
+        />
+      ),
+    },
+    {
+      key: "status",
+      header: "Status",
+      render: (liability) => (
+        <EditableSelectCell
+          value={liability.status}
+          options={LIABILITY_STATUS}
+          variants={STATUS_VARIANTS}
+          onSave={async (v) => updateLiability(liability.id, { status: v })}
+        />
+      ),
+    },
+    {
+      key: "allocationClass",
+      header: "Allocation",
+      render: (liability) => (
+        <EditableSelectCell
+          value={liability.allocationClass || "PRINCIPAL"}
+          options={ALLOCATION_CLASS}
+          onSave={async (v) => updateLiability(liability.id, { allocationClass: v })}
+        />
+      ),
+    },
+    {
+      key: "actions",
+      header: "Actions",
+      render: (liability) => (
+        <div className="flex items-center gap-1">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => openPaymentDialog(liability)}
+                >
+                  <DollarSign className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Record Payment</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+      ),
+    },
+  ]
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -406,128 +508,11 @@ export function Liabilities() {
               </CardContent>
             </Card>
           ) : (
-            <Card>
-              <CardContent className="p-0">
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Creditor</TableHead>
-                        <TableHead>Original Amount</TableHead>
-                        <TableHead>Current Balance</TableHead>
-                        <TableHead>Monthly Payment</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Allocation</TableHead>
-                        <TableHead className="w-[100px]">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {liabilities.map((l) => (
-                        <TableRow key={l.id}>
-                          <TableCell>
-                            <Badge variant="secondary" className="font-normal">
-                              {LIABILITY_TYPES.find((t) => t.value === l.liabilityType)?.label}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <EditableTextCell
-                              value={l.creditor}
-                              onSave={async (val) => {
-                                await updateLiability(l.id, { creditor: val as string })
-                              }}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <EditableCurrencyCell
-                              value={l.originalAmount}
-                              onSave={async (val) => {
-                                await updateLiability(l.id, { originalAmount: val || "0" })
-                              }}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <EditableCurrencyCell
-                              value={l.currentBalance}
-                              onSave={async (val) => {
-                                await updateLiability(l.id, { currentBalance: val || "0" })
-                              }}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <EditableCurrencyCell
-                              value={l.monthlyPayment}
-                              onSave={async (val) => {
-                                await updateLiability(l.id, { monthlyPayment: val })
-                              }}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <EditableSelectCell
-                              value={l.status}
-                              options={LIABILITY_STATUS}
-                              variants={STATUS_VARIANTS}
-                              onSave={async (val) => {
-                                await updateLiability(l.id, { status: val })
-                              }}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <EditableSelectCell
-                              value={l.allocationClass || "PRINCIPAL"}
-                              options={ALLOCATION_CLASS}
-                              onSave={async (val) => {
-                                await updateLiability(l.id, { allocationClass: val })
-                              }}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex gap-1">
-                              {l.status === "ACTIVE" && (
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-8 w-8"
-                                        onClick={() => openPaymentDialog(l)}
-                                      >
-                                        <CreditCard className="h-4 w-4" />
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>Record Payment</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              )}
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-8 w-8 text-destructive hover:text-destructive"
-                                      onClick={() => handleDelete(l.id)}
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Delete</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
+            <DataTable
+              columns={liabilityColumns}
+              data={liabilities}
+              onDelete={(liability) => handleDelete(liability.id)}
+            />
           )}
         </>
       )}
