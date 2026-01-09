@@ -37,13 +37,21 @@ import {
 } from "@/components/ui/tooltip"
 
 // Import types and hooks from centralized location
+import { useEntities } from "@/hooks/entities/queries"
 import {
-  useEntities,
   useBankAccounts,
-  useInvestmentAccounts,
+  useCreateBankAccount,
+  useUpdateBankAccount,
+  useDeleteBankAccount,
   type BankAccount,
+} from "@/hooks/bank-accounts/queries"
+import {
+  useInvestmentAccounts,
+  useCreateInvestmentAccount,
+  useUpdateInvestmentAccount,
+  useDeleteInvestmentAccount,
   type InvestmentAccount,
-} from "@/hooks"
+} from "@/hooks/investment-accounts/queries"
 import {
   bankAccountFormDefaults,
   investmentAccountFormDefaults,
@@ -123,7 +131,7 @@ const createBankAccountColumns = (
       <EditableTextCell
         value={account.institution}
         onSave={async (val) => {
-          await updateBankAccount(account.id, { institution: val as string })
+          await updateBankAccountMutation.mutateAsync({ id: account.id, data: { institution: val as string })
         }}
       />
     ),
@@ -135,7 +143,7 @@ const createBankAccountColumns = (
       <EditableTextCell
         value={account.accountName}
         onSave={async (val) => {
-          await updateBankAccount(account.id, { accountName: val })
+          await updateBankAccountMutation.mutateAsync({ id: account.id, data: { accountName: val })
         }}
       />
     ),
@@ -163,7 +171,7 @@ const createBankAccountColumns = (
       <EditableCurrencyCell
         value={account.dodValue}
         onSave={async (val) => {
-          await updateBankAccount(account.id, { dodValue: val })
+          await updateBankAccountMutation.mutateAsync({ id: account.id, data: { dodValue: val })
         }}
       />
     ),
@@ -177,7 +185,7 @@ const createBankAccountColumns = (
         options={ACCOUNT_STATUS}
         variants={STATUS_VARIANTS}
         onSave={async (val) => {
-          await updateBankAccount(account.id, { status: val })
+          await updateBankAccountMutation.mutateAsync({ id: account.id, data: { status: val })
         }}
       />
     ),
@@ -191,7 +199,7 @@ const createBankAccountColumns = (
         options={TRANSFER_STATUS}
         variants={STATUS_VARIANTS}
         onSave={async (val) => {
-          await updateBankAccount(account.id, { transferStatus: val })
+          await updateBankAccountMutation.mutateAsync({ id: account.id, data: { transferStatus: val })
         }}
       />
     ),
@@ -233,7 +241,7 @@ const createInvestmentAccountColumns = (
       <EditableTextCell
         value={account.institution}
         onSave={async (val) => {
-          await updateInvestmentAccount(account.id, { institution: val as string })
+          await updateInvestmentAccountMutation.mutateAsync({ id: account.id, data: { institution: val as string })
         }}
       />
     ),
@@ -245,7 +253,7 @@ const createInvestmentAccountColumns = (
       <EditableTextCell
         value={account.accountName}
         onSave={async (val) => {
-          await updateInvestmentAccount(account.id, { accountName: val })
+          await updateInvestmentAccountMutation.mutateAsync({ id: account.id, data: { accountName: val })
         }}
       />
     ),
@@ -273,7 +281,7 @@ const createInvestmentAccountColumns = (
       <EditableCurrencyCell
         value={account.dodValue}
         onSave={async (val) => {
-          await updateInvestmentAccount(account.id, { dodValue: val })
+          await updateInvestmentAccountMutation.mutateAsync({ id: account.id, data: { dodValue: val })
         }}
       />
     ),
@@ -285,7 +293,7 @@ const createInvestmentAccountColumns = (
       <EditableCurrencyCell
         value={account.costBasis}
         onSave={async (val) => {
-          await updateInvestmentAccount(account.id, { costBasis: val })
+          await updateInvestmentAccountMutation.mutateAsync({ id: account.id, data: { costBasis: val })
         }}
       />
     ),
@@ -299,7 +307,7 @@ const createInvestmentAccountColumns = (
         options={ACCOUNT_STATUS}
         variants={STATUS_VARIANTS}
         onSave={async (val) => {
-          await updateInvestmentAccount(account.id, { status: val })
+          await updateInvestmentAccountMutation.mutateAsync({ id: account.id, data: { status: val })
         }}
       />
     ),
@@ -313,7 +321,7 @@ const createInvestmentAccountColumns = (
         options={TRANSFER_STATUS}
         variants={STATUS_VARIANTS}
         onSave={async (val) => {
-          await updateInvestmentAccount(account.id, { transferStatus: val })
+          await updateInvestmentAccountMutation.mutateAsync({ id: account.id, data: { transferStatus: val })
         }}
       />
     ),
@@ -344,28 +352,22 @@ const createInvestmentAccountColumns = (
 ]
 
 export function Accounts() {
-  // Use centralized hooks for data fetching
-  const { data: entities, loading: entitiesLoading } = useEntities()
+  // Use TanStack Query hooks for data fetching
+  const { data: entities = [], isLoading: entitiesLoading } = useEntities()
   const [selectedEntity, setSelectedEntity] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState("bank")
 
-  // Bank account hook
-  const {
-    data: bankAccounts,
-    loading: bankLoading,
-    create: createBankAccount,
-    update: updateBankAccount,
-    remove: deleteBankAccount,
-  } = useBankAccounts(selectedEntity || undefined)
+  // Bank account hooks
+  const { data: bankAccounts = [], isLoading: bankLoading } = useBankAccounts(selectedEntity || undefined)
+  const createBankAccountMutation = useCreateBankAccount()
+  const updateBankAccountMutation = useUpdateBankAccount()
+  const deleteBankAccountMutation = useDeleteBankAccount()
 
-  // Investment account hook
-  const {
-    data: investmentAccounts,
-    loading: investmentLoading,
-    create: createInvestmentAccount,
-    update: updateInvestmentAccount,
-    remove: deleteInvestmentAccount,
-  } = useInvestmentAccounts(selectedEntity || undefined)
+  // Investment account hooks
+  const { data: investmentAccounts = [], isLoading: investmentLoading } = useInvestmentAccounts(selectedEntity || undefined)
+  const createInvestmentAccountMutation = useCreateInvestmentAccount()
+  const updateInvestmentAccountMutation = useUpdateInvestmentAccount()
+  const deleteInvestmentAccountMutation = useDeleteInvestmentAccount()
 
   // Bank Account Dialog - useResourceForm hook
   const [editingBankId, setEditingBankId] = useState<string | null>(null)
@@ -398,9 +400,9 @@ export function Accounts() {
         notes: data.notes || null,
       }
       if (isEditingBank && editingBankId) {
-        await updateBankAccount(editingBankId, payload as any)
+        await updateBankAccountMutation.mutateAsync({ id: editingBankId, data: payload as any)
       } else {
-        await createBankAccount(payload as any)
+        await createBankAccountMutation.mutateAsync(payload as any)
       }
       setEditingBankId(null)
     },
@@ -439,9 +441,9 @@ export function Accounts() {
         notes: data.notes || null,
       }
       if (isEditingInvestment && editingInvestmentId) {
-        await updateInvestmentAccount(editingInvestmentId, payload as any)
+        await updateInvestmentAccountMutation.mutateAsync({ id: editingInvestmentId, data: payload as any)
       } else {
-        await createInvestmentAccount(payload as any)
+        await createInvestmentAccountMutation.mutateAsync(payload as any)
       }
       setEditingInvestmentId(null)
     },
@@ -490,7 +492,7 @@ export function Accounts() {
   const handleDeleteBank = async (id: string) => {
     if (!confirm("Are you sure you want to delete this bank account?")) return
     try {
-      await deleteBankAccount(id)
+      await deleteBankAccountMutation.mutateAsync(id)
     } catch (err) {
       console.error("Failed to delete bank account:", err)
     }
@@ -499,7 +501,7 @@ export function Accounts() {
   const handleDeleteInvestment = async (id: string) => {
     if (!confirm("Are you sure you want to delete this investment account?")) return
     try {
-      await deleteInvestmentAccount(id)
+      await deleteInvestmentAccountMutation.mutateAsync(id)
     } catch (err) {
       console.error("Failed to delete investment account:", err)
     }
@@ -507,11 +509,11 @@ export function Accounts() {
 
   // Inline update handlers for editable cells
   const handleUpdateBank = async (id: string, updates: Partial<BankAccount>) => {
-    await updateBankAccount(id, updates)
+    await updateBankAccountMutation.mutateAsync({ id, data: updates)
   }
 
   const handleUpdateInvestment = async (id: string, updates: Partial<InvestmentAccount>) => {
-    await updateInvestmentAccount(id, updates)
+    await updateInvestmentAccountMutation.mutateAsync({ id, data: updates)
   }
 
   const loading = entitiesLoading || bankLoading || investmentLoading
