@@ -225,7 +225,7 @@ export function Trustees() {
                           <EditableTextCell
                             value={t.name}
                             onSave={async (val) => {
-                              await updateTrusteeMutation.mutateAsync({ id: t.id, data: { name: val as string })
+                              await updateTrusteeMutation.mutateAsync({ id: t.id, data: { name: val as string } })
                             }}
                           />
                         </TableCell>
@@ -352,7 +352,7 @@ export function Trustees() {
                           <EditableTextCell
                             value={t.name}
                             onSave={async (val) => {
-                              await updateTrusteeMutation.mutateAsync({ id: t.id, data: { name: val as string })
+                              await updateTrusteeMutation.mutateAsync({ id: t.id, data: { name: val as string } })
                             }}
                           />
                         </TableCell>
