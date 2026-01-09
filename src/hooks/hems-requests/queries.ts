@@ -149,3 +149,52 @@ export function useDeleteHemsRequest() {
     },
   })
 }
+
+// Approve/Deny Mutations
+export function useApproveHemsRequest() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, approvedAmount, reviewNotes }: { id: string; approvedAmount: string; reviewNotes?: string }) => {
+      const res = await fetch(`/api/hems-requests/${id}/approve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ approvedAmount, reviewNotes }),
+      })
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ error: { message: `HTTP ${res.status}` } }))
+        toast.error(errorData.error?.message || 'Failed to approve HEMS request')
+        throw new Error(errorData.error?.message || `Failed to approve: ${res.status}`)
+      }
+      return res.json() as Promise<HemsRequest>
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: hemsRequestKeys.all })
+      queryClient.invalidateQueries({ queryKey: hemsRequestKeys.detail(data.id) })
+      toast.success('HEMS request approved successfully')
+    },
+  })
+}
+
+export function useDenyHemsRequest() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, reviewNotes }: { id: string; reviewNotes?: string }) => {
+      const res = await fetch(`/api/hems-requests/${id}/deny`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reviewNotes }),
+      })
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ error: { message: `HTTP ${res.status}` } }))
+        toast.error(errorData.error?.message || 'Failed to deny HEMS request')
+        throw new Error(errorData.error?.message || `Failed to deny: ${res.status}`)
+      }
+      return res.json() as Promise<HemsRequest>
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: hemsRequestKeys.all })
+      queryClient.invalidateQueries({ queryKey: hemsRequestKeys.detail(data.id) })
+      toast.success('HEMS request denied')
+    },
+  })
+}
