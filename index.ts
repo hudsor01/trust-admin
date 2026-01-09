@@ -9,6 +9,7 @@ import { logger } from "./src/lib/logger";
 import { ApiError, errorResponse, validateWithSchema, validateReference } from "./src/lib/api-error";
 import { Resend } from "resend";
 import { and, eq, isNotNull, lte, asc } from "drizzle-orm";
+import type { PgTable, TableConfig } from "drizzle-orm/pg-core";
 import type { ZodSchema } from "zod";
 import { db } from "./db";
 import { task, trustee } from "./db/schema";
@@ -140,6 +141,28 @@ interface RouteConfig {
   name: string;
   filterParam?: string;
   customGetById?: (id: string) => Promise<unknown | undefined>;
+  // Validation schemas
+  insertSchema?: ZodSchema;
+  updateSchema?: ZodSchema;
+  // Foreign key references to validate
+  references?: ReferenceConfig[];
+  // Fully immutable (no update or delete - for audit logs)
+  immutable?: boolean;
+}
+
+/**
+ * Generic resource configuration with type safety
+ *
+ * @template TTable - Drizzle table type (e.g., typeof entity)
+ *
+ * Eliminates need for `as any` casts by preserving table-specific types
+ * through generic constraints. Insert/Select types are inferred from TTable.
+ */
+interface ResourceConfig<TTable extends PgTable<TableConfig>> {
+  crud: CrudOperations<TTable, TTable["$inferInsert"], TTable["$inferSelect"]>;
+  name: string;
+  filterParam?: string;
+  customGetById?: (id: string) => Promise<TTable["$inferSelect"] | undefined>;
   // Validation schemas
   insertSchema?: ZodSchema;
   updateSchema?: ZodSchema;
