@@ -38,7 +38,8 @@ import {
 } from "@/components/ui/tooltip"
 
 // Import types and hooks from centralized location
-import { useEntities, useTrustees, type Trustee } from "@/hooks"
+import { useEntities } from "@/hooks/entities/queries"
+import { useTrustees, useCreateTrustee, useUpdateTrustee, useDeleteTrustee, type Trustee } from "@/hooks/trustees/queries"
 import { trusteeFormDefaults, toDateInput } from "@/lib/form-factory"
 import { STATUS_VARIANTS } from "@/lib/constants"
 import {
@@ -58,17 +59,17 @@ const STATUS_OPTIONS = [
 ]
 
 export function Trustees() {
-  // Use centralized hooks for data fetching
-  const { data: entities, loading: entitiesLoading } = useEntities()
+  // Use TanStack Query hooks for data fetching
+  const { data: entities = [], isLoading: entitiesLoading } = useEntities()
   const [selectedEntity, setSelectedEntity] = useState<string | null>(null)
 
   const {
-    data: trustees,
-    loading: trusteesLoading,
-    create: createTrustee,
-    update: updateTrustee,
-    remove: removeTrustee,
+    data: trustees = [],
+    isLoading: trusteesLoading,
   } = useTrustees(selectedEntity || undefined)
+  const createTrusteeMutation = useCreateTrustee()
+  const updateTrusteeMutation = useUpdateTrustee()
+  const deleteTrusteeMutation = useDeleteTrustee()
 
   const [showForm, setShowForm] = useState(false)
   const [editingTrustee, setEditingTrustee] = useState<Trustee | null>(null)
@@ -94,9 +95,9 @@ export function Trustees() {
 
     try {
       if (editingTrustee) {
-        await updateTrustee(editingTrustee.id, payload)
+        await updateTrusteeMutation.mutateAsync({ id: editingTrustee.id, data: payload)
       } else {
-        await createTrustee(payload)
+        await createTrusteeMutation.mutateAsync(payload)
       }
       setShowForm(false)
       resetForm()
@@ -108,7 +109,7 @@ export function Trustees() {
   const deleteTrustee = async (id: string) => {
     if (!confirm("Are you sure you want to delete this trustee?")) return
     try {
-      await removeTrustee(id)
+      await deleteTrusteeMutation.mutateAsync(id)
     } catch (error) {
       console.error("Failed to delete trustee:", error)
     }
@@ -216,7 +217,7 @@ export function Trustees() {
                           <EditableNumberCell
                             value={t.order}
                             onSave={async (val) => {
-                              await updateTrustee(t.id, { order: val ?? undefined })
+                              await updateTrusteeMutation.mutateAsync({ id: t.id, data: { order: val ?? undefined })
                             }}
                           />
                         </TableCell>
@@ -224,7 +225,7 @@ export function Trustees() {
                           <EditableTextCell
                             value={t.name}
                             onSave={async (val) => {
-                              await updateTrustee(t.id, { name: val as string })
+                              await updateTrusteeMutation.mutateAsync({ id: t.id, data: { name: val as string })
                             }}
                           />
                         </TableCell>
@@ -235,7 +236,7 @@ export function Trustees() {
                               value={t.email}
                               placeholder="Add email"
                               onSave={async (val) => {
-                                await updateTrustee(t.id, { email: val })
+                                await updateTrusteeMutation.mutateAsync({ id: t.id, data: { email: val })
                               }}
                             />
                           </div>
@@ -247,7 +248,7 @@ export function Trustees() {
                               value={t.phone}
                               placeholder="Add phone"
                               onSave={async (val) => {
-                                await updateTrustee(t.id, { phone: val })
+                                await updateTrusteeMutation.mutateAsync({ id: t.id, data: { phone: val })
                               }}
                             />
                           </div>
@@ -258,7 +259,7 @@ export function Trustees() {
                             <EditableDateCell
                               value={t.dob}
                               onSave={async (val) => {
-                                await updateTrustee(t.id, { dob: val })
+                                await updateTrusteeMutation.mutateAsync({ id: t.id, data: { dob: val })
                               }}
                             />
                           </div>
@@ -275,7 +276,7 @@ export function Trustees() {
                           <EditableDateCell
                             value={t.startDate}
                             onSave={async (val) => {
-                              await updateTrustee(t.id, { startDate: val })
+                              await updateTrusteeMutation.mutateAsync({ id: t.id, data: { startDate: val })
                             }}
                           />
                         </TableCell>
@@ -343,7 +344,7 @@ export function Trustees() {
                           <EditableNumberCell
                             value={t.order}
                             onSave={async (val) => {
-                              await updateTrustee(t.id, { order: val ?? undefined })
+                              await updateTrusteeMutation.mutateAsync({ id: t.id, data: { order: val ?? undefined })
                             }}
                           />
                         </TableCell>
@@ -351,7 +352,7 @@ export function Trustees() {
                           <EditableTextCell
                             value={t.name}
                             onSave={async (val) => {
-                              await updateTrustee(t.id, { name: val as string })
+                              await updateTrusteeMutation.mutateAsync({ id: t.id, data: { name: val as string })
                             }}
                           />
                         </TableCell>
@@ -362,7 +363,7 @@ export function Trustees() {
                               value={t.email}
                               placeholder="Add email"
                               onSave={async (val) => {
-                                await updateTrustee(t.id, { email: val })
+                                await updateTrusteeMutation.mutateAsync({ id: t.id, data: { email: val })
                               }}
                             />
                           </div>
@@ -374,7 +375,7 @@ export function Trustees() {
                               value={t.phone}
                               placeholder="Add phone"
                               onSave={async (val) => {
-                                await updateTrustee(t.id, { phone: val })
+                                await updateTrusteeMutation.mutateAsync({ id: t.id, data: { phone: val })
                               }}
                             />
                           </div>
@@ -385,7 +386,7 @@ export function Trustees() {
                             <EditableDateCell
                               value={t.dob}
                               onSave={async (val) => {
-                                await updateTrustee(t.id, { dob: val })
+                                await updateTrusteeMutation.mutateAsync({ id: t.id, data: { dob: val })
                               }}
                             />
                           </div>
@@ -402,7 +403,7 @@ export function Trustees() {
                           <EditableDateCell
                             value={t.startDate}
                             onSave={async (val) => {
-                              await updateTrustee(t.id, { startDate: val })
+                              await updateTrusteeMutation.mutateAsync({ id: t.id, data: { startDate: val })
                             }}
                           />
                         </TableCell>
