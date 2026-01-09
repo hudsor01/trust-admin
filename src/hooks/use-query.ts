@@ -124,6 +124,10 @@ interface UseQueryOptions<T> {
   transform?: (data: T[]) => T[];
   /** Fetch on mount (default: true) */
   fetchOnMount?: boolean;
+  /** Enable pagination (default: false) */
+  enablePagination?: boolean;
+  /** Page size for pagination (default: 20) */
+  pageSize?: number;
 }
 
 interface UseQueryResult<T> {
@@ -135,6 +139,10 @@ interface UseQueryResult<T> {
   update: (id: string, item: Partial<T>) => Promise<T>;
   remove: (id: string) => Promise<void>;
   setData: React.Dispatch<React.SetStateAction<T[]>>;
+  // Pagination state (only when enablePagination=true)
+  currentPage?: number;
+  totalCount?: number;
+  setPage?: (page: number) => void;
 }
 
 /**
@@ -153,19 +161,37 @@ export function createQueryHook<T extends { id: string }>(
   endpoint: string,
   options: UseQueryOptions<T> = {}
 ) {
-  const { filterParam, sortFn, transform, fetchOnMount = true } = options;
+  const {
+    filterParam,
+    sortFn,
+    transform,
+    fetchOnMount = true,
+    enablePagination = false,
+    pageSize = 20,
+  } = options;
 
   return function useQuery(filterValue?: string): UseQueryResult<T> {
     const [data, setData] = useState<T[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<Error | null>(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalCount, setTotalCount] = useState(0);
 
     const buildUrl = useCallback(() => {
+      const params = new URLSearchParams();
+
       if (filterValue && filterParam) {
-        return `${endpoint}?${filterParam}=${filterValue}`;
+        params.append(filterParam, filterValue);
       }
-      return endpoint;
-    }, [filterValue]);
+
+      if (enablePagination) {
+        params.append("limit", String(pageSize));
+        params.append("offset", String((currentPage - 1) * pageSize));
+        params.append("includeTotalCount", "true");
+      }
+
+      return params.toString() ? `${endpoint}?${params}` : endpoint;
+    }, [filterValue, currentPage]);
 
     const refetch = useCallback(async () => {
     const url = buildUrl();
@@ -222,12 +248,31 @@ export function createQueryHook<T extends { id: string }>(
           throw new Error(`Failed to fetch: ${res.status}`);
         }
         let result = await res.json();
-        if (sortFn) result = sortFn(result);
-        if (transform) result = transform(result);
-        return result;
+        
+        // Handle paginated vs non-paginated responses
+        if (enablePagination && result && typeof result === "object" && "data" in result) {
+          // Paginated response
+          let data = result.data;
+          if (sortFn) data = sortFn(data);
+          if (transform) data = transform(data);
+          return { data, totalCount: result.totalCount };
+        } else {
+          // Non-paginated response
+          if (sortFn) result = sortFn(result);
+          if (transform) result = transform(result);
+          return result;
+        }
       });
       
-      setData(result);
+      // Set data based on response type
+      if (enablePagination && result && typeof result === "object" && "data" in result) {
+        setData(result.data);
+        if (result.totalCount !== undefined) {
+          setTotalCount(result.totalCount);
+        }
+      } else {
+        setData(result as T[]);
+      }
     } catch (err) {
       setError(err instanceof Error ? err : new Error(String(err)));
       // Network errors (not handled by response parsing above)
@@ -375,6 +420,10 @@ export function createQueryHook<T extends { id: string }>(
       invalidateCache(endpoint);
     }, []);
 
+    const setPage = useCallback((page: number) => {
+      setCurrentPage(page);
+    }, []);
+
     useEffect(() => {
       if (fetchOnMount) {
         // For filtered queries, only fetch when filter value is provided
@@ -384,9 +433,23 @@ export function createQueryHook<T extends { id: string }>(
         }
         refetch();
       }
-    }, [refetch, fetchOnMount, filterValue]);
+    }, [refetch, fetchOnMount, filterValue, currentPage]);
 
-    return { data, loading, error, refetch, create, update, remove, setData };
+    return {
+      data,
+      loading,
+      error,
+      refetch,
+      create,
+      update,
+      remove,
+      setData,
+      ...(enablePagination && {
+        currentPage,
+        totalCount,
+        setPage,
+      }),
+    };
   };
 }
 
