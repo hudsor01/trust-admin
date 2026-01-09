@@ -37,6 +37,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { EditableTextCell, EditableCurrencyCell } from "@/components/editable-cells"
 import { useResourceForm } from "@/hooks/use-resource-form"
 import { ResourceDialog } from "@/components/resource-dialog"
+import { DataTable, type ColumnDef } from "@/components/data-table"
 
 interface TrustAccountingEntry {
   id: string
@@ -743,6 +744,91 @@ export function Accounting() {
     principalDisbursements,
     incomeDisbursements,
   ])
+
+  // Column configuration for DataTable
+  const accountingColumns: ColumnDef<TrustAccountingEntry>[] = [
+    {
+      key: "accountingDate",
+      header: "Date",
+      render: (entry) => <div className="text-sm">{formatDate(entry.accountingDate)}</div>,
+    },
+    {
+      key: "entryType",
+      header: "Type",
+      render: (entry) => (
+        <Badge
+          variant={entry.entryType === "INCOME" ? "default" : "destructive"}
+          className={cn(
+            entry.entryType === "INCOME" && "bg-success hover:bg-success/90"
+          )}
+        >
+          {entry.entryType}
+        </Badge>
+      ),
+    },
+    {
+      key: "incomeType",
+      header: "Category",
+      render: (entry) => (
+        <div className="text-sm">
+          {entry.entryType === "INCOME"
+            ? INCOME_TYPES.find((t) => t.value === entry.incomeType)?.label || entry.incomeType
+            : EXPENSE_TYPES.find((t) => t.value === entry.expenseType)?.label || entry.expenseType}
+        </div>
+      ),
+    },
+    {
+      key: "description",
+      header: "Description",
+      render: (entry) => (
+        <EditableTextCell
+          value={entry.description}
+          onSave={async (v) => updateEntry(entry.id, { description: v || null })}
+          placeholder="Add description"
+        />
+      ),
+    },
+    {
+      key: "amount",
+      header: "Amount",
+      render: (entry) => (
+        <div className={cn("text-right", entry.entryType === "INCOME" ? "text-success" : "text-destructive")}>
+          <EditableCurrencyCell
+            value={entry.amount}
+            onSave={async (v) => updateEntry(entry.id, { amount: v || "" })}
+          />
+        </div>
+      ),
+    },
+    {
+      key: "flags",
+      header: "Flags",
+      render: (entry) => (
+        <div className="flex gap-1">
+          {entry.isPrincipal && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge variant="outline" className="text-xs">P</Badge>
+                </TooltipTrigger>
+                <TooltipContent>Principal (not income)</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+          {entry.taxDeductible && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge variant="secondary" className="text-xs">D</Badge>
+                </TooltipTrigger>
+                <TooltipContent>Tax Deductible</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+        </div>
+      ),
+    },
+  ]
 
   return (
     <div className="space-y-6">
