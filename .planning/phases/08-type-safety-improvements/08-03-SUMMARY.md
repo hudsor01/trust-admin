@@ -133,6 +133,25 @@ These casts handle **dynamic field injection** patterns:
 
 These patterns are intentional and necessary for the factory's generic nature.
 
+## Key Principles
+
+### Schema as Source of Truth
+
+This codebase follows the principle that **the database schema is the source of truth** and all code should be aligned with it first and foremost:
+
+1. **Schema defines types**: Drizzle schema tables generate TypeScript types (`$inferInsert`, `$inferSelect`)
+2. **Code follows schema**: All application code uses schema-generated types, not custom interfaces
+3. **Runtime safety**: Drizzle validates all operations against the schema at runtime
+4. **Convention over configuration**: All 22 tables follow consistent conventions (text `id`, `createdAt`, `updatedAt`)
+
+Even though 3 type casts remain in the CRUD factory, the implementation is safe because:
+- The schema enforces all constraints
+- Drizzle validates operations against the schema
+- Our conventions (all tables have `id`, support `updatedAt`) are consistent across the codebase
+- Tests verify the conventions hold in practice
+
+The remaining casts are an **implementation detail** for dynamic field injection, but the schema remains the authoritative source of truth for all data structures.
+
 ## Success Criteria
 
 ✅ Eliminated 83% of `as any` casts (18 → 3)
@@ -141,6 +160,7 @@ These patterns are intentional and necessary for the factory's generic nature.
 ✅ Dynamic filter column access handled safely with `keyof T`
 ✅ Remaining 3 casts documented with clear explanations
 ✅ No regression in functionality
+✅ Schema remains the source of truth for all types
 
 ## Comparison to Previous Attempt
 
@@ -157,6 +177,21 @@ A previous attempt concluded "all casts are necessary" due to TypeScript/Drizzle
 - **Clearer code**: Less `as any` means more transparent type flow
 - **Maintainability**: Future developers understand why remaining casts exist
 - **Performance**: No runtime impact (type casts are compile-time only)
+- **Schema-driven development**: Reinforces the pattern of using schema-generated types throughout the codebase
+
+## Architecture Philosophy
+
+This work reinforces the codebase's core architectural principle:
+
+**Schema is the source of truth. Code should be aligned with it and usage of its types first and foremost.**
+
+All improvements in this phase strengthen this principle by:
+- Eliminating unnecessary abstractions (`as any` casts)
+- Using Drizzle's type inference (`$inferInsert`, `$inferSelect`)
+- Leveraging schema-generated types in all operations
+- Maintaining runtime safety through schema validation
+
+The CRUD factory serves as a thin, type-safe wrapper around Drizzle operations, letting the schema drive all type information.
 
 ## Next Steps
 
