@@ -141,8 +141,8 @@ Plans:
 
 Plans:
 - [x] 08-01: Create typed resource configuration interface
-- [ ] 08-02: Apply typed config to all resources
-- [ ] 08-03: Improve CRUD factory type inference
+- [x] 08-02: Apply typed config to all resources
+- [x] 08-03: Improve CRUD factory type inference
 - [ ] 08-04: Verify type safety and document patterns
 
 ### Phase 9: Performance Optimization
