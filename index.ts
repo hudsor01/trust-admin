@@ -453,37 +453,37 @@ const resources: Record<string, RouteConfig> = {
   } satisfies ResourceConfig<typeof liabilityPayment>,
   // HEMS Request Workflow
   "hems-requests": {
-    crud: hemsRequestCrud as any,
+    crud: hemsRequestCrud,
     name: "HEMS Request",
     filterParam: "beneficiaryId",
     insertSchema: insertHemsRequestSchema,
     updateSchema: updateHemsRequestSchema,
     references: [entityRef, beneficiaryRef],
-  },
+  } satisfies ResourceConfig<typeof hemsRequest>,
   // Trustee Fees
   "trustee-fee-schedules": {
-    crud: trusteeFeeScheduleCrud as any,
+    crud: trusteeFeeScheduleCrud,
     name: "Fee Schedule",
     filterParam: "entityId",
     insertSchema: insertTrusteeFeeScheduleSchema,
     // No update schema - hasUpdatedAt: false
     references: [entityRef, trusteeRef],
-  },
+  } satisfies ResourceConfig<typeof trusteeFeeSchedule>,
   "trustee-fee-entries": {
-    crud: trusteeFeeEntryCrud as any,
+    crud: trusteeFeeEntryCrud,
     name: "Fee Entry",
     filterParam: "entityId",
     insertSchema: insertTrusteeFeeEntrySchema,
     updateSchema: updateTrusteeFeeEntrySchema,
     references: [entityRef, trusteeRef, scheduleRef],
-  },
+  } satisfies ResourceConfig<typeof trusteeFeeEntry>,
   "activity-logs": {
-    crud: activityLogCrud as any,
+    crud: activityLogCrud,
     name: "Activity Log",
     insertSchema: insertActivityLogSchema,
     // No update/delete - audit logs are fully immutable
     immutable: true,
-  },
+  } satisfies ResourceConfig<typeof activityLog>,
 };
 
 // Pre-create handlers for each resource
