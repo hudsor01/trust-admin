@@ -241,7 +241,7 @@ const createInvestmentAccountColumns = (
       <EditableTextCell
         value={account.institution}
         onSave={async (val) => {
-          await updateInvestmentAccountMutation.mutateAsync({ id: account.id, data: { institution: val as string })
+          await updateInvestmentAccountMutation.mutateAsync({ id: account.id, data: { institution: val as string } })
         }}
       />
     ),
