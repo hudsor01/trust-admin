@@ -1231,7 +1231,7 @@ describe("API Endpoints", () => {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            denialReason: "Request does not meet HEMS standard - luxury purchase not covered",
+            reviewNotes: "Request does not meet HEMS standard - luxury purchase not covered",
           }),
         }
       );
@@ -1239,7 +1239,7 @@ describe("API Endpoints", () => {
       expect(denyResponse.status).toBe(200);
       const denied = await denyResponse.json();
       expect(denied.status).toBe("DENIED");
-      expect(denied.denialReason).toContain("does not meet HEMS standard");
+      expect(denied.reviewNotes).toContain("does not meet HEMS standard");
 
       // Step 3: Verify status persisted
       const verifyResponse = await fetch(
