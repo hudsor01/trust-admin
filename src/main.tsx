@@ -2,10 +2,24 @@ import React from "react"
 import { createRoot } from "react-dom/client"
 import { ErrorBoundary } from "react-error-boundary"
 import { Toaster } from "sonner"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools"
 import "sonner/dist/styles.css"
 import "./styles/globals.css"
 import { App } from "./App"
 import { ThemeProvider } from "@/components/theme-provider"
+
+// Create QueryClient with sensible defaults for trust admin
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30000, // 30 seconds (matches our previous cache TTL)
+      gcTime: 5 * 60 * 1000, // 5 minutes (formerly cacheTime)
+      refetchOnWindowFocus: false, // Don't refetch on window focus (local dev)
+      retry: 1, // Retry failed requests once
+    },
+  },
+})
 
 function ErrorFallback({ error, resetErrorBoundary }: { error: Error; resetErrorBoundary: () => void }) {
   return (
@@ -28,11 +42,14 @@ const root = createRoot(document.getElementById("root")!)
 
 root.render(
   <React.StrictMode>
-    <ErrorBoundary FallbackComponent={ErrorFallback}>
-      <ThemeProvider defaultTheme="system" storageKey="trust-admin-theme">
-        <App />
-      </ThemeProvider>
-      <Toaster position="top-right" duration={5000} richColors />
-    </ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <ErrorBoundary FallbackComponent={ErrorFallback}>
+        <ThemeProvider defaultTheme="system" storageKey="trust-admin-theme">
+          <App />
+        </ThemeProvider>
+        <Toaster position="top-right" duration={5000} richColors />
+      </ErrorBoundary>
+      <ReactQueryDevtools initialIsOpen={false} />
+    </QueryClientProvider>
   </React.StrictMode>
 )
