@@ -359,7 +359,7 @@ export const selectActivityLogSchema = createSelectSchema(activityLog);
 // LIABILITY SCHEMAS (Texas Property Code 113.152(5))
 // =============================================================================
 
-export const insertLiabilitySchema = createInsertSchema(liability, {
+export const insertLiabilitySchema = createInsertSchemaWithDefaults(liability, {
   creditor: (schema) => schema.min(1, "Creditor is required"),
   originalAmount: (schema) => schema.refine(
     (val) => parseFloat(val) > 0,
