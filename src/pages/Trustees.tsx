@@ -217,7 +217,7 @@ export function Trustees() {
                           <EditableNumberCell
                             value={t.order}
                             onSave={async (val) => {
-                              await updateTrusteeMutation.mutateAsync({ id: t.id, data: { order: val ?? undefined })
+                              await updateTrusteeMutation.mutateAsync({ id: t.id, data: { order: val ?? undefined } })
                             }}
                           />
                         </TableCell>
@@ -344,7 +344,7 @@ export function Trustees() {
                           <EditableNumberCell
                             value={t.order}
                             onSave={async (val) => {
-                              await updateTrusteeMutation.mutateAsync({ id: t.id, data: { order: val ?? undefined })
+                              await updateTrusteeMutation.mutateAsync({ id: t.id, data: { order: val ?? undefined } })
                             }}
                           />
                         </TableCell>
