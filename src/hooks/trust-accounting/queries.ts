@@ -29,6 +29,19 @@ export interface TrustAccounting {
   updatedAt: string
 }
 
+export interface PaginatedResult<T> {
+  data: T[]
+  totalCount?: number
+  limit?: number
+  offset?: number
+  hasMore?: boolean
+}
+
+export interface PaginationParams {
+  page: number
+  pageSize: number
+}
+
 // Query Keys
 export const trustAccountingKeys = {
   all: ['trust-accounting'] as const,
@@ -74,6 +87,52 @@ export function useTrustAccounting(entityId?: string) {
 
 export function useTrustAccountingEntry(id: string) {
   return useQuery(trustAccountingEntryQueryOptions(id))
+}
+
+// Paginated Query Options
+export const trustAccountingPaginatedQueryOptions = (
+  entityId: string | undefined,
+  pagination: PaginationParams
+) =>
+  queryOptions({
+    queryKey: [
+      ...(entityId ? trustAccountingKeys.byEntity(entityId) : trustAccountingKeys.all),
+      'paginated',
+      pagination.page,
+      pagination.pageSize,
+    ],
+    queryFn: async () => {
+      const params = new URLSearchParams()
+      if (entityId) params.append('entityId', entityId)
+      params.append('limit', String(pagination.pageSize))
+      params.append('offset', String((pagination.page - 1) * pagination.pageSize))
+      params.append('includeTotalCount', 'true')
+
+      const url = `/api/trust-accounting?${params.toString()}`
+      const res = await fetch(url)
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ error: { message: `HTTP ${res.status}` } }))
+        throw new Error(errorData.error?.message || `Failed to fetch: ${res.status}`)
+      }
+      const result = await res.json() as PaginatedResult<TrustAccounting>
+
+      // Sort the paginated data
+      if (result.data) {
+        result.data.sort((a, b) => new Date(b.accountingDate).getTime() - new Date(a.accountingDate).getTime())
+      }
+
+      return result
+    },
+    enabled: entityId ? !!entityId : true,
+    placeholderData: (prev) => prev, // Keep previous data while fetching new page
+  })
+
+// Paginated Hook
+export function useTrustAccountingPaginated(
+  entityId: string | undefined,
+  pagination: PaginationParams
+) {
+  return useQuery(trustAccountingPaginatedQueryOptions(entityId, pagination))
 }
 
 // Mutations

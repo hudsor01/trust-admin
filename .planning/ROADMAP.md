@@ -190,3 +190,29 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 8. Type Safety Improvements | 4/4 | ✅ Complete | 2026-01-09 |
 | 9. Performance Optimization | 1/3 | ⚙️ In Progress | - |
 | 10. Quality Verification | 0/3 | Not started | - |
+
+## Future Phases (Next Milestone)
+
+### Phase 11: TanStack Table & Form Integration
+**Goal**: Complete integration with TanStack Table and TanStack Form for improved UI components
+
+**Depends on**: Current milestone complete (Phases 1-10)
+
+**Research**: Moderate (integration patterns, migration strategy for existing components)
+
+**Plans**: TBD
+
+**Scope**:
+- **TanStack Table**: Replace remaining custom table implementations (11 pages still using manual tables)
+  - Current: Only 4 pages use DataTable component (Accounting, Properties, Liabilities, Accounts)
+  - Target: All 15 pages using TanStack Table with column definitions
+  - Benefits: Built-in sorting, filtering, pagination, column resizing, virtual scrolling
+
+- **TanStack Form**: Replace custom form state management across all dialog forms
+  - Current: Pages use useState with manual validation
+  - Target: Type-safe forms with field-level validation and Zod schema integration
+  - Benefits: Automatic validation, error handling, async validation, array fields
+
+**Note**: Phase 8 completed TanStack Query integration (data fetching). This phase completes the TanStack ecosystem adoption with Table and Form libraries.
+
+**Status**: Planned for next milestone after Phase 10 completion

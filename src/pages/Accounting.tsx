@@ -33,9 +33,11 @@ import { DataTable, type ColumnDef } from "@/components/data-table"
 import { useEntities } from "@/hooks/entities/queries"
 import {
   useTrustAccounting,
+  useTrustAccountingPaginated,
   useCreateTrustAccounting,
   useUpdateTrustAccounting,
   useDeleteTrustAccounting,
+  type PaginatedResult,
 } from "@/hooks/trust-accounting/queries"
 
 interface TrustAccountingEntry {
@@ -137,7 +139,23 @@ export function Accounting() {
   // Use TanStack Query hooks
   const { data: entities = [], isLoading: entitiesLoading } = useEntities()
   const [selectedEntity, setSelectedEntity] = useState<string>("")
-  const { data: entries = [], isLoading: entriesLoading } = useTrustAccounting(selectedEntity || undefined)
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const pageSize = 20
+
+  // Use paginated query
+  const {
+    data: paginatedResult,
+    isLoading: entriesLoading
+  } = useTrustAccountingPaginated(
+    selectedEntity || undefined,
+    { page: currentPage, pageSize }
+  )
+
+  const entries = paginatedResult?.data || []
+  const totalCount = paginatedResult?.totalCount || 0
+
   const createEntryMutation = useCreateTrustAccounting()
   const updateEntryMutation = useUpdateTrustAccounting()
   const deleteEntryMutation = useDeleteTrustAccounting()
@@ -204,6 +222,10 @@ export function Accounting() {
     }
   }, [entities, selectedEntity])
 
+  // Reset to page 1 when entity changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [selectedEntity])
 
   const deleteEntry = async (id: string) => {
     if (!confirm("Are you sure you want to delete this entry?")) return
@@ -954,6 +976,12 @@ export function Accounting() {
                 emptyMessage="No entries recorded yet. Click 'Add Entry' to start tracking."
                 onEdit={openEditForm}
                 onDelete={(entry) => deleteEntry(entry.id)}
+                pagination={{
+                  currentPage,
+                  pageSize,
+                  totalCount,
+                  onPageChange: setCurrentPage,
+                }}
               />
             </CardContent>
           </TabsContent>
