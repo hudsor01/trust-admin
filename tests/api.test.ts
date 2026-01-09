@@ -1247,7 +1247,7 @@ describe("API Endpoints", () => {
       );
       const verified = await verifyResponse.json();
       expect(verified.status).toBe("DENIED");
-      expect(verified.denialReason).toBeDefined();
+      expect(verified.reviewNotes).toBeDefined();
 
       // Cleanup
       await fetch(`${BASE_URL}/api/hems-requests/${request.id}`, {
