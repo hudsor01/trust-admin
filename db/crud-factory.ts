@@ -36,10 +36,10 @@ export function createCrud<
           .select()
           .from(table as any)
           .where(eq((table as any)[filterColumn], filterValue));
-        return results as Select[];
+        return results;
       }
       const results = await db.select().from(table as any);
-      return results as Select[];
+      return results;
     },
 
     /**
@@ -50,7 +50,7 @@ export function createCrud<
         .select()
         .from(table as any)
         .where(eq((table as any).id, id));
-      return results[0] as Select | undefined;
+      return results[0];
     },
 
     /**
