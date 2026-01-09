@@ -95,7 +95,7 @@ export function Trustees() {
 
     try {
       if (editingTrustee) {
-        await updateTrusteeMutation.mutateAsync({ id: editingTrustee.id, data: payload)
+        await updateTrusteeMutation.mutateAsync({ id: editingTrustee.id, data: payload })
       } else {
         await createTrusteeMutation.mutateAsync(payload)
       }
@@ -236,7 +236,7 @@ export function Trustees() {
                               value={t.email}
                               placeholder="Add email"
                               onSave={async (val) => {
-                                await updateTrusteeMutation.mutateAsync({ id: t.id, data: { email: val })
+                                await updateTrusteeMutation.mutateAsync({ id: t.id, data: { email: val } })
                               }}
                             />
                           </div>
@@ -248,7 +248,7 @@ export function Trustees() {
                               value={t.phone}
                               placeholder="Add phone"
                               onSave={async (val) => {
-                                await updateTrusteeMutation.mutateAsync({ id: t.id, data: { phone: val })
+                                await updateTrusteeMutation.mutateAsync({ id: t.id, data: { phone: val } })
                               }}
                             />
                           </div>
@@ -259,7 +259,7 @@ export function Trustees() {
                             <EditableDateCell
                               value={t.dob}
                               onSave={async (val) => {
-                                await updateTrusteeMutation.mutateAsync({ id: t.id, data: { dob: val })
+                                await updateTrusteeMutation.mutateAsync({ id: t.id, data: { dob: val } })
                               }}
                             />
                           </div>
@@ -276,7 +276,7 @@ export function Trustees() {
                           <EditableDateCell
                             value={t.startDate}
                             onSave={async (val) => {
-                              await updateTrusteeMutation.mutateAsync({ id: t.id, data: { startDate: val })
+                              await updateTrusteeMutation.mutateAsync({ id: t.id, data: { startDate: val } })
                             }}
                           />
                         </TableCell>
@@ -363,7 +363,7 @@ export function Trustees() {
                               value={t.email}
                               placeholder="Add email"
                               onSave={async (val) => {
-                                await updateTrusteeMutation.mutateAsync({ id: t.id, data: { email: val })
+                                await updateTrusteeMutation.mutateAsync({ id: t.id, data: { email: val } })
                               }}
                             />
                           </div>
@@ -375,7 +375,7 @@ export function Trustees() {
                               value={t.phone}
                               placeholder="Add phone"
                               onSave={async (val) => {
-                                await updateTrusteeMutation.mutateAsync({ id: t.id, data: { phone: val })
+                                await updateTrusteeMutation.mutateAsync({ id: t.id, data: { phone: val } })
                               }}
                             />
                           </div>
@@ -386,7 +386,7 @@ export function Trustees() {
                             <EditableDateCell
                               value={t.dob}
                               onSave={async (val) => {
-                                await updateTrusteeMutation.mutateAsync({ id: t.id, data: { dob: val })
+                                await updateTrusteeMutation.mutateAsync({ id: t.id, data: { dob: val } })
                               }}
                             />
                           </div>
@@ -403,7 +403,7 @@ export function Trustees() {
                           <EditableDateCell
                             value={t.startDate}
                             onSave={async (val) => {
-                              await updateTrusteeMutation.mutateAsync({ id: t.id, data: { startDate: val })
+                              await updateTrusteeMutation.mutateAsync({ id: t.id, data: { startDate: val } })
                             }}
                           />
                         </TableCell>
