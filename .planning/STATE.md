@@ -66,7 +66,7 @@ Recent decisions affecting current work:
 - Type-aware sorting in DataTable: automatic number vs string detection for proper comparison (Phase 4 Plan 04-03)
 - Dialog refactor pattern: Track editing ID separately, custom edit handlers transform entity → form data (Phase 5 Plan 05-01)
 - DataTable handler signatures: onDelete expects (item: T) => void, wrap with lambda if need ID only (Phase 5 Plan 05-02)
-- Manual testing deferred in YOLO mode: UAT verification checkpoints deferred for post-implementation testing (Phase 5 Plan 05-03)
+- Browser automation for UAT: Used Claude-in-Chrome MCP tools for automated user acceptance testing (Phase 5 Plan 05-03)
 
 ### Deferred Issues
 
@@ -95,7 +95,7 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-01-09 06:30
-Stopped at: Completed 05-03, Phase 5 complete (3/3 plans), ready for Phase 6
+Last session: 2026-01-09 09:15
+Stopped at: Completed 05-03 with browser automation UAT, Phase 5 complete (3/3 plans), ready for Phase 6
 Resume file: None
-Note: Phase 5 manual UAT testing deferred for later verification
+Note: Phase 5 UAT testing completed via Claude-in-Chrome browser automation (12/15 test cases passed, 3 deferred due to browser disconnection)
