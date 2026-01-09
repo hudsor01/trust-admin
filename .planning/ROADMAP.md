@@ -95,7 +95,7 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 05-01: Extract PropertyDialog and PropertyTable components
+- [x] 05-01: Extract dialog components (replace manual dialogs with ResourceDialog and useResourceForm)
 - [ ] 05-02: Extract PropertySummaryCards and refactor main page
 - [ ] 05-03: Verify functionality and update tests
 
@@ -184,7 +184,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 2. Phase 3 Test Completion | 3/3 | ✅ Complete | 2026-01-09 |
 | 3. Error Notification System | 3/3 | ✅ Complete | 2026-01-09 |
 | 4. Component Extraction Patterns | 4/4 | ✅ Complete | 2026-01-09 |
-| 5. Properties Page Refactor | 0/3 | Not started | - |
+| 5. Properties Page Refactor | 1/3 | In progress | - |
 | 6. Accounting Page Refactor | 0/3 | Not started | - |
 | 7. Liabilities & Accounts Refactor | 0/4 | Not started | - |
 | 8. Type Safety Improvements | 0/4 | Not started | - |
