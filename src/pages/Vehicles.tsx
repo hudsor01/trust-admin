@@ -42,14 +42,14 @@ import {
 } from "@/components/editable-cells"
 
 // Import TanStack Query hooks
-import { useEntities } from "@/hooks/queries/useEntities"
+import { useEntities, useCreateEntity, useUpdateEntity, useDeleteEntity } from "@/hooks/entities/queries"
 import {
   useVehicles,
   useCreateVehicle,
   useUpdateVehicle,
   useDeleteVehicle,
   type Vehicle
-} from "@/hooks/queries/useVehicles"
+} from "@/hooks/vehicles/queries"
 import { vehicleFormDefaults, toDateInput } from "@/lib/form-factory"
 import { TRANSFER_STATUS, DOD_VALUE_TYPES, STATUS_VARIANTS } from "@/lib/constants"
 
