@@ -10,6 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { Pagination } from "@/components/pagination"
 
 export interface ColumnDef<T> {
   key: string
@@ -25,6 +26,12 @@ export interface DataTableProps<T> {
   onDelete?: (item: T) => void
   emptyMessage?: string
   isLoading?: boolean
+  pagination?: {
+    currentPage: number
+    pageSize: number
+    totalCount: number
+    onPageChange: (page: number) => void
+  }
 }
 
 /**
@@ -85,6 +92,7 @@ export function DataTable<T extends Record<string, any>>({
   onDelete,
   emptyMessage = "No data available",
   isLoading = false,
+  pagination,
 }: DataTableProps<T>) {
   const [sortKey, setSortKey] = useState<string | null>(null)
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
@@ -172,74 +180,85 @@ export function DataTable<T extends Record<string, any>>({
   }
 
   return (
-    <div className="rounded-md border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            {columns.map((col) => (
-              <TableHead key={col.key}>
-                {col.sortable ? (
-                  <button
-                    onClick={() => handleSort(col.key)}
-                    className="flex items-center gap-2 hover:text-foreground transition-colors"
-                  >
-                    {col.header}
-                    {sortKey === col.key ? (
-                      sortDirection === "asc" ? (
-                        <ChevronUp className="h-4 w-4" />
-                      ) : (
-                        <ChevronDown className="h-4 w-4" />
-                      )
-                    ) : (
-                      <ArrowUpDown className="h-4 w-4 opacity-50" />
-                    )}
-                  </button>
-                ) : (
-                  col.header
-                )}
-              </TableHead>
-            ))}
-            {hasActions && <TableHead className="w-[100px]">Actions</TableHead>}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {sortedData.map((item, index) => (
-            <TableRow key={index}>
+    <div className="space-y-4">
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
               {columns.map((col) => (
-                <TableCell key={col.key}>
-                  {col.render ? col.render(item) : item[col.key]}
-                </TableCell>
+                <TableHead key={col.key}>
+                  {col.sortable ? (
+                    <button
+                      onClick={() => handleSort(col.key)}
+                      className="flex items-center gap-2 hover:text-foreground transition-colors"
+                    >
+                      {col.header}
+                      {sortKey === col.key ? (
+                        sortDirection === "asc" ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        )
+                      ) : (
+                        <ArrowUpDown className="h-4 w-4 opacity-50" />
+                      )}
+                    </button>
+                  ) : (
+                    col.header
+                  )}
+                </TableHead>
               ))}
-              {hasActions && (
-                <TableCell>
-                  <div className="flex gap-1">
-                    {onEdit && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => onEdit(item)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                    )}
-                    {onDelete && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-destructive hover:text-destructive"
-                        onClick={() => onDelete(item)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                </TableCell>
-              )}
+              {hasActions && <TableHead className="w-[100px]">Actions</TableHead>}
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {sortedData.map((item, index) => (
+              <TableRow key={index}>
+                {columns.map((col) => (
+                  <TableCell key={col.key}>
+                    {col.render ? col.render(item) : item[col.key]}
+                  </TableCell>
+                ))}
+                {hasActions && (
+                  <TableCell>
+                    <div className="flex gap-1">
+                      {onEdit && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => onEdit(item)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {onDelete && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          onClick={() => onDelete(item)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </TableCell>
+                )}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+      {pagination && (
+        <Pagination
+          currentPage={pagination.currentPage}
+          pageSize={pagination.pageSize}
+          totalCount={pagination.totalCount}
+          onPageChange={pagination.onPageChange}
+          disabled={isLoading}
+        />
+      )}
     </div>
   )
 }
