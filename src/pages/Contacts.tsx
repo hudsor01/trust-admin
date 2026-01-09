@@ -42,8 +42,8 @@ import {
 import { EditableTextCell, EditableSelectCell, EditableDateCell } from "@/components/editable-cells"
 import { CopyButton } from "@/components/copy-button"
 
-// Import types and hooks from centralized location
-import { useContacts, type Contact } from "@/hooks"
+// Import types and hooks from TanStack Query hooks
+import { useContacts, useCreateContact, useUpdateContact, useDeleteContact, type Contact } from "@/hooks/contacts/queries"
 import { contactFormDefaults } from "@/lib/form-factory"
 import { exportTablesInContainer } from "@/lib/csv"
 
@@ -74,14 +74,11 @@ const ROLE_LABELS: Record<string, string> = {
 }
 
 export function Contacts() {
-  // Use centralized hook for data fetching
-  const {
-    data: contacts,
-    loading,
-    update: updateContact,
-    remove: removeContact,
-    create: createContact,
-  } = useContacts()
+  // Use TanStack Query hooks for data fetching
+  const { data: contacts = [], isLoading } = useContacts()
+  const createContactMutation = useCreateContact()
+  const updateContactMutation = useUpdateContact()
+  const deleteContactMutation = useDeleteContact()
 
   const [filter, setFilter] = useState<RoleFilter>("all")
   const [search, setSearch] = useState("")
@@ -109,9 +106,9 @@ export function Contacts() {
 
     try {
       if (editingContact) {
-        await updateContact(editingContact.id, payload)
+        await updateContactMutation.mutateAsync({ id: editingContact.id, data: payload })
       } else {
-        await createContact(payload)
+        await createContactMutation.mutateAsync(payload)
       }
       setShowForm(false)
       resetForm()
@@ -216,7 +213,7 @@ export function Contacts() {
             />
           </div>
 
-          {loading ? (
+          {isLoading ? (
             <div className="flex justify-center py-12">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
@@ -245,7 +242,7 @@ export function Contacts() {
                         <EditableTextCell
                           value={contact.name}
                           onSave={async (val) => {
-                            await updateContact(contact.id, { name: val as string })
+                            await updateContactMutation.mutateAsync({ id: contact.id, data: { name: val as string } })
                           }}
                         />
                       </TableCell>
@@ -257,7 +254,7 @@ export function Contacts() {
                             label,
                           }))}
                           onSave={async (val) => {
-                            await updateContact(contact.id, { role: val })
+                            await updateContactMutation.mutateAsync({ id: contact.id, data: { role: val } })
                           }}
                         />
                       </TableCell>
@@ -265,7 +262,7 @@ export function Contacts() {
                         <EditableTextCell
                           value={contact.company}
                           onSave={async (val) => {
-                            await updateContact(contact.id, { company: val })
+                            await updateContactMutation.mutateAsync({ id: contact.id, data: { company: val } })
                           }}
                         />
                       </TableCell>
@@ -273,7 +270,7 @@ export function Contacts() {
                         <EditableTextCell
                           value={contact.email}
                           onSave={async (val) => {
-                            await updateContact(contact.id, { email: val })
+                            await updateContactMutation.mutateAsync({ id: contact.id, data: { email: val } })
                           }}
                         />
                       </TableCell>
@@ -281,7 +278,7 @@ export function Contacts() {
                         <EditableTextCell
                           value={contact.phone}
                           onSave={async (val) => {
-                            await updateContact(contact.id, { phone: val })
+                            await updateContactMutation.mutateAsync({ id: contact.id, data: { phone: val } })
                           }}
                         />
                       </TableCell>
@@ -289,7 +286,7 @@ export function Contacts() {
                         <EditableDateCell
                           value={contact.dob}
                           onSave={async (val) => {
-                            await updateContact(contact.id, { dob: val })
+                            await updateContactMutation.mutateAsync({ id: contact.id, data: { dob: val } })
                           }}
                         />
                       </TableCell>
@@ -338,7 +335,7 @@ export function Contacts() {
                                   className="h-8 w-8 text-destructive hover:text-destructive"
                                   onClick={async () => {
                                     if (confirm("Are you sure you want to delete this contact?")) {
-                                      await removeContact(contact.id);
+                                      await deleteContactMutation.mutateAsync(contact.id);
                                     }
                                   }}
                                 >
@@ -392,7 +389,7 @@ export function Contacts() {
                   <EditableDateCell
                     value={selectedContact.dob}
                     onSave={async (val) => {
-                      await updateContact(selectedContact.id, { dob: val })
+                      await updateContactMutation.mutateAsync({ id: selectedContact.id, data: { dob: val } })
                       setSelectedContact({ ...selectedContact, dob: val })
                     }}
                   />
@@ -404,7 +401,7 @@ export function Contacts() {
                     <EditableTextCell
                       value={selectedContact.email}
                       onSave={async (val) => {
-                        await updateContact(selectedContact.id, { email: val })
+                        await updateContactMutation.mutateAsync({ id: selectedContact.id, data: { email: val } })
                         setSelectedContact({ ...selectedContact, email: val })
                       }}
                     />
@@ -418,7 +415,7 @@ export function Contacts() {
                     <EditableTextCell
                       value={selectedContact.phone}
                       onSave={async (val) => {
-                        await updateContact(selectedContact.id, { phone: val })
+                        await updateContactMutation.mutateAsync({ id: selectedContact.id, data: { phone: val } })
                         setSelectedContact({ ...selectedContact, phone: val })
                       }}
                     />
