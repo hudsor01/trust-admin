@@ -131,7 +131,7 @@ const createBankAccountColumns = (
       <EditableTextCell
         value={account.institution}
         onSave={async (val) => {
-          await updateBankAccountMutation.mutateAsync({ id: account.id, data: { institution: val as string })
+          await updateBankAccountMutation.mutateAsync({ id: account.id, data: { institution: val as string } })
         }}
       />
     ),
@@ -400,7 +400,7 @@ export function Accounts() {
         notes: data.notes || null,
       }
       if (isEditingBank && editingBankId) {
-        await updateBankAccountMutation.mutateAsync({ id: editingBankId, data: payload as any)
+        await updateBankAccountMutation.mutateAsync({ id: editingBankId, data: payload as any })
       } else {
         await createBankAccountMutation.mutateAsync(payload as any)
       }
@@ -441,7 +441,7 @@ export function Accounts() {
         notes: data.notes || null,
       }
       if (isEditingInvestment && editingInvestmentId) {
-        await updateInvestmentAccountMutation.mutateAsync({ id: editingInvestmentId, data: payload as any)
+        await updateInvestmentAccountMutation.mutateAsync({ id: editingInvestmentId, data: payload as any })
       } else {
         await createInvestmentAccountMutation.mutateAsync(payload as any)
       }
@@ -509,11 +509,11 @@ export function Accounts() {
 
   // Inline update handlers for editable cells
   const handleUpdateBank = async (id: string, updates: Partial<BankAccount>) => {
-    await updateBankAccountMutation.mutateAsync({ id, data: updates)
+    await updateBankAccountMutation.mutateAsync({ id, data: updates })
   }
 
   const handleUpdateInvestment = async (id: string, updates: Partial<InvestmentAccount>) => {
-    await updateInvestmentAccountMutation.mutateAsync({ id, data: updates)
+    await updateInvestmentAccountMutation.mutateAsync({ id, data: updates })
   }
 
   const loading = entitiesLoading || bankLoading || investmentLoading

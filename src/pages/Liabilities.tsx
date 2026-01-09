@@ -191,7 +191,7 @@ export function Liabilities() {
         notes: data.notes || null,
       }
       if (isEditingLiability && editingLiabilityId) {
-        await updateLiabilityMutation.mutateAsync({ id: editingLiabilityId, data: payload as any)
+        await updateLiabilityMutation.mutateAsync({ id: editingLiabilityId, data: payload as any })
       } else {
         await createLiabilityMutation.mutateAsync(payload as any)
       }
