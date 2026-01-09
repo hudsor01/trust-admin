@@ -1162,7 +1162,7 @@ describe("API Endpoints", () => {
         }),
       });
 
-      expect(createResponse.status).toBe(200);
+      expect(createResponse.status).toBe(201);
       const request = await createResponse.json();
       expect(request.status).toBe("PENDING");
 
