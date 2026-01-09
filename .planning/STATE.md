@@ -6,23 +6,23 @@ See: .planning/PROJECT.md (updated 2026-01-09)
 
 **Core value:** Reliable trust administration - The API works without silent failures, users see clear error messages, and the codebase is maintainable for ongoing development.
 
-**Current focus:** Phase 7 — Liabilities & Accounts Refactor
+**Current focus:** Phase 8 — Type Safety Improvements
 
 ## Current Position
 
 Phase: 7 of 10 (Liabilities & Accounts Refactor)
-Plan: 3 of 4 in current phase
-Status: In progress
-Last activity: 2026-01-09 — Completed Plan 07-03 (Extract AccountDialog and AccountTable)
+Plan: 4 of 4 in current phase
+Status: ✅ Complete
+Last activity: 2026-01-09 — Completed Plan 07-04 (Refactor Accounts Page and Verify Phase 7)
 
-Progress: ████████████████ 66% (21/32 plans complete)
+Progress: ██████████████████ 69% (22/32 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 21
-- Average duration: 4.5 min
-- Total execution time: 115 min
+- Total plans completed: 22
+- Average duration: 4.3 min
+- Total execution time: 120 min
 
 **By Phase:**
 
@@ -34,11 +34,11 @@ Progress: ████████████████ 66% (21/32 plans comp
 | 4 | 4/4 | 10 min | 2.5 min |
 | 5 | 3/3 | 7 min | 2.3 min |
 | 6 | 3/3 | 25 min | 8.3 min |
-| 7 | 3/4 | 25 min | 8.3 min |
+| 7 | 4/4 | 30 min | 7.5 min |
 
 **Recent Trend:**
-- Last 5 plans: 06-03 (5 min), 07-01 (5 min), 07-02 (10 min), 07-03 (10 min), avg: 7.5 min
-- Trend: Stable (dialog refactoring with established patterns, ResourceDialog prop fixes needed)
+- Last 5 plans: 07-01 (5 min), 07-02 (10 min), 07-03 (10 min), 07-04 (5 min), avg: 7.5 min
+- Trend: Stable (table refactoring with DataTable component, Phase 7 complete)
 
 ## Accumulated Context
 
@@ -77,6 +77,8 @@ Recent decisions affecting current work:
 - IIFE pattern for finding entity: Use immediately invoked function to find and render entity in dialogs (Phase 7 Plan 07-01)
 - DataTable ColumnDef structure: Use key/header/render pattern, not accessorKey/cell pattern from TanStack Table (Phase 7 Plan 07-02)
 - ResourceDialog prop naming: Use open/onOpenChange/onSubmit/isLoading, not isOpen/onClose/onSave/isSaving (Phase 7 Plan 07-03)
+- Column factory function signatures: Use Promise<any> return type for update handlers, not Promise<void> (Phase 7 Plan 07-04)
+- Line count vs maintainability tradeoff: DataTable column configs add verbosity but improve consistency and features (Phase 7 Plan 07-04)
 
 ### Deferred Issues
 
@@ -102,10 +104,11 @@ None yet.
 - ✅ All critical workflows validated
 - ✅ Complete error notification system (toast + boundary)
 - ✅ Users see clear error messages for both API failures and component crashes
+- ✅ Phase 7 complete: All 4 major pages refactored with Phase 4 patterns (Properties, Accounting, Liabilities, Accounts)
 
 ## Session Continuity
 
 Last session: 2026-01-09
-Stopped at: Completed Plan 07-03, ready for Plan 07-04
+Stopped at: Completed Plan 07-04, Phase 7 complete
 Resume file: None
-Note: Phase 7 in progress - Plans 07-01, 07-02, and 07-03 complete. Accounts.tsx dialogs refactored from 903 → 890 lines (1.4% reduction). Both Bank and Investment Account dialogs use ResourceDialog + useResourceForm. Ready to refactor Accounts page tables (Plan 07-04 - expected to bring significant line reduction).
+Note: Phase 7 complete (4/4 plans) - All dialogs and tables refactored using Phase 4 patterns. Liabilities.tsx: 920 → 858 lines (6.7% reduction). Accounts.tsx: 903 → 906 lines (+0.3% increase due to verbose column configs, but improved maintainability). Net: 59 line reduction (3.2%). Ready for Phase 8: Type Safety Improvements.
