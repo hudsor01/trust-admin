@@ -1,180 +1,187 @@
-# Phase 8 Plan 02 Summary: Apply Typed Config to All Resources
+# Phase 08-02: TanStack Query Migration - Summary
 
-**Status**: ✅ Complete
-**Date**: 2026-01-09
-**Commits**: 759e1b4, 2250225, cb285a3
+## Status: In Progress
+
+**Created**: 2026-01-09
+**Last Updated**: 2026-01-09
 
 ## Objective
 
-Apply the `ResourceConfig<TTable>` pattern with `satisfies` operator to all 19 remaining resources in the route factory, eliminating all `as any` casts while preserving runtime behavior.
+Migrate from custom query hook factory (`src/hooks/use-query.ts`) to industry-standard TanStack Query v5, following TkDodo's recommended colocated pattern for better maintainability and type safety.
 
-## Completed Tasks
+## Completed Work
 
-### Task 1: Apply typed config to asset resources (8 resources)
+### ✅ Created 21 Resource Query Files
 
-**✅ Updated resources**:
-1. **beneficiaries** - `satisfies ResourceConfig<typeof beneficiary>`
-2. **contacts** - `satisfies ResourceConfig<typeof contact>`
-3. **vehicles** - `satisfies ResourceConfig<typeof vehicle>`
-4. **homesteads** - `satisfies ResourceConfig<typeof homestead>`
-5. **rental-properties** - `satisfies ResourceConfig<typeof rentalProperty>`
-6. **bank-accounts** - `satisfies ResourceConfig<typeof bankAccount>`
-7. **investment-accounts** - `satisfies ResourceConfig<typeof investmentAccount>`
-8. **personal-property** - `satisfies ResourceConfig<typeof personalProperty>`
+All resources now have dedicated query files following the pattern: `src/hooks/{resource}/queries.ts`
 
-**Pattern applied**:
-```typescript
-"resource-name": {
-  crud: resourceCrud,  // ← Removed 'as any'
-  name: "Display Name",
-  filterParam: "entityId",
-  insertSchema: insertResourceSchema,
-  updateSchema: updateResourceSchema,
-  references: [entityRef],
-} satisfies ResourceConfig<typeof tableName>  // ← Added satisfies
-```
+#### Simple Resources (4)
+- ✅ `contacts/queries.ts` - No entity filter, sorted by name
+- ✅ `beneficiaries/queries.ts` - Entity filter, with `byEntity` query key
+- ✅ `trustees/queries.ts` - Entity filter, sorted by order
+- ✅ `tasks/queries.ts` - No filter, sorted by sortOrder
 
-**Verification**: TypeScript compiles without errors
-**Commit**: 759e1b4
+#### Asset Resources (10)
+- ✅ `entities/queries.ts` - No filter, custom sort (DOD entities first)
+- ✅ `vehicles/queries.ts` - Entity filter
+- ✅ `homesteads/queries.ts` - Entity filter
+- ✅ `rental-properties/queries.ts` - Entity filter
+- ✅ `bank-accounts/queries.ts` - Entity filter
+- ✅ `investment-accounts/queries.ts` - Entity filter
+- ✅ `personal-property/queries.ts` - Entity filter
+- ✅ `artwork/queries.ts` - Entity filter
+- ✅ `liabilities/queries.ts` - Entity filter
+- ✅ `liability-payments/queries.ts` - Liability filter, sorted by date desc
 
-### Task 2: Apply typed config to trust admin resources (6 resources)
+#### Complex/Workflow Resources (7)
+- ✅ `specific-bequests/queries.ts` - Entity filter
+- ✅ `trust-accounting/queries.ts` - Entity filter, sorted by accounting date desc
+- ✅ `withdrawal-records/queries.ts` - Beneficiary filter, sorted by eligible date
+- ✅ `hems-requests/queries.ts` - Beneficiary filter, sorted by created desc
+- ✅ `trustee-fee-schedules/queries.ts` - Entity filter, **immutable** (no updates)
+- ✅ `trustee-fee-entries/queries.ts` - Entity filter, sorted by period end desc
+- ✅ `activity-logs/queries.ts` - No filter, **immutable** (no updates/deletes)
 
-**✅ Updated resources**:
-1. **artwork** - `satisfies ResourceConfig<typeof artwork>`
-2. **trustees** - `satisfies ResourceConfig<typeof trustee>`
-3. **specific-bequests** - `satisfies ResourceConfig<typeof specificBequest>`
-4. **trust-accounting** - `satisfies ResourceConfig<typeof trustAccounting>`
-5. **withdrawal-records** - `satisfies ResourceConfig<typeof withdrawalRecord>`
-6. **liability-payments** - `satisfies ResourceConfig<typeof liabilityPayment>`
+### Pattern Established
 
-**Special cases handled**:
-- **liability-payments**: No update schema (payments are immutable)
-- **specific-bequests**: Multiple references (entityRef + beneficiaryRef)
-
-**Verification**: TypeScript compiles without errors
-**Commit**: 2250225
-
-### Task 3: Apply typed config to remaining resources (4 resources)
-
-**✅ Updated resources**:
-1. **hems-requests** - `satisfies ResourceConfig<typeof hemsRequest>`
-2. **trustee-fee-schedules** - `satisfies ResourceConfig<typeof trusteeFeeSchedule>`
-3. **trustee-fee-entries** - `satisfies ResourceConfig<typeof trusteeFeeEntry>`
-4. **activity-logs** - `satisfies ResourceConfig<typeof activityLog>`
-
-**Special cases handled**:
-- **trustee-fee-schedules**: No update schema (hasUpdatedAt: false)
-- **trustee-fee-entries**: Three references (entityRef + trusteeRef + scheduleRef)
-- **activity-logs**: Immutable flag set (audit logs)
-
-**Verification**: TypeScript compiles without errors
-**Commit**: cb285a3
-
-## Implementation Summary
-
-### Table Imports Added
+Each `queries.ts` file follows this structure:
 
 ```typescript
-import {
-  entity,      // Already imported (Plan 08-01)
-  liability,   // Already imported (Plan 08-01)
-  task,        // Already imported (Plan 08-01)
-  trustee,     // Already imported (Plan 08-01)
-  // New imports for Plan 08-02:
-  beneficiary,
-  contact,
-  vehicle,
-  homestead,
-  rentalProperty,
-  bankAccount,
-  investmentAccount,
-  personalProperty,
-  artwork,
-  specificBequest,
-  trustAccounting,
-  withdrawalRecord,
-  liabilityPayment,
-  hemsRequest,
-  trusteeFeeSchedule,
-  trusteeFeeEntry,
-  activityLog,
-  distribution,
-} from "./db/schema";
+/**
+ * TanStack Query hooks for {Resource} resource
+ */
+
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
+
+// TypeScript interface
+export interface Resource {
+  id: string
+  // ... all fields
+}
+
+// Query Keys Factory
+export const resourceKeys = {
+  all: ['resources'] as const,
+  byEntity: (entityId: string) => ['resources', 'entity', entityId] as const,
+  detail: (id: string) => ['resources', id] as const,
+}
+
+// Query Hooks
+export function useResources(entityId?: string) { ... }
+export function useResource(id: string) { ... }
+
+// Mutation Hooks
+export function useCreateResource() { ... }
+export function useUpdateResource() { ... }
+export function useDeleteResource() { ... }
 ```
 
-### Resources Converted
+### Key Features Implemented
 
-**Total**: 19 resources (as planned)
-- Task 1: 8 asset resources
-- Task 2: 6 trust admin resources
-- Task 3: 4 remaining resources (plan said 5, but only 4 existed)
+1. **Query Keys Factory** - Consistent cache key pattern for all resources
+2. **Optional Filtering** - Resources support entity/beneficiary/liability filtering
+3. **Error Handling** - Toast notifications for validation errors and failures
+4. **Success Notifications** - Toast success messages after mutations
+5. **Validation Error Details** - Field-level error messages displayed in toast
+6. **Cache Invalidation** - Automatic invalidation of related queries after mutations
+7. **TypeScript Types** - All interfaces exported for type safety
+8. **Immutability Support** - Special handling for audit logs and immutable resources
 
-**Combined with Plan 08-01**: 22 total resources now use typed config
-- Plan 08-01: 3 resources (entities, liabilities, tasks)
-- Plan 08-02: 19 resources
+## Remaining Work
 
-### Verification Results
+### 🔲 Page Migration
 
-**TypeScript compilation**: ✅ Zero errors
-```bash
-bun run --silent tsc --noEmit
-# All tasks passed with no errors in index.ts
-```
+Need to update all pages to use new TanStack Query hooks:
 
-**Remaining `as any` casts in resources**: ✅ Zero
-```bash
-grep -n "crud:.*as any" index.ts
-# No results - all removed
-```
+1. **Simple Pages**
+   - `src/pages/Contacts.tsx`
+   - `src/pages/Beneficiaries.tsx`
+   - `src/pages/Trustees.tsx`
+   - `src/pages/Tasks.tsx`
 
-**API smoke tests**: ✅ All passing
-1. **GET /api/bank-accounts?entityId=entity-1**: ✓ Returns array (0 items)
-2. **GET /api/trustees?entityId=entity-1**: ✓ Returns array (0 items)
-3. **GET /api/hems-requests?beneficiaryId=ben-1**: ✓ Returns array (0 items)
+2. **Asset Management Pages**
+   - ✅ `src/pages/Vehicles.tsx` (already updated)
+   - `src/pages/Accounts.tsx` (bank + investment accounts)
+   - `src/pages/Properties.tsx` (homesteads + rental properties)
+   - `src/pages/Liabilities.tsx`
 
-## Success Criteria
+3. **Complex Workflow Pages**
+   - `src/pages/Accounting.tsx` (trust accounting entries)
+   - `src/pages/Distributions.tsx`
+   - `src/pages/HemsQueue.tsx` (HEMS requests)
+   - `src/pages/Bequests.tsx` (specific bequests)
+   - `src/pages/Dashboard.tsx`
 
-✅ All 19 remaining resources use typed config without `as any`
-✅ TypeScript compiles without errors
-✅ Zero `crud: ... as any` patterns remain in index.ts resources object
-✅ API endpoints work for diverse resource types (assets, trust admin, workflows)
+### 🔲 Cleanup
 
-## Pattern Consistency
+1. Delete `src/hooks/use-query.ts` (old custom hook factory)
+2. Delete `src/hooks/index.ts` (if exists)
+3. Remove any remaining references to old hooks
 
-All 22 resources now follow the same pattern:
+### 🔲 Testing
 
+1. Manual testing of all pages
+2. Verify all CRUD operations work correctly
+3. Verify filtering works for entity-based resources
+4. Verify toast notifications appear on errors and success
+5. Verify validation errors show field-level details
+
+## Technical Decisions
+
+### Why TanStack Query?
+
+- **Industry Standard**: Most popular React data fetching library
+- **Better Caching**: Intelligent cache management with stale-while-revalidate
+- **DevTools**: Built-in React Query DevTools for debugging
+- **Type Safety**: Better TypeScript support than custom solution
+- **Maintenance**: Actively maintained with 40K+ GitHub stars
+
+### Why Colocated Pattern?
+
+Following TkDodo's (TanStack Query maintainer) recommended architecture:
+
+- **Vertical Slicing**: Group by feature/domain rather than technical type
+- **Better Organization**: All queries and mutations for a resource in one file
+- **Easier Navigation**: Developers find everything related to a resource in one place
+- **Reduced Coupling**: Each resource is self-contained
+
+Rejected alternatives:
+- ❌ Separate `queries/` and `mutations/` folders (horizontal slicing)
+- ❌ Keeping queries in `use-query.ts` factory (custom solution, less maintainable)
+- ❌ Feature folders in `features/{resource}/` (overkill for this project size)
+
+### Import Pattern
+
+Old (broken):
 ```typescript
-"resource-name": {
-  crud: resourceCrud,           // No cast - type-safe
-  name: "Display Name",
-  // Optional fields as needed:
-  filterParam: "entityId",
-  customGetById: getResourceById,
-  insertSchema: insertResourceSchema,
-  updateSchema: updateResourceSchema,
-  references: [ref1, ref2],
-  immutable: true,
-} satisfies ResourceConfig<typeof tableName>
+import { useEntities, useVehicles } from "@/hooks"
 ```
 
-**Benefits achieved**:
-1. **Type safety**: All CRUD operations fully typed from schema
-2. **Compile-time validation**: Mismatches caught at build time
-3. **Schema-driven**: Single source of truth (schema defines types)
-4. **Zero runtime cost**: `satisfies` is compile-time only
-5. **Maintainability**: Consistent pattern across all resources
+New (working):
+```typescript
+import { useEntities, useCreateEntity, useUpdateEntity, useDeleteEntity } from "@/hooks/entities/queries"
+import { useVehicles, useCreateVehicle, type Vehicle } from "@/hooks/vehicles/queries"
+```
 
-## Deviations from Plan
+## Commits
 
-**Task 3 had 4 resources instead of 5**: The plan mentioned "5 remaining resources" but only 4 existed:
-- hems-requests ✓
-- trustee-fee-schedules ✓
-- trustee-fee-entries ✓
-- activity-logs ✓
-- ~~distributions~~ (not a separate resource in resources object)
-
-**Actual count**: 22 total resources (3 from Plan 08-01 + 19 from Plan 08-02)
+1. `3df039b` - feat(08-02): create TanStack Query hooks for remaining resources
+2. `1894f90` - feat(08-02): create TanStack Query hooks for complex resources
 
 ## Next Steps
 
-Execute Plan 08-03: Improve CRUD factory type inference - Eliminate `as any` casts in `db/crud-factory.ts` (11 casts remaining in CRUD operations)
+1. Start page migration with simplest pages (Contacts, Tasks)
+2. Move to filtered pages (Vehicles already done, do Accounts next)
+3. Tackle complex pages (Accounting, Distributions)
+4. Delete old use-query.ts
+5. Test all functionality
+6. Mark phase 08-02 as complete
+
+## Notes
+
+- All 21 API routes now have corresponding TanStack Query hooks
+- Pattern is consistent and easy to extend for new resources
+- Type safety improved with explicit interfaces
+- Error handling is more user-friendly with toast notifications
+- Cache management is automatic via TanStack Query
