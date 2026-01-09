@@ -165,22 +165,42 @@ Plans:
 
 **Depends on**: Phases 1-9 complete (TanStack Query already integrated in Phase 8)
 
-**Research**: Moderate (integration patterns, migration strategy for existing components)
+**Research**: Moderate (integration patterns completed in Plan 10-01)
 
-**Plans**: TBD (will be broken down into detailed plans)
+**Plans**: 8 plans (split between Table and Form migrations)
+
+**Current State**:
+- **Tables**: 4 pages use DataTable, 12 pages use manual Table implementation
+- **Forms**: 4 pages use ResourceDialog, 8+ pages use manual Dialog forms
+- **TanStack Query**: ✅ Already integrated (Phase 8)
 
 **Scope**:
-- **TanStack Table**: Replace remaining custom table implementations (11 pages still using manual tables)
-  - Current: Only 4 pages use DataTable component (Accounting, Properties, Liabilities, Accounts)
-  - Target: All 15 pages using TanStack Table with column definitions
-  - Benefits: Built-in sorting, filtering, pagination, column resizing, virtual scrolling
 
-- **TanStack Form**: Replace custom form state management across all dialog forms
-  - Current: Pages use useState with manual validation
-  - Target: Type-safe forms with field-level validation and Zod schema integration
-  - Benefits: Automatic validation, error handling, async validation, array fields
+**Part 1: TanStack Table Integration (Plans 10-01 to 10-05)**
+- Install @tanstack/react-table
+- Create TanStackTable wrapper (maintains shadcn/ui styling)
+- Migrate DataTable component to use TanStack Table internally
+- Migrate 12 manual table pages in 3 batches (simple → complex → workflow)
+- Benefits: Built-in sorting, filtering, pagination, column resizing, virtual scrolling
 
-**Note**: Phase 8 completed TanStack Query integration (data fetching). This phase completes the TanStack ecosystem adoption with Table and Form libraries.
+**Part 2: TanStack Form Integration (Plans 10-06 to 10-08)**
+- Install @tanstack/react-form
+- Create FormField wrappers with Zod validation
+- Update ResourceDialog to use TanStack Form
+- Migrate all form pages in 2 batches
+- Benefits: Type-safe forms, automatic validation, field-level errors, reduced boilerplate
+
+Plans:
+- [ ] 10-01: Research and Strategy (audit current state, document patterns)
+- [ ] 10-02: TanStack Table Core Wrapper (create wrapper, migrate DataTable)
+- [ ] 10-03: Table Migration Batch 1 - Simple (Contacts, Vehicles, Beneficiaries, Trustees)
+- [ ] 10-04: Table Migration Batch 2 - Complex (Dashboard, Bequests, Settings, HemsQueue)
+- [ ] 10-05: Table Migration Batch 3 - Workflow (ActivityLog, Distributions, DistributionWizard)
+- [ ] 10-06: TanStack Form Core Setup (create wrappers, Zod integration)
+- [ ] 10-07: Form Migration Batch 1 - ResourceDialog (Accounting, Accounts, Liabilities, Properties)
+- [ ] 10-08: Form Migration Batch 2 - Manual Dialogs (Contacts, Beneficiaries, Trustees, Vehicles, Bequests, HemsQueue, Settings)
+
+**Note**: Phase 8 completed TanStack Query integration (data fetching). This phase completes the TanStack ecosystem adoption with Table and Form libraries. See `.planning/phases/10-tanstack-table-form-integration/OVERVIEW.md` for detailed migration strategy.
 
 ### Phase 11: Quality Verification
 **Goal**: Comprehensive testing, documentation updates, and final validation
@@ -212,5 +232,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 7. Liabilities & Accounts Refactor | 4/4 | ✅ Complete | 2026-01-09 |
 | 8. Type Safety Improvements | 4/4 | ✅ Complete | 2026-01-09 |
 | 9. Performance Optimization | 3/3 | ✅ Complete | 2026-01-09 |
-| 10. TanStack Table & Form Integration | 0/TBD | Not started | - |
+| 10. TanStack Table & Form Integration | 0/8 | Not started | - |
 | 11. Quality Verification | 0/3 | Not started | - |
