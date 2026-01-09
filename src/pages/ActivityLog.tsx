@@ -29,7 +29,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { useActivityLog, type ActivityLog as ActivityLogType } from "@/hooks/use-activity-log"
+import { useActivityLogs, type ActivityLog as ActivityLogType } from "@/hooks/activity-logs/queries"
 import { formatDate } from "@/utils/formatters"
 
 const ACTION_LABELS: Record<string, string> = {
@@ -51,7 +51,7 @@ const ACTION_VARIANTS: Record<string, "default" | "secondary" | "destructive"> =
 }
 
 export function ActivityLog() {
-  const { logs, loading } = useActivityLog()
+  const { data: logs = [], isLoading } = useActivityLogs()
   const [actionFilter, setActionFilter] = useState<string>("all")
   const [tableFilter, setTableFilter] = useState<string>("all")
   const [selectedLog, setSelectedLog] = useState<ActivityLogType | null>(null)
@@ -87,7 +87,7 @@ export function ActivityLog() {
     return JSON.stringify(data, null, 2)
   }
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
