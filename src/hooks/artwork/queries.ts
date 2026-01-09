@@ -2,7 +2,7 @@
  * TanStack Query hooks for Artwork resource
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, queryOptions } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
 export interface Artwork {
@@ -32,9 +32,9 @@ export const artworkKeys = {
   detail: (id: string) => ['artwork', id] as const,
 }
 
-// Queries
-export function useArtwork(entityId?: string) {
-  return useQuery({
+// Query Options
+export const artworkQueryOptions = (entityId?: string) =>
+  queryOptions({
     queryKey: entityId ? artworkKeys.byEntity(entityId) : artworkKeys.all,
     queryFn: async () => {
       const url = entityId ? `/api/artwork?entityId=${entityId}` : '/api/artwork'
@@ -47,10 +47,9 @@ export function useArtwork(entityId?: string) {
     },
     enabled: entityId ? !!entityId : true,
   })
-}
 
-export function useArtworkItem(id: string) {
-  return useQuery({
+export const artworkItemQueryOptions = (id: string) =>
+  queryOptions({
     queryKey: artworkKeys.detail(id),
     queryFn: async () => {
       const res = await fetch(`/api/artwork/${id}`)
@@ -62,6 +61,14 @@ export function useArtworkItem(id: string) {
     },
     enabled: !!id,
   })
+
+// Query Hooks
+export function useArtwork(entityId?: string) {
+  return useQuery(artworkQueryOptions(entityId))
+}
+
+export function useArtworkItem(id: string) {
+  return useQuery(artworkItemQueryOptions(id))
 }
 
 // Mutations

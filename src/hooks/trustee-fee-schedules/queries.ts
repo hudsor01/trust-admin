@@ -2,7 +2,7 @@
  * TanStack Query hooks for TrusteeFeeSchedule resource
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, queryOptions } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
 export interface TrusteeFeeSchedule {
@@ -26,9 +26,9 @@ export const trusteeFeeScheduleKeys = {
   detail: (id: string) => ['trustee-fee-schedules', id] as const,
 }
 
-// Queries
-export function useTrusteeFeeSchedules(entityId?: string) {
-  return useQuery({
+// Query Options
+export const trusteeFeeSchedulesQueryOptions = (entityId?: string) =>
+  queryOptions({
     queryKey: entityId ? trusteeFeeScheduleKeys.byEntity(entityId) : trusteeFeeScheduleKeys.all,
     queryFn: async () => {
       const url = entityId ? `/api/trustee-fee-schedules?entityId=${entityId}` : '/api/trustee-fee-schedules'
@@ -42,10 +42,9 @@ export function useTrusteeFeeSchedules(entityId?: string) {
     },
     enabled: entityId ? !!entityId : true,
   })
-}
 
-export function useTrusteeFeeSchedule(id: string) {
-  return useQuery({
+export const trusteeFeeScheduleQueryOptions = (id: string) =>
+  queryOptions({
     queryKey: trusteeFeeScheduleKeys.detail(id),
     queryFn: async () => {
       const res = await fetch(`/api/trustee-fee-schedules/${id}`)
@@ -57,6 +56,14 @@ export function useTrusteeFeeSchedule(id: string) {
     },
     enabled: !!id,
   })
+
+// Query Hooks
+export function useTrusteeFeeSchedules(entityId?: string) {
+  return useQuery(trusteeFeeSchedulesQueryOptions(entityId))
+}
+
+export function useTrusteeFeeSchedule(id: string) {
+  return useQuery(trusteeFeeScheduleQueryOptions(id))
 }
 
 // Mutations

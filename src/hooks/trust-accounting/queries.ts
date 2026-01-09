@@ -2,7 +2,7 @@
  * TanStack Query hooks for TrustAccounting resource
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, queryOptions } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
 export interface TrustAccounting {
@@ -36,9 +36,9 @@ export const trustAccountingKeys = {
   detail: (id: string) => ['trust-accounting', id] as const,
 }
 
-// Queries
-export function useTrustAccounting(entityId?: string) {
-  return useQuery({
+// Query Options
+export const trustAccountingQueryOptions = (entityId?: string) =>
+  queryOptions({
     queryKey: entityId ? trustAccountingKeys.byEntity(entityId) : trustAccountingKeys.all,
     queryFn: async () => {
       const url = entityId ? `/api/trust-accounting?entityId=${entityId}` : '/api/trust-accounting'
@@ -52,10 +52,9 @@ export function useTrustAccounting(entityId?: string) {
     },
     enabled: entityId ? !!entityId : true,
   })
-}
 
-export function useTrustAccountingEntry(id: string) {
-  return useQuery({
+export const trustAccountingEntryQueryOptions = (id: string) =>
+  queryOptions({
     queryKey: trustAccountingKeys.detail(id),
     queryFn: async () => {
       const res = await fetch(`/api/trust-accounting/${id}`)
@@ -67,6 +66,14 @@ export function useTrustAccountingEntry(id: string) {
     },
     enabled: !!id,
   })
+
+// Query Hooks
+export function useTrustAccounting(entityId?: string) {
+  return useQuery(trustAccountingQueryOptions(entityId))
+}
+
+export function useTrustAccountingEntry(id: string) {
+  return useQuery(trustAccountingEntryQueryOptions(id))
 }
 
 // Mutations

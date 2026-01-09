@@ -2,7 +2,7 @@
  * TanStack Query hooks for Homestead resource
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, queryOptions } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
 export interface Homestead {
@@ -43,9 +43,9 @@ export const homesteadKeys = {
   detail: (id: string) => ['homesteads', id] as const,
 }
 
-// Queries
-export function useHomesteads(entityId?: string) {
-  return useQuery({
+// Query Options
+export const homesteadsQueryOptions = (entityId?: string) =>
+  queryOptions({
     queryKey: entityId ? homesteadKeys.byEntity(entityId) : homesteadKeys.all,
     queryFn: async () => {
       const url = entityId ? `/api/homesteads?entityId=${entityId}` : '/api/homesteads'
@@ -58,10 +58,9 @@ export function useHomesteads(entityId?: string) {
     },
     enabled: entityId ? !!entityId : true,
   })
-}
 
-export function useHomestead(id: string) {
-  return useQuery({
+export const homesteadQueryOptions = (id: string) =>
+  queryOptions({
     queryKey: homesteadKeys.detail(id),
     queryFn: async () => {
       const res = await fetch(`/api/homesteads/${id}`)
@@ -73,6 +72,14 @@ export function useHomestead(id: string) {
     },
     enabled: !!id,
   })
+
+// Query Hooks
+export function useHomesteads(entityId?: string) {
+  return useQuery(homesteadsQueryOptions(entityId))
+}
+
+export function useHomestead(id: string) {
+  return useQuery(homesteadQueryOptions(id))
 }
 
 // Mutations

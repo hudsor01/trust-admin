@@ -2,7 +2,7 @@
  * TanStack Query hooks for PersonalProperty resource
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, queryOptions } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
 export interface PersonalProperty {
@@ -31,9 +31,9 @@ export const personalPropertyKeys = {
   detail: (id: string) => ['personal-property', id] as const,
 }
 
-// Queries
-export function usePersonalProperty(entityId?: string) {
-  return useQuery({
+// Query Options
+export const personalPropertyQueryOptions = (entityId?: string) =>
+  queryOptions({
     queryKey: entityId ? personalPropertyKeys.byEntity(entityId) : personalPropertyKeys.all,
     queryFn: async () => {
       const url = entityId ? `/api/personal-property?entityId=${entityId}` : '/api/personal-property'
@@ -46,10 +46,9 @@ export function usePersonalProperty(entityId?: string) {
     },
     enabled: entityId ? !!entityId : true,
   })
-}
 
-export function usePersonalPropertyItem(id: string) {
-  return useQuery({
+export const personalPropertyItemQueryOptions = (id: string) =>
+  queryOptions({
     queryKey: personalPropertyKeys.detail(id),
     queryFn: async () => {
       const res = await fetch(`/api/personal-property/${id}`)
@@ -61,6 +60,14 @@ export function usePersonalPropertyItem(id: string) {
     },
     enabled: !!id,
   })
+
+// Query Hooks
+export function usePersonalProperty(entityId?: string) {
+  return useQuery(personalPropertyQueryOptions(entityId))
+}
+
+export function usePersonalPropertyItem(id: string) {
+  return useQuery(personalPropertyItemQueryOptions(id))
 }
 
 // Mutations

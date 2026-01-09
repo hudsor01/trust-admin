@@ -2,7 +2,7 @@
  * TanStack Query hooks for RentalProperty resource
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, queryOptions } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
 export interface RentalProperty {
@@ -48,9 +48,9 @@ export const rentalPropertyKeys = {
   detail: (id: string) => ['rental-properties', id] as const,
 }
 
-// Queries
-export function useRentalProperties(entityId?: string) {
-  return useQuery({
+// Query Options
+export const rentalPropertiesQueryOptions = (entityId?: string) =>
+  queryOptions({
     queryKey: entityId ? rentalPropertyKeys.byEntity(entityId) : rentalPropertyKeys.all,
     queryFn: async () => {
       const url = entityId ? `/api/rental-properties?entityId=${entityId}` : '/api/rental-properties'
@@ -63,10 +63,9 @@ export function useRentalProperties(entityId?: string) {
     },
     enabled: entityId ? !!entityId : true,
   })
-}
 
-export function useRentalProperty(id: string) {
-  return useQuery({
+export const rentalPropertyQueryOptions = (id: string) =>
+  queryOptions({
     queryKey: rentalPropertyKeys.detail(id),
     queryFn: async () => {
       const res = await fetch(`/api/rental-properties/${id}`)
@@ -78,6 +77,14 @@ export function useRentalProperty(id: string) {
     },
     enabled: !!id,
   })
+
+// Query Hooks
+export function useRentalProperties(entityId?: string) {
+  return useQuery(rentalPropertiesQueryOptions(entityId))
+}
+
+export function useRentalProperty(id: string) {
+  return useQuery(rentalPropertyQueryOptions(id))
 }
 
 // Mutations

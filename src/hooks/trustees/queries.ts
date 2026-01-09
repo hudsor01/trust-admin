@@ -2,7 +2,7 @@
  * TanStack Query hooks for Trustee resource
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, queryOptions } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
 export interface Trustee {
@@ -30,9 +30,9 @@ export const trusteeKeys = {
   detail: (id: string) => ['trustees', id] as const,
 }
 
-// Queries
-export function useTrustees(entityId?: string) {
-  return useQuery({
+// Query Options
+export const trusteesQueryOptions = (entityId?: string) =>
+  queryOptions({
     queryKey: entityId ? trusteeKeys.byEntity(entityId) : trusteeKeys.all,
     queryFn: async () => {
       const url = entityId ? `/api/trustees?entityId=${entityId}` : '/api/trustees'
@@ -46,10 +46,9 @@ export function useTrustees(entityId?: string) {
     },
     enabled: entityId ? !!entityId : true,
   })
-}
 
-export function useTrustee(id: string) {
-  return useQuery({
+export const trusteeQueryOptions = (id: string) =>
+  queryOptions({
     queryKey: trusteeKeys.detail(id),
     queryFn: async () => {
       const res = await fetch(`/api/trustees/${id}`)
@@ -61,6 +60,14 @@ export function useTrustee(id: string) {
     },
     enabled: !!id,
   })
+
+// Query Hooks
+export function useTrustees(entityId?: string) {
+  return useQuery(trusteesQueryOptions(entityId))
+}
+
+export function useTrustee(id: string) {
+  return useQuery(trusteeQueryOptions(id))
 }
 
 // Mutations

@@ -2,7 +2,7 @@
  * TanStack Query hooks for Liability resource
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, queryOptions } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
 export interface Liability {
@@ -35,9 +35,9 @@ export const liabilityKeys = {
   detail: (id: string) => ['liabilities', id] as const,
 }
 
-// Queries
-export function useLiabilities(entityId?: string) {
-  return useQuery({
+// Query Options
+export const liabilitiesQueryOptions = (entityId?: string) =>
+  queryOptions({
     queryKey: entityId ? liabilityKeys.byEntity(entityId) : liabilityKeys.all,
     queryFn: async () => {
       const url = entityId ? `/api/liabilities?entityId=${entityId}` : '/api/liabilities'
@@ -50,10 +50,9 @@ export function useLiabilities(entityId?: string) {
     },
     enabled: entityId ? !!entityId : true,
   })
-}
 
-export function useLiability(id: string) {
-  return useQuery({
+export const liabilityQueryOptions = (id: string) =>
+  queryOptions({
     queryKey: liabilityKeys.detail(id),
     queryFn: async () => {
       const res = await fetch(`/api/liabilities/${id}`)
@@ -65,6 +64,14 @@ export function useLiability(id: string) {
     },
     enabled: !!id,
   })
+
+// Query Hooks
+export function useLiabilities(entityId?: string) {
+  return useQuery(liabilitiesQueryOptions(entityId))
+}
+
+export function useLiability(id: string) {
+  return useQuery(liabilityQueryOptions(id))
 }
 
 // Mutations

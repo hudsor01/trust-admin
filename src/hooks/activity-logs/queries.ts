@@ -3,7 +3,7 @@
  * Note: Activity logs are immutable audit records (no updates or deletes)
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, queryOptions } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
 export interface ActivityLog {
@@ -24,9 +24,9 @@ export const activityLogKeys = {
   detail: (id: string) => ['activity-logs', id] as const,
 }
 
-// Queries
-export function useActivityLogs() {
-  return useQuery({
+// Query Options
+export const activityLogsQueryOptions = () =>
+  queryOptions({
     queryKey: activityLogKeys.all,
     queryFn: async () => {
       const res = await fetch('/api/activity-logs')
@@ -38,10 +38,9 @@ export function useActivityLogs() {
       return data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     },
   })
-}
 
-export function useActivityLog(id: string) {
-  return useQuery({
+export const activityLogQueryOptions = (id: string) =>
+  queryOptions({
     queryKey: activityLogKeys.detail(id),
     queryFn: async () => {
       const res = await fetch(`/api/activity-logs/${id}`)
@@ -53,6 +52,14 @@ export function useActivityLog(id: string) {
     },
     enabled: !!id,
   })
+
+// Query Hooks
+export function useActivityLogs() {
+  return useQuery(activityLogsQueryOptions())
+}
+
+export function useActivityLog(id: string) {
+  return useQuery(activityLogQueryOptions(id))
 }
 
 // Mutations

@@ -2,7 +2,7 @@
  * TanStack Query hooks for Entity resource
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, queryOptions } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
 export interface Entity {
@@ -25,9 +25,9 @@ export const entityKeys = {
   detail: (id: string) => ['entities', id] as const,
 }
 
-// Queries
-export function useEntities() {
-  return useQuery({
+// Query Options
+export const entitiesQueryOptions = () =>
+  queryOptions({
     queryKey: entityKeys.all,
     queryFn: async () => {
       const res = await fetch('/api/entities')
@@ -43,10 +43,9 @@ export function useEntities() {
       })
     },
   })
-}
 
-export function useEntity(id: string) {
-  return useQuery({
+export const entityQueryOptions = (id: string) =>
+  queryOptions({
     queryKey: entityKeys.detail(id),
     queryFn: async () => {
       const res = await fetch(`/api/entities/${id}`)
@@ -58,6 +57,14 @@ export function useEntity(id: string) {
     },
     enabled: !!id,
   })
+
+// Query Hooks
+export function useEntities() {
+  return useQuery(entitiesQueryOptions())
+}
+
+export function useEntity(id: string) {
+  return useQuery(entityQueryOptions(id))
 }
 
 // Mutations

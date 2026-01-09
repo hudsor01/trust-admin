@@ -2,7 +2,7 @@
  * TanStack Query hooks for InvestmentAccount resource
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, queryOptions } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
 export interface InvestmentAccount {
@@ -31,9 +31,9 @@ export const investmentAccountKeys = {
   detail: (id: string) => ['investment-accounts', id] as const,
 }
 
-// Queries
-export function useInvestmentAccounts(entityId?: string) {
-  return useQuery({
+// Query Options
+export const investmentAccountsQueryOptions = (entityId?: string) =>
+  queryOptions({
     queryKey: entityId ? investmentAccountKeys.byEntity(entityId) : investmentAccountKeys.all,
     queryFn: async () => {
       const url = entityId ? `/api/investment-accounts?entityId=${entityId}` : '/api/investment-accounts'
@@ -46,10 +46,9 @@ export function useInvestmentAccounts(entityId?: string) {
     },
     enabled: entityId ? !!entityId : true,
   })
-}
 
-export function useInvestmentAccount(id: string) {
-  return useQuery({
+export const investmentAccountQueryOptions = (id: string) =>
+  queryOptions({
     queryKey: investmentAccountKeys.detail(id),
     queryFn: async () => {
       const res = await fetch(`/api/investment-accounts/${id}`)
@@ -61,6 +60,14 @@ export function useInvestmentAccount(id: string) {
     },
     enabled: !!id,
   })
+
+// Query Hooks
+export function useInvestmentAccounts(entityId?: string) {
+  return useQuery(investmentAccountsQueryOptions(entityId))
+}
+
+export function useInvestmentAccount(id: string) {
+  return useQuery(investmentAccountQueryOptions(id))
 }
 
 // Mutations

@@ -2,7 +2,7 @@
  * TanStack Query hooks for HemsRequest resource
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, queryOptions } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
 export interface HemsRequest {
@@ -30,9 +30,9 @@ export const hemsRequestKeys = {
   detail: (id: string) => ['hems-requests', id] as const,
 }
 
-// Queries
-export function useHemsRequests(beneficiaryId?: string) {
-  return useQuery({
+// Query Options
+export const hemsRequestsQueryOptions = (beneficiaryId?: string) =>
+  queryOptions({
     queryKey: beneficiaryId ? hemsRequestKeys.byBeneficiary(beneficiaryId) : hemsRequestKeys.all,
     queryFn: async () => {
       const url = beneficiaryId ? `/api/hems-requests?beneficiaryId=${beneficiaryId}` : '/api/hems-requests'
@@ -46,10 +46,9 @@ export function useHemsRequests(beneficiaryId?: string) {
     },
     enabled: beneficiaryId ? !!beneficiaryId : true,
   })
-}
 
-export function useHemsRequest(id: string) {
-  return useQuery({
+export const hemsRequestQueryOptions = (id: string) =>
+  queryOptions({
     queryKey: hemsRequestKeys.detail(id),
     queryFn: async () => {
       const res = await fetch(`/api/hems-requests/${id}`)
@@ -61,6 +60,14 @@ export function useHemsRequest(id: string) {
     },
     enabled: !!id,
   })
+
+// Query Hooks
+export function useHemsRequests(beneficiaryId?: string) {
+  return useQuery(hemsRequestsQueryOptions(beneficiaryId))
+}
+
+export function useHemsRequest(id: string) {
+  return useQuery(hemsRequestQueryOptions(id))
 }
 
 // Mutations

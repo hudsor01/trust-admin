@@ -2,7 +2,7 @@
  * TanStack Query hooks for LiabilityPayment resource
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, queryOptions } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
 export interface LiabilityPayment {
@@ -27,9 +27,9 @@ export const liabilityPaymentKeys = {
   detail: (id: string) => ['liability-payments', id] as const,
 }
 
-// Queries
-export function useLiabilityPayments(liabilityId?: string) {
-  return useQuery({
+// Query Options
+export const liabilityPaymentsQueryOptions = (liabilityId?: string) =>
+  queryOptions({
     queryKey: liabilityId ? liabilityPaymentKeys.byLiability(liabilityId) : liabilityPaymentKeys.all,
     queryFn: async () => {
       const url = liabilityId ? `/api/liability-payments?liabilityId=${liabilityId}` : '/api/liability-payments'
@@ -43,10 +43,9 @@ export function useLiabilityPayments(liabilityId?: string) {
     },
     enabled: liabilityId ? !!liabilityId : true,
   })
-}
 
-export function useLiabilityPayment(id: string) {
-  return useQuery({
+export const liabilityPaymentQueryOptions = (id: string) =>
+  queryOptions({
     queryKey: liabilityPaymentKeys.detail(id),
     queryFn: async () => {
       const res = await fetch(`/api/liability-payments/${id}`)
@@ -58,6 +57,14 @@ export function useLiabilityPayment(id: string) {
     },
     enabled: !!id,
   })
+
+// Query Hooks
+export function useLiabilityPayments(liabilityId?: string) {
+  return useQuery(liabilityPaymentsQueryOptions(liabilityId))
+}
+
+export function useLiabilityPayment(id: string) {
+  return useQuery(liabilityPaymentQueryOptions(id))
 }
 
 // Mutations

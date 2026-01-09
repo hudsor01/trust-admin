@@ -2,7 +2,7 @@
  * TanStack Query hooks for Vehicle resource
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, queryOptions } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
 export interface Vehicle {
@@ -35,9 +35,9 @@ export const vehicleKeys = {
   detail: (id: string) => ['vehicles', id] as const,
 }
 
-// Queries
-export function useVehicles(entityId?: string) {
-  return useQuery({
+// Query Options
+export const vehiclesQueryOptions = (entityId?: string) =>
+  queryOptions({
     queryKey: entityId ? vehicleKeys.byEntity(entityId) : vehicleKeys.all,
     queryFn: async () => {
       const url = entityId ? `/api/vehicles?entityId=${entityId}` : '/api/vehicles'
@@ -50,10 +50,9 @@ export function useVehicles(entityId?: string) {
     },
     enabled: entityId ? !!entityId : true,
   })
-}
 
-export function useVehicle(id: string) {
-  return useQuery({
+export const vehicleQueryOptions = (id: string) =>
+  queryOptions({
     queryKey: vehicleKeys.detail(id),
     queryFn: async () => {
       const res = await fetch(`/api/vehicles/${id}`)
@@ -65,6 +64,14 @@ export function useVehicle(id: string) {
     },
     enabled: !!id,
   })
+
+// Query Hooks
+export function useVehicles(entityId?: string) {
+  return useQuery(vehiclesQueryOptions(entityId))
+}
+
+export function useVehicle(id: string) {
+  return useQuery(vehicleQueryOptions(id))
 }
 
 // Mutations

@@ -2,7 +2,7 @@
  * TanStack Query hooks for TrusteeFeeEntry resource
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, queryOptions } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
 export interface TrusteeFeeEntry {
@@ -36,9 +36,9 @@ export const trusteeFeeEntryKeys = {
   detail: (id: string) => ['trustee-fee-entries', id] as const,
 }
 
-// Queries
-export function useTrusteeFeeEntries(entityId?: string) {
-  return useQuery({
+// Query Options
+export const trusteeFeeEntriesQueryOptions = (entityId?: string) =>
+  queryOptions({
     queryKey: entityId ? trusteeFeeEntryKeys.byEntity(entityId) : trusteeFeeEntryKeys.all,
     queryFn: async () => {
       const url = entityId ? `/api/trustee-fee-entries?entityId=${entityId}` : '/api/trustee-fee-entries'
@@ -52,10 +52,9 @@ export function useTrusteeFeeEntries(entityId?: string) {
     },
     enabled: entityId ? !!entityId : true,
   })
-}
 
-export function useTrusteeFeeEntry(id: string) {
-  return useQuery({
+export const trusteeFeeEntryQueryOptions = (id: string) =>
+  queryOptions({
     queryKey: trusteeFeeEntryKeys.detail(id),
     queryFn: async () => {
       const res = await fetch(`/api/trustee-fee-entries/${id}`)
@@ -67,6 +66,14 @@ export function useTrusteeFeeEntry(id: string) {
     },
     enabled: !!id,
   })
+
+// Query Hooks
+export function useTrusteeFeeEntries(entityId?: string) {
+  return useQuery(trusteeFeeEntriesQueryOptions(entityId))
+}
+
+export function useTrusteeFeeEntry(id: string) {
+  return useQuery(trusteeFeeEntryQueryOptions(id))
 }
 
 // Mutations

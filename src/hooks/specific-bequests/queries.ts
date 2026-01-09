@@ -2,7 +2,7 @@
  * TanStack Query hooks for SpecificBequest resource
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, queryOptions } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
 export interface SpecificBequest {
@@ -25,9 +25,9 @@ export const specificBequestKeys = {
   detail: (id: string) => ['specific-bequests', id] as const,
 }
 
-// Queries
-export function useSpecificBequests(entityId?: string) {
-  return useQuery({
+// Query Options
+export const specificBequestsQueryOptions = (entityId?: string) =>
+  queryOptions({
     queryKey: entityId ? specificBequestKeys.byEntity(entityId) : specificBequestKeys.all,
     queryFn: async () => {
       const url = entityId ? `/api/specific-bequests?entityId=${entityId}` : '/api/specific-bequests'
@@ -40,10 +40,9 @@ export function useSpecificBequests(entityId?: string) {
     },
     enabled: entityId ? !!entityId : true,
   })
-}
 
-export function useSpecificBequest(id: string) {
-  return useQuery({
+export const specificBequestQueryOptions = (id: string) =>
+  queryOptions({
     queryKey: specificBequestKeys.detail(id),
     queryFn: async () => {
       const res = await fetch(`/api/specific-bequests/${id}`)
@@ -55,6 +54,14 @@ export function useSpecificBequest(id: string) {
     },
     enabled: !!id,
   })
+
+// Query Hooks
+export function useSpecificBequests(entityId?: string) {
+  return useQuery(specificBequestsQueryOptions(entityId))
+}
+
+export function useSpecificBequest(id: string) {
+  return useQuery(specificBequestQueryOptions(id))
 }
 
 // Mutations

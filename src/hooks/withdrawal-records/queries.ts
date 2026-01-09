@@ -2,7 +2,7 @@
  * TanStack Query hooks for WithdrawalRecord resource
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, queryOptions } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
 export interface WithdrawalRecord {
@@ -29,9 +29,9 @@ export const withdrawalRecordKeys = {
   detail: (id: string) => ['withdrawal-records', id] as const,
 }
 
-// Queries
-export function useWithdrawalRecords(beneficiaryId?: string) {
-  return useQuery({
+// Query Options
+export const withdrawalRecordsQueryOptions = (beneficiaryId?: string) =>
+  queryOptions({
     queryKey: beneficiaryId ? withdrawalRecordKeys.byBeneficiary(beneficiaryId) : withdrawalRecordKeys.all,
     queryFn: async () => {
       const url = beneficiaryId ? `/api/withdrawal-records?beneficiaryId=${beneficiaryId}` : '/api/withdrawal-records'
@@ -45,10 +45,9 @@ export function useWithdrawalRecords(beneficiaryId?: string) {
     },
     enabled: beneficiaryId ? !!beneficiaryId : true,
   })
-}
 
-export function useWithdrawalRecord(id: string) {
-  return useQuery({
+export const withdrawalRecordQueryOptions = (id: string) =>
+  queryOptions({
     queryKey: withdrawalRecordKeys.detail(id),
     queryFn: async () => {
       const res = await fetch(`/api/withdrawal-records/${id}`)
@@ -60,6 +59,14 @@ export function useWithdrawalRecord(id: string) {
     },
     enabled: !!id,
   })
+
+// Query Hooks
+export function useWithdrawalRecords(beneficiaryId?: string) {
+  return useQuery(withdrawalRecordsQueryOptions(beneficiaryId))
+}
+
+export function useWithdrawalRecord(id: string) {
+  return useQuery(withdrawalRecordQueryOptions(id))
 }
 
 // Mutations

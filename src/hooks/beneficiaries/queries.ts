@@ -1,84 +1,85 @@
 /**
- * TanStack Query hooks for BankAccount resource
+ * TanStack Query hooks for Beneficiary resource
  */
 
 import { useQuery, useMutation, useQueryClient, queryOptions } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
-export interface BankAccount {
+export interface Beneficiary {
   id: string
   entityId: string
-  institution: string
-  accountType: string
-  accountName: string | null
-  accountNumber: string
-  routingNumber: string | null
-  dodValue: string | null
-  dodValueDate: string | null
-  currentBalance: string | null
-  currentBalanceDate: string | null
-  status: string
-  transferStatus: string
-  notes: string | null
-  createdAt: string
-  updatedAt: string
+  firstName: string
+  lastName: string
+  relationship: string | null
+  relationshipType: string | null
+  dob: string | null
+  email: string | null
+  phone: string | null
+  streetAddress: string | null
+  city: string | null
+  state: string | null
+  zip: string | null
+  sharePercent: string | null
+  distributionStandard: string | null
+  informed: boolean
+  releaseSigned: boolean
 }
 
 // Query Keys
-export const bankAccountKeys = {
-  all: ['bank-accounts'] as const,
-  byEntity: (entityId: string) => ['bank-accounts', 'entity', entityId] as const,
-  detail: (id: string) => ['bank-accounts', id] as const,
+export const beneficiaryKeys = {
+  all: ['beneficiaries'] as const,
+  byEntity: (entityId: string) => ['beneficiaries', 'entity', entityId] as const,
+  detail: (id: string) => ['beneficiaries', id] as const,
 }
 
 // Query Options
-export const bankAccountsQueryOptions = (entityId?: string) =>
+export const beneficiariesQueryOptions = (entityId?: string) =>
   queryOptions({
-    queryKey: entityId ? bankAccountKeys.byEntity(entityId) : bankAccountKeys.all,
+    queryKey: entityId ? beneficiaryKeys.byEntity(entityId) : beneficiaryKeys.all,
     queryFn: async () => {
-      const url = entityId ? `/api/bank-accounts?entityId=${entityId}` : '/api/bank-accounts'
+      const url = entityId ? `/api/beneficiaries?entityId=${entityId}` : '/api/beneficiaries'
       const res = await fetch(url)
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({ error: { message: `HTTP ${res.status}` } }))
         throw new Error(errorData.error?.message || `Failed to fetch: ${res.status}`)
       }
-      return res.json() as Promise<BankAccount[]>
+      return res.json() as Promise<Beneficiary[]>
     },
     enabled: entityId ? !!entityId : true,
   })
 
-export const bankAccountQueryOptions = (id: string) =>
+export const beneficiaryQueryOptions = (id: string) =>
   queryOptions({
-    queryKey: bankAccountKeys.detail(id),
+    queryKey: beneficiaryKeys.detail(id),
     queryFn: async () => {
-      const res = await fetch(`/api/bank-accounts/${id}`)
+      const res = await fetch(`/api/beneficiaries/${id}`)
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({ error: { message: `HTTP ${res.status}` } }))
         throw new Error(errorData.error?.message || `Failed to fetch: ${res.status}`)
       }
-      return res.json() as Promise<BankAccount>
+      return res.json() as Promise<Beneficiary>
     },
     enabled: !!id,
   })
 
 // Query Hooks
-export function useBankAccounts(entityId?: string) {
-  return useQuery(bankAccountsQueryOptions(entityId))
+export function useBeneficiaries(entityId?: string) {
+  return useQuery(beneficiariesQueryOptions(entityId))
 }
 
-export function useBankAccount(id: string) {
-  return useQuery(bankAccountQueryOptions(id))
+export function useBeneficiary(id: string) {
+  return useQuery(beneficiaryQueryOptions(id))
 }
 
 // Mutations
-export function useCreateBankAccount() {
+export function useCreateBeneficiary() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (bankAccount: Partial<BankAccount>) => {
-      const res = await fetch('/api/bank-accounts', {
+    mutationFn: async (beneficiary: Partial<Beneficiary>) => {
+      const res = await fetch('/api/beneficiaries', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(bankAccount),
+        body: JSON.stringify(beneficiary),
       })
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({ error: { message: `HTTP ${res.status}` } }))
@@ -87,25 +88,25 @@ export function useCreateBankAccount() {
           const fieldErrors = Object.entries(fields).map(([field, message]) => `${field}: ${message}`).join('\n')
           toast.error(errorData.error.message, { description: fieldErrors })
         } else {
-          toast.error(errorData.error?.message || 'Failed to create bank account')
+          toast.error(errorData.error?.message || 'Failed to create beneficiary')
         }
         throw new Error(errorData.error?.message || `Failed to create: ${res.status}`)
       }
-      return res.json() as Promise<BankAccount>
+      return res.json() as Promise<Beneficiary>
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: bankAccountKeys.all })
-      queryClient.invalidateQueries({ queryKey: bankAccountKeys.byEntity(data.entityId) })
-      toast.success('Bank account created successfully')
+      queryClient.invalidateQueries({ queryKey: beneficiaryKeys.all })
+      queryClient.invalidateQueries({ queryKey: beneficiaryKeys.byEntity(data.entityId) })
+      toast.success('Beneficiary created successfully')
     },
   })
 }
 
-export function useUpdateBankAccount() {
+export function useUpdateBeneficiary() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: Partial<BankAccount> }) => {
-      const res = await fetch(`/api/bank-accounts/${id}`, {
+    mutationFn: async ({ id, data }: { id: string; data: Partial<Beneficiary> }) => {
+      const res = await fetch(`/api/beneficiaries/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -117,35 +118,35 @@ export function useUpdateBankAccount() {
           const fieldErrors = Object.entries(fields).map(([field, message]) => `${field}: ${message}`).join('\n')
           toast.error(errorData.error.message, { description: fieldErrors })
         } else {
-          toast.error(errorData.error?.message || 'Failed to update bank account')
+          toast.error(errorData.error?.message || 'Failed to update beneficiary')
         }
         throw new Error(errorData.error?.message || `Failed to update: ${res.status}`)
       }
-      return res.json() as Promise<BankAccount>
+      return res.json() as Promise<Beneficiary>
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: bankAccountKeys.all })
-      queryClient.invalidateQueries({ queryKey: bankAccountKeys.byEntity(data.entityId) })
-      queryClient.invalidateQueries({ queryKey: bankAccountKeys.detail(data.id) })
-      toast.success('Bank account updated successfully')
+      queryClient.invalidateQueries({ queryKey: beneficiaryKeys.all })
+      queryClient.invalidateQueries({ queryKey: beneficiaryKeys.byEntity(data.entityId) })
+      queryClient.invalidateQueries({ queryKey: beneficiaryKeys.detail(data.id) })
+      toast.success('Beneficiary updated successfully')
     },
   })
 }
 
-export function useDeleteBankAccount() {
+export function useDeleteBeneficiary() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/bank-accounts/${id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/beneficiaries/${id}`, { method: 'DELETE' })
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({ error: { message: `HTTP ${res.status}` } }))
-        toast.error(errorData.error?.message || 'Failed to delete bank account')
+        toast.error(errorData.error?.message || 'Failed to delete beneficiary')
         throw new Error(errorData.error?.message || `Failed to delete: ${res.status}`)
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: bankAccountKeys.all })
-      toast.success('Bank account deleted successfully')
+      queryClient.invalidateQueries({ queryKey: beneficiaryKeys.all })
+      toast.success('Beneficiary deleted successfully')
     },
   })
 }

@@ -1,75 +1,78 @@
 /**
- * TanStack Query hooks for Task resource
+ * TanStack Query hooks for Contact resource
  */
 
 import { useQuery, useMutation, useQueryClient, queryOptions } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
-export interface Task {
+export interface Contact {
   id: string
-  title: string
-  category: string
-  completed: boolean
+  name: string
+  company: string | null
+  role: string
+  email: string | null
+  phone: string | null
+  dob: string | null
+  streetAddress: string | null
+  city: string | null
+  state: string | null
+  zip: string | null
   notes: string | null
-  dueDate: string | null
-  sortOrder: number
-  createdAt: string
-  updatedAt: string
 }
 
 // Query Keys
-export const taskKeys = {
-  all: ['tasks'] as const,
-  detail: (id: string) => ['tasks', id] as const,
+export const contactKeys = {
+  all: ['contacts'] as const,
+  detail: (id: string) => ['contacts', id] as const,
 }
 
 // Query Options
-export const tasksQueryOptions = () =>
+export const contactsQueryOptions = () =>
   queryOptions({
-    queryKey: taskKeys.all,
+    queryKey: contactKeys.all,
     queryFn: async () => {
-      const res = await fetch('/api/tasks')
+      const res = await fetch('/api/contacts')
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({ error: { message: `HTTP ${res.status}` } }))
         throw new Error(errorData.error?.message || `Failed to fetch: ${res.status}`)
       }
-      const data = await res.json() as Task[]
-      return data.sort((a, b) => a.sortOrder - b.sortOrder)
+      const data = await res.json() as Contact[]
+      return data.sort((a, b) => a.name.localeCompare(b.name))
     },
   })
 
-export const taskQueryOptions = (id: string) =>
+export const contactQueryOptions = (id: string) =>
   queryOptions({
-    queryKey: taskKeys.detail(id),
+    queryKey: contactKeys.detail(id),
     queryFn: async () => {
-      const res = await fetch(`/api/tasks/${id}`)
+      const res = await fetch(`/api/contacts/${id}`)
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({ error: { message: `HTTP ${res.status}` } }))
         throw new Error(errorData.error?.message || `Failed to fetch: ${res.status}`)
       }
-      return res.json() as Promise<Task>
+      return res.json() as Promise<Contact>
     },
     enabled: !!id,
   })
 
 // Query Hooks
-export function useTasks() {
-  return useQuery(tasksQueryOptions())
+export function useContacts() {
+  return useQuery(contactsQueryOptions())
 }
 
-export function useTask(id: string) {
-  return useQuery(taskQueryOptions(id))
+export function useContact(id: string) {
+  return useQuery(contactQueryOptions(id))
 }
 
 // Mutations
-export function useCreateTask() {
+export function useCreateContact() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (task: Partial<Task>) => {
-      const res = await fetch('/api/tasks', {
+    mutationFn: async (contact: Partial<Contact>) => {
+      const res = await fetch('/api/contacts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(task),
+        body: JSON.stringify(contact),
       })
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({ error: { message: `HTTP ${res.status}` } }))
@@ -78,24 +81,24 @@ export function useCreateTask() {
           const fieldErrors = Object.entries(fields).map(([field, message]) => `${field}: ${message}`).join('\n')
           toast.error(errorData.error.message, { description: fieldErrors })
         } else {
-          toast.error(errorData.error?.message || 'Failed to create task')
+          toast.error(errorData.error?.message || 'Failed to create contact')
         }
         throw new Error(errorData.error?.message || `Failed to create: ${res.status}`)
       }
-      return res.json() as Promise<Task>
+      return res.json() as Promise<Contact>
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: taskKeys.all })
-      toast.success('Task created successfully')
+      queryClient.invalidateQueries({ queryKey: contactKeys.all })
+      toast.success('Contact created successfully')
     },
   })
 }
 
-export function useUpdateTask() {
+export function useUpdateContact() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: Partial<Task> }) => {
-      const res = await fetch(`/api/tasks/${id}`, {
+    mutationFn: async ({ id, data }: { id: string; data: Partial<Contact> }) => {
+      const res = await fetch(`/api/contacts/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -107,34 +110,34 @@ export function useUpdateTask() {
           const fieldErrors = Object.entries(fields).map(([field, message]) => `${field}: ${message}`).join('\n')
           toast.error(errorData.error.message, { description: fieldErrors })
         } else {
-          toast.error(errorData.error?.message || 'Failed to update task')
+          toast.error(errorData.error?.message || 'Failed to update contact')
         }
         throw new Error(errorData.error?.message || `Failed to update: ${res.status}`)
       }
-      return res.json() as Promise<Task>
+      return res.json() as Promise<Contact>
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: taskKeys.all })
-      queryClient.invalidateQueries({ queryKey: taskKeys.detail(data.id) })
-      toast.success('Task updated successfully')
+      queryClient.invalidateQueries({ queryKey: contactKeys.all })
+      queryClient.invalidateQueries({ queryKey: contactKeys.detail(data.id) })
+      toast.success('Contact updated successfully')
     },
   })
 }
 
-export function useDeleteTask() {
+export function useDeleteContact() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/tasks/${id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/contacts/${id}`, { method: 'DELETE' })
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({ error: { message: `HTTP ${res.status}` } }))
-        toast.error(errorData.error?.message || 'Failed to delete task')
+        toast.error(errorData.error?.message || 'Failed to delete contact')
         throw new Error(errorData.error?.message || `Failed to delete: ${res.status}`)
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: taskKeys.all })
-      toast.success('Task deleted successfully')
+      queryClient.invalidateQueries({ queryKey: contactKeys.all })
+      toast.success('Contact deleted successfully')
     },
   })
 }
