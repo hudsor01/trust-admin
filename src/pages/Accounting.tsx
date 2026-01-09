@@ -34,9 +34,9 @@ import { useEntities } from "@/hooks/entities/queries"
 import {
   useTrustAccounting,
   useTrustAccountingPaginated,
-  useCreateTrustAccounting,
-  useUpdateTrustAccounting,
-  useDeleteTrustAccounting,
+  useCreateTrustAccountingEntry,
+  useUpdateTrustAccountingEntry,
+  useDeleteTrustAccountingEntry,
   type PaginatedResult,
 } from "@/hooks/trust-accounting/queries"
 
@@ -156,9 +156,9 @@ export function Accounting() {
   const entries = paginatedResult?.data || []
   const totalCount = paginatedResult?.totalCount || 0
 
-  const createEntryMutation = useCreateTrustAccounting()
-  const updateEntryMutation = useUpdateTrustAccounting()
-  const deleteEntryMutation = useDeleteTrustAccounting()
+  const createEntryMutation = useCreateTrustAccountingEntry()
+  const updateEntryMutation = useUpdateTrustAccountingEntry()
+  const deleteEntryMutation = useDeleteTrustAccountingEntry()
 
   const [activeTab, setActiveTab] = useState("all")
   const [generatingReport, setGeneratingReport] = useState(false)
