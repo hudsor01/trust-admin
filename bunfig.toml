@@ -1,0 +1,26 @@
+# Bun configuration file
+# https://bun.sh/docs/runtime/bunfig
+
+[test]
+# Enable code coverage reporting
+coverage = true
+
+# Coverage thresholds - disabled for integration tests
+# coverageThreshold = { lines = 80, functions = 80, statements = 80 }
+
+# Watch for changes during testing
+# watch = true
+
+# Test timeout in milliseconds
+timeout = 5000
+
+# Preload test setup file (optional)
+# preload = ["./tests/setup.ts"]
+
+[install]
+# Use exact versions in lockfile
+exact = true
+
+[run]
+# Silent mode for cleaner output
+silent = false

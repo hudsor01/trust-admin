@@ -1,0 +1,87 @@
+/**
+ * Shared formatting and calculation utilities
+ * Extracted from page components to ensure consistency
+ */
+
+/**
+ * Format a date string for display
+ * @param dateStr - ISO date string or null
+ * @returns Formatted date like "Jan 15, 2025" or "—" if null
+ */
+export function formatDate(dateStr: string | null): string {
+  if (!dateStr) return "—";
+  return new Date(dateStr).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+/**
+ * Format a number or string as USD currency
+ * @param amount - Number or numeric string
+ * @returns Formatted currency like "$1,234.56"
+ */
+export function formatCurrency(amount: string | number | null): string {
+  if (amount === null || amount === undefined) return "$0.00";
+  const num = typeof amount === "string" ? parseFloat(amount) : amount;
+  if (isNaN(num)) return "$0.00";
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  }).format(num);
+}
+
+/**
+ * Calculate age from date of birth
+ * @param dob - Date of birth as ISO string
+ * @returns Age in years
+ */
+export function calculateAge(dob: string): number {
+  const today = new Date();
+  const birthDate = new Date(dob);
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  return age;
+}
+
+/**
+ * Get withdrawal eligibility status based on eligible date
+ * @param eligibleDate - ISO date string when withdrawal becomes eligible
+ * @returns Status object with display text, color, and days until eligible
+ */
+export function getWithdrawalStatus(eligibleDate: string): {
+  status: string;
+  color: string;
+  daysUntil: number;
+  isEligible: boolean;
+} {
+  const today = new Date();
+  const eligible = new Date(eligibleDate);
+  const diffTime = eligible.getTime() - today.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays <= 0) {
+    return { status: "ELIGIBLE NOW", color: "green", daysUntil: 0, isEligible: true };
+  } else if (diffDays <= 365) {
+    return { status: `${diffDays} days`, color: "amber", daysUntil: diffDays, isEligible: false };
+  } else {
+    const years = Math.floor(diffDays / 365);
+    return { status: `${years}+ years`, color: "slate", daysUntil: diffDays, isEligible: false };
+  }
+}
+
+/**
+ * Format a percentage for display
+ * @param value - Percentage as string or number
+ * @returns Formatted percentage like "25.00%"
+ */
+export function formatPercent(value: string | number | null): string {
+  if (value === null || value === undefined) return "0%";
+  const num = typeof value === "string" ? parseFloat(value) : value;
+  if (isNaN(num)) return "0%";
+  return `${num.toFixed(2)}%`;
+}

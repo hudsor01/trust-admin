@@ -1,0 +1,194 @@
+# Trust Administration System - PostgreSQL Database
+# Using Compose Specification (no version field needed)
+# https://docs.docker.com/reference/compose-file/
+
+name: trust-admin
+
+services:
+  postgres:
+    image: postgres:18
+    container_name: trust-admin-db
+    restart: unless-stopped
+
+    # Use Docker secrets instead of environment variables for password
+    secrets:
+      - db_password
+
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-trust_admin}
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+      POSTGRES_DB: ${POSTGRES_DB:-trust_admin}
+      # Enable data checksums for corruption detection (critical for data integrity)
+      # Detects bit rot, disk failures, and hardware issues
+      POSTGRES_INITDB_ARGS: "--data-checksums --encoding=UTF8 --locale=en_US.UTF-8"
+      # Use SCRAM-SHA-256 authentication (more secure than MD5)
+      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
+      # Timezone for accurate timestamps in logs and data
+      TZ: ${TZ:-America/Chicago}
+      # PostgreSQL configuration via environment
+      PGDATA: /var/lib/postgresql/18/docker
+
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+
+    volumes:
+      # PostgreSQL 18+ uses /var/lib/postgresql (not /var/lib/postgresql/data)
+      # This allows easier pg_upgrade between major versions
+      - trust-admin-data:/var/lib/postgresql
+      # Custom PostgreSQL configuration
+      - ./config/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      # Custom client authentication configuration
+      - ./config/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+      # Initialization scripts (only run on first startup with empty data dir)
+      - ./init-scripts:/docker-entrypoint-initdb.d:ro
+
+    # Custom PostgreSQL configuration file
+    command:
+      - "postgres"
+      - "-c"
+      - "config_file=/etc/postgresql/postgresql.conf"
+      - "-c"
+      - "hba_file=/etc/postgresql/pg_hba.conf"
+
+    # Shared memory - PostgreSQL needs more than Docker's default 64MB
+    shm_size: 256mb
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-trust_admin} -d ${POSTGRES_DB:-trust_admin}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+    networks:
+      - trust-admin-network
+
+    # Security hardening
+    security_opt:
+      - no-new-privileges:true
+
+    # Drop unnecessary Linux capabilities
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+      - FOWNER
+      - DAC_READ_SEARCH
+
+    # Resource limits (adjust based on your homelab)
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+
+    # Prevent resource exhaustion
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+      nproc:
+        soft: 32768
+        hard: 32768
+
+    # Logging configuration
+    logging:
+      driver: json-file
+      options:
+        max-size: "100m"
+        max-file: "5"
+        labels: "service,environment"
+
+    # Container labels for organization
+    labels:
+      - "com.trust-admin.service=database"
+      - "com.trust-admin.description=PostgreSQL database for trust administration"
+      - "com.trust-admin.data-checksums=enabled"
+      - "com.trust-admin.backup=daily"
+
+  # Automated PostgreSQL Backups
+  # Runs pg_dump on schedule, stores in iCloud-synced Desktop folder
+  backup:
+    image: prodrigestivill/postgres-backup-local:18
+    container_name: trust-admin-backup
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    secrets:
+      - db_password
+
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-trust_admin}
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+      POSTGRES_DB: ${POSTGRES_DB:-trust_admin}
+      # Backup schedule (cron format)
+      # Default: Every day at 2 AM
+      SCHEDULE: ${BACKUP_SCHEDULE:-0 2 * * *}
+      # Keep only the latest backup (replaced daily)
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-1}
+      BACKUP_KEEP_WEEKS: ${BACKUP_KEEP_WEEKS:-0}
+      BACKUP_KEEP_MONTHS: ${BACKUP_KEEP_MONTHS:-0}
+      # Timezone
+      TZ: ${TZ:-America/Chicago}
+      # Healthcheck
+      HEALTHCHECK_PORT: 8080
+
+    volumes:
+      # Backups to iCloud-synced Desktop folder
+      - /Users/richard/Desktop/trust-admin-backups:/backups
+
+    networks:
+      - trust-admin-network
+
+    # Security hardening
+    security_opt:
+      - no-new-privileges:true
+
+    cap_drop:
+      - ALL
+
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 64M
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    labels:
+      - "com.trust-admin.service=backup"
+      - "com.trust-admin.description=Automated PostgreSQL backups"
+
+# Docker secrets - more secure than environment variables
+secrets:
+  db_password:
+    file: ./secrets/db_password.txt
+
+volumes:
+  trust-admin-data:
+    name: trust-admin-postgres-data
+    # Data persists even if container is removed
+    # Only `docker volume rm trust-admin-postgres-data` would delete it
+    external: false
+    labels:
+      - "com.trust-admin.data=postgresql"
+      - "com.trust-admin.backup=required"
+
+networks:
+  trust-admin-network:
+    name: trust-admin-network
+    driver: bridge

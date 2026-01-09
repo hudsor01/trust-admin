@@ -1,0 +1,4864 @@
+{
+  "id": "214a72fe-51e0-4f68-ba9f-bf9f8fbee52d",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.account": {
+      "name": "account",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "account_id": {
+          "name": "account_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "provider_id": {
+          "name": "provider_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "access_token": {
+          "name": "access_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "refresh_token": {
+          "name": "refresh_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "id_token": {
+          "name": "id_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "access_token_expires_at": {
+          "name": "access_token_expires_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "refresh_token_expires_at": {
+          "name": "refresh_token_expires_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "scope": {
+          "name": "scope",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "password": {
+          "name": "password",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "account_userId_fkey": {
+          "name": "account_userId_fkey",
+          "tableFrom": "account",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.ActivityLog": {
+      "name": "ActivityLog",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "tableName": {
+          "name": "tableName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recordId": {
+          "name": "recordId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "action": {
+          "name": "action",
+          "type": "LogAction",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "oldValues": {
+          "name": "oldValues",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "newValues": {
+          "name": "newValues",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "changedBy": {
+          "name": "changedBy",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'system'"
+        },
+        "ipAddress": {
+          "name": "ipAddress",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.Artwork": {
+      "name": "Artwork",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "entityId": {
+          "name": "entityId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "artist": {
+          "name": "artist",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "medium": {
+          "name": "medium",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dimensions": {
+          "name": "dimensions",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "acquisitionDate": {
+          "name": "acquisitionDate",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "acquisitionCost": {
+          "name": "acquisitionCost",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "location": {
+          "name": "location",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dodValue": {
+          "name": "dodValue",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dodValueDate": {
+          "name": "dodValueDate",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dodValueType": {
+          "name": "dodValueType",
+          "type": "DodValueType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "transferStatus": {
+          "name": "transferStatus",
+          "type": "TransferStatus",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'PENDING'"
+        },
+        "status": {
+          "name": "status",
+          "type": "AssetStatus",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'ACTIVE'"
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "Artwork_entityId_fkey": {
+          "name": "Artwork_entityId_fkey",
+          "tableFrom": "Artwork",
+          "tableTo": "Entity",
+          "columnsFrom": [
+            "entityId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.BankAccount": {
+      "name": "BankAccount",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "entityId": {
+          "name": "entityId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "institution": {
+          "name": "institution",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "accountType": {
+          "name": "accountType",
+          "type": "BankAccountType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "accountName": {
+          "name": "accountName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "accountNumber": {
+          "name": "accountNumber",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "routingNumber": {
+          "name": "routingNumber",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dodValue": {
+          "name": "dodValue",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dodValueDate": {
+          "name": "dodValueDate",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "currentBalance": {
+          "name": "currentBalance",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "currentBalanceDate": {
+          "name": "currentBalanceDate",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "AccountStatus",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'OPEN'"
+        },
+        "transferStatus": {
+          "name": "transferStatus",
+          "type": "TransferStatus",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'PENDING'"
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "BankAccount_entityId_fkey": {
+          "name": "BankAccount_entityId_fkey",
+          "tableFrom": "BankAccount",
+          "tableTo": "Entity",
+          "columnsFrom": [
+            "entityId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.Beneficiary": {
+      "name": "Beneficiary",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "entityId": {
+          "name": "entityId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "firstName": {
+          "name": "firstName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lastName": {
+          "name": "lastName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "relationship": {
+          "name": "relationship",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "relationshipType": {
+          "name": "relationshipType",
+          "type": "RelationshipType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "parentId": {
+          "name": "parentId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dob": {
+          "name": "dob",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "phone": {
+          "name": "phone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "streetAddress": {
+          "name": "streetAddress",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "city": {
+          "name": "city",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "state": {
+          "name": "state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "zip": {
+          "name": "zip",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "taxId": {
+          "name": "taxId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sharePercent": {
+          "name": "sharePercent",
+          "type": "numeric(5, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "distributionStandard": {
+          "name": "distributionStandard",
+          "type": "DistributionStandard",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "withdrawalAge1": {
+          "name": "withdrawalAge1",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "withdrawalPct1": {
+          "name": "withdrawalPct1",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "withdrawalAge2": {
+          "name": "withdrawalAge2",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "withdrawalPct2": {
+          "name": "withdrawalPct2",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "hasSupplementalNeedsTrust": {
+          "name": "hasSupplementalNeedsTrust",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "isPrimary": {
+          "name": "isPrimary",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": true
+        },
+        "isContingent": {
+          "name": "isContingent",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "informed": {
+          "name": "informed",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "informedDate": {
+          "name": "informedDate",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "releaseSigned": {
+          "name": "releaseSigned",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "releaseDate": {
+          "name": "releaseDate",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "Beneficiary_taxId_key": {
+          "name": "Beneficiary_taxId_key",
+          "columns": [
+            {
+              "expression": "taxId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last",
+              "opclass": "text_ops"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "Beneficiary_entityId_fkey": {
+          "name": "Beneficiary_entityId_fkey",
+          "tableFrom": "Beneficiary",
+          "tableTo": "Entity",
+          "columnsFrom": [
+            "entityId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        },
+        "Beneficiary_parentId_fkey": {
+          "name": "Beneficiary_parentId_fkey",
+          "tableFrom": "Beneficiary",
+          "tableTo": "Beneficiary",
+          "columnsFrom": [
+            "parentId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.Contact": {
+      "name": "Contact",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "company": {
+          "name": "company",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "role": {
+          "name": "role",
+          "type": "ContactRole",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "phone": {
+          "name": "phone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dob": {
+          "name": "dob",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "streetAddress": {
+          "name": "streetAddress",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "city": {
+          "name": "city",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "state": {
+          "name": "state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "zip": {
+          "name": "zip",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "licenseNo": {
+          "name": "licenseNo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "barNo": {
+          "name": "barNo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.ContactAssociation": {
+      "name": "ContactAssociation",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "contactId": {
+          "name": "contactId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "entityId": {
+          "name": "entityId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "relationship": {
+          "name": "relationship",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "ContactAssociation_contactId_fkey": {
+          "name": "ContactAssociation_contactId_fkey",
+          "tableFrom": "ContactAssociation",
+          "tableTo": "Contact",
+          "columnsFrom": [
+            "contactId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        },
+        "ContactAssociation_entityId_fkey": {
+          "name": "ContactAssociation_entityId_fkey",
+          "tableFrom": "ContactAssociation",
+          "tableTo": "Entity",
+          "columnsFrom": [
+            "entityId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.Distribution": {
+      "name": "Distribution",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "entityId": {
+          "name": "entityId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "beneficiaryId": {
+          "name": "beneficiaryId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "distributionDate": {
+          "name": "distributionDate",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "amount": {
+          "name": "amount",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "distributionType": {
+          "name": "distributionType",
+          "type": "DistributionType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "hemsCategory": {
+          "name": "hemsCategory",
+          "type": "HemsCategory",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "hemsJustification": {
+          "name": "hemsJustification",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "isWithdrawal": {
+          "name": "isWithdrawal",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "withdrawalPercent": {
+          "name": "withdrawalPercent",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sourceDescription": {
+          "name": "sourceDescription",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "checkNumber": {
+          "name": "checkNumber",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "paymentMethod": {
+          "name": "paymentMethod",
+          "type": "PaymentMethod",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "taxReported": {
+          "name": "taxReported",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "tax1099Issued": {
+          "name": "tax1099Issued",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "documentId": {
+          "name": "documentId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "supportingDocPath": {
+          "name": "supportingDocPath",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "approvedBy": {
+          "name": "approvedBy",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "approvalDate": {
+          "name": "approvalDate",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "Distribution_beneficiaryId_fkey": {
+          "name": "Distribution_beneficiaryId_fkey",
+          "tableFrom": "Distribution",
+          "tableTo": "Beneficiary",
+          "columnsFrom": [
+            "beneficiaryId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        },
+        "Distribution_entityId_fkey": {
+          "name": "Distribution_entityId_fkey",
+          "tableFrom": "Distribution",
+          "tableTo": "Entity",
+          "columnsFrom": [
+            "entityId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.Document": {
+      "name": "Document",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "documentType": {
+          "name": "documentType",
+          "type": "DocumentType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "filePath": {
+          "name": "filePath",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "entityId": {
+          "name": "entityId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "vehicleId": {
+          "name": "vehicleId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "homesteadId": {
+          "name": "homesteadId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rentalPropertyId": {
+          "name": "rentalPropertyId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bankAccountId": {
+          "name": "bankAccountId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "investmentAccountId": {
+          "name": "investmentAccountId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "insurancePolicyId": {
+          "name": "insurancePolicyId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "personalPropertyId": {
+          "name": "personalPropertyId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "documentDate": {
+          "name": "documentDate",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "expirationDate": {
+          "name": "expirationDate",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "Document_entityId_fkey": {
+          "name": "Document_entityId_fkey",
+          "tableFrom": "Document",
+          "tableTo": "Entity",
+          "columnsFrom": [
+            "entityId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        },
+        "Document_vehicleId_fkey": {
+          "name": "Document_vehicleId_fkey",
+          "tableFrom": "Document",
+          "tableTo": "Vehicle",
+          "columnsFrom": [
+            "vehicleId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        },
+        "Document_homesteadId_fkey": {
+          "name": "Document_homesteadId_fkey",
+          "tableFrom": "Document",
+          "tableTo": "Homestead",
+          "columnsFrom": [
+            "homesteadId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        },
+        "Document_rentalPropertyId_fkey": {
+          "name": "Document_rentalPropertyId_fkey",
+          "tableFrom": "Document",
+          "tableTo": "RentalProperty",
+          "columnsFrom": [
+            "rentalPropertyId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        },
+        "Document_bankAccountId_fkey": {
+          "name": "Document_bankAccountId_fkey",
+          "tableFrom": "Document",
+          "tableTo": "BankAccount",
+          "columnsFrom": [
+            "bankAccountId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        },
+        "Document_investmentAccountId_fkey": {
+          "name": "Document_investmentAccountId_fkey",
+          "tableFrom": "Document",
+          "tableTo": "InvestmentAccount",
+          "columnsFrom": [
+            "investmentAccountId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        },
+        "Document_insurancePolicyId_fkey": {
+          "name": "Document_insurancePolicyId_fkey",
+          "tableFrom": "Document",
+          "tableTo": "InsurancePolicy",
+          "columnsFrom": [
+            "insurancePolicyId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        },
+        "Document_personalPropertyId_fkey": {
+          "name": "Document_personalPropertyId_fkey",
+          "tableFrom": "Document",
+          "tableTo": "PersonalProperty",
+          "columnsFrom": [
+            "personalPropertyId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.Entity": {
+      "name": "Entity",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "entityType": {
+          "name": "entityType",
+          "type": "EntityType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "trustType": {
+          "name": "trustType",
+          "type": "TrustType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "grantorName": {
+          "name": "grantorName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "decedent": {
+          "name": "decedent",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dod": {
+          "name": "dod",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "originalDate": {
+          "name": "originalDate",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "restatedDate": {
+          "name": "restatedDate",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "governingLaw": {
+          "name": "governingLaw",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "hasNoContestClause": {
+          "name": "hasNoContestClause",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "hasSpendthriftProvision": {
+          "name": "hasSpendthriftProvision",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "ein": {
+          "name": "ein",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "formationDate": {
+          "name": "formationDate",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "stateOfFormation": {
+          "name": "stateOfFormation",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "registeredAgent": {
+          "name": "registeredAgent",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "parentEntityId": {
+          "name": "parentEntityId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "EntityStatus",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'ACTIVE'"
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "Entity_parentEntityId_fkey": {
+          "name": "Entity_parentEntityId_fkey",
+          "tableFrom": "Entity",
+          "tableTo": "Entity",
+          "columnsFrom": [
+            "parentEntityId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.HemsRequest": {
+      "name": "HemsRequest",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "beneficiaryId": {
+          "name": "beneficiaryId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "entityId": {
+          "name": "entityId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "category": {
+          "name": "category",
+          "type": "HemsCategory",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "amountRequested": {
+          "name": "amountRequested",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "justification": {
+          "name": "justification",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "supportingDocPath": {
+          "name": "supportingDocPath",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "HemsRequestStatus",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'PENDING'"
+        },
+        "reviewedBy": {
+          "name": "reviewedBy",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reviewedAt": {
+          "name": "reviewedAt",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reviewNotes": {
+          "name": "reviewNotes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "approvedAmount": {
+          "name": "approvedAmount",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "distributionId": {
+          "name": "distributionId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "HemsRequest_beneficiaryId_fkey": {
+          "name": "HemsRequest_beneficiaryId_fkey",
+          "tableFrom": "HemsRequest",
+          "tableTo": "Beneficiary",
+          "columnsFrom": [
+            "beneficiaryId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        },
+        "HemsRequest_entityId_fkey": {
+          "name": "HemsRequest_entityId_fkey",
+          "tableFrom": "HemsRequest",
+          "tableTo": "Entity",
+          "columnsFrom": [
+            "entityId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        },
+        "HemsRequest_distributionId_fkey": {
+          "name": "HemsRequest_distributionId_fkey",
+          "tableFrom": "HemsRequest",
+          "tableTo": "Distribution",
+          "columnsFrom": [
+            "distributionId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.Homestead": {
+      "name": "Homestead",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "entityId": {
+          "name": "entityId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "streetAddress": {
+          "name": "streetAddress",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "city": {
+          "name": "city",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "state": {
+          "name": "state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "zip": {
+          "name": "zip",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "county": {
+          "name": "county",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "parcelNumber": {
+          "name": "parcelNumber",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "legalDescription": {
+          "name": "legalDescription",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "propertyType": {
+          "name": "propertyType",
+          "type": "PropertyType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "yearBuilt": {
+          "name": "yearBuilt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "squareFeet": {
+          "name": "squareFeet",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lotSizeAcres": {
+          "name": "lotSizeAcres",
+          "type": "numeric(10, 4)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bedrooms": {
+          "name": "bedrooms",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bathrooms": {
+          "name": "bathrooms",
+          "type": "numeric(3, 1)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "acquisitionDate": {
+          "name": "acquisitionDate",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "acquisitionCost": {
+          "name": "acquisitionCost",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dodValue": {
+          "name": "dodValue",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dodValueDate": {
+          "name": "dodValueDate",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dodValueType": {
+          "name": "dodValueType",
+          "type": "DodValueType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dodAffidavitFiled": {
+          "name": "dodAffidavitFiled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "dodAffidavitDate": {
+          "name": "dodAffidavitDate",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "clerkFileNo": {
+          "name": "clerkFileNo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "AssetStatus",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'ACTIVE'"
+        },
+        "transferStatus": {
+          "name": "transferStatus",
+          "type": "TransferStatus",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'PENDING'"
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "Homestead_entityId_fkey": {
+          "name": "Homestead_entityId_fkey",
+          "tableFrom": "Homestead",
+          "tableTo": "Entity",
+          "columnsFrom": [
+            "entityId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.InsurancePolicy": {
+      "name": "InsurancePolicy",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "entityId": {
+          "name": "entityId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "policyType": {
+          "name": "policyType",
+          "type": "InsurancePolicyType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "carrier": {
+          "name": "carrier",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "policyNumber": {
+          "name": "policyNumber",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "coverageAmount": {
+          "name": "coverageAmount",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "premium": {
+          "name": "premium",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "premiumFrequency": {
+          "name": "premiumFrequency",
+          "type": "PremiumFrequency",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "effectiveDate": {
+          "name": "effectiveDate",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "expirationDate": {
+          "name": "expirationDate",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "insuredAsset": {
+          "name": "insuredAsset",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "beneficiaries": {
+          "name": "beneficiaries",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "PolicyStatus",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'ACTIVE'"
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "InsurancePolicy_entityId_fkey": {
+          "name": "InsurancePolicy_entityId_fkey",
+          "tableFrom": "InsurancePolicy",
+          "tableTo": "Entity",
+          "columnsFrom": [
+            "entityId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.InvestmentAccount": {
+      "name": "InvestmentAccount",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "entityId": {
+          "name": "entityId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "institution": {
+          "name": "institution",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "accountType": {
+          "name": "accountType",
+          "type": "InvestmentAccountType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "accountName": {
+          "name": "accountName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "accountNumber": {
+          "name": "accountNumber",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dodValue": {
+          "name": "dodValue",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dodValueDate": {
+          "name": "dodValueDate",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "costBasis": {
+          "name": "costBasis",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "currentBalance": {
+          "name": "currentBalance",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "currentBalanceDate": {
+          "name": "currentBalanceDate",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "AccountStatus",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'OPEN'"
+        },
+        "transferStatus": {
+          "name": "transferStatus",
+          "type": "TransferStatus",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'PENDING'"
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "InvestmentAccount_entityId_fkey": {
+          "name": "InvestmentAccount_entityId_fkey",
+          "tableFrom": "InvestmentAccount",
+          "tableTo": "Entity",
+          "columnsFrom": [
+            "entityId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.Liability": {
+      "name": "Liability",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "entityId": {
+          "name": "entityId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "liabilityType": {
+          "name": "liabilityType",
+          "type": "LiabilityType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "creditor": {
+          "name": "creditor",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "originalAmount": {
+          "name": "originalAmount",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "currentBalance": {
+          "name": "currentBalance",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "currentBalanceDate": {
+          "name": "currentBalanceDate",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "interestRate": {
+          "name": "interestRate",
+          "type": "numeric(5, 3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "monthlyPayment": {
+          "name": "monthlyPayment",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dueDate": {
+          "name": "dueDate",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "paymentDueDay": {
+          "name": "paymentDueDay",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rentalPropertyId": {
+          "name": "rentalPropertyId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "homesteadId": {
+          "name": "homesteadId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "vehicleId": {
+          "name": "vehicleId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "LiabilityStatus",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'ACTIVE'"
+        },
+        "allocationClass": {
+          "name": "allocationClass",
+          "type": "AllocationClass",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'PRINCIPAL'"
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "Liability_entityId_fkey": {
+          "name": "Liability_entityId_fkey",
+          "tableFrom": "Liability",
+          "tableTo": "Entity",
+          "columnsFrom": [
+            "entityId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        },
+        "Liability_rentalPropertyId_fkey": {
+          "name": "Liability_rentalPropertyId_fkey",
+          "tableFrom": "Liability",
+          "tableTo": "RentalProperty",
+          "columnsFrom": [
+            "rentalPropertyId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        },
+        "Liability_homesteadId_fkey": {
+          "name": "Liability_homesteadId_fkey",
+          "tableFrom": "Liability",
+          "tableTo": "Homestead",
+          "columnsFrom": [
+            "homesteadId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        },
+        "Liability_vehicleId_fkey": {
+          "name": "Liability_vehicleId_fkey",
+          "tableFrom": "Liability",
+          "tableTo": "Vehicle",
+          "columnsFrom": [
+            "vehicleId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.LiabilityPayment": {
+      "name": "LiabilityPayment",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "liabilityId": {
+          "name": "liabilityId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "paymentDate": {
+          "name": "paymentDate",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "amount": {
+          "name": "amount",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "principalPortion": {
+          "name": "principalPortion",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "interestPortion": {
+          "name": "interestPortion",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "escrowPortion": {
+          "name": "escrowPortion",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "paymentMethod": {
+          "name": "paymentMethod",
+          "type": "PaymentMethod",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "checkNumber": {
+          "name": "checkNumber",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "confirmationNumber": {
+          "name": "confirmationNumber",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "LiabilityPayment_liabilityId_fkey": {
+          "name": "LiabilityPayment_liabilityId_fkey",
+          "tableFrom": "LiabilityPayment",
+          "tableTo": "Liability",
+          "columnsFrom": [
+            "liabilityId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.PersonalProperty": {
+      "name": "PersonalProperty",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "entityId": {
+          "name": "entityId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "category": {
+          "name": "category",
+          "type": "PersonalPropertyCategory",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "location": {
+          "name": "location",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "acquisitionDate": {
+          "name": "acquisitionDate",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "acquisitionCost": {
+          "name": "acquisitionCost",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dodValue": {
+          "name": "dodValue",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dodValueDate": {
+          "name": "dodValueDate",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dodValueType": {
+          "name": "dodValueType",
+          "type": "DodValueType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "AssetStatus",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'ACTIVE'"
+        },
+        "transferStatus": {
+          "name": "transferStatus",
+          "type": "TransferStatus",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'PENDING'"
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "PersonalProperty_entityId_fkey": {
+          "name": "PersonalProperty_entityId_fkey",
+          "tableFrom": "PersonalProperty",
+          "tableTo": "Entity",
+          "columnsFrom": [
+            "entityId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.RentalProperty": {
+      "name": "RentalProperty",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "entityId": {
+          "name": "entityId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "streetAddress": {
+          "name": "streetAddress",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "city": {
+          "name": "city",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "state": {
+          "name": "state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "zip": {
+          "name": "zip",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "county": {
+          "name": "county",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "parcelNumber": {
+          "name": "parcelNumber",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "propertyType": {
+          "name": "propertyType",
+          "type": "PropertyType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "units": {
+          "name": "units",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "squareFeet": {
+          "name": "squareFeet",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lotSizeAcres": {
+          "name": "lotSizeAcres",
+          "type": "numeric(10, 4)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "yearBuilt": {
+          "name": "yearBuilt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rentalStatus": {
+          "name": "rentalStatus",
+          "type": "RentalStatus",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'RENTED'"
+        },
+        "monthlyRent": {
+          "name": "monthlyRent",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "leaseStart": {
+          "name": "leaseStart",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "leaseEnd": {
+          "name": "leaseEnd",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "propertyManager": {
+          "name": "propertyManager",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "acquisitionDate": {
+          "name": "acquisitionDate",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "acquisitionCost": {
+          "name": "acquisitionCost",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mortgageBalance": {
+          "name": "mortgageBalance",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dodValue": {
+          "name": "dodValue",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dodValueDate": {
+          "name": "dodValueDate",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dodValueType": {
+          "name": "dodValueType",
+          "type": "DodValueType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dodAffidavitFiled": {
+          "name": "dodAffidavitFiled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "dodAffidavitDate": {
+          "name": "dodAffidavitDate",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "clerkFileNo": {
+          "name": "clerkFileNo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "AssetStatus",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'ACTIVE'"
+        },
+        "transferStatus": {
+          "name": "transferStatus",
+          "type": "TransferStatus",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'PENDING'"
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "RentalProperty_entityId_fkey": {
+          "name": "RentalProperty_entityId_fkey",
+          "tableFrom": "RentalProperty",
+          "tableTo": "Entity",
+          "columnsFrom": [
+            "entityId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.session": {
+      "name": "session",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "token": {
+          "name": "token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "ip_address": {
+          "name": "ip_address",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "user_agent": {
+          "name": "user_agent",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "session_userId_fkey": {
+          "name": "session_userId_fkey",
+          "tableFrom": "session",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "session_token_unique": {
+          "name": "session_token_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "token"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.SpecificBequest": {
+      "name": "SpecificBequest",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "entityId": {
+          "name": "entityId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "beneficiaryId": {
+          "name": "beneficiaryId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "category": {
+          "name": "category",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "recipientName": {
+          "name": "recipientName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dateDistributed": {
+          "name": "dateDistributed",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "SpecificBequest_entityId_fkey": {
+          "name": "SpecificBequest_entityId_fkey",
+          "tableFrom": "SpecificBequest",
+          "tableTo": "Entity",
+          "columnsFrom": [
+            "entityId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        },
+        "SpecificBequest_beneficiaryId_fkey": {
+          "name": "SpecificBequest_beneficiaryId_fkey",
+          "tableFrom": "SpecificBequest",
+          "tableTo": "Beneficiary",
+          "columnsFrom": [
+            "beneficiaryId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.Task": {
+      "name": "Task",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "category": {
+          "name": "category",
+          "type": "TaskCategory",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'OTHER'"
+        },
+        "completed": {
+          "name": "completed",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dueDate": {
+          "name": "dueDate",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sortOrder": {
+          "name": "sortOrder",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.Transaction": {
+      "name": "Transaction",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "vehicleId": {
+          "name": "vehicleId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "homesteadId": {
+          "name": "homesteadId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rentalPropertyId": {
+          "name": "rentalPropertyId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bankAccountId": {
+          "name": "bankAccountId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "investmentAccountId": {
+          "name": "investmentAccountId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "insurancePolicyId": {
+          "name": "insurancePolicyId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "transactionDate": {
+          "name": "transactionDate",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "transactionType": {
+          "name": "transactionType",
+          "type": "TransactionType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "category": {
+          "name": "category",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "amount": {
+          "name": "amount",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "vendor": {
+          "name": "vendor",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "checkNumber": {
+          "name": "checkNumber",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "documentId": {
+          "name": "documentId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "allocationClass": {
+          "name": "allocationClass",
+          "type": "AllocationClass",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'PRINCIPAL'"
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "Transaction_vehicleId_fkey": {
+          "name": "Transaction_vehicleId_fkey",
+          "tableFrom": "Transaction",
+          "tableTo": "Vehicle",
+          "columnsFrom": [
+            "vehicleId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        },
+        "Transaction_homesteadId_fkey": {
+          "name": "Transaction_homesteadId_fkey",
+          "tableFrom": "Transaction",
+          "tableTo": "Homestead",
+          "columnsFrom": [
+            "homesteadId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        },
+        "Transaction_rentalPropertyId_fkey": {
+          "name": "Transaction_rentalPropertyId_fkey",
+          "tableFrom": "Transaction",
+          "tableTo": "RentalProperty",
+          "columnsFrom": [
+            "rentalPropertyId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        },
+        "Transaction_bankAccountId_fkey": {
+          "name": "Transaction_bankAccountId_fkey",
+          "tableFrom": "Transaction",
+          "tableTo": "BankAccount",
+          "columnsFrom": [
+            "bankAccountId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        },
+        "Transaction_investmentAccountId_fkey": {
+          "name": "Transaction_investmentAccountId_fkey",
+          "tableFrom": "Transaction",
+          "tableTo": "InvestmentAccount",
+          "columnsFrom": [
+            "investmentAccountId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        },
+        "Transaction_insurancePolicyId_fkey": {
+          "name": "Transaction_insurancePolicyId_fkey",
+          "tableFrom": "Transaction",
+          "tableTo": "InsurancePolicy",
+          "columnsFrom": [
+            "insurancePolicyId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.TrustAccounting": {
+      "name": "TrustAccounting",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "entityId": {
+          "name": "entityId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "accountingDate": {
+          "name": "accountingDate",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "entryType": {
+          "name": "entryType",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "incomeType": {
+          "name": "incomeType",
+          "type": "IncomeType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "expenseType": {
+          "name": "expenseType",
+          "type": "ExpenseType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "amount": {
+          "name": "amount",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sourceAssetType": {
+          "name": "sourceAssetType",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sourceAssetId": {
+          "name": "sourceAssetId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "isPrincipal": {
+          "name": "isPrincipal",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "taxDeductible": {
+          "name": "taxDeductible",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "documentPath": {
+          "name": "documentPath",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "vendor": {
+          "name": "vendor",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "checkNumber": {
+          "name": "checkNumber",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reconciled": {
+          "name": "reconciled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "reconciledDate": {
+          "name": "reconciledDate",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "fiscalYear": {
+          "name": "fiscalYear",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "TrustAccounting_entityId_fkey": {
+          "name": "TrustAccounting_entityId_fkey",
+          "tableFrom": "TrustAccounting",
+          "tableTo": "Entity",
+          "columnsFrom": [
+            "entityId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.Trustee": {
+      "name": "Trustee",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "entityId": {
+          "name": "entityId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "contactId": {
+          "name": "contactId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "phone": {
+          "name": "phone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dob": {
+          "name": "dob",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "TrusteeStatus",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'CURRENT'"
+        },
+        "order": {
+          "name": "order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "isCo": {
+          "name": "isCo",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "coTrusteeId": {
+          "name": "coTrusteeId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "startDate": {
+          "name": "startDate",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "endDate": {
+          "name": "endDate",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "Trustee_entityId_fkey": {
+          "name": "Trustee_entityId_fkey",
+          "tableFrom": "Trustee",
+          "tableTo": "Entity",
+          "columnsFrom": [
+            "entityId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        },
+        "Trustee_contactId_fkey": {
+          "name": "Trustee_contactId_fkey",
+          "tableFrom": "Trustee",
+          "tableTo": "Contact",
+          "columnsFrom": [
+            "contactId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        },
+        "Trustee_coTrusteeId_fkey": {
+          "name": "Trustee_coTrusteeId_fkey",
+          "tableFrom": "Trustee",
+          "tableTo": "Trustee",
+          "columnsFrom": [
+            "coTrusteeId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.TrusteeFeeEntry": {
+      "name": "TrusteeFeeEntry",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "entityId": {
+          "name": "entityId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "trusteeId": {
+          "name": "trusteeId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "scheduleId": {
+          "name": "scheduleId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "periodStart": {
+          "name": "periodStart",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "periodEnd": {
+          "name": "periodEnd",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "assetFee": {
+          "name": "assetFee",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'0'"
+        },
+        "assetBasis": {
+          "name": "assetBasis",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "incomeFee": {
+          "name": "incomeFee",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'0'"
+        },
+        "incomeBasis": {
+          "name": "incomeBasis",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "hoursWorked": {
+          "name": "hoursWorked",
+          "type": "numeric(6, 2)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'0'"
+        },
+        "hourlyFee": {
+          "name": "hourlyFee",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'0'"
+        },
+        "executorFee": {
+          "name": "executorFee",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'0'"
+        },
+        "totalFee": {
+          "name": "totalFee",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "TrusteeFeeStatus",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'ACCRUED'"
+        },
+        "paidDate": {
+          "name": "paidDate",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "paymentMethod": {
+          "name": "paymentMethod",
+          "type": "PaymentMethod",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "checkNumber": {
+          "name": "checkNumber",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "TrusteeFeeEntry_entityId_fkey": {
+          "name": "TrusteeFeeEntry_entityId_fkey",
+          "tableFrom": "TrusteeFeeEntry",
+          "tableTo": "Entity",
+          "columnsFrom": [
+            "entityId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        },
+        "TrusteeFeeEntry_trusteeId_fkey": {
+          "name": "TrusteeFeeEntry_trusteeId_fkey",
+          "tableFrom": "TrusteeFeeEntry",
+          "tableTo": "Trustee",
+          "columnsFrom": [
+            "trusteeId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        },
+        "TrusteeFeeEntry_scheduleId_fkey": {
+          "name": "TrusteeFeeEntry_scheduleId_fkey",
+          "tableFrom": "TrusteeFeeEntry",
+          "tableTo": "TrusteeFeeSchedule",
+          "columnsFrom": [
+            "scheduleId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.TrusteeFeeSchedule": {
+      "name": "TrusteeFeeSchedule",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "entityId": {
+          "name": "entityId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "trusteeId": {
+          "name": "trusteeId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "executorFeePercent": {
+          "name": "executorFeePercent",
+          "type": "numeric(5, 2)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'5.0'"
+        },
+        "annualAssetPercent": {
+          "name": "annualAssetPercent",
+          "type": "numeric(5, 2)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'1.5'"
+        },
+        "incomePercent": {
+          "name": "incomePercent",
+          "type": "numeric(5, 2)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'8.0'"
+        },
+        "hourlyRate": {
+          "name": "hourlyRate",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'125.00'"
+        },
+        "effectiveDate": {
+          "name": "effectiveDate",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "endDate": {
+          "name": "endDate",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "TrusteeFeeSchedule_entityId_fkey": {
+          "name": "TrusteeFeeSchedule_entityId_fkey",
+          "tableFrom": "TrusteeFeeSchedule",
+          "tableTo": "Entity",
+          "columnsFrom": [
+            "entityId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        },
+        "TrusteeFeeSchedule_trusteeId_fkey": {
+          "name": "TrusteeFeeSchedule_trusteeId_fkey",
+          "tableFrom": "TrusteeFeeSchedule",
+          "tableTo": "Trustee",
+          "columnsFrom": [
+            "trusteeId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.user": {
+      "name": "user",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email_verified": {
+          "name": "email_verified",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "image": {
+          "name": "image",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "role": {
+          "name": "role",
+          "type": "UserRole",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'beneficiary'"
+        },
+        "beneficiary_id": {
+          "name": "beneficiary_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "user_beneficiaryId_fkey": {
+          "name": "user_beneficiaryId_fkey",
+          "tableFrom": "user",
+          "tableTo": "Beneficiary",
+          "columnsFrom": [
+            "beneficiary_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "user_email_unique": {
+          "name": "user_email_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "email"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.Valuation": {
+      "name": "Valuation",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "vehicleId": {
+          "name": "vehicleId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "homesteadId": {
+          "name": "homesteadId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rentalPropertyId": {
+          "name": "rentalPropertyId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bankAccountId": {
+          "name": "bankAccountId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "investmentAccountId": {
+          "name": "investmentAccountId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "personalPropertyId": {
+          "name": "personalPropertyId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "artworkId": {
+          "name": "artworkId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "valuationDate": {
+          "name": "valuationDate",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "value": {
+          "name": "value",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "valuationType": {
+          "name": "valuationType",
+          "type": "ValuationType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source": {
+          "name": "source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "Valuation_vehicleId_fkey": {
+          "name": "Valuation_vehicleId_fkey",
+          "tableFrom": "Valuation",
+          "tableTo": "Vehicle",
+          "columnsFrom": [
+            "vehicleId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        },
+        "Valuation_homesteadId_fkey": {
+          "name": "Valuation_homesteadId_fkey",
+          "tableFrom": "Valuation",
+          "tableTo": "Homestead",
+          "columnsFrom": [
+            "homesteadId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        },
+        "Valuation_rentalPropertyId_fkey": {
+          "name": "Valuation_rentalPropertyId_fkey",
+          "tableFrom": "Valuation",
+          "tableTo": "RentalProperty",
+          "columnsFrom": [
+            "rentalPropertyId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        },
+        "Valuation_bankAccountId_fkey": {
+          "name": "Valuation_bankAccountId_fkey",
+          "tableFrom": "Valuation",
+          "tableTo": "BankAccount",
+          "columnsFrom": [
+            "bankAccountId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        },
+        "Valuation_investmentAccountId_fkey": {
+          "name": "Valuation_investmentAccountId_fkey",
+          "tableFrom": "Valuation",
+          "tableTo": "InvestmentAccount",
+          "columnsFrom": [
+            "investmentAccountId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        },
+        "Valuation_personalPropertyId_fkey": {
+          "name": "Valuation_personalPropertyId_fkey",
+          "tableFrom": "Valuation",
+          "tableTo": "PersonalProperty",
+          "columnsFrom": [
+            "personalPropertyId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        },
+        "Valuation_artworkId_fkey": {
+          "name": "Valuation_artworkId_fkey",
+          "tableFrom": "Valuation",
+          "tableTo": "Artwork",
+          "columnsFrom": [
+            "artworkId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.Vehicle": {
+      "name": "Vehicle",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "entityId": {
+          "name": "entityId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "year": {
+          "name": "year",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "make": {
+          "name": "make",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "model": {
+          "name": "model",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "vin": {
+          "name": "vin",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "color": {
+          "name": "color",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "titleStatus": {
+          "name": "titleStatus",
+          "type": "TitleStatus",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'CLEAR'"
+        },
+        "licensePlate": {
+          "name": "licensePlate",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mileage": {
+          "name": "mileage",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "acquisitionDate": {
+          "name": "acquisitionDate",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "acquisitionCost": {
+          "name": "acquisitionCost",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dodValue": {
+          "name": "dodValue",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dodValueDate": {
+          "name": "dodValueDate",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dodValueType": {
+          "name": "dodValueType",
+          "type": "DodValueType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "AssetStatus",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'ACTIVE'"
+        },
+        "transferStatus": {
+          "name": "transferStatus",
+          "type": "TransferStatus",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'PENDING'"
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "Vehicle_vin_key": {
+          "name": "Vehicle_vin_key",
+          "columns": [
+            {
+              "expression": "vin",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last",
+              "opclass": "text_ops"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "Vehicle_entityId_fkey": {
+          "name": "Vehicle_entityId_fkey",
+          "tableFrom": "Vehicle",
+          "tableTo": "Entity",
+          "columnsFrom": [
+            "entityId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.verification": {
+      "name": "verification",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "identifier": {
+          "name": "identifier",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.WithdrawalRecord": {
+      "name": "WithdrawalRecord",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "beneficiaryId": {
+          "name": "beneficiaryId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "entityId": {
+          "name": "entityId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "withdrawalType": {
+          "name": "withdrawalType",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "eligibleDate": {
+          "name": "eligibleDate",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "eligibleAmount": {
+          "name": "eligibleAmount",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "withdrawnAmount": {
+          "name": "withdrawnAmount",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'0'"
+        },
+        "remainingAmount": {
+          "name": "remainingAmount",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "WithdrawalStatus",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'NOT_YET_ELIGIBLE'"
+        },
+        "exercisedDate": {
+          "name": "exercisedDate",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "distributionId": {
+          "name": "distributionId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "WithdrawalRecord_beneficiaryId_fkey": {
+          "name": "WithdrawalRecord_beneficiaryId_fkey",
+          "tableFrom": "WithdrawalRecord",
+          "tableTo": "Beneficiary",
+          "columnsFrom": [
+            "beneficiaryId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        },
+        "WithdrawalRecord_entityId_fkey": {
+          "name": "WithdrawalRecord_entityId_fkey",
+          "tableFrom": "WithdrawalRecord",
+          "tableTo": "Entity",
+          "columnsFrom": [
+            "entityId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        },
+        "WithdrawalRecord_distributionId_fkey": {
+          "name": "WithdrawalRecord_distributionId_fkey",
+          "tableFrom": "WithdrawalRecord",
+          "tableTo": "Distribution",
+          "columnsFrom": [
+            "distributionId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.AccountStatus": {
+      "name": "AccountStatus",
+      "schema": "public",
+      "values": [
+        "OPEN",
+        "CLOSED",
+        "FROZEN"
+      ]
+    },
+    "public.AllocationClass": {
+      "name": "AllocationClass",
+      "schema": "public",
+      "values": [
+        "PRINCIPAL",
+        "INCOME"
+      ]
+    },
+    "public.AssetStatus": {
+      "name": "AssetStatus",
+      "schema": "public",
+      "values": [
+        "ACTIVE",
+        "SOLD",
+        "TRANSFERRED",
+        "DISPOSED"
+      ]
+    },
+    "public.BankAccountType": {
+      "name": "BankAccountType",
+      "schema": "public",
+      "values": [
+        "CHECKING",
+        "SAVINGS",
+        "CD",
+        "MONEY_MARKET",
+        "BUSINESS_CHECKING",
+        "BUSINESS_SAVINGS"
+      ]
+    },
+    "public.ContactRole": {
+      "name": "ContactRole",
+      "schema": "public",
+      "values": [
+        "ATTORNEY",
+        "ACCOUNTANT",
+        "FINANCIAL_ADVISOR",
+        "PROPERTY_MANAGER",
+        "TENANT",
+        "INSURANCE_AGENT",
+        "BANKER",
+        "CONTRACTOR",
+        "EMPLOYEE",
+        "BENEFICIARY_REP",
+        "OTHER"
+      ]
+    },
+    "public.DistributionStandard": {
+      "name": "DistributionStandard",
+      "schema": "public",
+      "values": [
+        "HEMS",
+        "HEMS_PLUS_WITHDRAWAL",
+        "BROADER",
+        "WITHDRAWAL_ONLY"
+      ]
+    },
+    "public.DistributionType": {
+      "name": "DistributionType",
+      "schema": "public",
+      "values": [
+        "INCOME",
+        "PRINCIPAL",
+        "CAPITAL_GAIN",
+        "EXPENSE_REIMBURSEMENT",
+        "OTHER"
+      ]
+    },
+    "public.DocumentType": {
+      "name": "DocumentType",
+      "schema": "public",
+      "values": [
+        "DEED",
+        "TITLE",
+        "STATEMENT",
+        "CONTRACT",
+        "LEASE",
+        "TAX_RETURN",
+        "APPRAISAL",
+        "INSURANCE_POLICY",
+        "LICENSE",
+        "REGISTRATION",
+        "RECEIPT",
+        "INVOICE",
+        "CHECK_COPY",
+        "CORRESPONDENCE",
+        "TRUST_DOCUMENT",
+        "OPERATING_AGREEMENT",
+        "OTHER"
+      ]
+    },
+    "public.DodValueType": {
+      "name": "DodValueType",
+      "schema": "public",
+      "values": [
+        "APPRAISAL",
+        "STATEMENT",
+        "MARKET_ESTIMATE",
+        "TAX_ASSESSED"
+      ]
+    },
+    "public.EntityStatus": {
+      "name": "EntityStatus",
+      "schema": "public",
+      "values": [
+        "ACTIVE",
+        "DISSOLVED",
+        "PENDING"
+      ]
+    },
+    "public.EntityType": {
+      "name": "EntityType",
+      "schema": "public",
+      "values": [
+        "TRUST",
+        "LLC",
+        "CORPORATION",
+        "PARTNERSHIP",
+        "INDIVIDUAL"
+      ]
+    },
+    "public.ExpenseType": {
+      "name": "ExpenseType",
+      "schema": "public",
+      "values": [
+        "TAX",
+        "INSURANCE",
+        "MAINTENANCE",
+        "REPAIR",
+        "PROFESSIONAL_FEE",
+        "TRUSTEE_FEE",
+        "FILING_FEE",
+        "UTILITY",
+        "OTHER"
+      ]
+    },
+    "public.HemsCategory": {
+      "name": "HemsCategory",
+      "schema": "public",
+      "values": [
+        "HEALTH",
+        "EDUCATION",
+        "MAINTENANCE",
+        "SUPPORT",
+        "WITHDRAWAL",
+        "OTHER"
+      ]
+    },
+    "public.HemsRequestStatus": {
+      "name": "HemsRequestStatus",
+      "schema": "public",
+      "values": [
+        "PENDING",
+        "APPROVED",
+        "DENIED",
+        "DISTRIBUTED",
+        "CANCELLED"
+      ]
+    },
+    "public.IncomeType": {
+      "name": "IncomeType",
+      "schema": "public",
+      "values": [
+        "DIVIDEND",
+        "INTEREST",
+        "RENT",
+        "ROYALTY",
+        "CAPITAL_GAIN",
+        "SALE_PROCEEDS",
+        "DISTRIBUTION",
+        "OTHER"
+      ]
+    },
+    "public.InsurancePolicyType": {
+      "name": "InsurancePolicyType",
+      "schema": "public",
+      "values": [
+        "LIFE",
+        "PROPERTY",
+        "AUTO",
+        "UMBRELLA",
+        "LIABILITY",
+        "HEALTH",
+        "OTHER"
+      ]
+    },
+    "public.InvestmentAccountType": {
+      "name": "InvestmentAccountType",
+      "schema": "public",
+      "values": [
+        "BROKERAGE",
+        "IRA_TRADITIONAL",
+        "IRA_ROTH",
+        "K401",
+        "ANNUITY",
+        "HSA",
+        "FIVE29",
+        "OTHER"
+      ]
+    },
+    "public.LiabilityStatus": {
+      "name": "LiabilityStatus",
+      "schema": "public",
+      "values": [
+        "ACTIVE",
+        "PAID_OFF",
+        "DISPUTED",
+        "WRITTEN_OFF"
+      ]
+    },
+    "public.LiabilityType": {
+      "name": "LiabilityType",
+      "schema": "public",
+      "values": [
+        "MORTGAGE",
+        "LOAN",
+        "CREDIT_CARD",
+        "TAX_OWED",
+        "ACCOUNTS_PAYABLE",
+        "LEGAL_JUDGMENT",
+        "OTHER"
+      ]
+    },
+    "public.LogAction": {
+      "name": "LogAction",
+      "schema": "public",
+      "values": [
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ]
+    },
+    "public.PaymentMethod": {
+      "name": "PaymentMethod",
+      "schema": "public",
+      "values": [
+        "CHECK",
+        "ACH",
+        "WIRE",
+        "CASH",
+        "OTHER"
+      ]
+    },
+    "public.PersonalPropertyCategory": {
+      "name": "PersonalPropertyCategory",
+      "schema": "public",
+      "values": [
+        "JEWELRY",
+        "ART",
+        "COLLECTIBLES",
+        "FURNITURE",
+        "EQUIPMENT",
+        "ELECTRONICS",
+        "TOOLS",
+        "FIREARMS",
+        "OTHER"
+      ]
+    },
+    "public.PolicyStatus": {
+      "name": "PolicyStatus",
+      "schema": "public",
+      "values": [
+        "ACTIVE",
+        "LAPSED",
+        "CANCELLED",
+        "CLAIMED"
+      ]
+    },
+    "public.PremiumFrequency": {
+      "name": "PremiumFrequency",
+      "schema": "public",
+      "values": [
+        "MONTHLY",
+        "QUARTERLY",
+        "SEMI_ANNUAL",
+        "ANNUAL"
+      ]
+    },
+    "public.PropertyType": {
+      "name": "PropertyType",
+      "schema": "public",
+      "values": [
+        "SINGLE_FAMILY",
+        "MULTI_FAMILY",
+        "CONDO",
+        "TOWNHOUSE",
+        "LAND",
+        "COMMERCIAL",
+        "MOBILE_HOME"
+      ]
+    },
+    "public.RelationshipType": {
+      "name": "RelationshipType",
+      "schema": "public",
+      "values": [
+        "CHILD",
+        "STEPCHILD",
+        "GRANDCHILD",
+        "OTHER"
+      ]
+    },
+    "public.RentalStatus": {
+      "name": "RentalStatus",
+      "schema": "public",
+      "values": [
+        "RENTED",
+        "VACANT",
+        "UNDER_RENOVATION",
+        "LISTED"
+      ]
+    },
+    "public.TaskCategory": {
+      "name": "TaskCategory",
+      "schema": "public",
+      "values": [
+        "INVENTORY",
+        "FINANCIAL",
+        "BENEFICIARY",
+        "LEGAL",
+        "ADMINISTRATIVE",
+        "OTHER"
+      ]
+    },
+    "public.TitleStatus": {
+      "name": "TitleStatus",
+      "schema": "public",
+      "values": [
+        "CLEAR",
+        "LIEN",
+        "PENDING_TRANSFER"
+      ]
+    },
+    "public.TransactionType": {
+      "name": "TransactionType",
+      "schema": "public",
+      "values": [
+        "INCOME",
+        "EXPENSE",
+        "TRANSFER",
+        "CAPITAL_IMPROVEMENT",
+        "DEPRECIATION"
+      ]
+    },
+    "public.TransferStatus": {
+      "name": "TransferStatus",
+      "schema": "public",
+      "values": [
+        "PENDING",
+        "STARTED",
+        "COMPLETE"
+      ]
+    },
+    "public.TrustType": {
+      "name": "TrustType",
+      "schema": "public",
+      "values": [
+        "REVOCABLE",
+        "IRREVOCABLE"
+      ]
+    },
+    "public.TrusteeFeeStatus": {
+      "name": "TrusteeFeeStatus",
+      "schema": "public",
+      "values": [
+        "ACCRUED",
+        "APPROVED",
+        "PAID"
+      ]
+    },
+    "public.TrusteeStatus": {
+      "name": "TrusteeStatus",
+      "schema": "public",
+      "values": [
+        "CURRENT",
+        "SUCCESSOR",
+        "ARBITOR",
+        "RESIGNED",
+        "REMOVED",
+        "DECEASED"
+      ]
+    },
+    "public.UserRole": {
+      "name": "UserRole",
+      "schema": "public",
+      "values": [
+        "admin",
+        "beneficiary"
+      ]
+    },
+    "public.ValuationType": {
+      "name": "ValuationType",
+      "schema": "public",
+      "values": [
+        "APPRAISAL",
+        "MARKET_ESTIMATE",
+        "TAX_ASSESSED",
+        "STATEMENT_BALANCE",
+        "PURCHASE_PRICE",
+        "BOOK_VALUE",
+        "SELF_ASSESSED"
+      ]
+    },
+    "public.WithdrawalStatus": {
+      "name": "WithdrawalStatus",
+      "schema": "public",
+      "values": [
+        "ELIGIBLE",
+        "PARTIAL",
+        "COMPLETE",
+        "NOT_YET_ELIGIBLE"
+      ]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

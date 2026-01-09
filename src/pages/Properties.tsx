@@ -1,0 +1,1445 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import { Trash2, Plus, Pencil, Loader2 } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { formatCurrency, formatDate } from "../utils/formatters"
+import { Card, CardContent } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Textarea } from "@/components/ui/textarea"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+
+// Import types and hooks from centralized location
+import {
+  useEntities,
+  useHomesteads,
+  useRentalProperties,
+  type Homestead,
+  type RentalProperty,
+} from "@/hooks"
+import { useResourceForm } from "@/hooks/use-resource-form"
+import { ResourceDialog } from "@/components/resource-dialog"
+import {
+  homesteadFormDefaults,
+  rentalPropertyFormDefaults,
+  toDateInput,
+} from "@/lib/form-factory"
+import {
+  EditableTextCell,
+  EditableNumberCell,
+  EditableCurrencyCell,
+  EditableSelectCell,
+} from "@/components/editable-cells"
+import { TRANSFER_STATUS, DOD_VALUE_TYPES, RENTAL_STATUS, STATUS_VARIANTS } from "@/lib/constants"
+
+const PROPERTY_TYPES = [
+  { value: "SINGLE_FAMILY", label: "Single Family" },
+  { value: "MULTI_FAMILY", label: "Multi Family" },
+  { value: "CONDO", label: "Condo" },
+  { value: "TOWNHOUSE", label: "Townhouse" },
+  { value: "LAND", label: "Land" },
+  { value: "COMMERCIAL", label: "Commercial" },
+  { value: "MOBILE_HOME", label: "Mobile Home" },
+]
+
+const ASSET_STATUS = [
+  { value: "ACTIVE", label: "Active" },
+  { value: "SOLD", label: "Sold" },
+  { value: "TRANSFERRED", label: "Transferred" },
+  { value: "DISPOSED", label: "Disposed" },
+]
+
+
+interface HomesteadFormData {
+  streetAddress: string
+  city: string
+  state: string
+  zip: string
+  county: string
+  parcelNumber: string
+  legalDescription: string
+  propertyType: string
+  yearBuilt: string
+  squareFeet: string
+  lotSizeAcres: string
+  bedrooms: string
+  bathrooms: string
+  acquisitionDate: string
+  acquisitionCost: string
+  dodValue: string
+  dodValueDate: string
+  dodValueType: string
+  dodAffidavitFiled: boolean
+  dodAffidavitDate: string
+  clerkFileNo: string
+  status: string
+  transferStatus: string
+  notes: string
+}
+
+interface RentalFormData {
+  name: string
+  streetAddress: string
+  city: string
+  state: string
+  zip: string
+  county: string
+  parcelNumber: string
+  propertyType: string
+  units: string
+  squareFeet: string
+  lotSizeAcres: string
+  yearBuilt: string
+  rentalStatus: string
+  monthlyRent: string
+  leaseStart: string
+  leaseEnd: string
+  propertyManager: string
+  acquisitionDate: string
+  acquisitionCost: string
+  mortgageBalance: string
+  dodValue: string
+  dodValueDate: string
+  dodValueType: string
+  dodAffidavitFiled: boolean
+  dodAffidavitDate: string
+  clerkFileNo: string
+  status: string
+  transferStatus: string
+  notes: string
+}
+
+const defaultHomesteadForm: HomesteadFormData = {
+  streetAddress: "",
+  city: "",
+  state: "TX",
+  zip: "",
+  county: "",
+  parcelNumber: "",
+  legalDescription: "",
+  propertyType: "SINGLE_FAMILY",
+  yearBuilt: "",
+  squareFeet: "",
+  lotSizeAcres: "",
+  bedrooms: "",
+  bathrooms: "",
+  acquisitionDate: "",
+  acquisitionCost: "",
+  dodValue: "",
+  dodValueDate: "",
+  dodValueType: "",
+  dodAffidavitFiled: false,
+  dodAffidavitDate: "",
+  clerkFileNo: "",
+  status: "ACTIVE",
+  transferStatus: "PENDING",
+  notes: "",
+}
+
+const defaultRentalForm: RentalFormData = {
+  name: "",
+  streetAddress: "",
+  city: "",
+  state: "TX",
+  zip: "",
+  county: "",
+  parcelNumber: "",
+  propertyType: "SINGLE_FAMILY",
+  units: "1",
+  squareFeet: "",
+  lotSizeAcres: "",
+  yearBuilt: "",
+  rentalStatus: "RENTED",
+  monthlyRent: "",
+  leaseStart: "",
+  leaseEnd: "",
+  propertyManager: "",
+  acquisitionDate: "",
+  acquisitionCost: "",
+  mortgageBalance: "",
+  dodValue: "",
+  dodValueDate: "",
+  dodValueType: "",
+  dodAffidavitFiled: false,
+  dodAffidavitDate: "",
+  clerkFileNo: "",
+  status: "ACTIVE",
+  transferStatus: "PENDING",
+  notes: "",
+}
+
+export function Properties() {
+  // Use centralized hooks for data fetching
+  const { data: entities, loading: entitiesLoading } = useEntities()
+  const [selectedEntity, setSelectedEntity] = useState<string>("")
+  const [activeTab, setActiveTab] = useState("homestead")
+
+  // Homestead hook
+  const {
+    data: homesteads,
+    loading: homesteadsLoading,
+    create: createHomestead,
+    update: updateHomestead,
+    remove: deleteHomestead,
+  } = useHomesteads(selectedEntity || undefined)
+
+  // Track editing ID for Homestead
+  const [editingHomesteadId, setEditingHomesteadId] = useState<string | null>(null)
+
+  // Homestead form state
+  const {
+    isOpen: isHomesteadOpen,
+    close: closeHomestead,
+    form: homesteadForm,
+    setForm: setHomesteadForm,
+    handleEdit: handleEditHomesteadForm,
+    handleAdd: handleAddHomestead,
+    handleSave: handleSaveHomestead,
+    isSubmitting: isHomesteadSubmitting,
+    isEditing: isEditingHomestead,
+  } = useResourceForm<HomesteadFormData>({
+    initialData: defaultHomesteadForm,
+    onSubmit: async (data) => {
+      if (!selectedEntity) return
+
+      const payload = {
+        entityId: selectedEntity,
+        streetAddress: data.streetAddress,
+        city: data.city,
+        state: data.state,
+        zip: data.zip,
+        county: data.county || null,
+        parcelNumber: data.parcelNumber || null,
+        legalDescription: data.legalDescription || null,
+        propertyType: data.propertyType,
+        yearBuilt: data.yearBuilt ? parseInt(data.yearBuilt) : null,
+        squareFeet: data.squareFeet ? parseInt(data.squareFeet) : null,
+        lotSizeAcres: data.lotSizeAcres ? parseFloat(data.lotSizeAcres) : null,
+        bedrooms: data.bedrooms ? parseInt(data.bedrooms) : null,
+        bathrooms: data.bathrooms || null,
+        acquisitionDate: data.acquisitionDate || null,
+        acquisitionCost: data.acquisitionCost || null,
+        dodValue: data.dodValue || null,
+        dodValueDate: data.dodValueDate || null,
+        dodValueType: data.dodValueType || null,
+        dodAffidavitFiled: data.dodAffidavitFiled,
+        dodAffidavitDate: data.dodAffidavitDate || null,
+        clerkFileNo: data.clerkFileNo || null,
+        status: data.status,
+        transferStatus: data.transferStatus,
+        notes: data.notes || null,
+      }
+
+      if (isEditingHomestead && editingHomesteadId) {
+        await updateHomestead(editingHomesteadId, payload)
+      } else {
+        await createHomestead(payload)
+      }
+    },
+  })
+
+  // Custom edit handler to track ID and transform data
+  const handleEditHomestead = (h: Homestead) => {
+    setEditingHomesteadId(h.id)
+    handleEditHomesteadForm({
+      streetAddress: h.streetAddress,
+      city: h.city,
+      state: h.state,
+      zip: h.zip,
+      county: h.county || "",
+      parcelNumber: h.parcelNumber || "",
+      legalDescription: h.legalDescription || "",
+      propertyType: h.propertyType,
+      yearBuilt: h.yearBuilt?.toString() || "",
+      squareFeet: h.squareFeet?.toString() || "",
+      lotSizeAcres: h.lotSizeAcres?.toString() || "",
+      bedrooms: h.bedrooms?.toString() || "",
+      bathrooms: h.bathrooms || "",
+      acquisitionDate: toDateInput(h.acquisitionDate) || "",
+      acquisitionCost: h.acquisitionCost || "",
+      dodValue: h.dodValue || "",
+      dodValueDate: toDateInput(h.dodValueDate) || "",
+      dodValueType: h.dodValueType || "",
+      dodAffidavitFiled: h.dodAffidavitFiled,
+      dodAffidavitDate: toDateInput(h.dodAffidavitDate) || "",
+      clerkFileNo: h.clerkFileNo || "",
+      status: h.status,
+      transferStatus: h.transferStatus,
+      notes: h.notes || "",
+    })
+  }
+
+  // Rental hook
+  const {
+    data: rentals,
+    loading: rentalsLoading,
+    create: createRental,
+    update: updateRental,
+    remove: deleteRental,
+  } = useRentalProperties(selectedEntity || undefined)
+  const [showRentalForm, setShowRentalForm] = useState(false)
+  const [editingRental, setEditingRental] = useState<RentalProperty | null>(null)
+
+  // Form data
+  const [rentalForm, setRentalForm] = useState<RentalFormData>(defaultRentalForm)
+
+  // Auto-select first entity
+  useEffect(() => {
+    if (entities.length > 0 && !selectedEntity && entities[0]) {
+      setSelectedEntity(entities[0].id)
+    }
+  }, [entities, selectedEntity])
+
+  const loading = entitiesLoading || homesteadsLoading || rentalsLoading
+
+  const handleAddRental = () => {
+    setRentalForm(defaultRentalForm)
+    setEditingRental(null)
+    setShowRentalForm(true)
+  }
+
+  const handleEditRental = (r: RentalProperty) => {
+    setEditingRental(r)
+    setRentalForm({
+      name: r.name || "",
+      streetAddress: r.streetAddress,
+      city: r.city,
+      state: r.state,
+      zip: r.zip,
+      county: r.county || "",
+      parcelNumber: r.parcelNumber || "",
+      propertyType: r.propertyType,
+      units: r.units?.toString() || "1",
+      squareFeet: r.squareFeet?.toString() || "",
+      lotSizeAcres: r.lotSizeAcres?.toString() || "",
+      yearBuilt: r.yearBuilt?.toString() || "",
+      rentalStatus: r.rentalStatus,
+      monthlyRent: r.monthlyRent || "",
+      leaseStart: toDateInput(r.leaseStart) || "",
+      leaseEnd: toDateInput(r.leaseEnd) || "",
+      propertyManager: r.propertyManager || "",
+      acquisitionDate: toDateInput(r.acquisitionDate) || "",
+      acquisitionCost: r.acquisitionCost || "",
+      mortgageBalance: r.mortgageBalance || "",
+      dodValue: r.dodValue || "",
+      dodValueDate: toDateInput(r.dodValueDate) || "",
+      dodValueType: r.dodValueType || "",
+      dodAffidavitFiled: r.dodAffidavitFiled,
+      dodAffidavitDate: toDateInput(r.dodAffidavitDate) || "",
+      clerkFileNo: r.clerkFileNo || "",
+      status: r.status,
+      transferStatus: r.transferStatus,
+      notes: r.notes || "",
+    })
+    setShowRentalForm(true)
+  }
+
+  const handleSaveRental = async () => {
+    if (!selectedEntity) return
+
+    const payload = {
+      entityId: selectedEntity,
+      name: rentalForm.name,
+      streetAddress: rentalForm.streetAddress,
+      city: rentalForm.city,
+      state: rentalForm.state,
+      zip: rentalForm.zip,
+      county: rentalForm.county || null,
+      parcelNumber: rentalForm.parcelNumber || null,
+      propertyType: rentalForm.propertyType,
+      units: parseInt(rentalForm.units) || 1,
+      squareFeet: rentalForm.squareFeet ? parseInt(rentalForm.squareFeet) : null,
+      lotSizeAcres: rentalForm.lotSizeAcres ? parseFloat(rentalForm.lotSizeAcres) : null,
+      yearBuilt: rentalForm.yearBuilt ? parseInt(rentalForm.yearBuilt) : null,
+      rentalStatus: rentalForm.rentalStatus,
+      monthlyRent: rentalForm.monthlyRent || null,
+      leaseStart: rentalForm.leaseStart || null,
+      leaseEnd: rentalForm.leaseEnd || null,
+      propertyManager: rentalForm.propertyManager || null,
+      acquisitionDate: rentalForm.acquisitionDate || null,
+      acquisitionCost: rentalForm.acquisitionCost || null,
+      mortgageBalance: rentalForm.mortgageBalance || null,
+      dodValue: rentalForm.dodValue || null,
+      dodValueDate: rentalForm.dodValueDate || null,
+      dodValueType: rentalForm.dodValueType || null,
+      dodAffidavitFiled: rentalForm.dodAffidavitFiled,
+      dodAffidavitDate: rentalForm.dodAffidavitDate || null,
+      clerkFileNo: rentalForm.clerkFileNo || null,
+      status: rentalForm.status,
+      transferStatus: rentalForm.transferStatus,
+      notes: rentalForm.notes || null,
+    }
+
+    try {
+      if (editingRental) {
+        await updateRental(editingRental.id, payload)
+      } else {
+        await createRental(payload)
+      }
+      setShowRentalForm(false)
+    } catch (err) {
+      console.error("Failed to save rental:", err)
+    }
+  }
+
+  const handleDeleteHomestead = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this homestead?")) return
+    try {
+      await deleteHomestead(id)
+    } catch (err) {
+      console.error("Failed to delete homestead:", err)
+    }
+  }
+
+  const handleDeleteRental = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this rental property?")) return
+    try {
+      await deleteRental(id)
+    } catch (err) {
+      console.error("Failed to delete rental:", err)
+    }
+  }
+
+  // Inline update handler for editable cells
+  const handleUpdateRental = async (id: string, updates: Partial<RentalProperty>) => {
+    await updateRental(id, updates)
+  }
+
+  if (loading) {
+    return (
+      <div className="flex h-[400px] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
+  const homestead = homesteads[0] // Only one homestead per trust
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-semibold tracking-tight text-balance">Properties</h2>
+          <p className="text-sm text-muted-foreground">Manage real property assets</p>
+        </div>
+        <Select value={selectedEntity} onValueChange={setSelectedEntity}>
+          <SelectTrigger className="w-[280px]">
+            <SelectValue placeholder="Select entity" />
+          </SelectTrigger>
+          <SelectContent>
+            {entities.map((e) => (
+              <SelectItem key={e.id} value={e.id}>
+                {e.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {selectedEntity && (
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList>
+            <TabsTrigger value="homestead">Homestead</TabsTrigger>
+            <TabsTrigger value="rentals">
+              Rental Properties
+              <Badge variant="secondary" className="ml-2">
+                {rentals.length}
+              </Badge>
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="homestead" className="mt-6">
+            {homestead ? (
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="mb-4 flex items-center justify-between">
+                    <h3 className="text-lg font-semibold">{homestead.streetAddress}</h3>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={STATUS_VARIANTS[homestead.transferStatus]}>
+                        {homestead.transferStatus}
+                      </Badge>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEditHomestead(homestead)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Edit</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-destructive hover:text-destructive"
+                              onClick={() => handleDeleteHomestead(homestead.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Delete</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-6">
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                        Address
+                      </p>
+                      <p className="mt-1 text-sm">{homestead.streetAddress}</p>
+                      <p className="text-sm">
+                        {homestead.city}, {homestead.state} {homestead.zip}
+                      </p>
+                      {homestead.county && (
+                        <p className="text-sm text-muted-foreground">{homestead.county} County</p>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                        Property Details
+                      </p>
+                      <p className="mt-1 text-sm">
+                        {PROPERTY_TYPES.find((t) => t.value === homestead.propertyType)?.label}
+                      </p>
+                      {homestead.bedrooms && homestead.bathrooms && (
+                        <p className="text-sm">
+                          {homestead.bedrooms} bed / {homestead.bathrooms} bath
+                        </p>
+                      )}
+                      {homestead.squareFeet && (
+                        <p className="text-sm">{homestead.squareFeet.toLocaleString()} sq ft</p>
+                      )}
+                      {homestead.yearBuilt && <p className="text-sm">Built {homestead.yearBuilt}</p>}
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                        DOD Value
+                      </p>
+                      <p className="mt-1 text-sm font-semibold">
+                        {formatCurrency(homestead.dodValue)}
+                      </p>
+                      {homestead.dodValueDate && (
+                        <p className="text-xs text-muted-foreground">
+                          as of {formatDate(homestead.dodValueDate)}
+                        </p>
+                      )}
+                      {homestead.dodValueType && (
+                        <Badge variant="outline" className="mt-1">
+                          {homestead.dodValueType}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+
+                  {(homestead.parcelNumber || homestead.dodAffidavitFiled) && (
+                    <div className="mt-6 grid grid-cols-2 gap-6">
+                      {homestead.parcelNumber && (
+                        <div>
+                          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                            Parcel Number
+                          </p>
+                          <p className="mt-1 text-sm">{homestead.parcelNumber}</p>
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                          DOD Affidavit Filed
+                        </p>
+                        <p className="mt-1 text-sm">
+                          {homestead.dodAffidavitFiled ? (
+                            <>
+                              Yes - {formatDate(homestead.dodAffidavitDate)}{" "}
+                              {homestead.clerkFileNo && `(#${homestead.clerkFileNo})`}
+                            </>
+                          ) : (
+                            "Not yet filed"
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {homestead.notes && (
+                    <div className="mt-6">
+                      <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                        Notes
+                      </p>
+                      <p className="mt-1 text-sm">{homestead.notes}</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center py-12">
+                  <p className="mb-4 text-muted-foreground">No homestead on record</p>
+                  <Button onClick={handleAddHomestead}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Homestead
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          <TabsContent value="rentals" className="mt-6">
+            <div className="mb-4 flex justify-end">
+              <Button onClick={handleAddRental}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Rental Property
+              </Button>
+            </div>
+
+            {rentals.length === 0 ? (
+              <Card>
+                <CardContent className="flex justify-center py-12">
+                  <p className="text-muted-foreground">
+                    No rental properties. Click Add to create one.
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Address</TableHead>
+                          <TableHead>Units</TableHead>
+                          <TableHead>Monthly Rent</TableHead>
+                          <TableHead>DOD Value</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Transfer</TableHead>
+                          <TableHead className="w-[80px]">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {rentals.map((r) => (
+                          <TableRow key={r.id}>
+                            <TableCell>
+                              <EditableTextCell
+                                value={r.name}
+                                onSave={async (v) => updateRental(r.id, { name: v })}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <p className="text-sm">{r.streetAddress}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {r.city}, {r.state} {r.zip}
+                              </p>
+                            </TableCell>
+                            <TableCell>
+                              <EditableNumberCell
+                                value={r.units}
+                                onSave={async (v) => updateRental(r.id, { units: v })}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <EditableCurrencyCell
+                                value={r.monthlyRent}
+                                onSave={async (v) => updateRental(r.id, { monthlyRent: v })}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <EditableCurrencyCell
+                                value={r.dodValue}
+                                onSave={async (v) => updateRental(r.id, { dodValue: v })}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <EditableSelectCell
+                                value={r.rentalStatus}
+                                options={RENTAL_STATUS}
+                                onSave={async (v) => updateRental(r.id, { rentalStatus: v })}
+                                variants={STATUS_VARIANTS}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <EditableSelectCell
+                                value={r.transferStatus}
+                                options={TRANSFER_STATUS}
+                                onSave={async (v) => updateRental(r.id, { transferStatus: v })}
+                                variants={STATUS_VARIANTS}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex gap-1">
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8"
+                                        onClick={() => handleEditRental(r)}
+                                      >
+                                        <Pencil className="h-4 w-4" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Edit</TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 text-destructive hover:text-destructive"
+                                        onClick={() => handleDeleteRental(r.id)}
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Delete</TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+        </Tabs>
+      )}
+
+      {/* Homestead Form Dialog */}
+      <ResourceDialog
+        open={isHomesteadOpen}
+        onOpenChange={closeHomestead}
+        title={isEditingHomestead ? "Edit Homestead" : "Add Homestead"}
+        onSubmit={handleSaveHomestead}
+        isLoading={isHomesteadSubmitting}
+      >
+          <div className="space-y-6">
+            <div>
+              <h4 className="mb-3 text-sm font-medium">Address</h4>
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label htmlFor="h-street">Street Address</Label>
+                  <Input
+                    id="h-street"
+                    value={homesteadForm.streetAddress}
+                    onChange={(e) =>
+                      setHomesteadForm({ ...homesteadForm, streetAddress: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="grid grid-cols-4 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="h-city">City</Label>
+                    <Input
+                      id="h-city"
+                      value={homesteadForm.city}
+                      onChange={(e) =>
+                        setHomesteadForm({ ...homesteadForm, city: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="h-state">State</Label>
+                    <Input
+                      id="h-state"
+                      value={homesteadForm.state}
+                      onChange={(e) =>
+                        setHomesteadForm({ ...homesteadForm, state: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="h-zip">ZIP</Label>
+                    <Input
+                      id="h-zip"
+                      value={homesteadForm.zip}
+                      onChange={(e) =>
+                        setHomesteadForm({ ...homesteadForm, zip: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="h-county">County</Label>
+                    <Input
+                      id="h-county"
+                      value={homesteadForm.county}
+                      onChange={(e) =>
+                        setHomesteadForm({ ...homesteadForm, county: e.target.value })
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="mb-3 text-sm font-medium">Property Details</h4>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-2">
+                  <Label>Property Type</Label>
+                  <Select
+                    value={homesteadForm.propertyType}
+                    onValueChange={(v) =>
+                      setHomesteadForm({ ...homesteadForm, propertyType: v })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PROPERTY_TYPES.map((t) => (
+                        <SelectItem key={t.value} value={t.value}>
+                          {t.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="h-year">Year Built</Label>
+                  <Input
+                    id="h-year"
+                    type="number"
+                    value={homesteadForm.yearBuilt}
+                    onChange={(e) =>
+                      setHomesteadForm({ ...homesteadForm, yearBuilt: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="h-sqft">Square Feet</Label>
+                  <Input
+                    id="h-sqft"
+                    type="number"
+                    value={homesteadForm.squareFeet}
+                    onChange={(e) =>
+                      setHomesteadForm({ ...homesteadForm, squareFeet: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
+              <div className="mt-3 grid grid-cols-4 gap-3">
+                <div className="space-y-2">
+                  <Label htmlFor="h-beds">Bedrooms</Label>
+                  <Input
+                    id="h-beds"
+                    type="number"
+                    value={homesteadForm.bedrooms}
+                    onChange={(e) =>
+                      setHomesteadForm({ ...homesteadForm, bedrooms: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="h-baths">Bathrooms</Label>
+                  <Input
+                    id="h-baths"
+                    value={homesteadForm.bathrooms}
+                    onChange={(e) =>
+                      setHomesteadForm({ ...homesteadForm, bathrooms: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="h-lot">Lot Size (acres)</Label>
+                  <Input
+                    id="h-lot"
+                    value={homesteadForm.lotSizeAcres}
+                    onChange={(e) =>
+                      setHomesteadForm({ ...homesteadForm, lotSizeAcres: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="h-parcel">Parcel Number</Label>
+                  <Input
+                    id="h-parcel"
+                    value={homesteadForm.parcelNumber}
+                    onChange={(e) =>
+                      setHomesteadForm({ ...homesteadForm, parcelNumber: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="mb-3 text-sm font-medium">Acquisition</h4>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label htmlFor="h-acq-date">Acquisition Date</Label>
+                  <Input
+                    id="h-acq-date"
+                    type="date"
+                    value={homesteadForm.acquisitionDate}
+                    onChange={(e) =>
+                      setHomesteadForm({ ...homesteadForm, acquisitionDate: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="h-acq-cost">Acquisition Cost</Label>
+                  <Input
+                    id="h-acq-cost"
+                    value={homesteadForm.acquisitionCost}
+                    onChange={(e) =>
+                      setHomesteadForm({ ...homesteadForm, acquisitionCost: e.target.value })
+                    }
+                    placeholder="$"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="mb-3 text-sm font-medium">Date of Death Valuation</h4>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-2">
+                  <Label htmlFor="h-dod-val">DOD Value</Label>
+                  <Input
+                    id="h-dod-val"
+                    value={homesteadForm.dodValue}
+                    onChange={(e) =>
+                      setHomesteadForm({ ...homesteadForm, dodValue: e.target.value })
+                    }
+                    placeholder="$"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="h-dod-date">DOD Value Date</Label>
+                  <Input
+                    id="h-dod-date"
+                    type="date"
+                    value={homesteadForm.dodValueDate}
+                    onChange={(e) =>
+                      setHomesteadForm({ ...homesteadForm, dodValueDate: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Valuation Type</Label>
+                  <Select
+                    value={homesteadForm.dodValueType}
+                    onValueChange={(v) =>
+                      setHomesteadForm({ ...homesteadForm, dodValueType: v })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DOD_VALUE_TYPES.map((t) => (
+                        <SelectItem key={t.value} value={t.value}>
+                          {t.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="mb-3 text-sm font-medium">DOD Affidavit (Texas)</h4>
+              <div className="grid grid-cols-3 items-end gap-3">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="h-affidavit"
+                    checked={homesteadForm.dodAffidavitFiled}
+                    onCheckedChange={(checked) =>
+                      setHomesteadForm({ ...homesteadForm, dodAffidavitFiled: !!checked })
+                    }
+                  />
+                  <Label htmlFor="h-affidavit">Affidavit Filed</Label>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="h-filing-date">Filing Date</Label>
+                  <Input
+                    id="h-filing-date"
+                    type="date"
+                    value={homesteadForm.dodAffidavitDate}
+                    onChange={(e) =>
+                      setHomesteadForm({ ...homesteadForm, dodAffidavitDate: e.target.value })
+                    }
+                    disabled={!homesteadForm.dodAffidavitFiled}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="h-clerk">Clerk File Number</Label>
+                  <Input
+                    id="h-clerk"
+                    value={homesteadForm.clerkFileNo}
+                    onChange={(e) =>
+                      setHomesteadForm({ ...homesteadForm, clerkFileNo: e.target.value })
+                    }
+                    disabled={!homesteadForm.dodAffidavitFiled}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="mb-3 text-sm font-medium">Status</h4>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Asset Status</Label>
+                  <Select
+                    value={homesteadForm.status}
+                    onValueChange={(v) => setHomesteadForm({ ...homesteadForm, status: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ASSET_STATUS.map((s) => (
+                        <SelectItem key={s.value} value={s.value}>
+                          {s.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Transfer Status</Label>
+                  <Select
+                    value={homesteadForm.transferStatus}
+                    onValueChange={(v) =>
+                      setHomesteadForm({ ...homesteadForm, transferStatus: v })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TRANSFER_STATUS.map((s) => (
+                        <SelectItem key={s.value} value={s.value}>
+                          {s.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="h-notes">Notes</Label>
+              <Textarea
+                id="h-notes"
+                value={homesteadForm.notes}
+                onChange={(e) => setHomesteadForm({ ...homesteadForm, notes: e.target.value })}
+              />
+            </div>
+
+          </div>
+      </ResourceDialog>
+
+      {/* Rental Property Form Dialog */}
+      <Dialog open={showRentalForm} onOpenChange={setShowRentalForm}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {editingRental ? "Edit Rental Property" : "Add Rental Property"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6">
+            <div>
+              <h4 className="mb-3 text-sm font-medium">Property Info</h4>
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label htmlFor="r-name">Property Name</Label>
+                  <Input
+                    id="r-name"
+                    value={rentalForm.name}
+                    onChange={(e) => setRentalForm({ ...rentalForm, name: e.target.value })}
+                    placeholder="e.g., Oak Street Duplex"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="r-street">Street Address</Label>
+                  <Input
+                    id="r-street"
+                    value={rentalForm.streetAddress}
+                    onChange={(e) =>
+                      setRentalForm({ ...rentalForm, streetAddress: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="grid grid-cols-4 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="r-city">City</Label>
+                    <Input
+                      id="r-city"
+                      value={rentalForm.city}
+                      onChange={(e) => setRentalForm({ ...rentalForm, city: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="r-state">State</Label>
+                    <Input
+                      id="r-state"
+                      value={rentalForm.state}
+                      onChange={(e) => setRentalForm({ ...rentalForm, state: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="r-zip">ZIP</Label>
+                    <Input
+                      id="r-zip"
+                      value={rentalForm.zip}
+                      onChange={(e) => setRentalForm({ ...rentalForm, zip: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="r-county">County</Label>
+                    <Input
+                      id="r-county"
+                      value={rentalForm.county}
+                      onChange={(e) => setRentalForm({ ...rentalForm, county: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="mb-3 text-sm font-medium">Property Details</h4>
+              <div className="grid grid-cols-4 gap-3">
+                <div className="space-y-2">
+                  <Label>Property Type</Label>
+                  <Select
+                    value={rentalForm.propertyType}
+                    onValueChange={(v) => setRentalForm({ ...rentalForm, propertyType: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PROPERTY_TYPES.map((t) => (
+                        <SelectItem key={t.value} value={t.value}>
+                          {t.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="r-units">Units</Label>
+                  <Input
+                    id="r-units"
+                    type="number"
+                    value={rentalForm.units}
+                    onChange={(e) => setRentalForm({ ...rentalForm, units: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="r-year">Year Built</Label>
+                  <Input
+                    id="r-year"
+                    type="number"
+                    value={rentalForm.yearBuilt}
+                    onChange={(e) => setRentalForm({ ...rentalForm, yearBuilt: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="r-sqft">Square Feet</Label>
+                  <Input
+                    id="r-sqft"
+                    type="number"
+                    value={rentalForm.squareFeet}
+                    onChange={(e) => setRentalForm({ ...rentalForm, squareFeet: e.target.value })}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="mb-3 text-sm font-medium">Rental Info</h4>
+              <div className="grid grid-cols-4 gap-3">
+                <div className="space-y-2">
+                  <Label>Rental Status</Label>
+                  <Select
+                    value={rentalForm.rentalStatus}
+                    onValueChange={(v) => setRentalForm({ ...rentalForm, rentalStatus: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {RENTAL_STATUS.map((s) => (
+                        <SelectItem key={s.value} value={s.value}>
+                          {s.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="r-rent">Monthly Rent</Label>
+                  <Input
+                    id="r-rent"
+                    value={rentalForm.monthlyRent}
+                    onChange={(e) => setRentalForm({ ...rentalForm, monthlyRent: e.target.value })}
+                    placeholder="$"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="r-lease-start">Lease Start</Label>
+                  <Input
+                    id="r-lease-start"
+                    type="date"
+                    value={rentalForm.leaseStart}
+                    onChange={(e) => setRentalForm({ ...rentalForm, leaseStart: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="r-lease-end">Lease End</Label>
+                  <Input
+                    id="r-lease-end"
+                    type="date"
+                    value={rentalForm.leaseEnd}
+                    onChange={(e) => setRentalForm({ ...rentalForm, leaseEnd: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="mt-3 space-y-2">
+                <Label htmlFor="r-manager">Property Manager</Label>
+                <Input
+                  id="r-manager"
+                  value={rentalForm.propertyManager}
+                  onChange={(e) =>
+                    setRentalForm({ ...rentalForm, propertyManager: e.target.value })
+                  }
+                />
+              </div>
+            </div>
+
+            <div>
+              <h4 className="mb-3 text-sm font-medium">Financials</h4>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-2">
+                  <Label htmlFor="r-acq-date">Acquisition Date</Label>
+                  <Input
+                    id="r-acq-date"
+                    type="date"
+                    value={rentalForm.acquisitionDate}
+                    onChange={(e) =>
+                      setRentalForm({ ...rentalForm, acquisitionDate: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="r-acq-cost">Acquisition Cost</Label>
+                  <Input
+                    id="r-acq-cost"
+                    value={rentalForm.acquisitionCost}
+                    onChange={(e) =>
+                      setRentalForm({ ...rentalForm, acquisitionCost: e.target.value })
+                    }
+                    placeholder="$"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="r-mortgage">Mortgage Balance</Label>
+                  <Input
+                    id="r-mortgage"
+                    value={rentalForm.mortgageBalance}
+                    onChange={(e) =>
+                      setRentalForm({ ...rentalForm, mortgageBalance: e.target.value })
+                    }
+                    placeholder="$"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="mb-3 text-sm font-medium">Date of Death Valuation</h4>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-2">
+                  <Label htmlFor="r-dod-val">DOD Value</Label>
+                  <Input
+                    id="r-dod-val"
+                    value={rentalForm.dodValue}
+                    onChange={(e) => setRentalForm({ ...rentalForm, dodValue: e.target.value })}
+                    placeholder="$"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="r-dod-date">DOD Value Date</Label>
+                  <Input
+                    id="r-dod-date"
+                    type="date"
+                    value={rentalForm.dodValueDate}
+                    onChange={(e) =>
+                      setRentalForm({ ...rentalForm, dodValueDate: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Valuation Type</Label>
+                  <Select
+                    value={rentalForm.dodValueType}
+                    onValueChange={(v) => setRentalForm({ ...rentalForm, dodValueType: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DOD_VALUE_TYPES.map((t) => (
+                        <SelectItem key={t.value} value={t.value}>
+                          {t.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="mb-3 text-sm font-medium">DOD Affidavit (Texas)</h4>
+              <div className="grid grid-cols-3 items-end gap-3">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="r-affidavit"
+                    checked={rentalForm.dodAffidavitFiled}
+                    onCheckedChange={(checked) =>
+                      setRentalForm({ ...rentalForm, dodAffidavitFiled: !!checked })
+                    }
+                  />
+                  <Label htmlFor="r-affidavit">Affidavit Filed</Label>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="r-filing-date">Filing Date</Label>
+                  <Input
+                    id="r-filing-date"
+                    type="date"
+                    value={rentalForm.dodAffidavitDate}
+                    onChange={(e) =>
+                      setRentalForm({ ...rentalForm, dodAffidavitDate: e.target.value })
+                    }
+                    disabled={!rentalForm.dodAffidavitFiled}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="r-clerk">Clerk File Number</Label>
+                  <Input
+                    id="r-clerk"
+                    value={rentalForm.clerkFileNo}
+                    onChange={(e) => setRentalForm({ ...rentalForm, clerkFileNo: e.target.value })}
+                    disabled={!rentalForm.dodAffidavitFiled}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="mb-3 text-sm font-medium">Status</h4>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Asset Status</Label>
+                  <Select
+                    value={rentalForm.status}
+                    onValueChange={(v) => setRentalForm({ ...rentalForm, status: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ASSET_STATUS.map((s) => (
+                        <SelectItem key={s.value} value={s.value}>
+                          {s.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Transfer Status</Label>
+                  <Select
+                    value={rentalForm.transferStatus}
+                    onValueChange={(v) => setRentalForm({ ...rentalForm, transferStatus: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TRANSFER_STATUS.map((s) => (
+                        <SelectItem key={s.value} value={s.value}>
+                          {s.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="r-notes">Notes</Label>
+              <Textarea
+                id="r-notes"
+                value={rentalForm.notes}
+                onChange={(e) => setRentalForm({ ...rentalForm, notes: e.target.value })}
+              />
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" onClick={() => setShowRentalForm(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleSaveRental}>Save</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}

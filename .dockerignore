@@ -1,0 +1,41 @@
+# Dependencies
+node_modules
+
+# Docker
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+
+# Documentation
+README.md
+CLAUDE.md
+GETTING-STARTED.md
+PLAN.md
+LICENSE
+docs
+
+# Environment
+.env
+.env.*
+secrets
+
+# Build artifacts
+coverage*
+*.log
+
+# Kiro
+.kiro
+
+# Claude
+.claude
+
+# Init scripts (for local dev only)
+init-scripts
