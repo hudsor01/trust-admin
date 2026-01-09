@@ -10,10 +10,10 @@ See: .planning/PROJECT.md (updated 2026-01-09)
 
 ## Current Position
 
-Phase: 7 of 10 (Liabilities & Accounts Refactor)
-Plan: 4 of 4 in current phase
-Status: ✅ Complete
-Last activity: 2026-01-09 — Completed Plan 07-04 (Refactor Accounts Page and Verify Phase 7)
+Phase: 8 of 10 (Type Safety Improvements)
+Plan: 0 of 4 in current phase
+Status: 📋 Planned (ready to execute)
+Last activity: 2026-01-09 — Planned Phase 8 (4 plans created)
 
 Progress: ██████████████████ 69% (22/32 plans complete)
 
@@ -109,6 +109,6 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-01-09
-Stopped at: Completed Plan 07-04, Phase 7 complete
+Stopped at: Planned Phase 8 (4 plans created)
 Resume file: None
-Note: Phase 7 complete (4/4 plans) - All dialogs and tables refactored using Phase 4 patterns. Liabilities.tsx: 920 → 858 lines (6.7% reduction). Accounts.tsx: 903 → 906 lines (+0.3% increase due to verbose column configs, but improved maintainability). Net: 59 line reduction (3.2%). Ready for Phase 8: Type Safety Improvements.
+Note: Phase 8 planned with 4 executable plans. Focus: Eliminate `as any` casts (22 in index.ts route factory, 11 in crud-factory.ts). Plans use proven pattern: create interface → apply to test resources → apply to all → verify. Ready to execute Plan 08-01.

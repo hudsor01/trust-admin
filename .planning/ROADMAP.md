@@ -141,9 +141,9 @@ Plans:
 
 Plans:
 - [ ] 08-01: Create typed resource configuration interface
-- [ ] 08-02: Improve CRUD factory type inference with conditional types
-- [ ] 08-03: Replace `as any` in route factory with proper generics
-- [ ] 08-04: Add compile-time validation and verify no regressions
+- [ ] 08-02: Apply typed config to all resources
+- [ ] 08-03: Improve CRUD factory type inference
+- [ ] 08-04: Verify type safety and document patterns
 
 ### Phase 9: Performance Optimization
 **Goal**: Add pagination to CRUD factory and implement request deduplication
