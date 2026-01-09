@@ -6,9 +6,114 @@
  * - Error handling
  * - Automatic refetch
  * - CRUD operations
+ * - Request deduplication
+ * - In-memory caching
  */
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
+
+// ============================================================================
+// Request Deduplication & Caching
+// ============================================================================
+
+interface CacheEntry<T> {
+  data: T;
+  timestamp: number;
+  promise?: Promise<T>; // For deduplicating concurrent requests
+}
+
+const cache = new Map<string, CacheEntry<any>>();
+const CACHE_TTL = 30000; // 30 seconds
+
+function getCacheKey(url: string): string {
+  return url;
+}
+
+function getCachedData<T>(key: string): T | null {
+  const entry = cache.get(key);
+  if (!entry) return null;
+
+  const age = Date.now() - entry.timestamp;
+  if (age > CACHE_TTL) {
+    cache.delete(key);
+    return null;
+  }
+
+  return entry.data;
+}
+
+function setCachedData<T>(key: string, data: T): void {
+  cache.set(key, {
+    data,
+    timestamp: Date.now(),
+  });
+}
+
+function getOrCreatePromise<T>(
+  key: string,
+  fetcher: () => Promise<T>
+): Promise<T> {
+  const entry = cache.get(key);
+
+  // If there's a pending promise, return it (deduplication)
+  if (entry?.promise) {
+    return entry.promise;
+  }
+
+  // Create new promise
+  const promise = fetcher().then(
+    (data) => {
+      // Store result in cache
+      setCachedData(key, data);
+      // Clear promise from cache entry
+      const entry = cache.get(key);
+      if (entry) {
+        delete entry.promise;
+      }
+      return data;
+    },
+    (error) => {
+      // On error, remove promise so next attempt can retry
+      cache.delete(key);
+      throw error;
+    }
+  );
+
+  // Store promise for deduplication
+  cache.set(key, {
+    data: null as any,
+    timestamp: Date.now(),
+    promise,
+  });
+
+  return promise;
+}
+
+/**
+ * Invalidate cached data for a URL pattern
+ * Use after mutations to ensure fresh data on next fetch
+ */
+export function invalidateCache(urlPattern?: string): void {
+  if (!urlPattern) {
+    // Clear entire cache
+    cache.clear();
+    return;
+  }
+
+  // Clear matching entries
+  for (const [key] of cache) {
+    if (key.includes(urlPattern)) {
+      cache.delete(key);
+    }
+  }
+}
+
+/**
+ * Clear entire cache (for testing)
+ */
+export function clearCache(): void {
+  cache.clear();
+}
 
 interface UseQueryOptions<T> {
   /** Query parameter name for filtering (e.g., "entityId") */
@@ -63,10 +168,25 @@ export function createQueryHook<T extends { id: string }>(
     }, [filterValue]);
 
     const refetch = useCallback(async () => {
-      setLoading(true);
+    const url = buildUrl();
+    const cacheKey = getCacheKey(url);
+
+    // Check cache first
+    const cachedData = getCachedData<T[]>(cacheKey);
+    if (cachedData) {
+      setData(cachedData);
+      setLoading(false);
       setError(null);
-      try {
-        const res = await fetch(buildUrl());
+      return;
+    }
+
+    // Fetch with deduplication
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const result = await getOrCreatePromise(cacheKey, async () => {
+        const res = await fetch(url);
         if (!res.ok) {
           // Try to parse error response from API
           let errorData;
@@ -104,19 +224,22 @@ export function createQueryHook<T extends { id: string }>(
         let result = await res.json();
         if (sortFn) result = sortFn(result);
         if (transform) result = transform(result);
-        setData(result);
-      } catch (err) {
-        setError(err instanceof Error ? err : new Error(String(err)));
-        // Network errors (not handled by response parsing above)
-        if (err instanceof Error && err.message.includes("fetch")) {
-          toast.error("Network Error", {
-            description: "Unable to connect to the server. Please check your connection.",
-          });
-        }
-      } finally {
-        setLoading(false);
+        return result;
+      });
+      
+      setData(result);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error(String(err)));
+      // Network errors (not handled by response parsing above)
+      if (err instanceof Error && err.message.includes("fetch")) {
+        toast.error("Network Error", {
+          description: "Unable to connect to the server. Please check your connection.",
+        });
       }
-    }, [buildUrl]);
+    } finally {
+      setLoading(false);
+    }
+  }, [buildUrl]);
 
     const create = useCallback(async (item: Partial<T>): Promise<T> => {
       const res = await fetch(endpoint, {
@@ -163,6 +286,8 @@ export function createQueryHook<T extends { id: string }>(
         const updated = [...prev, created];
         return sortFn ? sortFn(updated) : updated;
       });
+      // Invalidate cache after successful create
+      invalidateCache(endpoint);
       return created;
     }, []);
 
@@ -211,6 +336,8 @@ export function createQueryHook<T extends { id: string }>(
         const newData = prev.map((item) => (item.id === id ? updated : item));
         return sortFn ? sortFn(newData) : newData;
       });
+      // Invalidate cache after successful update
+      invalidateCache(endpoint);
       return updated;
     }, []);
 
@@ -244,6 +371,8 @@ export function createQueryHook<T extends { id: string }>(
         throw new Error(`Failed to delete: ${res.status}`);
       }
       setData((prev) => prev.filter((item) => item.id !== id));
+      // Invalidate cache after successful delete
+      invalidateCache(endpoint);
     }, []);
 
     useEffect(() => {
