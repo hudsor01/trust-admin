@@ -38,29 +38,17 @@ import {
 } from "@/components/ui/tooltip"
 import { formatDate } from "../utils/formatters"
 import { EditableTextCell, EditableSelectCell } from "@/components/editable-cells"
+import { useEntities } from "@/hooks/entities/queries"
+import { useBeneficiaries } from "@/hooks/beneficiaries/queries"
+import {
+  useSpecificBequests,
+  useCreateSpecificBequest,
+  useUpdateSpecificBequest,
+  useDeleteSpecificBequest,
+  type SpecificBequest as SpecificBequestType,
+} from "@/hooks/specific-bequests/queries"
 
-interface SpecificBequest {
-  id: string
-  entityId: string
-  beneficiaryId: string | null
-  description: string
-  category: string | null
-  recipientName: string | null
-  dateDistributed: string | null
-  notes: string | null
-}
-
-interface Beneficiary {
-  id: string
-  firstName: string
-  lastName: string
-}
-
-interface Entity {
-  id: string
-  name: string
-  dod: string | null
-}
+// Interfaces imported from hooks
 
 const BEQUEST_CATEGORIES = [
   { value: "PET", label: "Pet" },
@@ -75,13 +63,18 @@ const BEQUEST_CATEGORIES = [
 ]
 
 export function Bequests() {
-  const [bequests, setBequests] = useState<SpecificBequest[]>([])
-  const [beneficiaries, setBeneficiaries] = useState<Beneficiary[]>([])
-  const [entities, setEntities] = useState<Entity[]>([])
+  // Use TanStack Query hooks
+  const { data: entities = [], isLoading: entitiesLoading } = useEntities()
   const [selectedEntity, setSelectedEntity] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
+  const { data: beneficiaries = [] } = useBeneficiaries(selectedEntity || undefined)
+  const { data: bequests = [], isLoading: bequestsLoading } = useSpecificBequests(selectedEntity || undefined)
+  const createBequestMutation = useCreateSpecificBequest()
+  const updateBequestMutation = useUpdateSpecificBequest()
+  const deleteBequestMutation = useDeleteSpecificBequest()
+
+  const loading = entitiesLoading || bequestsLoading
   const [showForm, setShowForm] = useState(false)
-  const [editingBequest, setEditingBequest] = useState<SpecificBequest | null>(null)
+  const [editingBequest, setEditingBequest] = useState<SpecificBequestType | null>(null)
   const [formData, setFormData] = useState({
     description: "",
     category: "OTHER",
@@ -91,65 +84,12 @@ export function Bequests() {
     notes: "",
   })
 
+  // Auto-select first entity when entities load
   useEffect(() => {
-    fetchEntities()
-    fetchBeneficiaries()
-  }, [])
-
-  useEffect(() => {
-    if (selectedEntity) {
-      fetchBequests(selectedEntity)
+    if (entities.length > 0 && !selectedEntity) {
+      setSelectedEntity(entities[0].id)
     }
-  }, [selectedEntity])
-
-  const fetchEntities = async () => {
-    try {
-      const res = await fetch("/api/entities")
-      if (res.ok) {
-        const data = await res.json()
-        const sorted = data.sort((a: Entity, b: Entity) => {
-          if (a.dod && !b.dod) return -1
-          if (!a.dod && b.dod) return 1
-          if (a.name.includes("Hudson") && !b.name.includes("Hudson")) return -1
-          if (!a.name.includes("Hudson") && b.name.includes("Hudson")) return 1
-          return 0
-        })
-        setEntities(sorted)
-        if (sorted.length > 0) {
-          setSelectedEntity(sorted[0].id)
-        }
-      }
-    } catch (error) {
-      console.error("Failed to fetch entities:", error)
-    }
-  }
-
-  const fetchBeneficiaries = async () => {
-    try {
-      const res = await fetch("/api/beneficiaries")
-      if (res.ok) {
-        const data = await res.json()
-        setBeneficiaries(data)
-      }
-    } catch (error) {
-      console.error("Failed to fetch beneficiaries:", error)
-    }
-  }
-
-  const fetchBequests = async (entityId: string) => {
-    setLoading(true)
-    try {
-      const res = await fetch(`/api/specific-bequests?entityId=${entityId}`)
-      if (res.ok) {
-        const data = await res.json()
-        setBequests(data)
-      }
-    } catch (error) {
-      console.error("Failed to fetch bequests:", error)
-    } finally {
-      setLoading(false)
-    }
-  }
+  }, [entities, selectedEntity])
 
   const saveBequest = async () => {
     if (!formData.description.trim() || !selectedEntity) return
@@ -165,26 +105,13 @@ export function Bequests() {
     }
 
     try {
-      let res
       if (editingBequest) {
-        res = await fetch(`/api/specific-bequests/${editingBequest.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        })
+        await updateBequestMutation.mutateAsync({ id: editingBequest.id, data: payload })
       } else {
-        res = await fetch("/api/specific-bequests", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        })
+        await createBequestMutation.mutateAsync(payload)
       }
-
-      if (res.ok) {
-        setShowForm(false)
-        resetForm()
-        fetchBequests(selectedEntity)
-      }
+      setShowForm(false)
+      resetForm()
     } catch (error) {
       console.error("Failed to save bequest:", error)
     }
@@ -194,37 +121,22 @@ export function Bequests() {
     if (!confirm("Are you sure you want to delete this bequest?")) return
 
     try {
-      const res = await fetch(`/api/specific-bequests/${id}`, { method: "DELETE" })
-      if (res.ok && selectedEntity) {
-        fetchBequests(selectedEntity)
-      }
+      await deleteBequestMutation.mutateAsync(id)
     } catch (error) {
       console.error("Failed to delete bequest:", error)
     }
   }
 
-  const updateBequest = async (id: string, updates: Partial<SpecificBequest>) => {
-    const res = await fetch(`/api/specific-bequests/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(updates),
-    })
-    if (!res.ok) throw new Error("Failed to update")
-    setBequests(bequests.map((b) => (b.id === id ? { ...b, ...updates } : b)))
+  const updateBequest = async (id: string, updates: Partial<SpecificBequestType>) => {
+    await updateBequestMutation.mutateAsync({ id, data: updates })
   }
 
-  const markDistributed = async (bequest: SpecificBequest) => {
+  const markDistributed = async (bequest: SpecificBequestType) => {
     try {
-      await fetch(`/api/specific-bequests/${bequest.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          dateDistributed: new Date().toISOString(),
-        }),
+      await updateBequestMutation.mutateAsync({
+        id: bequest.id,
+        data: { dateDistributed: new Date().toISOString() },
       })
-      if (selectedEntity) {
-        fetchBequests(selectedEntity)
-      }
     } catch (error) {
       console.error("Failed to mark as distributed:", error)
     }
