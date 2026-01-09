@@ -27,15 +27,25 @@ export interface HemsRequest {
 export const hemsRequestKeys = {
   all: ['hems-requests'] as const,
   byBeneficiary: (beneficiaryId: string) => ['hems-requests', 'beneficiary', beneficiaryId] as const,
+  byEntity: (entityId: string) => ['hems-requests', 'entity', entityId] as const,
   detail: (id: string) => ['hems-requests', id] as const,
 }
 
 // Query Options
-export const hemsRequestsQueryOptions = (beneficiaryId?: string) =>
+export const hemsRequestsQueryOptions = (beneficiaryId?: string, entityId?: string) =>
   queryOptions({
-    queryKey: beneficiaryId ? hemsRequestKeys.byBeneficiary(beneficiaryId) : hemsRequestKeys.all,
+    queryKey: beneficiaryId
+      ? hemsRequestKeys.byBeneficiary(beneficiaryId)
+      : entityId
+      ? hemsRequestKeys.byEntity(entityId)
+      : hemsRequestKeys.all,
     queryFn: async () => {
-      const url = beneficiaryId ? `/api/hems-requests?beneficiaryId=${beneficiaryId}` : '/api/hems-requests'
+      let url = '/api/hems-requests'
+      const params = new URLSearchParams()
+      if (beneficiaryId) params.append('beneficiaryId', beneficiaryId)
+      if (entityId) params.append('entityId', entityId)
+      if (params.toString()) url += `?${params.toString()}`
+
       const res = await fetch(url)
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({ error: { message: `HTTP ${res.status}` } }))
@@ -44,7 +54,7 @@ export const hemsRequestsQueryOptions = (beneficiaryId?: string) =>
       const data = await res.json() as HemsRequest[]
       return data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     },
-    enabled: beneficiaryId ? !!beneficiaryId : true,
+    enabled: beneficiaryId ? !!beneficiaryId : entityId ? !!entityId : true,
   })
 
 export const hemsRequestQueryOptions = (id: string) =>
@@ -62,8 +72,8 @@ export const hemsRequestQueryOptions = (id: string) =>
   })
 
 // Query Hooks
-export function useHemsRequests(beneficiaryId?: string) {
-  return useQuery(hemsRequestsQueryOptions(beneficiaryId))
+export function useHemsRequests(beneficiaryId?: string, entityId?: string) {
+  return useQuery(hemsRequestsQueryOptions(beneficiaryId, entityId))
 }
 
 export function useHemsRequest(id: string) {
