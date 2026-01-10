@@ -56,6 +56,7 @@ import {
   EditablePercentCell,
 } from "@/components/editable-cells"
 import { CopyButton } from "@/components/copy-button"
+import { DataTable, type ColumnDef } from "@/components/data-table"
 
 // Import types and hooks from TanStack Query hooks
 import { useEntities } from "@/hooks/entities/queries"
@@ -253,6 +254,170 @@ export function Beneficiaries() {
     [beneficiaries]
   )
 
+  // Column definitions for beneficiaries table
+  const beneficiaryColumns: ColumnDef<BeneficiaryWithDistributions>[] = [
+    {
+      key: "name",
+      header: "Name",
+      render: (b) => (
+        <span className="font-medium">{b.firstName} {b.lastName}</span>
+      ),
+      sortable: true,
+    },
+    {
+      key: "sharePercent",
+      header: "Share %",
+      render: (b) => (
+        <EditablePercentCell
+          value={b.sharePercent}
+          onSave={async (val) => {
+            await updateBeneficiaryMutation.mutateAsync({ id: b.id, data: { sharePercent: val } })
+          }}
+        />
+      ),
+      sortable: true,
+    },
+    {
+      key: "eligibility",
+      header: "Eligibility",
+      render: (b) => {
+        const eligibility = calculateEligibility(b.dob)
+        return (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge
+                  variant={
+                    eligibility.status === "full"
+                      ? "default"
+                      : eligibility.status === "partial"
+                        ? "secondary"
+                        : "outline"
+                  }
+                  className={cn(
+                    eligibility.status === "full" && "bg-success hover:bg-success/90",
+                    eligibility.status === "partial" && "bg-amber-500/20 text-amber-700 border-amber-500/30",
+                    eligibility.status === "none" && !b.dob && "text-muted-foreground"
+                  )}
+                >
+                  {eligibility.label}
+                </Badge>
+              </TooltipTrigger>
+              <TooltipContent>
+                {eligibility.nextMilestone ? (
+                  <p>
+                    {eligibility.nextMilestone.percent}% at age {eligibility.nextMilestone.age} ({formatDate(eligibility.nextMilestone.date.toISOString())})
+                  </p>
+                ) : eligibility.status === "full" ? (
+                  <p>Fully vested for withdrawal</p>
+                ) : (
+                  <p>Configure birthday in Settings</p>
+                )}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )
+      },
+    },
+    {
+      key: "distributionStandard",
+      header: "Standard",
+      render: (b) => (
+        <EditableSelectCell
+          value={b.distributionStandard || "HEMS"}
+          options={DISTRIBUTION_STANDARDS}
+          onSave={async (val) => {
+            await updateBeneficiaryMutation.mutateAsync({ id: b.id, data: { distributionStandard: val } })
+          }}
+        />
+      ),
+      sortable: true,
+    },
+    {
+      key: "informed",
+      header: "Notified",
+      render: (b) => (
+        <Button
+          variant={b.informed ? "default" : "outline"}
+          size="icon"
+          className={cn(
+            "h-7 w-7",
+            b.informed && "bg-success hover:bg-success/90"
+          )}
+          onClick={() => updateBeneficiaryMutation.mutateAsync({ id: b.id, data: { informed: !b.informed } })}
+        >
+          {b.informed ? (
+            <Check className="h-3.5 w-3.5" />
+          ) : (
+            <Circle className="h-3.5 w-3.5" />
+          )}
+        </Button>
+      ),
+    },
+    {
+      key: "releaseSigned",
+      header: "Release",
+      render: (b) => (
+        <Button
+          variant={b.releaseSigned ? "default" : "outline"}
+          size="icon"
+          className={cn(
+            "h-7 w-7",
+            b.releaseSigned && "bg-success hover:bg-success/90"
+          )}
+          onClick={() =>
+            updateBeneficiaryMutation.mutateAsync({ id: b.id, data: { releaseSigned: !b.releaseSigned } })
+          }
+        >
+          {b.releaseSigned ? (
+            <Check className="h-3.5 w-3.5" />
+          ) : (
+            <Circle className="h-3.5 w-3.5" />
+          )}
+        </Button>
+      ),
+    },
+    {
+      key: "totalDistributed",
+      header: "Distributed",
+      render: (b) => {
+        const totalDist = (b.distributions || []).reduce(
+          (s, d) => s + parseFloat(d.amount),
+          0
+        )
+        return (
+          <span className="text-sm font-medium tabular-nums">
+            {formatCurrency(totalDist)}
+          </span>
+        )
+      },
+      sortable: true,
+    },
+    {
+      key: "actions",
+      header: "",
+      render: (b) => (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setSelectedBeneficiary(b)}
+              >
+                <Eye className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>View details</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      ),
+    },
+  ]
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -338,163 +503,12 @@ export function Beneficiaries() {
       {/* Beneficiary List */}
       <Card>
         <CardContent className="pt-6">
-              {loading ? (
-                <div className="flex justify-center py-12">
-                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                </div>
-              ) : beneficiaries.length === 0 ? (
-                <p className="py-12 text-center text-muted-foreground">No beneficiaries found</p>
-              ) : (
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead className="text-right">Share %</TableHead>
-                        <TableHead>Eligibility</TableHead>
-                        <TableHead>Standard</TableHead>
-                        <TableHead>Notified</TableHead>
-                        <TableHead>Release</TableHead>
-                        <TableHead className="text-right">Distributed</TableHead>
-                        <TableHead className="w-12.5"></TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {beneficiaries.map((b) => {
-                        const totalDist = (b.distributions || []).reduce(
-                          (s, d) => s + parseFloat(d.amount),
-                          0
-                        )
-                        const eligibility = calculateEligibility(b.dob)
-
-                        return (
-                          <TableRow key={b.id}>
-                            <TableCell>
-                              <span className="font-medium">
-                                {b.firstName} {b.lastName}
-                              </span>
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <EditablePercentCell
-                                value={b.sharePercent}
-                                onSave={async (val) => {
-                                  await updateBeneficiaryMutation.mutateAsync({ id: b.id, data: {
-                                    sharePercent: val,
-                                  } })
-                                }}
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Badge
-                                      variant={
-                                        eligibility.status === "full"
-                                          ? "default"
-                                          : eligibility.status === "partial"
-                                            ? "secondary"
-                                            : "outline"
-                                      }
-                                      className={cn(
-                                        eligibility.status === "full" && "bg-success hover:bg-success/90",
-                                        eligibility.status === "partial" && "bg-amber-500/20 text-amber-700 border-amber-500/30",
-                                        eligibility.status === "none" && !b.dob && "text-muted-foreground"
-                                      )}
-                                    >
-                                      {eligibility.label}
-                                    </Badge>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    {eligibility.nextMilestone ? (
-                                      <p>
-                                        {eligibility.nextMilestone.percent}% at age {eligibility.nextMilestone.age} ({formatDate(eligibility.nextMilestone.date.toISOString())})
-                                      </p>
-                                    ) : eligibility.status === "full" ? (
-                                      <p>Fully vested for withdrawal</p>
-                                    ) : (
-                                      <p>Configure birthday in Settings</p>
-                                    )}
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            </TableCell>
-                            <TableCell>
-                              <EditableSelectCell
-                                value={b.distributionStandard || "HEMS"}
-                                options={DISTRIBUTION_STANDARDS}
-                                onSave={async (val) => {
-                                  await updateBeneficiaryMutation.mutateAsync({ id: b.id, data: { distributionStandard: val } })
-                                }}
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <Button
-                                variant={b.informed ? "default" : "outline"}
-                                size="icon"
-                                className={cn(
-                                  "h-7 w-7",
-                                  b.informed && "bg-success hover:bg-success/90"
-                                )}
-                                onClick={() => updateBeneficiaryMutation.mutateAsync({ id: b.id, data: { informed: !b.informed } })}
-                              >
-                                {b.informed ? (
-                                  <Check className="h-3.5 w-3.5" />
-                                ) : (
-                                  <Circle className="h-3.5 w-3.5" />
-                                )}
-                              </Button>
-                            </TableCell>
-                            <TableCell>
-                              <Button
-                                variant={b.releaseSigned ? "default" : "outline"}
-                                size="icon"
-                                className={cn(
-                                  "h-7 w-7",
-                                  b.releaseSigned && "bg-success hover:bg-success/90"
-                                )}
-                                onClick={() =>
-                                  updateBeneficiaryMutation.mutateAsync({ id: b.id, data: { releaseSigned: !b.releaseSigned } })
-                                }
-                              >
-                                {b.releaseSigned ? (
-                                  <Check className="h-3.5 w-3.5" />
-                                ) : (
-                                  <Circle className="h-3.5 w-3.5" />
-                                )}
-                              </Button>
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <span className="text-sm font-medium tabular-nums">
-                                {formatCurrency(totalDist)}
-                              </span>
-                            </TableCell>
-                            <TableCell>
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-8 w-8"
-                                      onClick={() => setSelectedBeneficiary(b)}
-                                    >
-                                      <Eye className="h-4 w-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>View details</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            </TableCell>
-                          </TableRow>
-                        )
-                      })}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
+          <DataTable
+            data={beneficiaries}
+            columns={beneficiaryColumns}
+            isLoading={loading}
+            emptyMessage="No beneficiaries found"
+          />
         </CardContent>
       </Card>
 
