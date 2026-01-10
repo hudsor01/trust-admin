@@ -187,6 +187,7 @@ export function Accounting() {
     handleSave: handleSaveEntry,
     isSubmitting: isEntrySaving,
     isEditing,
+    formInstance,
   } = useResourceForm<AccountingFormData>({
     initialData: defaultFormData,
     onSubmit: async (data) => {
@@ -997,136 +998,211 @@ export function Accounting() {
         isLoading={isEntrySaving}
       >
         <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="date">Date</Label>
-            <Input
-              id="date"
-              type="date"
-              value={entryForm.accountingDate}
-              onChange={(e) => setEntryForm({ ...entryForm, accountingDate: e.target.value })}
-            />
-          </div>
+          {/* Date */}
+          <formInstance.Field name="accountingDate">
+            {(field) => (
+              <div className="space-y-2">
+                <Label htmlFor="date">Date</Label>
+                <Input
+                  id="date"
+                  type="date"
+                  value={field.state.value}
+                  onBlur={field.handleBlur}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                />
+                {field.state.meta.errors?.[0] && (
+                  <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                )}
+              </div>
+            )}
+          </formInstance.Field>
 
-          <div className="space-y-2">
-            <Label htmlFor="entryType">Entry Type</Label>
-            <Select
-              value={entryForm.entryType}
-              onValueChange={(v) => setEntryForm({ ...entryForm, entryType: v })}
-            >
-              <SelectTrigger id="entryType">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="INCOME">Income</SelectItem>
-                <SelectItem value="EXPENSE">Expense</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Entry Type */}
+          <formInstance.Field name="entryType">
+            {(field) => (
+              <div className="space-y-2">
+                <Label htmlFor="entryType">Entry Type</Label>
+                <Select
+                  value={field.state.value}
+                  onValueChange={(v) => field.handleChange(v)}
+                >
+                  <SelectTrigger id="entryType">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="INCOME">Income</SelectItem>
+                    <SelectItem value="EXPENSE">Expense</SelectItem>
+                  </SelectContent>
+                </Select>
+                {field.state.meta.errors?.[0] && (
+                  <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                )}
+              </div>
+            )}
+          </formInstance.Field>
 
-          {entryForm.entryType === "INCOME" ? (
-            <div className="space-y-2">
-              <Label htmlFor="incomeType">Income Category</Label>
-              <Select
-                value={entryForm.incomeType}
-                onValueChange={(v) => setEntryForm({ ...entryForm, incomeType: v })}
-              >
-                <SelectTrigger id="incomeType">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {INCOME_TYPES.map((t) => (
-                    <SelectItem key={t.value} value={t.value}>
-                      {t.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <Label htmlFor="expenseType">Expense Category</Label>
-              <Select
-                value={entryForm.expenseType}
-                onValueChange={(v) => setEntryForm({ ...entryForm, expenseType: v })}
-              >
-                <SelectTrigger id="expenseType">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {EXPENSE_TYPES.map((t) => (
-                    <SelectItem key={t.value} value={t.value}>
-                      {t.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+          {/* Conditional Category Selection */}
+          <formInstance.Subscribe selector={(state) => state.values.entryType}>
+            {(entryType) =>
+              entryType === "INCOME" ? (
+                <formInstance.Field name="incomeType">
+                  {(field) => (
+                    <div className="space-y-2">
+                      <Label htmlFor="incomeType">Income Category</Label>
+                      <Select
+                        value={field.state.value}
+                        onValueChange={(v) => field.handleChange(v)}
+                      >
+                        <SelectTrigger id="incomeType">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {INCOME_TYPES.map((t) => (
+                            <SelectItem key={t.value} value={t.value}>
+                              {t.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {field.state.meta.errors?.[0] && (
+                        <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                      )}
+                    </div>
+                  )}
+                </formInstance.Field>
+              ) : (
+                <formInstance.Field name="expenseType">
+                  {(field) => (
+                    <div className="space-y-2">
+                      <Label htmlFor="expenseType">Expense Category</Label>
+                      <Select
+                        value={field.state.value}
+                        onValueChange={(v) => field.handleChange(v)}
+                      >
+                        <SelectTrigger id="expenseType">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {EXPENSE_TYPES.map((t) => (
+                            <SelectItem key={t.value} value={t.value}>
+                              {t.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {field.state.meta.errors?.[0] && (
+                        <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                      )}
+                    </div>
+                  )}
+                </formInstance.Field>
+              )
+            }
+          </formInstance.Subscribe>
 
-          <div className="space-y-2">
-            <Label htmlFor="amount">Amount</Label>
-            <Input
-              id="amount"
-              type="number"
-              value={entryForm.amount}
-              onChange={(e) => setEntryForm({ ...entryForm, amount: e.target.value })}
-              placeholder="$0.00"
-            />
-          </div>
+          {/* Amount */}
+          <formInstance.Field name="amount">
+            {(field) => (
+              <div className="space-y-2">
+                <Label htmlFor="amount">Amount</Label>
+                <Input
+                  id="amount"
+                  type="number"
+                  value={field.state.value}
+                  onBlur={field.handleBlur}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  placeholder="$0.00"
+                />
+                {field.state.meta.errors?.[0] && (
+                  <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                )}
+              </div>
+            )}
+          </formInstance.Field>
 
-          <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              value={entryForm.description}
-              onChange={(e) => setEntryForm({ ...entryForm, description: e.target.value })}
-              placeholder="Enter description..."
-            />
-          </div>
+          {/* Description */}
+          <formInstance.Field name="description">
+            {(field) => (
+              <div className="space-y-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  value={field.state.value}
+                  onBlur={field.handleBlur}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  placeholder="Enter description..."
+                />
+                {field.state.meta.errors?.[0] && (
+                  <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                )}
+              </div>
+            )}
+          </formInstance.Field>
 
-          <div className="space-y-2">
-            <Label htmlFor="reference">Reference Number</Label>
-            <Input
-              id="reference"
-              value={entryForm.referenceNumber}
-              onChange={(e) => setEntryForm({ ...entryForm, referenceNumber: e.target.value })}
-              placeholder="Check #, invoice #, etc."
-            />
-          </div>
+          {/* Reference Number */}
+          <formInstance.Field name="referenceNumber">
+            {(field) => (
+              <div className="space-y-2">
+                <Label htmlFor="reference">Reference Number</Label>
+                <Input
+                  id="reference"
+                  value={field.state.value}
+                  onBlur={field.handleBlur}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  placeholder="Check #, invoice #, etc."
+                />
+                {field.state.meta.errors?.[0] && (
+                  <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                )}
+              </div>
+            )}
+          </formInstance.Field>
 
           <Separator />
 
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label htmlFor="isPrincipal">Principal (not income)</Label>
-              <p className="text-xs text-muted-foreground">
-                Mark if this is a return of principal, not taxable income
-              </p>
-            </div>
-            <Switch
-              id="isPrincipal"
-              checked={entryForm.isPrincipal}
-              onCheckedChange={(checked) => setEntryForm({ ...entryForm, isPrincipal: checked })}
-            />
-          </div>
-
-          {entryForm.entryType === "EXPENSE" && (
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label htmlFor="taxDeductible">Tax Deductible</Label>
-                <p className="text-xs text-muted-foreground">
-                  Mark if this expense is deductible on Form 1041
-                </p>
+          {/* isPrincipal Switch */}
+          <formInstance.Field name="isPrincipal">
+            {(field) => (
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="isPrincipal">Principal (not income)</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Mark if this is a return of principal, not taxable income
+                  </p>
+                </div>
+                <Switch
+                  id="isPrincipal"
+                  checked={field.state.value}
+                  onCheckedChange={(checked) => field.handleChange(checked)}
+                />
               </div>
-              <Switch
-                id="taxDeductible"
-                checked={entryForm.taxDeductible}
-                onCheckedChange={(checked) =>
-                  setEntryForm({ ...entryForm, taxDeductible: checked })
-                }
-              />
-            </div>
-          )}
+            )}
+          </formInstance.Field>
+
+          {/* taxDeductible Switch (conditional) */}
+          <formInstance.Subscribe selector={(state) => state.values.entryType}>
+            {(entryType) =>
+              entryType === "EXPENSE" && (
+                <formInstance.Field name="taxDeductible">
+                  {(field) => (
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="taxDeductible">Tax Deductible</Label>
+                        <p className="text-xs text-muted-foreground">
+                          Mark if this expense is deductible on Form 1041
+                        </p>
+                      </div>
+                      <Switch
+                        id="taxDeductible"
+                        checked={field.state.value}
+                        onCheckedChange={(checked) => field.handleChange(checked)}
+                      />
+                    </div>
+                  )}
+                </formInstance.Field>
+              )
+            }
+          </formInstance.Subscribe>
         </div>
       </ResourceDialog>
     </div>
