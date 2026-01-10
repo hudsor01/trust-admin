@@ -18,14 +18,7 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
 import { Progress } from "@/components/ui/progress"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
+import { DataTable, type ColumnDef } from "@/components/data-table"
 import {
   Select,
   SelectContent,
@@ -187,6 +180,82 @@ export function Dashboard() {
     const age30Soon = w.age30 && !w.age30.withdrawn && w.age30.status.daysUntil > 0 && w.age30.status.daysUntil <= 90
     return age25Soon || age30Soon
   })
+
+  // Withdrawal schedule table columns
+  type WithdrawalRow = typeof withdrawalData[number]
+  const withdrawalColumns: ColumnDef<WithdrawalRow>[] = [
+    {
+      key: "beneficiary",
+      header: "Beneficiary",
+      render: (row) => (
+        <span className="font-medium">
+          {row.beneficiary.firstName} {row.beneficiary.lastName}
+        </span>
+      ),
+    },
+    {
+      key: "currentAge",
+      header: "Age",
+      render: (row) => row.currentAge ?? "—",
+    },
+    {
+      key: "sharePercent",
+      header: "Share",
+      render: (row) => `${row.beneficiary.sharePercent}%`,
+    },
+    {
+      key: "age25",
+      header: "Age 25 (50%)",
+      render: (row) =>
+        row.age25 ? (
+          <div>
+            <p
+              className={cn(
+                "text-sm",
+                row.age25.withdrawn
+                  ? "text-muted-foreground"
+                  : row.age25.status.daysUntil === 0
+                    ? "text-green-600 dark:text-green-400 font-medium"
+                    : ""
+              )}
+            >
+              {row.age25.withdrawn ? "Withdrawn" : row.age25.status.status}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {formatDate(row.age25.eligibleDate)}
+            </p>
+          </div>
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        ),
+    },
+    {
+      key: "age30",
+      header: "Age 30 (50%)",
+      render: (row) =>
+        row.age30 ? (
+          <div>
+            <p
+              className={cn(
+                "text-sm",
+                row.age30.withdrawn
+                  ? "text-muted-foreground"
+                  : row.age30.status.daysUntil === 0
+                    ? "text-green-600 dark:text-green-400 font-medium"
+                    : ""
+              )}
+            >
+              {row.age30.withdrawn ? "Withdrawn" : row.age30.status.status}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {formatDate(row.age30.eligibleDate)}
+            </p>
+          </div>
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        ),
+    },
+  ]
 
   // Pending HEMS requests
   const pendingHems = hemsRequests.filter(r => r.status === "PENDING")
@@ -491,74 +560,7 @@ export function Dashboard() {
               </CardContent>
             </Card>
           ) : (
-            <Card>
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Beneficiary</TableHead>
-                      <TableHead>Age</TableHead>
-                      <TableHead>Share</TableHead>
-                      <TableHead>Age 25 (50%)</TableHead>
-                      <TableHead>Age 30 (50%)</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {withdrawalData.map((row) => (
-                      <TableRow key={row.beneficiary.id}>
-                        <TableCell className="font-medium">
-                          {row.beneficiary.firstName} {row.beneficiary.lastName}
-                        </TableCell>
-                        <TableCell>{row.currentAge ?? "—"}</TableCell>
-                        <TableCell>{row.beneficiary.sharePercent}%</TableCell>
-                        <TableCell>
-                          {row.age25 ? (
-                            <div>
-                              <p className={cn(
-                                "text-sm",
-                                row.age25.withdrawn
-                                  ? "text-muted-foreground"
-                                  : row.age25.status.daysUntil === 0
-                                    ? "text-green-600 dark:text-green-400 font-medium"
-                                    : ""
-                              )}>
-                                {row.age25.withdrawn ? "Withdrawn" : row.age25.status.status}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                {formatDate(row.age25.eligibleDate)}
-                              </p>
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground">—</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {row.age30 ? (
-                            <div>
-                              <p className={cn(
-                                "text-sm",
-                                row.age30.withdrawn
-                                  ? "text-muted-foreground"
-                                  : row.age30.status.daysUntil === 0
-                                    ? "text-green-600 dark:text-green-400 font-medium"
-                                    : ""
-                              )}>
-                                {row.age30.withdrawn ? "Withdrawn" : row.age30.status.status}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                {formatDate(row.age30.eligibleDate)}
-                              </p>
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground">—</span>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </Card>
+            <DataTable data={withdrawalData} columns={withdrawalColumns} />
           )}
         </TabsContent>
 
