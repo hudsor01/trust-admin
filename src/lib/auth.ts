@@ -21,7 +21,7 @@ if (!resend) {
 const EMAIL_FROM = process.env.EMAIL_FROM || "Trust Admin <onboarding@resend.dev>"
 
 export const auth = betterAuth({
-  trustedOrigins: [
+  trustedOrigins: process.env.TRUSTED_ORIGINS?.split(",") || [
     "http://localhost:5173",
     "http://localhost:5050",
   ],

@@ -882,60 +882,29 @@ Bun.serve({
       // =============================================================================
       // PORTAL API ROUTES (for beneficiary portal)
       // =============================================================================
-      // TEMPORARY DEVELOPMENT BYPASS: Authentication commented out for development
-      // TODO: RESTORE AUTHENTICATION BEFORE PRODUCTION DEPLOYMENT
       if (path === "/api/portal/me" && method === "GET") {
-        // ORIGINAL AUTHENTICATION CODE (COMMENTED OUT FOR DEVELOPMENT):
-        // const session = await auth.api.getSession({ headers: req.headers });
-        // if (!session?.user) {
-        //   return json({ error: "Unauthorized" }, 401);
-        // }
-        //
-        // // Get user with beneficiary data
-        // const userId = session.user.id;
-        // const beneficiaryId = (session.user as any).beneficiaryId;
-        //
-        // if (!beneficiaryId) {
-        //   return json({ error: "Not a beneficiary account" }, 403);
-        // }
-        //
-        // // Fetch beneficiary with distributions
-        // const beneficiary = await getBeneficiaryById(beneficiaryId);
-        // if (!beneficiary) {
-        //   return json({ error: "Beneficiary not found" }, 404);
-        // }
-        //
-        // return json({
-        //   user: session.user,
-        //   beneficiary,
-        // });
+        const session = await auth.api.getSession({ headers: req.headers });
+        if (!session?.user) {
+          return json({ error: "Unauthorized" }, 401);
+        }
 
-        // TEMPORARY DEVELOPMENT CODE: Return mock user data for development
-        // This allows the dashboard to load during development without authentication
-        console.log("[DEV MODE] Bypassing authentication for /api/portal/me endpoint");
+        // Get user with beneficiary data
+        const userId = session.user.id;
+        const beneficiaryId = (session.user as any).beneficiaryId;
 
-        // Return mock user data for development
-        // In production, uncomment the authentication code above
+        if (!beneficiaryId) {
+          return json({ error: "Not a beneficiary account" }, 403);
+        }
+
+        // Fetch beneficiary with distributions
+        const beneficiary = await getBeneficiaryById(beneficiaryId);
+        if (!beneficiary) {
+          return json({ error: "Beneficiary not found" }, 404);
+        }
+
         return json({
-          user: {
-            id: "dev-user-id",
-            name: "Development User",
-            email: "dev@example.com",
-            role: "admin",
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          },
-          beneficiary: {
-            id: "dev-beneficiary-id",
-            firstName: "Dev",
-            lastName: "Tester",
-            relationship: "Self",
-            entityId: "dev-entity-id",
-            distributionStandard: "HEMS",
-            sharePercent: 100,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          }
+          user: session.user,
+          beneficiary,
         });
       }
 

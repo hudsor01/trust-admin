@@ -126,52 +126,13 @@ export function App() {
     )
   }
 
-  // TEMPORARY DEVELOPMENT BYPASS: Authentication check commented out for development
-  // TODO: RESTORE AUTHENTICATION BEFORE PRODUCTION DEPLOYMENT
-  // ORIGINAL AUTHENTICATION CODE (COMMENTED OUT FOR DEVELOPMENT):
-  // const user = session?.user as SessionUser | null
-  //
-  // if (!user) {
-  //   return <AdminLogin onLoginSuccess={() => {}} />
-  // }
-  //
-  // if (user.role !== "admin") {
-  //   return (
-  //     <div className="min-h-screen flex items-center justify-center bg-background p-6">
-  //       <div className="max-w-lg w-full rounded-lg border bg-card p-6 text-center space-y-4">
-  //         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
-  //           <ShieldAlert className="h-6 w-6 text-destructive" />
-  //         </div>
-  //         <div>
-  //           <h2 className="text-xl font-semibold">Access restricted</h2>
-  //           <p className="text-sm text-muted-foreground">
-  //             This area is available to administrator accounts only.
-  //           </p>
-  //         </div>
-  //         <Button
-  //           variant="outline"
-  //           onClick={async () => {
-  //             await signOut()
-  //           }}
-  //         >
-  //           Sign out
-  //         </Button>
-  //       </div>
-  //     </div>
-  //   )
-  // }
+  // Admin authentication check
+  const user = session?.user as SessionUser | null
 
-  // TEMPORARY DEVELOPMENT CODE: Mock user data for development
-  // This allows the dashboard to load during development without authentication
-  console.log("[DEV MODE] Bypassing authentication in App.tsx")
-  const user = {
-    id: "dev-user-id",
-    name: "Development User",
-    email: "dev@example.com",
-    role: "admin"
-  } as SessionUser
+  if (!user) {
+    return <AdminLogin onLoginSuccess={() => {}} />
+  }
 
-  // Continue with the rest of the app logic
   if (user.role !== "admin") {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-6">

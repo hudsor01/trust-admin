@@ -14,7 +14,20 @@ declare module "bun" {
     PORT?: string;
     NODE_ENV?: "development" | "production" | "test";
 
-    // Add additional environment variables as needed
+    // Authentication
+    BETTER_AUTH_SECRET?: string;
+    RESEND_API_KEY?: string;
+    EMAIL_FROM?: string;
+
+    // URLs
+    FRONTEND_URL?: string;
+    API_URL?: string;
+    TRUSTED_ORIGINS?: string; // comma-separated
+    ALLOWED_ORIGINS?: string; // comma-separated for CORS
+
+    // Monitoring
+    SENTRY_DSN?: string;
+    LOG_LEVEL?: "debug" | "info" | "warn" | "error";
   }
 }
 
