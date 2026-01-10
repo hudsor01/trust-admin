@@ -17,12 +17,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+import { ResourceDialog } from "@/components/resource-dialog"
+import { useResourceForm } from "@/hooks/use-resource-form"
+import { insertTrusteeSchema } from "../../db/validation"
 import {
   Select,
   SelectContent,
@@ -71,9 +68,31 @@ export function Trustees() {
   const updateTrusteeMutation = useUpdateTrustee()
   const deleteTrusteeMutation = useDeleteTrustee()
 
-  const [showForm, setShowForm] = useState(false)
-  const [editingTrustee, setEditingTrustee] = useState<Trustee | null>(null)
-  const [formData, setFormData] = useState(trusteeFormDefaults())
+  // Form state using useResourceForm hook
+  const trusteeForm = useResourceForm({
+    initialData: trusteeFormDefaults(),
+    validationSchema: insertTrusteeSchema,
+    onSubmit: async (data) => {
+      if (!selectedEntity) return
+      const payload = {
+        entityId: selectedEntity,
+        name: data.name,
+        status: data.status,
+        order: data.order,
+        isCo: data.isCo,
+        coTrusteeId: data.coTrusteeId || null,
+        startDate: data.startDate || null,
+        endDate: data.endDate || null,
+      }
+      if (trusteeForm.isEditing && trusteeForm.editingId) {
+        await updateTrusteeMutation.mutateAsync({ id: trusteeForm.editingId, data: payload })
+      } else {
+        await createTrusteeMutation.mutateAsync(payload)
+      }
+    },
+  })
+
+  const { formInstance } = trusteeForm
 
   // Auto-select first entity
   useEffect(() => {
@@ -81,30 +100,6 @@ export function Trustees() {
       setSelectedEntity(entities[0].id)
     }
   }, [entities, selectedEntity])
-
-  const saveTrustee = async () => {
-    if (!formData.name.trim() || !selectedEntity) return
-
-    const payload = {
-      entityId: selectedEntity,
-      name: formData.name,
-      status: formData.status,
-      order: formData.order,
-      isCo: formData.isCo,
-    }
-
-    try {
-      if (editingTrustee) {
-        await updateTrusteeMutation.mutateAsync({ id: editingTrustee.id, data: payload })
-      } else {
-        await createTrusteeMutation.mutateAsync(payload)
-      }
-      setShowForm(false)
-      resetForm()
-    } catch (error) {
-      console.error("Failed to save trustee:", error)
-    }
-  }
 
   const deleteTrustee = async (id: string) => {
     if (!confirm("Are you sure you want to delete this trustee?")) return
@@ -115,14 +110,8 @@ export function Trustees() {
     }
   }
 
-  const resetForm = () => {
-    setFormData(trusteeFormDefaults())
-    setEditingTrustee(null)
-  }
-
   const openEditForm = (trustee: Trustee) => {
-    setEditingTrustee(trustee)
-    setFormData({
+    trusteeForm.edit(trustee.id, {
       name: trustee.name,
       status: trustee.status,
       order: trustee.order,
@@ -131,7 +120,6 @@ export function Trustees() {
       startDate: trustee.startDate,
       endDate: trustee.endDate,
     })
-    setShowForm(true)
   }
 
   const loading = entitiesLoading || trusteesLoading
@@ -166,12 +154,7 @@ export function Trustees() {
               ))}
             </SelectContent>
           </Select>
-          <Button
-            onClick={() => {
-              resetForm()
-              setShowForm(true)
-            }}
-          >
+          <Button onClick={() => trusteeForm.open()}>
             <Plus className="h-4 w-4 mr-2" />
             Add Trustee
           </Button>
@@ -437,146 +420,163 @@ export function Trustees() {
       </Card>
 
       {/* Trustee Form Dialog */}
-      <Dialog
-        open={showForm}
-        onOpenChange={(open) => {
-          if (!open) {
-            setShowForm(false)
-            resetForm()
-          }
-        }}
+      <ResourceDialog
+        open={trusteeForm.isOpen}
+        onOpenChange={trusteeForm.close}
+        title={trusteeForm.isEditing ? "Edit Trustee" : "Add Trustee"}
+        onSubmit={trusteeForm.handleSave}
+        isLoading={trusteeForm.isSubmitting}
       >
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              {editingTrustee ? "Edit Trustee" : "Add Trustee"}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 pt-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Name *</Label>
-              <Input
-                id="name"
-                placeholder="Full legal name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
-              <Select
-                value={formData.status}
-                onValueChange={(v) => setFormData({ ...formData, status: v })}
-              >
-                <SelectTrigger id="status">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {STATUS_OPTIONS.map((s) => (
-                    <SelectItem key={s.value} value={s.value}>
-                      {s.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="order">Order</Label>
-              <Input
-                id="order"
-                type="number"
-                min={1}
-                max={10}
-                value={formData.order}
-                onChange={(e) =>
-                  setFormData({ ...formData, order: parseInt(e.target.value) || 1 })
-                }
-              />
-              <p className="text-xs text-muted-foreground">
-                1 = Primary, 2 = First Successor, etc.
-              </p>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <Label htmlFor="isCo">Is Co-Trustee?</Label>
-              <Switch
-                id="isCo"
-                checked={formData.isCo}
-                onCheckedChange={(checked) =>
-                  setFormData({ ...formData, isCo: checked })
-                }
-              />
-            </div>
-
-            {formData.isCo && (
+        <div className="space-y-4">
+          {/* Name - Required */}
+          <formInstance.Field name="name">
+            {(field) => (
               <div className="space-y-2">
-                <Label htmlFor="coTrustee">Co-Trustee</Label>
+                <Label htmlFor="name">Name *</Label>
+                <Input
+                  id="name"
+                  placeholder="Full legal name"
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  onBlur={field.handleBlur}
+                />
+                {field.state.meta.errors?.[0] && (
+                  <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                )}
+              </div>
+            )}
+          </formInstance.Field>
+
+          {/* Status */}
+          <formInstance.Field name="status">
+            {(field) => (
+              <div className="space-y-2">
+                <Label htmlFor="status">Status</Label>
                 <Select
-                  value={formData.coTrusteeId || undefined}
-                  onValueChange={(v) => setFormData({ ...formData, coTrusteeId: v })}
+                  value={field.state.value}
+                  onValueChange={(v) => field.handleChange(v)}
                 >
-                  <SelectTrigger id="coTrustee">
-                    <SelectValue placeholder="Select co-trustee" />
+                  <SelectTrigger id="status" onBlur={field.handleBlur}>
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {trustees
-                      .filter((t) => t.id !== editingTrustee?.id)
-                      .map((t) => (
-                        <SelectItem key={t.id} value={t.id}>
-                          {t.name}
-                        </SelectItem>
-                      ))}
+                    {STATUS_OPTIONS.map((s) => (
+                      <SelectItem key={s.value} value={s.value}>
+                        {s.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
             )}
+          </formInstance.Field>
 
-            <div className="space-y-2">
-              <Label htmlFor="startDate">Start Date</Label>
-              <Input
-                id="startDate"
-                type="date"
-                value={formData.startDate || ""}
-                onChange={(e) =>
-                  setFormData({ ...formData, startDate: e.target.value || null })
-                }
-              />
-            </div>
+          {/* Order */}
+          <formInstance.Field name="order">
+            {(field) => (
+              <div className="space-y-2">
+                <Label htmlFor="order">Order</Label>
+                <Input
+                  id="order"
+                  type="number"
+                  min={1}
+                  max={10}
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(parseInt(e.target.value) || 1)}
+                  onBlur={field.handleBlur}
+                />
+                <p className="text-xs text-muted-foreground">
+                  1 = Primary, 2 = First Successor, etc.
+                </p>
+                {field.state.meta.errors?.[0] && (
+                  <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                )}
+              </div>
+            )}
+          </formInstance.Field>
 
-            <div className="space-y-2">
-              <Label htmlFor="endDate">End Date</Label>
-              <Input
-                id="endDate"
-                type="date"
-                value={formData.endDate || ""}
-                onChange={(e) =>
-                  setFormData({ ...formData, endDate: e.target.value || null })
-                }
-              />
-              <p className="text-xs text-muted-foreground">
-                Leave blank if currently serving
-              </p>
-            </div>
+          {/* Is Co-Trustee */}
+          <formInstance.Field name="isCo">
+            {(field) => (
+              <div className="flex items-center justify-between">
+                <Label htmlFor="isCo">Is Co-Trustee?</Label>
+                <Switch
+                  id="isCo"
+                  checked={field.state.value}
+                  onCheckedChange={(checked) => field.handleChange(checked)}
+                />
+              </div>
+            )}
+          </formInstance.Field>
 
-            <div className="flex justify-end gap-3 pt-4">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setShowForm(false)
-                  resetForm()
-                }}
-              >
-                Cancel
-              </Button>
-              <Button onClick={saveTrustee}>
-                {editingTrustee ? "Update" : "Add"} Trustee
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+          {/* Co-Trustee Selector - Conditional */}
+          <formInstance.Subscribe selector={(state) => state.values.isCo}>
+            {(isCo) =>
+              isCo ? (
+                <formInstance.Field name="coTrusteeId">
+                  {(field) => (
+                    <div className="space-y-2">
+                      <Label htmlFor="coTrustee">Co-Trustee</Label>
+                      <Select
+                        value={field.state.value || ""}
+                        onValueChange={(v) => field.handleChange(v)}
+                      >
+                        <SelectTrigger id="coTrustee" onBlur={field.handleBlur}>
+                          <SelectValue placeholder="Select co-trustee" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {trustees
+                            .filter((t) => t.id !== trusteeForm.editingId)
+                            .map((t) => (
+                              <SelectItem key={t.id} value={t.id}>
+                                {t.name}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </formInstance.Field>
+              ) : null
+            }
+          </formInstance.Subscribe>
+
+          {/* Start Date */}
+          <formInstance.Field name="startDate">
+            {(field) => (
+              <div className="space-y-2">
+                <Label htmlFor="startDate">Start Date</Label>
+                <Input
+                  id="startDate"
+                  type="date"
+                  value={field.state.value || ""}
+                  onChange={(e) => field.handleChange(e.target.value || null)}
+                  onBlur={field.handleBlur}
+                />
+              </div>
+            )}
+          </formInstance.Field>
+
+          {/* End Date */}
+          <formInstance.Field name="endDate">
+            {(field) => (
+              <div className="space-y-2">
+                <Label htmlFor="endDate">End Date</Label>
+                <Input
+                  id="endDate"
+                  type="date"
+                  value={field.state.value || ""}
+                  onChange={(e) => field.handleChange(e.target.value || null)}
+                  onBlur={field.handleBlur}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Leave blank if currently serving
+                </p>
+              </div>
+            )}
+          </formInstance.Field>
+        </div>
+      </ResourceDialog>
     </div>
   )
 }
