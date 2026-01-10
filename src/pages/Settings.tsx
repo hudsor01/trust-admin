@@ -30,13 +30,9 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
+import { ResourceDialog } from "@/components/resource-dialog"
+import { useResourceForm } from "@/hooks/use-resource-form"
+import { insertContactSchema } from "../../db/validation"
 import { Label } from "@/components/ui/label"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { EditableTextCell, EditableDateCell } from "@/components/editable-cells"
@@ -166,36 +162,28 @@ export function Settings() {
   const updateContactMutation = useUpdateContact()
   const createContactMutation = useCreateContact()
 
-  // New contact form state
-  const [showAddContact, setShowAddContact] = useState(false)
-  const [newContact, setNewContact] = useState({
-    name: "",
-    company: "",
-    role: "OTHER",
-    email: "",
-    phone: "",
-  })
-  const [creatingContact, setCreatingContact] = useState(false)
-
-  const handleCreateContact = async () => {
-    if (!newContact.name.trim()) return
-    setCreatingContact(true)
-    try {
+  // Contact form using useResourceForm hook
+  const contactForm = useResourceForm({
+    initialData: {
+      name: "",
+      company: "",
+      role: "OTHER",
+      email: "",
+      phone: "",
+    },
+    validationSchema: insertContactSchema,
+    onSubmit: async (data) => {
       await createContactMutation.mutateAsync({
-        name: newContact.name.trim(),
-        company: newContact.company.trim() || null,
-        role: newContact.role,
-        email: newContact.email.trim() || null,
-        phone: newContact.phone.trim() || null,
+        name: data.name.trim(),
+        company: data.company?.trim() || null,
+        role: data.role,
+        email: data.email?.trim() || null,
+        phone: data.phone?.trim() || null,
       })
-      setNewContact({ name: "", company: "", role: "OTHER", email: "", phone: "" })
-      setShowAddContact(false)
-    } catch (e) {
-      console.error("Failed to create contact:", e)
-    } finally {
-      setCreatingContact(false)
-    }
-  }
+    },
+  })
+
+  const { formInstance } = contactForm
 
   const loading = entitiesLoading || beneficiariesLoading || trusteesLoading || contactsLoading
 
@@ -373,43 +361,66 @@ export function Settings() {
               <div className="space-y-4">
                 {/* Add Contact Button */}
                 <div className="flex justify-end">
-                  <Dialog open={showAddContact} onOpenChange={setShowAddContact}>
-                    <DialogTrigger asChild>
-                      <Button size="sm">
-                        <Plus className="mr-2 h-4 w-4" />
-                        Add Contact
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Add New Contact</DialogTitle>
-                      </DialogHeader>
-                      <div className="space-y-4 pt-4">
+                  <Button size="sm" onClick={() => contactForm.open()}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Contact
+                  </Button>
+                </div>
+
+                {/* Add Contact Dialog */}
+                <ResourceDialog
+                  open={contactForm.isOpen}
+                  onOpenChange={contactForm.close}
+                  title="Add New Contact"
+                  onSubmit={contactForm.handleSave}
+                  isLoading={contactForm.isSubmitting}
+                >
+                  <div className="space-y-4">
+                    {/* Name - Required */}
+                    <formInstance.Field name="name">
+                      {(field) => (
                         <div className="space-y-2">
                           <Label htmlFor="contact-name">Name *</Label>
                           <Input
                             id="contact-name"
-                            value={newContact.name}
-                            onChange={(e) => setNewContact({ ...newContact, name: e.target.value })}
+                            value={field.state.value}
+                            onChange={(e) => field.handleChange(e.target.value)}
+                            onBlur={field.handleBlur}
                             placeholder="John Smith"
                           />
+                          {field.state.meta.errors?.[0] && (
+                            <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                          )}
                         </div>
+                      )}
+                    </formInstance.Field>
+
+                    {/* Company */}
+                    <formInstance.Field name="company">
+                      {(field) => (
                         <div className="space-y-2">
                           <Label htmlFor="contact-company">Company</Label>
                           <Input
                             id="contact-company"
-                            value={newContact.company}
-                            onChange={(e) => setNewContact({ ...newContact, company: e.target.value })}
+                            value={field.state.value || ""}
+                            onChange={(e) => field.handleChange(e.target.value)}
+                            onBlur={field.handleBlur}
                             placeholder="Smith & Associates"
                           />
                         </div>
+                      )}
+                    </formInstance.Field>
+
+                    {/* Role */}
+                    <formInstance.Field name="role">
+                      {(field) => (
                         <div className="space-y-2">
                           <Label htmlFor="contact-role">Role</Label>
                           <Select
-                            value={newContact.role}
-                            onValueChange={(v) => setNewContact({ ...newContact, role: v })}
+                            value={field.state.value}
+                            onValueChange={(v) => field.handleChange(v)}
                           >
-                            <SelectTrigger id="contact-role">
+                            <SelectTrigger id="contact-role" onBlur={field.handleBlur}>
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -421,39 +432,44 @@ export function Settings() {
                             </SelectContent>
                           </Select>
                         </div>
+                      )}
+                    </formInstance.Field>
+
+                    {/* Email */}
+                    <formInstance.Field name="email">
+                      {(field) => (
                         <div className="space-y-2">
                           <Label htmlFor="contact-email">Email</Label>
                           <Input
                             id="contact-email"
                             type="email"
-                            value={newContact.email}
-                            onChange={(e) => setNewContact({ ...newContact, email: e.target.value })}
+                            value={field.state.value || ""}
+                            onChange={(e) => field.handleChange(e.target.value)}
+                            onBlur={field.handleBlur}
                             placeholder="john@example.com"
                           />
                         </div>
+                      )}
+                    </formInstance.Field>
+
+                    {/* Phone */}
+                    <formInstance.Field name="phone">
+                      {(field) => (
                         <div className="space-y-2">
                           <Label htmlFor="contact-phone">Phone</Label>
                           <Input
                             id="contact-phone"
                             type="tel"
-                            value={newContact.phone}
-                            onChange={(e) => setNewContact({ ...newContact, phone: e.target.value })}
+                            value={field.state.value || ""}
+                            onChange={(e) => field.handleChange(e.target.value)}
+                            onBlur={field.handleBlur}
                             placeholder="(555) 123-4567"
                           />
                         </div>
-                        <div className="flex justify-end gap-2 pt-4">
-                          <Button variant="outline" onClick={() => setShowAddContact(false)}>
-                            Cancel
-                          </Button>
-                          <Button onClick={handleCreateContact} disabled={!newContact.name.trim() || creatingContact}>
-                            {creatingContact && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Add Contact
-                          </Button>
-                        </div>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-                </div>
+                      )}
+                    </formInstance.Field>
+                  </div>
+                </ResourceDialog>
 
                 {loading ? (
                   <div className="flex justify-center py-12">
