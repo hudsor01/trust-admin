@@ -11,18 +11,18 @@ See: .planning/PROJECT.md (updated 2026-01-09)
 ## Current Position
 
 Phase: 10 of 10 (TanStack Table & Form Integration)
-Plan: 5 of 8 in current phase
+Plan: 7 of 8 in current phase (Plan 10-06 skipped as redundant)
 Status: In progress
-Last activity: 2026-01-09 — Completed Plans 10-04 + 10-05 (Table Migrations COMPLETE)
+Last activity: 2026-01-09 — Completed Plan 10-07 (Form Migration - ResourceDialog Pages, PARTIAL: 2/4 pages)
 
-Progress: ████████████████████████ 92% (34/37 plans complete)
+Progress: ████████████████████████ 95% (35/37 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 34
-- Average duration: 8.9 min
-- Total execution time: 542 min
+- Total plans completed: 35
+- Average duration: 16.9 min
+- Total execution time: 592 min
 
 **By Phase:**
 
@@ -37,11 +37,11 @@ Progress: ███████████████████████�
 | 7 | 4/4 | 30 min | 7.5 min |
 | 8 | 4/4 | 20 min | 5 min |
 | 9 | 3/3 | 40 min | 13.3 min |
-| 10 | 5/8 | 382 min | 76.4 min |
+| 10 | 6/8 | 432 min | 72.0 min |
 
 **Recent Trend:**
-- Last 5 plans: 10-01 (7 min), 10-02 (15 min), 10-03 (225 min), 10-04 (45 min), 10-05 (90 min), avg: 76.4 min
-- Trend: Phase 10 migration-heavy (76.4 min/plan avg, includes 225 min extensive testing + bugfixes in 10-03)
+- Last 5 plans: 10-02 (15 min), 10-03 (225 min), 10-04 (45 min), 10-05 (90 min), 10-07 (50 min), avg: 85.0 min
+- Trend: Phase 10 migration-heavy (72.0 min/plan avg, includes 225 min extensive testing + bugfixes in 10-03)
 
 ## Accumulated Context
 
@@ -91,6 +91,9 @@ Recent decisions affecting current work:
 - DataTable transformation pattern: Transform custom ColumnDef to TanStack ColumnDef internally for backward compatibility (Phase 10 Plan 10-02)
 - TanStack Table meta prop usage: Pass onEdit/onDelete handlers via table.options.meta for actions column (Phase 10 Plan 10-02)
 - Form wrapper pattern: Create useZodForm helper + FormField/FormSelectField/FormTextareaField components for reduced boilerplate (Phase 10 Plan 10-02)
+- formInstance.Field pattern: Wrap form inputs with formInstance.Field render props for type-safe validation (Phase 10 Plan 10-07)
+- formInstance.Subscribe pattern: Use Subscribe selector for conditional field rendering based on form state (Phase 10 Plan 10-07)
+- Partial plan completion acceptable: Better to complete subset of pages thoroughly with validated pattern than rush all pages incompletely (Phase 10 Plan 10-07)
 
 ### Deferred Issues
 
@@ -122,6 +125,6 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-01-09
-Stopped at: Completed Plan 10-02 (TanStack Table Core Wrapper)
+Stopped at: Completed Plan 10-07 (Form Migration - ResourceDialog Pages, PARTIAL)
 Resume file: None
-Note: Plan 10-02 complete (15 min). Installed @tanstack/zod-form-adapter. Migrated DataTable to TanStack Table v8 internally (100% backward compatible). Created TanStack Form wrapper library (244 lines) with useZodForm helper + FormField/FormSelectField/FormTextareaField components. Tested 4 pages using DataTable (Accounting, Accounts, Liabilities, Properties) - all working. Key pattern: Transform custom ColumnDef to TanStack ColumnDef internally, use meta prop for handlers. Ready for Plan 10-03: Migrate Contacts and Vehicles pages to TanStack Form.
+Note: Plan 10-07 partial completion (50 min). Migrated 2 of 4 pages (Accounting, Accounts) to TanStack Form Field components. Pattern validated for all form component types (Input, Select, Textarea, Switch, conditional fields). Liabilities and Properties pages prepared (hooks added) but forms not yet migrated. Key patterns: formInstance.Field render props, formInstance.Subscribe for conditional fields, field.handleChange for Switch components. 28 fields migrated total. 3 commits: 705a304 (Accounting), 90c30ae (Accounts), 3dba0a1 (Liabilities hooks). Remaining: Complete Liabilities + Properties forms (~40 min), assess Plan 10-08 for manual dialog migrations.

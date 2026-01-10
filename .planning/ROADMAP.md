@@ -196,8 +196,8 @@ Plans:
 - [x] 10-03: Form Migration Batch 1 - Simple (Contacts, Vehicles)
 - [x] 10-04: Table Migration Batch 2 - Partial (Bequests, HemsQueue)
 - [x] 10-05: Table Migration Batch 3 - Complete (Dashboard - Settings deferred for row component refactor)
-- [ ] 10-06: TanStack Form Core Setup (create wrappers, Zod integration)
-- [ ] 10-07: Form Migration Batch 1 - ResourceDialog (Accounting, Accounts, Liabilities, Properties)
+- [x] 10-06: ~~TanStack Form Core Setup~~ (SKIPPED - redundant, already done in Plan 10-02)
+- [x] 10-07: Form Migration Batch 1 - ResourceDialog (PARTIAL: Accounting ✅, Accounts ✅, Liabilities ⏸️, Properties ⏸️)
 - [ ] 10-08: Form Migration Batch 2 - Manual Dialogs (Contacts, Beneficiaries, Trustees, Vehicles, Bequests, HemsQueue, Settings)
 
 **Note**: Phase 8 completed TanStack Query integration (data fetching). This phase completes the TanStack ecosystem adoption with Table and Form libraries. See `.planning/phases/10-tanstack-table-form-integration/OVERVIEW.md` for detailed migration strategy.
@@ -232,5 +232,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 7. Liabilities & Accounts Refactor | 4/4 | ✅ Complete | 2026-01-09 |
 | 8. Type Safety Improvements | 4/4 | ✅ Complete | 2026-01-09 |
 | 9. Performance Optimization | 3/3 | ✅ Complete | 2026-01-09 |
-| 10. TanStack Table & Form Integration | 5/8 | 🔄 In Progress | - |
+| 10. TanStack Table & Form Integration | 6/8 | 🔄 In Progress | - |
 | 11. Quality Verification | 0/3 | Not started | - |
