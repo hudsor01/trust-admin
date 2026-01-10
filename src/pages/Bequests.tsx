@@ -8,14 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
+import { DataTable, type ColumnDef } from "@/components/data-table"
 import {
   Dialog,
   DialogContent,
@@ -170,6 +163,149 @@ export function Bequests() {
   const pendingBequests = bequests.filter((b) => !b.dateDistributed)
   const distributedBequests = bequests.filter((b) => b.dateDistributed)
 
+  // Column definitions for pending bequests table
+  const pendingColumns: ColumnDef<SpecificBequestType>[] = [
+    {
+      key: "description",
+      header: "Item",
+      render: (bequest) => (
+        <EditableTextCell
+          value={bequest.description}
+          onSave={(v) => updateBequest(bequest.id, { description: String(v || "") })}
+        />
+      ),
+    },
+    {
+      key: "category",
+      header: "Category",
+      render: (bequest) => (
+        <EditableSelectCell
+          value={bequest.category || "OTHER"}
+          options={BEQUEST_CATEGORIES}
+          onSave={(v) => updateBequest(bequest.id, { category: v })}
+        />
+      ),
+    },
+    {
+      key: "recipient",
+      header: "Recipient",
+      render: (bequest) => {
+        const recipient = bequest.beneficiaryId
+          ? beneficiaries.find((ben) => ben.id === bequest.beneficiaryId)
+          : null
+        return recipient ? (
+          `${recipient.firstName} ${recipient.lastName}`
+        ) : (
+          <EditableTextCell
+            value={bequest.recipientName}
+            onSave={(v) => updateBequest(bequest.id, { recipientName: v })}
+            placeholder="Add recipient"
+          />
+        )
+      },
+    },
+    {
+      key: "notes",
+      header: "Notes",
+      render: (bequest) => (
+        <EditableTextCell
+          value={bequest.notes}
+          onSave={(v) => updateBequest(bequest.id, { notes: v })}
+          placeholder="Add notes"
+        />
+      ),
+    },
+    {
+      key: "actions",
+      header: "Actions",
+      render: (bequest) => (
+        <div className="flex items-center gap-1">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-success hover:text-success"
+                  onClick={() => markDistributed(bequest)}
+                >
+                  <Check className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Mark Distributed</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => openEditForm(bequest)}
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Edit</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-destructive hover:text-destructive"
+                  onClick={() => deleteBequest(bequest.id)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Delete</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+      ),
+    },
+  ]
+
+  // Column definitions for distributed bequests table
+  const distributedColumns: ColumnDef<SpecificBequestType>[] = [
+    {
+      key: "description",
+      header: "Item",
+      render: (bequest) => <span className="font-medium">{bequest.description}</span>,
+    },
+    {
+      key: "category",
+      header: "Category",
+      render: (bequest) => (
+        <Badge variant="outline">
+          {BEQUEST_CATEGORIES.find((c) => c.value === bequest.category)?.label ||
+            bequest.category}
+        </Badge>
+      ),
+    },
+    {
+      key: "recipient",
+      header: "Recipient",
+      render: (bequest) => {
+        const recipient = bequest.beneficiaryId
+          ? beneficiaries.find((ben) => ben.id === bequest.beneficiaryId)
+          : null
+        return recipient
+          ? `${recipient.firstName} ${recipient.lastName}`
+          : bequest.recipientName || "—"
+      },
+    },
+    {
+      key: "dateDistributed",
+      header: "Date Distributed",
+      render: (bequest) => formatDate(bequest.dateDistributed),
+    },
+  ]
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -213,110 +349,10 @@ export function Bequests() {
           ) : pendingBequests.length === 0 ? (
             <p className="text-center py-8 text-muted-foreground">No pending bequests</p>
           ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Item</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Recipient</TableHead>
-                    <TableHead>Notes</TableHead>
-                    <TableHead className="w-[120px]">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {pendingBequests.map((b) => {
-                    const recipient = b.beneficiaryId
-                      ? beneficiaries.find((ben) => ben.id === b.beneficiaryId)
-                      : null
-                    return (
-                      <TableRow key={b.id}>
-                        <TableCell className="font-medium">
-                          <EditableTextCell
-                            value={b.description}
-                            onSave={(v) => updateBequest(b.id, { description: String(v || "") })}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <EditableSelectCell
-                            value={b.category || "OTHER"}
-                            options={BEQUEST_CATEGORIES}
-                            onSave={(v) => updateBequest(b.id, { category: v })}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          {recipient ? (
-                            `${recipient.firstName} ${recipient.lastName}`
-                          ) : (
-                            <EditableTextCell
-                              value={b.recipientName}
-                              onSave={(v) => updateBequest(b.id, { recipientName: v })}
-                              placeholder="Add recipient"
-                            />
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <EditableTextCell
-                            value={b.notes}
-                            onSave={(v) => updateBequest(b.id, { notes: v })}
-                            placeholder="Add notes"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1">
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8 text-success hover:text-success"
-                                    onClick={() => markDistributed(b)}
-                                  >
-                                    <Check className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Mark Distributed</TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8"
-                                    onClick={() => openEditForm(b)}
-                                  >
-                                    <Pencil className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Edit</TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8 text-destructive hover:text-destructive"
-                                    onClick={() => deleteBequest(b.id)}
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Delete</TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })}
-                </TableBody>
-              </Table>
-            </div>
+            <DataTable
+              data={pendingBequests}
+              columns={pendingColumns}
+            />
           )}
         </CardContent>
       </Card>
@@ -330,42 +366,10 @@ export function Bequests() {
           {distributedBequests.length === 0 ? (
             <p className="text-center py-8 text-muted-foreground">No distributed bequests</p>
           ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Item</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Recipient</TableHead>
-                    <TableHead>Date Distributed</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {distributedBequests.map((b) => {
-                    const recipient = b.beneficiaryId
-                      ? beneficiaries.find((ben) => ben.id === b.beneficiaryId)
-                      : null
-                    return (
-                      <TableRow key={b.id}>
-                        <TableCell className="font-medium">{b.description}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">
-                            {BEQUEST_CATEGORIES.find((c) => c.value === b.category)?.label ||
-                              b.category}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {recipient
-                            ? `${recipient.firstName} ${recipient.lastName}`
-                            : b.recipientName || "—"}
-                        </TableCell>
-                        <TableCell>{formatDate(b.dateDistributed)}</TableCell>
-                      </TableRow>
-                    )
-                  })}
-                </TableBody>
-              </Table>
-            </div>
+            <DataTable
+              data={distributedBequests}
+              columns={distributedColumns}
+            />
           )}
         </CardContent>
       </Card>
