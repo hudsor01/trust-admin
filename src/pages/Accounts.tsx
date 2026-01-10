@@ -382,6 +382,7 @@ export function Accounts() {
     handleSave: handleSaveBank,
     isSubmitting: isBankSaving,
     isEditing: isEditingBank,
+    formInstance: bankFormInstance,
   } = useResourceForm<BankFormData>({
     initialData: bankAccountFormDefaults(),
     onSubmit: async (data) => {
@@ -421,6 +422,7 @@ export function Accounts() {
     handleSave: handleSaveInvestment,
     isSubmitting: isInvestmentSaving,
     isEditing: isEditingInvestment,
+    formInstance: investmentFormInstance,
   } = useResourceForm<InvestmentFormData>({
     initialData: investmentAccountFormDefaults(),
     onSubmit: async (data) => {
@@ -621,138 +623,201 @@ export function Accounts() {
           <div>
             <h4 className="text-sm font-medium mb-3">Account Information</h4>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="bank-institution">Institution *</Label>
-                <Input
-                  id="bank-institution"
-                  placeholder="e.g., Chase, Wells Fargo"
-                  value={bankFormData.institution}
-                  onChange={(e) => setBankFormData({ ...bankFormData, institution: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="bank-type">Account Type *</Label>
-                <Select
-                  value={bankFormData.accountType}
-                  onValueChange={(v) => setBankFormData({ ...bankFormData, accountType: v })}
-                >
-                  <SelectTrigger id="bank-type">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {BANK_ACCOUNT_TYPES.map((t) => (
-                      <SelectItem key={t.value} value={t.value}>
-                        {t.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {/* Institution */}
+              <bankFormInstance.Field name="institution">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="bank-institution">Institution *</Label>
+                    <Input
+                      id="bank-institution"
+                      placeholder="e.g., Chase, Wells Fargo"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                    />
+                  </div>
+                )}
+              </bankFormInstance.Field>
+
+              {/* Account Type */}
+              <bankFormInstance.Field name="accountType">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="bank-type">Account Type *</Label>
+                    <Select
+                      value={field.state.value}
+                      onValueChange={(v) => field.handleChange(v)}
+                    >
+                      <SelectTrigger id="bank-type">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {BANK_ACCOUNT_TYPES.map((t) => (
+                          <SelectItem key={t.value} value={t.value}>
+                            {t.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </bankFormInstance.Field>
             </div>
-            <div className="space-y-2 mt-4">
-              <Label htmlFor="bank-name">Account Name</Label>
-              <Input
-                id="bank-name"
-                placeholder="e.g., Primary Checking"
-                value={bankFormData.accountName}
-                onChange={(e) => setBankFormData({ ...bankFormData, accountName: e.target.value })}
-              />
-            </div>
+
+            {/* Account Name */}
+            <bankFormInstance.Field name="accountName">
+              {(field) => (
+                <div className="space-y-2 mt-4">
+                  <Label htmlFor="bank-name">Account Name</Label>
+                  <Input
+                    id="bank-name"
+                    placeholder="e.g., Primary Checking"
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                  />
+                </div>
+              )}
+            </bankFormInstance.Field>
+
             <div className="grid grid-cols-2 gap-4 mt-4">
-              <div className="space-y-2">
-                <Label htmlFor="bank-number">Account Number *</Label>
-                <Input
-                  id="bank-number"
-                  value={bankFormData.accountNumber}
-                  onChange={(e) => setBankFormData({ ...bankFormData, accountNumber: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="bank-routing">Routing Number</Label>
-                <Input
-                  id="bank-routing"
-                  value={bankFormData.routingNumber}
-                  onChange={(e) => setBankFormData({ ...bankFormData, routingNumber: e.target.value })}
-                />
-              </div>
+              {/* Account Number */}
+              <bankFormInstance.Field name="accountNumber">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="bank-number">Account Number *</Label>
+                    <Input
+                      id="bank-number"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                    />
+                  </div>
+                )}
+              </bankFormInstance.Field>
+
+              {/* Routing Number */}
+              <bankFormInstance.Field name="routingNumber">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="bank-routing">Routing Number</Label>
+                    <Input
+                      id="bank-routing"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                    />
+                  </div>
+                )}
+              </bankFormInstance.Field>
             </div>
           </div>
 
           <div>
             <h4 className="text-sm font-medium mb-3">Date of Death Valuation</h4>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="bank-dod-value">DOD Balance</Label>
-                <Input
-                  id="bank-dod-value"
-                  placeholder="$"
-                  value={bankFormData.dodValue}
-                  onChange={(e) => setBankFormData({ ...bankFormData, dodValue: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="bank-dod-date">DOD Value Date</Label>
-                <Input
-                  id="bank-dod-date"
-                  type="date"
-                  value={bankFormData.dodValueDate || ""}
-                  onChange={(e) => setBankFormData({ ...bankFormData, dodValueDate: e.target.value || null })}
-                />
-              </div>
+              {/* DOD Value */}
+              <bankFormInstance.Field name="dodValue">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="bank-dod-value">DOD Balance</Label>
+                    <Input
+                      id="bank-dod-value"
+                      placeholder="$"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                    />
+                  </div>
+                )}
+              </bankFormInstance.Field>
+
+              {/* DOD Value Date */}
+              <bankFormInstance.Field name="dodValueDate">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="bank-dod-date">DOD Value Date</Label>
+                    <Input
+                      id="bank-dod-date"
+                      type="date"
+                      value={field.state.value || ""}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value || null)}
+                    />
+                  </div>
+                )}
+              </bankFormInstance.Field>
             </div>
           </div>
 
           <div>
             <h4 className="text-sm font-medium mb-3">Status</h4>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="bank-status">Account Status *</Label>
-                <Select
-                  value={bankFormData.status}
-                  onValueChange={(v) => setBankFormData({ ...bankFormData, status: v })}
-                >
-                  <SelectTrigger id="bank-status">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {ACCOUNT_STATUS.map((s) => (
-                      <SelectItem key={s.value} value={s.value}>
-                        {s.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="bank-transfer">Transfer Status *</Label>
-                <Select
-                  value={bankFormData.transferStatus}
-                  onValueChange={(v) => setBankFormData({ ...bankFormData, transferStatus: v })}
-                >
-                  <SelectTrigger id="bank-transfer">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {TRANSFER_STATUS.map((s) => (
-                      <SelectItem key={s.value} value={s.value}>
-                        {s.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {/* Account Status */}
+              <bankFormInstance.Field name="status">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="bank-status">Account Status *</Label>
+                    <Select
+                      value={field.state.value}
+                      onValueChange={(v) => field.handleChange(v)}
+                    >
+                      <SelectTrigger id="bank-status">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ACCOUNT_STATUS.map((s) => (
+                          <SelectItem key={s.value} value={s.value}>
+                            {s.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </bankFormInstance.Field>
+
+              {/* Transfer Status */}
+              <bankFormInstance.Field name="transferStatus">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="bank-transfer">Transfer Status *</Label>
+                    <Select
+                      value={field.state.value}
+                      onValueChange={(v) => field.handleChange(v)}
+                    >
+                      <SelectTrigger id="bank-transfer">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {TRANSFER_STATUS.map((s) => (
+                          <SelectItem key={s.value} value={s.value}>
+                            {s.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </bankFormInstance.Field>
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="bank-notes">Notes</Label>
-            <Textarea
-              id="bank-notes"
-              value={bankFormData.notes}
-              onChange={(e) => setBankFormData({ ...bankFormData, notes: e.target.value })}
-              rows={3}
-            />
-          </div>
+          {/* Notes */}
+          <bankFormInstance.Field name="notes">
+            {(field) => (
+              <div className="space-y-2">
+                <Label htmlFor="bank-notes">Notes</Label>
+                <Textarea
+                  id="bank-notes"
+                  value={field.state.value}
+                  onBlur={field.handleBlur}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  rows={3}
+                />
+              </div>
+            )}
+          </bankFormInstance.Field>
         </div>
       </ResourceDialog>
 
@@ -768,139 +833,202 @@ export function Accounts() {
           <div>
             <h4 className="text-sm font-medium mb-3">Account Information</h4>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="inv-institution">Institution *</Label>
-                <Input
-                  id="inv-institution"
-                  placeholder="e.g., Fidelity, Schwab"
-                  value={investmentFormData.institution}
-                  onChange={(e) => setInvestmentFormData({ ...investmentFormData, institution: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="inv-type">Account Type *</Label>
-                <Select
-                  value={investmentFormData.accountType}
-                  onValueChange={(v) => setInvestmentFormData({ ...investmentFormData, accountType: v })}
-                >
-                  <SelectTrigger id="inv-type">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {INVESTMENT_ACCOUNT_TYPES.map((t) => (
-                      <SelectItem key={t.value} value={t.value}>
-                        {t.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {/* Institution */}
+              <investmentFormInstance.Field name="institution">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="inv-institution">Institution *</Label>
+                    <Input
+                      id="inv-institution"
+                      placeholder="e.g., Fidelity, Schwab"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                    />
+                  </div>
+                )}
+              </investmentFormInstance.Field>
+
+              {/* Account Type */}
+              <investmentFormInstance.Field name="accountType">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="inv-type">Account Type *</Label>
+                    <Select
+                      value={field.state.value}
+                      onValueChange={(v) => field.handleChange(v)}
+                    >
+                      <SelectTrigger id="inv-type">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {INVESTMENT_ACCOUNT_TYPES.map((t) => (
+                          <SelectItem key={t.value} value={t.value}>
+                            {t.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </investmentFormInstance.Field>
             </div>
+
             <div className="grid grid-cols-2 gap-4 mt-4">
-              <div className="space-y-2">
-                <Label htmlFor="inv-name">Account Name</Label>
-                <Input
-                  id="inv-name"
-                  placeholder="e.g., Rollover IRA"
-                  value={investmentFormData.accountName}
-                  onChange={(e) => setInvestmentFormData({ ...investmentFormData, accountName: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="inv-number">Account Number *</Label>
-                <Input
-                  id="inv-number"
-                  value={investmentFormData.accountNumber}
-                  onChange={(e) => setInvestmentFormData({ ...investmentFormData, accountNumber: e.target.value })}
-                />
-              </div>
+              {/* Account Name */}
+              <investmentFormInstance.Field name="accountName">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="inv-name">Account Name</Label>
+                    <Input
+                      id="inv-name"
+                      placeholder="e.g., Rollover IRA"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                    />
+                  </div>
+                )}
+              </investmentFormInstance.Field>
+
+              {/* Account Number */}
+              <investmentFormInstance.Field name="accountNumber">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="inv-number">Account Number *</Label>
+                    <Input
+                      id="inv-number"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                    />
+                  </div>
+                )}
+              </investmentFormInstance.Field>
             </div>
           </div>
 
           <div>
             <h4 className="text-sm font-medium mb-3">Date of Death Valuation</h4>
             <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="inv-dod-value">DOD Value</Label>
-                <Input
-                  id="inv-dod-value"
-                  placeholder="$"
-                  value={investmentFormData.dodValue}
-                  onChange={(e) => setInvestmentFormData({ ...investmentFormData, dodValue: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="inv-dod-date">DOD Value Date</Label>
-                <Input
-                  id="inv-dod-date"
-                  type="date"
-                  value={investmentFormData.dodValueDate || ""}
-                  onChange={(e) => setInvestmentFormData({ ...investmentFormData, dodValueDate: e.target.value || null })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="inv-cost-basis">Cost Basis</Label>
-                <Input
-                  id="inv-cost-basis"
-                  placeholder="$ (for step-up)"
-                  value={investmentFormData.costBasis}
-                  onChange={(e) => setInvestmentFormData({ ...investmentFormData, costBasis: e.target.value })}
-                />
-              </div>
+              {/* DOD Value */}
+              <investmentFormInstance.Field name="dodValue">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="inv-dod-value">DOD Value</Label>
+                    <Input
+                      id="inv-dod-value"
+                      placeholder="$"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                    />
+                  </div>
+                )}
+              </investmentFormInstance.Field>
+
+              {/* DOD Value Date */}
+              <investmentFormInstance.Field name="dodValueDate">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="inv-dod-date">DOD Value Date</Label>
+                    <Input
+                      id="inv-dod-date"
+                      type="date"
+                      value={field.state.value || ""}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value || null)}
+                    />
+                  </div>
+                )}
+              </investmentFormInstance.Field>
+
+              {/* Cost Basis */}
+              <investmentFormInstance.Field name="costBasis">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="inv-cost-basis">Cost Basis</Label>
+                    <Input
+                      id="inv-cost-basis"
+                      placeholder="$ (for step-up)"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                    />
+                  </div>
+                )}
+              </investmentFormInstance.Field>
             </div>
           </div>
 
           <div>
             <h4 className="text-sm font-medium mb-3">Status</h4>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="inv-status">Account Status *</Label>
-                <Select
-                  value={investmentFormData.status}
-                  onValueChange={(v) => setInvestmentFormData({ ...investmentFormData, status: v })}
-                >
-                  <SelectTrigger id="inv-status">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {ACCOUNT_STATUS.map((s) => (
-                      <SelectItem key={s.value} value={s.value}>
-                        {s.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="inv-transfer">Transfer Status *</Label>
-                <Select
-                  value={investmentFormData.transferStatus}
-                  onValueChange={(v) => setInvestmentFormData({ ...investmentFormData, transferStatus: v })}
-                >
-                  <SelectTrigger id="inv-transfer">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {TRANSFER_STATUS.map((s) => (
-                      <SelectItem key={s.value} value={s.value}>
-                        {s.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {/* Account Status */}
+              <investmentFormInstance.Field name="status">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="inv-status">Account Status *</Label>
+                    <Select
+                      value={field.state.value}
+                      onValueChange={(v) => field.handleChange(v)}
+                    >
+                      <SelectTrigger id="inv-status">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ACCOUNT_STATUS.map((s) => (
+                          <SelectItem key={s.value} value={s.value}>
+                            {s.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </investmentFormInstance.Field>
+
+              {/* Transfer Status */}
+              <investmentFormInstance.Field name="transferStatus">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="inv-transfer">Transfer Status *</Label>
+                    <Select
+                      value={field.state.value}
+                      onValueChange={(v) => field.handleChange(v)}
+                    >
+                      <SelectTrigger id="inv-transfer">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {TRANSFER_STATUS.map((s) => (
+                          <SelectItem key={s.value} value={s.value}>
+                            {s.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </investmentFormInstance.Field>
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="inv-notes">Notes</Label>
-            <Textarea
-              id="inv-notes"
-              value={investmentFormData.notes}
-              onChange={(e) => setInvestmentFormData({ ...investmentFormData, notes: e.target.value })}
-              rows={3}
-            />
-          </div>
+          {/* Notes */}
+          <investmentFormInstance.Field name="notes">
+            {(field) => (
+              <div className="space-y-2">
+                <Label htmlFor="inv-notes">Notes</Label>
+                <Textarea
+                  id="inv-notes"
+                  value={field.state.value}
+                  onBlur={field.handleBlur}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  rows={3}
+                />
+              </div>
+            )}
+          </investmentFormInstance.Field>
         </div>
       </ResourceDialog>
     </div>
