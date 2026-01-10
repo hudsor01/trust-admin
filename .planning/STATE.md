@@ -13,7 +13,7 @@ See: .planning/PROJECT.md (updated 2026-01-09)
 Phase: 10 of 10 (TanStack Table & Form Integration)
 Plan: 8 of 8 in current phase (Plan 10-06 skipped as redundant)
 Status: In progress
-Last activity: 2026-01-09 — Completed Plan 10-07 (Form Migration - ResourceDialog Pages, COMPLETE: 4/4 pages)
+Last activity: 2026-01-09 — Working on Plan 10-08 (Dialog Standardization, IN PROGRESS: 5/9 pages)
 
 Progress: ████████████████████████ 97% (36/37 plans complete)
 
@@ -96,6 +96,8 @@ Recent decisions affecting current work:
 - Checkbox pattern: Use field.handleChange(!!checked) for Checkbox components to ensure boolean conversion (Phase 10 Plan 10-07)
 - Conditional disabled state: Wrap conditional fields in Subscribe to access parent field value for disabled prop (dodAffidavitDate/clerkFileNo disabled when dodAffidavitFiled is false) (Phase 10 Plan 10-07)
 - Plan 10-07 complete: All 4 ResourceDialog pages migrated (96 fields across 7 dialogs), pattern production-ready (Phase 10 Plan 10-07)
+- Dialog standardization batches: Start with quick wins (pages already using TanStack Form), then full migrations (manual state → useResourceForm) (Phase 10 Plan 10-08)
+- Specialized workflow dialogs: Not all dialogs are forms - approve/deny dialogs may stay as manual Dialog (HemsQueue review dialog) (Phase 10 Plan 10-08)
 
 ### Deferred Issues
 
@@ -127,6 +129,6 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-01-09
-Stopped at: Completed Plan 10-07 (Form Migration - ResourceDialog Pages, COMPLETE)
+Stopped at: Working on Plan 10-08 (Dialog Standardization, IN PROGRESS: 5/9 pages complete)
 Resume file: None
-Note: Plan 10-07 complete (90 min). Migrated all 4 ResourceDialog pages (Accounting, Accounts, Liabilities, Properties) to TanStack Form Field components. Pattern fully validated for ALL form component types (Input, Select, Textarea, Switch, Checkbox, conditional fields). 96 fields migrated across 7 dialogs. Key patterns: formInstance.Field render props, formInstance.Subscribe for conditional rendering, field.handleChange for Switch/Checkbox, conditional disabled state. 5 commits: 705a304 (Accounting), 90c30ae (Accounts), 3dba0a1 (Liabilities hooks), 1fd535b (Liabilities forms), cdd4984 (Properties forms). Next: Assess Plan 10-08 for manual dialog migrations (Beneficiaries, Trustees, Bequests, HemsQueue, Settings).
+Note: Plan 10-08 in progress (~2 hrs). Standardizing all form dialogs to use ResourceDialog + useResourceForm + TanStack Form patterns. Completed Batch 1 (Contacts, Vehicles - wrap existing TanStack Form in ResourceDialog, -38 lines) and 3/7 Batch 2 pages (Bequests 6 fields, Trustees 7 fields with conditional, Settings 5 fields). 5 commits: 43e8476 (Contacts), 515e0df (Vehicles), f732997 (Bequests), e4ca915 (Trustees), f6f7da9 (Settings). Remaining: Distributions.tsx (2 forms, 9 fields total), HemsQueue.tsx (review dialog - may skip), ActivityLog.tsx (not assessed). Key patterns established: formInstance.Subscribe for conditional fields, batch approach (quick wins → full migrations), specialized workflow dialogs may stay as-is. Next: Complete Distributions.tsx migration, assess HemsQueue.tsx, check ActivityLog.tsx, finalize SUMMARY.md.
