@@ -22,6 +22,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { ResourceDialog } from "@/components/resource-dialog"
 import {
   Select,
   SelectContent,
@@ -393,14 +394,14 @@ export function Vehicles() {
       )}
 
       {/* Vehicle Form Dialog */}
-      <Dialog open={vehicleForm.isOpen} onOpenChange={vehicleForm.close}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              {vehicleForm.isEditing ? "Edit Vehicle" : "Add Vehicle"}
-            </DialogTitle>
-          </DialogHeader>
-          <form onSubmit={(e) => { e.preventDefault(); vehicleForm.handleSave(); }} className="space-y-6 pt-4">
+      <ResourceDialog
+        open={vehicleForm.isOpen}
+        onOpenChange={vehicleForm.close}
+        title={vehicleForm.isEditing ? "Edit Vehicle" : "Add Vehicle"}
+        onSubmit={vehicleForm.handleSave}
+        isLoading={vehicleForm.isSubmitting}
+      >
+        <div className="space-y-6">
             {/* Vehicle Information */}
             <div>
               <h4 className="text-sm font-medium mb-3">Vehicle Information</h4>
@@ -739,23 +740,8 @@ export function Vehicles() {
               )}
             </vehicleForm.formInstance.Field>
 
-            {/* Actions */}
-            <div className="flex justify-end gap-3 pt-4">
-              <Button type="button" variant="outline" onClick={vehicleForm.close}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={vehicleForm.isSubmitting}>
-                {vehicleForm.isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : vehicleForm.isEditing ? "Update Vehicle" : "Add Vehicle"}
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
+        </div>
+      </ResourceDialog>
     </div>
   )
 }
