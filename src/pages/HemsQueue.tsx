@@ -14,14 +14,7 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
+import { DataTable, type ColumnDef } from "@/components/data-table"
 import {
   Dialog,
   DialogContent,
@@ -97,8 +90,80 @@ export function HemsQueue() {
 
   const displayedRequests = activeTab === "pending" ? pendingRequests : reviewedRequests
 
+  // Column definitions for HEMS requests table
+  const columns: ColumnDef<HemsRequestType>[] = [
+    {
+      key: "createdAt",
+      header: "Date",
+      render: (request) => (
+        <span className="text-sm">{formatDate(request.createdAt)}</span>
+      ),
+    },
+    {
+      key: "beneficiary",
+      header: "Beneficiary",
+      render: (request) => (
+        <div>
+          <p className="font-medium">
+            {request.beneficiary.firstName} {request.beneficiary.lastName}
+          </p>
+          {request.beneficiary.email && (
+            <p className="text-xs text-muted-foreground">
+              {request.beneficiary.email}
+            </p>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: "category",
+      header: "Category",
+      render: (request) => (
+        <Badge variant="outline">
+          {CATEGORY_LABELS[request.category] || request.category}
+        </Badge>
+      ),
+    },
+    {
+      key: "amountRequested",
+      header: "Amount",
+      render: (request) => (
+        <span className="font-medium">
+          {formatCurrency(parseFloat(request.amountRequested))}
+        </span>
+      ),
+    },
+    {
+      key: "status",
+      header: "Status",
+      render: (request) => (
+        <Badge variant={STATUS_VARIANTS[request.status] || "secondary"}>
+          {STATUS_LABELS[request.status] || request.status}
+        </Badge>
+      ),
+    },
+    {
+      key: "actions",
+      header: "Actions",
+      render: (request) =>
+        request.status === "PENDING" ? (
+          <Button size="sm" onClick={() => openReview(request)}>
+            Review
+          </Button>
+        ) : (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => openReview(request)}
+          >
+            View
+          </Button>
+        ),
+    },
+  ]
+
   // Open review dialog
-  const openReview = (request: HemsRequest) => {
+  const openReview = (request: HemsRequestType) => {
     setReviewingRequest(request)
     setApprovedAmount(request.amountRequested)
     setReviewNotes("")
@@ -251,69 +316,10 @@ export function HemsQueue() {
               </CardContent>
             </Card>
           ) : (
-            <Card>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Beneficiary</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {displayedRequests.map((request) => (
-                    <TableRow key={request.id}>
-                      <TableCell className="text-sm">
-                        {formatDate(request.createdAt)}
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium">
-                            {request.beneficiary.firstName} {request.beneficiary.lastName}
-                          </p>
-                          {request.beneficiary.email && (
-                            <p className="text-xs text-muted-foreground">
-                              {request.beneficiary.email}
-                            </p>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">
-                          {CATEGORY_LABELS[request.category] || request.category}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right font-medium">
-                        {formatCurrency(parseFloat(request.amountRequested))}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={STATUS_VARIANTS[request.status] || "secondary"}>
-                          {STATUS_LABELS[request.status] || request.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {request.status === "PENDING" ? (
-                          <Button size="sm" onClick={() => openReview(request)}>
-                            Review
-                          </Button>
-                        ) : (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => openReview(request)}
-                          >
-                            View
-                          </Button>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Card>
+            <DataTable
+              data={displayedRequests}
+              columns={columns}
+            />
           )}
         </TabsContent>
       </Tabs>
