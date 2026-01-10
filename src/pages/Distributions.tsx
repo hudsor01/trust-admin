@@ -15,12 +15,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+import { ResourceDialog } from "@/components/resource-dialog"
+import { useResourceForm } from "@/hooks/use-resource-form"
+import { z } from "zod"
 import {
   Select,
   SelectContent,
@@ -95,6 +92,22 @@ const PAYMENT_METHODS = [
   { value: "WIRE", label: "Wire Transfer" },
 ]
 
+// Form validation schemas
+const hemsFormSchema = z.object({
+  beneficiaryId: z.string().min(1, "Beneficiary is required"),
+  amount: z.string().min(1, "Amount is required"),
+  hemsCategory: z.string(),
+  hemsJustification: z.string().min(1, "Justification is required"),
+  paymentMethod: z.string(),
+  notes: z.string().optional(),
+})
+
+const withdrawalFormSchema = z.object({
+  amount: z.string().min(1, "Amount is required"),
+  paymentMethod: z.string(),
+  notes: z.string().optional(),
+})
+
 export function Distributions() {
   // Use TanStack Query hooks
   const { data: entities = [], isLoading: entitiesLoading } = useEntities()
@@ -110,69 +123,51 @@ export function Distributions() {
 
   const loading = entitiesLoading || beneficiariesLoading || distributionsLoading
   const [activeTab, setActiveTab] = useState("hems")
-  const [showHemsForm, setShowHemsForm] = useState(false)
-  const [showWithdrawalForm, setShowWithdrawalForm] = useState(false)
   const [selectedWithdrawal, setSelectedWithdrawal] = useState<WithdrawalRecord | null>(null)
 
-  const [hemsFormData, setHemsFormData] = useState({
-    beneficiaryId: "",
-    amount: "",
-    hemsCategory: "HEALTH",
-    hemsJustification: "",
-    paymentMethod: "CHECK",
-    notes: "",
-  })
-
-  const [withdrawalFormData, setWithdrawalFormData] = useState({
-    amount: "",
-    paymentMethod: "CHECK",
-    notes: "",
-  })
-
-  // Auto-select first entity when entities load
-  useEffect(() => {
-    if (entities.length > 0 && !selectedEntity) {
-      setSelectedEntity(entities[0].id)
-    }
-  }, [entities, selectedEntity])
-
-  const submitHemsRequest = async () => {
-    const amount = parseFloat(hemsFormData.amount.replace(/[,$]/g, ""))
-    if (!hemsFormData.beneficiaryId || amount <= 0 || !selectedEntity) return
-
-    try {
+  // HEMS Request Form
+  const hemsForm = useResourceForm({
+    initialData: {
+      beneficiaryId: "",
+      amount: "",
+      hemsCategory: "HEALTH",
+      hemsJustification: "",
+      paymentMethod: "CHECK",
+      notes: "",
+    },
+    validationSchema: hemsFormSchema,
+    onSubmit: async (data) => {
+      if (!selectedEntity) return
+      const amount = parseFloat(data.amount.replace(/[,$]/g, ""))
       await createDistributionMutation.mutateAsync({
-        beneficiaryId: hemsFormData.beneficiaryId,
+        beneficiaryId: data.beneficiaryId,
         entityId: selectedEntity,
         distributionDate: new Date().toISOString(),
         amount: amount.toString(),
         distributionType: "PRINCIPAL",
-        hemsCategory: hemsFormData.hemsCategory,
-        hemsJustification: hemsFormData.hemsJustification,
+        hemsCategory: data.hemsCategory,
+        hemsJustification: data.hemsJustification,
         isWithdrawal: false,
-        paymentMethod: hemsFormData.paymentMethod,
-        notes: hemsFormData.notes || null,
+        paymentMethod: data.paymentMethod,
+        notes: data.notes || null,
       })
+    },
+  })
 
-      setShowHemsForm(false)
-      setHemsFormData({
-        beneficiaryId: "",
-        amount: "",
-        hemsCategory: "HEALTH",
-        hemsJustification: "",
-        paymentMethod: "CHECK",
-        notes: "",
-      })
-    } catch (error) {
-      console.error("Failed to submit HEMS request:", error)
-    }
-  }
+  const { formInstance: hemsFormInstance } = hemsForm
 
-  const processWithdrawal = async () => {
-    const amount = parseFloat(withdrawalFormData.amount.replace(/[,$]/g, ""))
-    if (!selectedWithdrawal || amount <= 0) return
-
-    try {
+  // Withdrawal Processing Form
+  const withdrawalForm = useResourceForm({
+    initialData: {
+      amount: "",
+      paymentMethod: "CHECK",
+      notes: "",
+    },
+    validationSchema: withdrawalFormSchema,
+    onSubmit: async (data) => {
+      if (!selectedWithdrawal) return
+      const amount = parseFloat(data.amount.replace(/[,$]/g, ""))
+      
       // Create distribution first
       const distData = await createDistributionMutation.mutateAsync({
         beneficiaryId: selectedWithdrawal.beneficiaryId,
@@ -182,8 +177,8 @@ export function Distributions() {
         distributionType: "PRINCIPAL",
         hemsCategory: "WITHDRAWAL",
         isWithdrawal: true,
-        paymentMethod: withdrawalFormData.paymentMethod,
-        notes: withdrawalFormData.notes || `${selectedWithdrawal.withdrawalType} withdrawal`,
+        paymentMethod: data.paymentMethod,
+        notes: data.notes || `${selectedWithdrawal.withdrawalType} withdrawal`,
       })
 
       // Then update the withdrawal record
@@ -197,13 +192,25 @@ export function Distributions() {
         },
       })
 
-      setShowWithdrawalForm(false)
+      // Close and reset
       setSelectedWithdrawal(null)
-      setWithdrawalFormData({ amount: "", paymentMethod: "CHECK", notes: "" })
-    } catch (error) {
-      console.error("Failed to process withdrawal:", error)
-    }
+    },
+  })
+
+  const { formInstance: withdrawalFormInstance } = withdrawalForm
+
+  // Helper to open withdrawal form
+  const openWithdrawalForm = (withdrawal: WithdrawalRecord) => {
+    setSelectedWithdrawal(withdrawal)
+    withdrawalForm.open()
   }
+
+  // Auto-select first entity when entities load
+  useEffect(() => {
+    if (entities.length > 0 && !selectedEntity) {
+      setSelectedEntity(entities[0].id)
+    }
+  }, [entities, selectedEntity])
 
   const updateDistribution = async (id: string, updates: Partial<Distribution>) => {
     await updateDistributionMutation.mutateAsync({ id, data: updates })
@@ -309,7 +316,7 @@ export function Distributions() {
                   Health, Education, Maintenance, and Support distributions
                 </CardDescription>
               </div>
-              <Button onClick={() => setShowHemsForm(true)}>
+              <Button onClick={() => hemsForm.open()}>
                 <Plus className="mr-2 h-4 w-4" />
                 New HEMS Request
               </Button>
@@ -470,10 +477,7 @@ export function Distributions() {
                                     size="sm"
                                     variant="outline"
                                     className="border-green-300 text-green-700 hover:bg-green-50 dark:border-green-700 dark:text-green-300"
-                                    onClick={() => {
-                                      setSelectedWithdrawal(row.age25)
-                                      setShowWithdrawalForm(true)
-                                    }}
+                                    onClick={() => openWithdrawalForm(row.age25!)}
                                   >
                                     Process 25
                                   </Button>
@@ -483,10 +487,7 @@ export function Distributions() {
                                     size="sm"
                                     variant="outline"
                                     className="border-green-300 text-green-700 hover:bg-green-50 dark:border-green-700 dark:text-green-300"
-                                    onClick={() => {
-                                      setSelectedWithdrawal(row.age30)
-                                      setShowWithdrawalForm(true)
-                                    }}
+                                    onClick={() => openWithdrawalForm(row.age30!)}
                                   >
                                     Process 30
                                   </Button>
@@ -574,151 +575,113 @@ export function Distributions() {
       </Tabs>
 
       {/* HEMS Request Modal */}
-      <Dialog open={showHemsForm} onOpenChange={setShowHemsForm}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>New HEMS Distribution Request</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Beneficiary *</Label>
-              <Select
-                value={hemsFormData.beneficiaryId}
-                onValueChange={(v) => setHemsFormData({ ...hemsFormData, beneficiaryId: v })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select beneficiary" />
-                </SelectTrigger>
-                <SelectContent>
-                  {hemsBeneficiaries.map((b) => (
-                    <SelectItem key={b.id} value={b.id}>
-                      {b.firstName} {b.lastName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>HEMS Category</Label>
-              <Select
-                value={hemsFormData.hemsCategory}
-                onValueChange={(v) => setHemsFormData({ ...hemsFormData, hemsCategory: v })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {HEMS_CATEGORIES.map((cat) => (
-                    <SelectItem key={cat.value} value={cat.value}>
-                      {cat.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Amount *</Label>
-              <Input
-                type="text"
-                placeholder="$0.00"
-                value={hemsFormData.amount}
-                onChange={(e) => setHemsFormData({ ...hemsFormData, amount: e.target.value })}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Justification *</Label>
-              <Textarea
-                placeholder="Explain why this distribution qualifies under HEMS..."
-                value={hemsFormData.hemsJustification}
-                onChange={(e) => setHemsFormData({ ...hemsFormData, hemsJustification: e.target.value })}
-                rows={3}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Payment Method</Label>
-              <Select
-                value={hemsFormData.paymentMethod}
-                onValueChange={(v) => setHemsFormData({ ...hemsFormData, paymentMethod: v })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {PAYMENT_METHODS.map((pm) => (
-                    <SelectItem key={pm.value} value={pm.value}>
-                      {pm.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Additional Notes</Label>
-              <Textarea
-                placeholder="Optional notes..."
-                value={hemsFormData.notes}
-                onChange={(e) => setHemsFormData({ ...hemsFormData, notes: e.target.value })}
-              />
-            </div>
-
-            <div className="flex justify-end gap-3 pt-4">
-              <Button variant="outline" onClick={() => setShowHemsForm(false)}>
-                Cancel
-              </Button>
-              <Button onClick={submitHemsRequest}>
-                Submit Request
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Withdrawal Processing Modal */}
-      <Dialog
-        open={showWithdrawalForm}
-        onOpenChange={(open) => {
-          setShowWithdrawalForm(open)
-          if (!open) setSelectedWithdrawal(null)
-        }}
+      <ResourceDialog
+        open={hemsForm.isOpen}
+        onOpenChange={hemsForm.close}
+        title="New HEMS Distribution Request"
+        onSubmit={hemsForm.handleSave}
+        isLoading={hemsForm.isSubmitting}
       >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              Process {selectedWithdrawal?.withdrawalType === "AGE_25" ? "Age 25" : "Age 30"} Withdrawal
-            </DialogTitle>
-          </DialogHeader>
-          {selectedWithdrawal && (
-            <div className="space-y-4">
-              <Alert>
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
-                  Processing {selectedWithdrawal.withdrawalType === "AGE_25" ? "50%" : "50%"} withdrawal for beneficiary.
-                  Eligible since: {formatDate(selectedWithdrawal.eligibleDate)}
-                </AlertDescription>
-              </Alert>
-
+        <div className="space-y-4">
+          {/* Beneficiary - Required */}
+          <hemsFormInstance.Field name="beneficiaryId">
+            {(field) => (
               <div className="space-y-2">
-                <Label>Withdrawal Amount *</Label>
+                <Label>Beneficiary *</Label>
+                <Select
+                  value={field.state.value}
+                  onValueChange={(v) => field.handleChange(v)}
+                >
+                  <SelectTrigger onBlur={field.handleBlur}>
+                    <SelectValue placeholder="Select beneficiary" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {hemsBeneficiaries.map((b) => (
+                      <SelectItem key={b.id} value={b.id}>
+                        {b.firstName} {b.lastName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {field.state.meta.errors?.[0] && (
+                  <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                )}
+              </div>
+            )}
+          </hemsFormInstance.Field>
+
+          {/* HEMS Category */}
+          <hemsFormInstance.Field name="hemsCategory">
+            {(field) => (
+              <div className="space-y-2">
+                <Label>HEMS Category</Label>
+                <Select
+                  value={field.state.value}
+                  onValueChange={(v) => field.handleChange(v)}
+                >
+                  <SelectTrigger onBlur={field.handleBlur}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {HEMS_CATEGORIES.map((cat) => (
+                      <SelectItem key={cat.value} value={cat.value}>
+                        {cat.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </hemsFormInstance.Field>
+
+          {/* Amount - Required */}
+          <hemsFormInstance.Field name="amount">
+            {(field) => (
+              <div className="space-y-2">
+                <Label>Amount *</Label>
                 <Input
                   type="text"
                   placeholder="$0.00"
-                  value={withdrawalFormData.amount}
-                  onChange={(e) => setWithdrawalFormData({ ...withdrawalFormData, amount: e.target.value })}
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  onBlur={field.handleBlur}
                 />
+                {field.state.meta.errors?.[0] && (
+                  <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                )}
               </div>
+            )}
+          </hemsFormInstance.Field>
 
+          {/* Justification - Required */}
+          <hemsFormInstance.Field name="hemsJustification">
+            {(field) => (
+              <div className="space-y-2">
+                <Label>Justification *</Label>
+                <Textarea
+                  placeholder="Explain why this distribution qualifies under HEMS..."
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  onBlur={field.handleBlur}
+                  rows={3}
+                />
+                {field.state.meta.errors?.[0] && (
+                  <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                )}
+              </div>
+            )}
+          </hemsFormInstance.Field>
+
+          {/* Payment Method */}
+          <hemsFormInstance.Field name="paymentMethod">
+            {(field) => (
               <div className="space-y-2">
                 <Label>Payment Method</Label>
                 <Select
-                  value={withdrawalFormData.paymentMethod}
-                  onValueChange={(v) => setWithdrawalFormData({ ...withdrawalFormData, paymentMethod: v })}
+                  value={field.state.value}
+                  onValueChange={(v) => field.handleChange(v)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger onBlur={field.handleBlur}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -730,37 +693,109 @@ export function Distributions() {
                   </SelectContent>
                 </Select>
               </div>
+            )}
+          </hemsFormInstance.Field>
 
+          {/* Additional Notes */}
+          <hemsFormInstance.Field name="notes">
+            {(field) => (
               <div className="space-y-2">
-                <Label>Notes</Label>
+                <Label>Additional Notes</Label>
                 <Textarea
                   placeholder="Optional notes..."
-                  value={withdrawalFormData.notes}
-                  onChange={(e) => setWithdrawalFormData({ ...withdrawalFormData, notes: e.target.value })}
+                  value={field.state.value || ""}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  onBlur={field.handleBlur}
                 />
               </div>
+            )}
+          </hemsFormInstance.Field>
+        </div>
+      </ResourceDialog>
 
-              <div className="flex justify-end gap-3 pt-4">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setShowWithdrawalForm(false)
-                    setSelectedWithdrawal(null)
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  className="bg-green-600 hover:bg-green-700"
-                  onClick={processWithdrawal}
-                >
-                  Process Withdrawal
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* Withdrawal Processing Modal */}
+      <ResourceDialog
+        open={withdrawalForm.isOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            withdrawalForm.close()
+            setSelectedWithdrawal(null)
+          }
+        }}
+        title={selectedWithdrawal ? `Process ${selectedWithdrawal.withdrawalType === "AGE_25" ? "Age 25" : "Age 30"} Withdrawal` : "Process Withdrawal"}
+        onSubmit={withdrawalForm.handleSave}
+        isLoading={withdrawalForm.isSubmitting}
+      >
+        {selectedWithdrawal && (
+          <div className="space-y-4">
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Processing {selectedWithdrawal.withdrawalType === "AGE_25" ? "50%" : "50%"} withdrawal for beneficiary.
+                Eligible since: {formatDate(selectedWithdrawal.eligibleDate)}
+              </AlertDescription>
+            </Alert>
+
+            {/* Withdrawal Amount - Required */}
+            <withdrawalFormInstance.Field name="amount">
+              {(field) => (
+                <div className="space-y-2">
+                  <Label>Withdrawal Amount *</Label>
+                  <Input
+                    type="text"
+                    placeholder="$0.00"
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    onBlur={field.handleBlur}
+                  />
+                  {field.state.meta.errors?.[0] && (
+                    <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                  )}
+                </div>
+              )}
+            </withdrawalFormInstance.Field>
+
+            {/* Payment Method */}
+            <withdrawalFormInstance.Field name="paymentMethod">
+              {(field) => (
+                <div className="space-y-2">
+                  <Label>Payment Method</Label>
+                  <Select
+                    value={field.state.value}
+                    onValueChange={(v) => field.handleChange(v)}
+                  >
+                    <SelectTrigger onBlur={field.handleBlur}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PAYMENT_METHODS.map((pm) => (
+                        <SelectItem key={pm.value} value={pm.value}>
+                          {pm.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </withdrawalFormInstance.Field>
+
+            {/* Notes */}
+            <withdrawalFormInstance.Field name="notes">
+              {(field) => (
+                <div className="space-y-2">
+                  <Label>Notes</Label>
+                  <Textarea
+                    placeholder="Optional notes..."
+                    value={field.state.value || ""}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    onBlur={field.handleBlur}
+                  />
+                </div>
+              )}
+            </withdrawalFormInstance.Field>
+          </div>
+        )}
+      </ResourceDialog>
     </div>
   )
 }
