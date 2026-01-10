@@ -226,6 +226,7 @@ export function Properties() {
     handleSave: handleSaveHomestead,
     isSubmitting: isHomesteadSubmitting,
     isEditing: isEditingHomestead,
+    formInstance: homesteadFormInstance,
   } = useResourceForm<HomesteadFormData>({
     initialData: defaultHomesteadForm,
     onSubmit: async (data) => {
@@ -318,6 +319,7 @@ export function Properties() {
     handleSave: handleSaveRental,
     isSubmitting: isRentalSubmitting,
     isEditing: isEditingRental,
+    formInstance: rentalFormInstance,
   } = useResourceForm<RentalFormData>({
     initialData: defaultRentalForm,
     onSubmit: async (data) => {
@@ -734,57 +736,87 @@ export function Properties() {
             <div>
               <h4 className="mb-3 text-sm font-medium">Address</h4>
               <div className="space-y-3">
-                <div className="space-y-2">
-                  <Label htmlFor="h-street">Street Address</Label>
-                  <Input
-                    id="h-street"
-                    value={homesteadForm.streetAddress}
-                    onChange={(e) =>
-                      setHomesteadForm({ ...homesteadForm, streetAddress: e.target.value })
-                    }
-                  />
-                </div>
+                <homesteadFormInstance.Field name="streetAddress">
+                  {(field) => (
+                    <div className="space-y-2">
+                      <Label htmlFor="h-street">Street Address</Label>
+                      <Input
+                        id="h-street"
+                        value={field.state.value}
+                        onBlur={field.handleBlur}
+                        onChange={(e) => field.handleChange(e.target.value)}
+                      />
+                      {field.state.meta.errors?.[0] && (
+                        <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                      )}
+                    </div>
+                  )}
+                </homesteadFormInstance.Field>
                 <div className="grid grid-cols-4 gap-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="h-city">City</Label>
-                    <Input
-                      id="h-city"
-                      value={homesteadForm.city}
-                      onChange={(e) =>
-                        setHomesteadForm({ ...homesteadForm, city: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="h-state">State</Label>
-                    <Input
-                      id="h-state"
-                      value={homesteadForm.state}
-                      onChange={(e) =>
-                        setHomesteadForm({ ...homesteadForm, state: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="h-zip">ZIP</Label>
-                    <Input
-                      id="h-zip"
-                      value={homesteadForm.zip}
-                      onChange={(e) =>
-                        setHomesteadForm({ ...homesteadForm, zip: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="h-county">County</Label>
-                    <Input
-                      id="h-county"
-                      value={homesteadForm.county}
-                      onChange={(e) =>
-                        setHomesteadForm({ ...homesteadForm, county: e.target.value })
-                      }
-                    />
-                  </div>
+                  <homesteadFormInstance.Field name="city">
+                    {(field) => (
+                      <div className="space-y-2">
+                        <Label htmlFor="h-city">City</Label>
+                        <Input
+                          id="h-city"
+                          value={field.state.value}
+                          onBlur={field.handleBlur}
+                          onChange={(e) => field.handleChange(e.target.value)}
+                        />
+                        {field.state.meta.errors?.[0] && (
+                          <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                        )}
+                      </div>
+                    )}
+                  </homesteadFormInstance.Field>
+                  <homesteadFormInstance.Field name="state">
+                    {(field) => (
+                      <div className="space-y-2">
+                        <Label htmlFor="h-state">State</Label>
+                        <Input
+                          id="h-state"
+                          value={field.state.value}
+                          onBlur={field.handleBlur}
+                          onChange={(e) => field.handleChange(e.target.value)}
+                        />
+                        {field.state.meta.errors?.[0] && (
+                          <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                        )}
+                      </div>
+                    )}
+                  </homesteadFormInstance.Field>
+                  <homesteadFormInstance.Field name="zip">
+                    {(field) => (
+                      <div className="space-y-2">
+                        <Label htmlFor="h-zip">ZIP</Label>
+                        <Input
+                          id="h-zip"
+                          value={field.state.value}
+                          onBlur={field.handleBlur}
+                          onChange={(e) => field.handleChange(e.target.value)}
+                        />
+                        {field.state.meta.errors?.[0] && (
+                          <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                        )}
+                      </div>
+                    )}
+                  </homesteadFormInstance.Field>
+                  <homesteadFormInstance.Field name="county">
+                    {(field) => (
+                      <div className="space-y-2">
+                        <Label htmlFor="h-county">County</Label>
+                        <Input
+                          id="h-county"
+                          value={field.state.value}
+                          onBlur={field.handleBlur}
+                          onChange={(e) => field.handleChange(e.target.value)}
+                        />
+                        {field.state.meta.errors?.[0] && (
+                          <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                        )}
+                      </div>
+                    )}
+                  </homesteadFormInstance.Field>
                 </div>
               </div>
             </div>
