@@ -3,6 +3,9 @@
  *
  * Uses a route factory pattern to eliminate duplicate CRUD route handlers.
  */
+import { validateEnvironment } from "./src/lib/env";
+const env = validateEnvironment(); // Fail fast if environment is invalid
+
 import homepage from "./src/index.html";
 import { auth } from "./src/lib/auth";
 import { logger } from "./src/lib/logger";
@@ -518,8 +521,16 @@ Bun.serve({
     const method = req.method;
 
     // CORS headers for cross-origin requests (dev: frontend on 5173, API on 5050)
+    // Use whitelist-based origin checking (wildcard "*" violates CORS spec with credentials)
+    const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(",") || [
+      "http://localhost:5173",
+      "http://localhost:5050",
+    ];
+    const origin = req.headers.get("Origin");
+    const isAllowed = origin && allowedOrigins.includes(origin);
+
     const corsHeaders = {
-      "Access-Control-Allow-Origin": req.headers.get("Origin") || "*",
+      "Access-Control-Allow-Origin": isAllowed ? origin : allowedOrigins[0] || "",
       "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type, Authorization",
       "Access-Control-Allow-Credentials": "true",
