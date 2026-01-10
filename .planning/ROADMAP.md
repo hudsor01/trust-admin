@@ -194,7 +194,7 @@ Plans:
 - [x] 10-01: Research and Strategy (audit current state, document patterns)
 - [x] 10-02: TanStack Table Core Wrapper (create wrapper, migrate DataTable)
 - [x] 10-03: Form Migration Batch 1 - Simple (Contacts, Vehicles)
-- [ ] 10-04: Table Migration Batch 2 - Complex (Dashboard, Bequests, Settings, HemsQueue)
+- [x] 10-04: Table Migration Batch 2 - Partial (Bequests, HemsQueue - Dashboard/Settings deferred)
 - [ ] 10-05: Table Migration Batch 3 - Workflow (ActivityLog, Distributions, DistributionWizard)
 - [ ] 10-06: TanStack Form Core Setup (create wrappers, Zod integration)
 - [ ] 10-07: Form Migration Batch 1 - ResourceDialog (Accounting, Accounts, Liabilities, Properties)
@@ -232,5 +232,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 7. Liabilities & Accounts Refactor | 4/4 | ✅ Complete | 2026-01-09 |
 | 8. Type Safety Improvements | 4/4 | ✅ Complete | 2026-01-09 |
 | 9. Performance Optimization | 3/3 | ✅ Complete | 2026-01-09 |
-| 10. TanStack Table & Form Integration | 3/8 | 🔄 In Progress | - |
+| 10. TanStack Table & Form Integration | 4/8 | 🔄 In Progress | - |
 | 11. Quality Verification | 0/3 | Not started | - |
