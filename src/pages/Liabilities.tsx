@@ -170,6 +170,7 @@ export function Liabilities() {
     handleSave: handleSaveLiability,
     isSubmitting: isLiabilitySaving,
     isEditing: isEditingLiability,
+    formInstance: liabilityFormInstance,
   } = useResourceForm<LiabilityFormData>({
     initialData: defaultFormData(),
     onSubmit: async (data) => {
@@ -209,6 +210,7 @@ export function Liabilities() {
     handleEdit: handleOpenPayment,
     handleSave: handleRecordPayment,
     isSubmitting: isRecordingPayment,
+    formInstance: paymentFormInstance,
   } = useResourceForm<PaymentFormData>({
     initialData: defaultPaymentForm(),
     onSubmit: async (data) => {
