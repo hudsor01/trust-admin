@@ -3,19 +3,16 @@
 import { useState, useEffect } from "react"
 import { Trash2, Plus, Check, Pencil, Loader2 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { DataTable, type ColumnDef } from "@/components/data-table"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog"
+import { ResourceDialog } from "@/components/resource-dialog"
+import { useResourceForm } from "@/hooks/use-resource-form"
+import { insertSpecificBequestSchema } from "../../db/validation"
 import {
   Select,
   SelectContent,
@@ -66,16 +63,38 @@ export function Bequests() {
   const deleteBequestMutation = useDeleteSpecificBequest()
 
   const loading = entitiesLoading || bequestsLoading
-  const [showForm, setShowForm] = useState(false)
-  const [editingBequest, setEditingBequest] = useState<SpecificBequestType | null>(null)
-  const [formData, setFormData] = useState({
-    description: "",
-    category: "OTHER",
-    beneficiaryId: "",
-    recipientName: "",
-    dateDistributed: "",
-    notes: "",
+
+  // Form state using useResourceForm hook
+  const bequestForm = useResourceForm({
+    initialData: {
+      description: "",
+      category: "OTHER",
+      beneficiaryId: "",
+      recipientName: "",
+      dateDistributed: "",
+      notes: "",
+    },
+    validationSchema: insertSpecificBequestSchema,
+    onSubmit: async (data) => {
+      if (!selectedEntity) return
+      const payload = {
+        entityId: selectedEntity,
+        description: data.description,
+        category: data.category || "OTHER",
+        beneficiaryId: data.beneficiaryId || null,
+        recipientName: data.recipientName || null,
+        dateDistributed: data.dateDistributed || null,
+        notes: data.notes || null,
+      }
+      if (bequestForm.isEditing && bequestForm.editingId) {
+        await updateBequestMutation.mutateAsync({ id: bequestForm.editingId, data: payload })
+      } else {
+        await createBequestMutation.mutateAsync(payload)
+      }
+    },
   })
+
+  const { formInstance } = bequestForm
 
   // Auto-select first entity when entities load
   useEffect(() => {
@@ -83,32 +102,6 @@ export function Bequests() {
       setSelectedEntity(entities[0].id)
     }
   }, [entities, selectedEntity])
-
-  const saveBequest = async () => {
-    if (!formData.description.trim() || !selectedEntity) return
-
-    const payload = {
-      entityId: selectedEntity,
-      description: formData.description,
-      category: formData.category,
-      beneficiaryId: formData.beneficiaryId || null,
-      recipientName: formData.recipientName || null,
-      dateDistributed: formData.dateDistributed || null,
-      notes: formData.notes || null,
-    }
-
-    try {
-      if (editingBequest) {
-        await updateBequestMutation.mutateAsync({ id: editingBequest.id, data: payload })
-      } else {
-        await createBequestMutation.mutateAsync(payload)
-      }
-      setShowForm(false)
-      resetForm()
-    } catch (error) {
-      console.error("Failed to save bequest:", error)
-    }
-  }
 
   const deleteBequest = async (id: string) => {
     if (!confirm("Are you sure you want to delete this bequest?")) return
@@ -135,21 +128,8 @@ export function Bequests() {
     }
   }
 
-  const resetForm = () => {
-    setFormData({
-      description: "",
-      category: "OTHER",
-      beneficiaryId: "",
-      recipientName: "",
-      dateDistributed: "",
-      notes: "",
-    })
-    setEditingBequest(null)
-  }
-
-  const openEditForm = (bequest: SpecificBequest) => {
-    setEditingBequest(bequest)
-    setFormData({
+  const openEditForm = (bequest: SpecificBequestType) => {
+    bequestForm.edit(bequest.id, {
       description: bequest.description,
       category: bequest.category || "OTHER",
       beneficiaryId: bequest.beneficiaryId || "",
@@ -157,7 +137,6 @@ export function Bequests() {
       dateDistributed: bequest.dateDistributed?.split("T")[0] || "",
       notes: bequest.notes || "",
     })
-    setShowForm(true)
   }
 
   const pendingBequests = bequests.filter((b) => !b.dateDistributed)
@@ -329,7 +308,7 @@ export function Bequests() {
               ))}
             </SelectContent>
           </Select>
-          <Button onClick={() => { resetForm(); setShowForm(true) }}>
+          <Button onClick={() => bequestForm.open()}>
             <Plus className="h-4 w-4 mr-2" />
             Add Bequest
           </Button>
@@ -349,10 +328,110 @@ export function Bequests() {
           ) : pendingBequests.length === 0 ? (
             <p className="text-center py-8 text-muted-foreground">No pending bequests</p>
           ) : (
-            <DataTable
-              data={pendingBequests}
-              columns={pendingColumns}
-            />
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Item</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Recipient</TableHead>
+                    <TableHead>Notes</TableHead>
+                    <TableHead className="w-[120px]">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {pendingBequests.map((b) => {
+                    const recipient = b.beneficiaryId
+                      ? beneficiaries.find((ben) => ben.id === b.beneficiaryId)
+                      : null
+                    return (
+                      <TableRow key={b.id}>
+                        <TableCell className="font-medium">
+                          <EditableTextCell
+                            value={b.description}
+                            onSave={(v) => updateBequest(b.id, { description: String(v || "") })}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <EditableSelectCell
+                            value={b.category || "OTHER"}
+                            options={BEQUEST_CATEGORIES}
+                            onSave={(v) => updateBequest(b.id, { category: v })}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          {recipient ? (
+                            `${recipient.firstName} ${recipient.lastName}`
+                          ) : (
+                            <EditableTextCell
+                              value={b.recipientName}
+                              onSave={(v) => updateBequest(b.id, { recipientName: v })}
+                              placeholder="Add recipient"
+                            />
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <EditableTextCell
+                            value={b.notes}
+                            onSave={(v) => updateBequest(b.id, { notes: v })}
+                            placeholder="Add notes"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-success hover:text-success"
+                                    onClick={() => markDistributed(b)}
+                                  >
+                                    <Check className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Mark Distributed</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={() => openEditForm(b)}
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Edit</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-destructive hover:text-destructive"
+                                    onClick={() => deleteBequest(b.id)}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Delete</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -366,115 +445,177 @@ export function Bequests() {
           {distributedBequests.length === 0 ? (
             <p className="text-center py-8 text-muted-foreground">No distributed bequests</p>
           ) : (
-            <DataTable
-              data={distributedBequests}
-              columns={distributedColumns}
-            />
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Item</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Recipient</TableHead>
+                    <TableHead>Date Distributed</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {distributedBequests.map((b) => {
+                    const recipient = b.beneficiaryId
+                      ? beneficiaries.find((ben) => ben.id === b.beneficiaryId)
+                      : null
+                    return (
+                      <TableRow key={b.id}>
+                        <TableCell className="font-medium">{b.description}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">
+                            {BEQUEST_CATEGORIES.find((c) => c.value === b.category)?.label ||
+                              b.category}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {recipient
+                            ? `${recipient.firstName} ${recipient.lastName}`
+                            : b.recipientName || "—"}
+                        </TableCell>
+                        <TableCell>{formatDate(b.dateDistributed)}</TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
 
       {/* Bequest Form Dialog */}
-      <Dialog open={showForm} onOpenChange={(open) => { if (!open) { setShowForm(false); resetForm() } }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{editingBequest ? "Edit Bequest" : "Add Bequest"}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="description">Description *</Label>
-              <Textarea
-                id="description"
-                placeholder="Describe the item (e.g., 'Dog named Bandit', 'Gold wedding ring')"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                rows={2}
-              />
-            </div>
+      <ResourceDialog
+        open={bequestForm.isOpen}
+        onOpenChange={bequestForm.close}
+        title={bequestForm.isEditing ? "Edit Bequest" : "Add Bequest"}
+        onSubmit={bequestForm.handleSave}
+        isLoading={bequestForm.isSubmitting}
+      >
+        <div className="space-y-4">
+          {/* Description - Required */}
+          <formInstance.Field name="description">
+            {(field) => (
+              <div className="space-y-2">
+                <Label htmlFor="description">Description *</Label>
+                <Textarea
+                  id="description"
+                  placeholder="Describe the item (e.g., 'Dog named Bandit', 'Gold wedding ring')"
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  onBlur={field.handleBlur}
+                  rows={2}
+                />
+                {field.state.meta.errors?.[0] && (
+                  <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                )}
+              </div>
+            )}
+          </formInstance.Field>
 
-            <div className="space-y-2">
-              <Label htmlFor="category">Category</Label>
-              <Select
-                value={formData.category}
-                onValueChange={(v) => setFormData({ ...formData, category: v })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {BEQUEST_CATEGORIES.map((c) => (
-                    <SelectItem key={c.value} value={c.value}>
-                      {c.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          {/* Category */}
+          <formInstance.Field name="category">
+            {(field) => (
+              <div className="space-y-2">
+                <Label htmlFor="category">Category</Label>
+                <Select
+                  value={field.state.value}
+                  onValueChange={(v) => field.handleChange(v)}
+                >
+                  <SelectTrigger id="category" onBlur={field.handleBlur}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {BEQUEST_CATEGORIES.map((c) => (
+                      <SelectItem key={c.value} value={c.value}>
+                        {c.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </formInstance.Field>
 
-            <div className="space-y-2">
-              <Label htmlFor="beneficiary">Beneficiary (if applicable)</Label>
-              <Select
-                value={formData.beneficiaryId}
-                onValueChange={(v) => setFormData({ ...formData, beneficiaryId: v })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select beneficiary" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">None</SelectItem>
-                  {beneficiaries.map((b) => (
-                    <SelectItem key={b.id} value={b.id}>
-                      {b.firstName} {b.lastName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          {/* Beneficiary */}
+          <formInstance.Field name="beneficiaryId">
+            {(field) => (
+              <div className="space-y-2">
+                <Label htmlFor="beneficiary">Beneficiary (if applicable)</Label>
+                <Select
+                  value={field.state.value}
+                  onValueChange={(v) => field.handleChange(v)}
+                >
+                  <SelectTrigger id="beneficiary" onBlur={field.handleBlur}>
+                    <SelectValue placeholder="Select beneficiary" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">None</SelectItem>
+                    {beneficiaries.map((b) => (
+                      <SelectItem key={b.id} value={b.id}>
+                        {b.firstName} {b.lastName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </formInstance.Field>
 
-            <div className="space-y-2">
-              <Label htmlFor="recipientName">Recipient Name (if not a beneficiary)</Label>
-              <Input
-                id="recipientName"
-                placeholder="Name of recipient"
-                value={formData.recipientName}
-                onChange={(e) => setFormData({ ...formData, recipientName: e.target.value })}
-              />
-              <p className="text-xs text-muted-foreground">
-                Use this if the recipient is not listed as a beneficiary
-              </p>
-            </div>
+          {/* Recipient Name */}
+          <formInstance.Field name="recipientName">
+            {(field) => (
+              <div className="space-y-2">
+                <Label htmlFor="recipientName">Recipient Name (if not a beneficiary)</Label>
+                <Input
+                  id="recipientName"
+                  placeholder="Name of recipient"
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  onBlur={field.handleBlur}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Use this if the recipient is not listed as a beneficiary
+                </p>
+              </div>
+            )}
+          </formInstance.Field>
 
-            <div className="space-y-2">
-              <Label htmlFor="dateDistributed">Date Distributed</Label>
-              <Input
-                id="dateDistributed"
-                type="date"
-                value={formData.dateDistributed}
-                onChange={(e) => setFormData({ ...formData, dateDistributed: e.target.value })}
-              />
-              <p className="text-xs text-muted-foreground">Leave blank if not yet distributed</p>
-            </div>
+          {/* Date Distributed */}
+          <formInstance.Field name="dateDistributed">
+            {(field) => (
+              <div className="space-y-2">
+                <Label htmlFor="dateDistributed">Date Distributed</Label>
+                <Input
+                  id="dateDistributed"
+                  type="date"
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  onBlur={field.handleBlur}
+                />
+                <p className="text-xs text-muted-foreground">Leave blank if not yet distributed</p>
+              </div>
+            )}
+          </formInstance.Field>
 
-            <div className="space-y-2">
-              <Label htmlFor="notes">Notes</Label>
-              <Textarea
-                id="notes"
-                placeholder="Additional notes..."
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => { setShowForm(false); resetForm() }}>
-              Cancel
-            </Button>
-            <Button onClick={saveBequest}>
-              {editingBequest ? "Update" : "Add"} Bequest
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          {/* Notes */}
+          <formInstance.Field name="notes">
+            {(field) => (
+              <div className="space-y-2">
+                <Label htmlFor="notes">Notes</Label>
+                <Textarea
+                  id="notes"
+                  placeholder="Additional notes..."
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  onBlur={field.handleBlur}
+                />
+              </div>
+            )}
+          </formInstance.Field>
+        </div>
+      </ResourceDialog>
     </div>
   )
 }
