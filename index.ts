@@ -29,6 +29,7 @@ import { and, eq, isNotNull, lte, asc } from "drizzle-orm";
 import type { PgTable, TableConfig } from "drizzle-orm/pg-core";
 import type { ZodSchema } from "zod";
 import { db } from "./db";
+import { generateId } from "./db/helpers";
 import {
   entity,
   liability,
@@ -523,6 +524,7 @@ Bun.serve({
     "/assets": homepage,
     "/beneficiaries": homepage,
     "/contacts": homepage,
+    "/forms": homepage,
     // Portal routes
     "/portal": homepage,
     "/portal/login": homepage,
@@ -771,6 +773,158 @@ Bun.serve({
         if (assetType && assetId) {
           const valuations = await getValuationsForAsset(assetType, assetId);
           return json(valuations);
+        }
+      }
+
+      // =============================================================================
+      // PUBLIC FORM SUBMISSION
+      // =============================================================================
+      if (path === "/api/public/submit-items" && method === "POST") {
+        try {
+          const body = await req.json();
+
+          // Validate quantity (1-100)
+          const quantity = Math.max(1, Math.min(100, parseInt(body.quantity) || 1));
+
+          // Get Hudson Living Trust entity ID (cache this)
+          const hudsonEntity = await db
+            .select({ id: entity.id })
+            .from(entity)
+            .where(eq(entity.name, "Hudson Living Trust"))
+            .limit(1);
+
+          if (!hudsonEntity.length) {
+            throw new ApiError("CONFIGURATION_ERROR", "Hudson Living Trust entity not found", 500);
+          }
+
+          const entityId = hudsonEntity[0].id;
+          const itemType = body.itemType as string;
+          const data = body.data as Record<string, unknown>;
+
+          // Map itemType to table and validation schema
+          const typeMapping: Record<string, { table: any; schema: ZodSchema; defaults: Record<string, any> }> = {
+            "vehicle": {
+              table: vehicle,
+              schema: insertVehicleSchema,
+              defaults: {
+                vin: data.vin || "UNKNOWN",
+                year: data.year || 2000,
+                titleStatus: "CLEAR",
+                status: "ACTIVE",
+                transferStatus: "PENDING",
+              },
+            },
+            "personal-property": {
+              table: personalProperty,
+              schema: insertPersonalPropertySchema,
+              defaults: {
+                category: data.category || "OTHER",
+                status: "ACTIVE",
+                transferStatus: "PENDING",
+              },
+            },
+            "bank-account": {
+              table: bankAccount,
+              schema: insertBankAccountSchema,
+              defaults: {
+                accountNumber: data.accountNumber || "PENDING",
+                status: "OPEN",
+                transferStatus: "PENDING",
+              },
+            },
+            "investment-account": {
+              table: investmentAccount,
+              schema: insertInvestmentAccountSchema,
+              defaults: {
+                accountNumber: data.accountNumber || "PENDING",
+                status: "OPEN",
+                transferStatus: "PENDING",
+              },
+            },
+            "insurance-policy": {
+              table: insurancePolicy,
+              schema: insertInsurancePolicySchema,
+              defaults: {
+                status: "ACTIVE",
+              },
+            },
+            "homestead": {
+              table: homestead,
+              schema: insertHomesteadSchema,
+              defaults: {
+                status: "ACTIVE",
+                transferStatus: "PENDING",
+                dodAffidavitFiled: false,
+              },
+            },
+            "rental-property": {
+              table: rentalProperty,
+              schema: insertRentalPropertySchema,
+              defaults: {
+                units: 1,
+                rentalStatus: "RENTED",
+                status: "ACTIVE",
+                transferStatus: "PENDING",
+                dodAffidavitFiled: false,
+              },
+            },
+            "artwork": {
+              table: artwork,
+              schema: insertArtworkSchema,
+              defaults: {
+                status: "ACTIVE",
+                transferStatus: "PENDING",
+              },
+            },
+            "liability": {
+              table: liability,
+              schema: insertLiabilitySchema,
+              defaults: {
+                currentBalance: data.currentBalance || data.originalAmount,
+                status: "ACTIVE",
+                allocationClass: "PRINCIPAL",
+              },
+            },
+          };
+
+          const mapping = typeMapping[itemType];
+          if (!mapping) {
+            throw new ApiError("VALIDATION_ERROR", `Invalid item type: ${itemType}`, 400);
+          }
+
+          // Validate form data with lenient schema
+          const validated = validateWithSchema(mapping.schema, {
+            ...data,
+            entityId,
+            ...mapping.defaults,
+          });
+
+          // Create N records
+          const createdIds: string[] = [];
+          const now = new Date().toISOString();
+
+          for (let i = 0; i < quantity; i++) {
+            const id = generateId();
+            const record = {
+              ...validated,
+              id,
+              createdAt: now,
+              updatedAt: now,
+            };
+
+            await db.insert(mapping.table).values(record);
+            createdIds.push(id);
+          }
+
+          return json({
+            success: true,
+            itemsCreated: quantity,
+            ids: createdIds,
+            message: `${quantity} item(s) submitted successfully`,
+          }, 201);
+
+        } catch (error) {
+          return errorResponse(error);
         }
       }
 

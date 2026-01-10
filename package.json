@@ -19,7 +19,9 @@
     "db:seed": "bun db/seed-hudson-trust.ts",
     "db:seed:dev": "bun db/seed-dev.ts",
     "db:seed:reset": "bun -e \"import { reset } from 'drizzle-seed'; import { db } from './db'; import * as schema from './db/schema'; reset(db, schema).then(() => console.log('Reset complete'))\"",
-    "studio": "drizzle-kit studio"
+    "studio": "drizzle-kit studio",
+    "build": "bunx --bun vite build",
+    "start": "NODE_ENV=production bun run index.ts"
   },
   "devDependencies": {
     "@tailwindcss/vite": "4.1.18",

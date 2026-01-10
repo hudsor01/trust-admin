@@ -3,7 +3,6 @@ import { createRoot } from "react-dom/client"
 import { ErrorBoundary } from "react-error-boundary"
 import { Toaster } from "sonner"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools"
 import * as Sentry from "@sentry/react"
 import { initSentry } from "./lib/sentry"
 import "sonner/dist/styles.css"
@@ -66,7 +65,6 @@ root.render(
         </ThemeProvider>
         <Toaster position="top-right" duration={5000} richColors />
       </ErrorBoundary>
-      <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   </React.StrictMode>
 )

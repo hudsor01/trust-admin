@@ -25,6 +25,7 @@ import { HemsQueue } from "./pages/HemsQueue"
 import { DistributionWizard } from "./pages/DistributionWizard"
 import { ActivityLog } from "./pages/ActivityLog"
 import { AdminLogin } from "./pages/AdminLogin"
+import { PublicDataCollectionForm } from "./pages/PublicDataCollectionForm"
 
 type SessionUser = {
   id: string
@@ -49,6 +50,7 @@ type Route =
   | "/liabilities"
   | "/activity-log"
   | "/settings"
+  | "/forms"
 
 const validRoutes: Route[] = [
   "/",
@@ -66,6 +68,7 @@ const validRoutes: Route[] = [
   "/liabilities",
   "/activity-log",
   "/settings",
+  "/forms",
 ]
 
 function getRouteFromHash(): Route {
@@ -92,6 +95,7 @@ const routeTitles: Record<Route, string> = {
   "/liabilities": "Liabilities",
   "/activity-log": "Activity Log",
   "/settings": "Settings",
+  "/forms": "Public Data Collection",
 }
 
 function isPortalRoute(): boolean {
@@ -195,6 +199,8 @@ export function App() {
         return <ActivityLog />
       case "/settings":
         return <Settings />
+      case "/forms":
+        return <PublicDataCollectionForm />
       default:
         return <Dashboard />
     }
