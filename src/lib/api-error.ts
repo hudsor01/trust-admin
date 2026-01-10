@@ -6,6 +6,7 @@
  */
 import { ZodError } from "zod";
 import { logger } from "./logger";
+import * as Sentry from "@sentry/bun";
 
 const log = logger.api;
 
@@ -119,6 +120,11 @@ export function errorResponse(error: unknown): Response {
   let status: number;
 
   if (error instanceof ApiError) {
+    // Capture internal errors in Sentry
+    if (error.code === "INTERNAL_ERROR") {
+      Sentry.captureException(error, { level: "error" });
+    }
+
     body = {
       error: {
         message: error.message,
@@ -128,6 +134,7 @@ export function errorResponse(error: unknown): Response {
     };
     status = error.status;
   } else if (error instanceof ZodError) {
+    // Validation errors are expected, don't capture in Sentry
     const formatted = formatZodError(error);
     body = {
       error: {
@@ -156,8 +163,10 @@ export function errorResponse(error: unknown): Response {
       };
       status = 400;
     } else {
-      // Log unexpected errors
+      // Log unexpected errors and capture in Sentry
       log.error("Unexpected error", { error: error.message, stack: error.stack });
+      Sentry.captureException(error);
+
       body = {
         error: {
           message: error.message || "Internal server error",
@@ -167,7 +176,10 @@ export function errorResponse(error: unknown): Response {
       status = 500;
     }
   } else {
+    // Unknown error types should be captured in Sentry
     log.error("Unknown error type", { error: String(error) });
+    Sentry.captureMessage(String(error), { level: "error" });
+
     body = {
       error: {
         message: "Internal server error",

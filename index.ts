@@ -6,6 +6,20 @@
 import { validateEnvironment } from "./src/lib/env";
 const env = validateEnvironment(); // Fail fast if environment is invalid
 
+import * as Sentry from "@sentry/bun";
+
+// Initialize Sentry for backend error tracking
+if (process.env.SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    environment: process.env.NODE_ENV || "development",
+    tracesSampleRate: process.env.NODE_ENV === "production" ? 0.2 : 1.0,
+  });
+  console.log("✅ Sentry initialized for backend");
+} else {
+  console.warn("⚠️  SENTRY_DSN not set - backend error reporting disabled");
+}
+
 import homepage from "./src/index.html";
 import { auth } from "./src/lib/auth";
 import { logger } from "./src/lib/logger";
@@ -940,6 +954,15 @@ Bun.serve({
         headers: { "Content-Type": "text/html" },
       });
     } catch (error) {
+      // Capture errors in Sentry with request context
+      Sentry.captureException(error, {
+        tags: {
+          layer: "api",
+          endpoint: path,
+          method,
+        },
+      });
+
       // Use consistent error response formatting
       return errorResponse(error);
     }

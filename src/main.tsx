@@ -4,10 +4,15 @@ import { ErrorBoundary } from "react-error-boundary"
 import { Toaster } from "sonner"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools"
+import * as Sentry from "@sentry/react"
+import { initSentry } from "./lib/sentry"
 import "sonner/dist/styles.css"
 import "./styles/globals.css"
 import { App } from "./App"
 import { ThemeProvider } from "@/components/theme-provider"
+
+// Initialize Sentry error reporting
+initSentry()
 
 // Create QueryClient with sensible defaults for trust admin
 const queryClient = new QueryClient({
@@ -43,7 +48,19 @@ const root = createRoot(document.getElementById("root")!)
 root.render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
-      <ErrorBoundary FallbackComponent={ErrorFallback}>
+      <ErrorBoundary
+        FallbackComponent={ErrorFallback}
+        onError={(error, errorInfo) => {
+          // Capture error in Sentry with React component stack
+          Sentry.captureException(error, {
+            contexts: {
+              react: {
+                componentStack: errorInfo.componentStack,
+              },
+            },
+          })
+        }}
+      >
         <ThemeProvider defaultTheme="system" storageKey="trust-admin-theme">
           <App />
         </ThemeProvider>

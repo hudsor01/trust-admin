@@ -31,4 +31,16 @@ declare module "bun" {
   }
 }
 
+// Vite environment variables (exposed to frontend)
+interface ImportMetaEnv {
+  readonly VITE_SENTRY_DSN?: string;
+  readonly MODE: string;
+  readonly DEV: boolean;
+  readonly PROD: boolean;
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv;
+}
+
 export {};
