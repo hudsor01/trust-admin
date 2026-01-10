@@ -7,14 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
 import { ResourceDialog } from "@/components/resource-dialog"
 import { useResourceForm } from "@/hooks/use-resource-form"
 import { z } from "zod"
@@ -31,6 +23,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { formatDate, formatCurrency, calculateAge, getWithdrawalStatus } from "../utils/formatters"
 import { EditableTextCell } from "@/components/editable-cells"
+import { SummaryCard } from "@/components/summary-card"
+import { DataTable, type ColumnDef } from "@/components/data-table"
 import { useEntities } from "@/hooks/entities/queries"
 import { useBeneficiaries } from "@/hooks/beneficiaries/queries"
 import { useWithdrawalRecords, useUpdateWithdrawalRecord } from "@/hooks/withdrawal-records/queries"
@@ -257,6 +251,211 @@ export function Distributions() {
     }
   }
 
+  // Calculate metrics for summary cards
+  const hemsDistributions = distributions.filter(d => d.hemsCategory && !d.isWithdrawal)
+  const hemsTotalDistributed = hemsDistributions.reduce((sum, d) => sum + parseFloat(d.amount), 0)
+  const withdrawalsTotalProcessed = distributions
+    .filter(d => d.distributionType === "AGE_BASED_WITHDRAWAL" || d.isWithdrawal)
+    .reduce((sum, d) => sum + parseFloat(d.amount), 0)
+  const eligibleWithdrawalsCount = eligibleWithdrawals.length
+  const totalDistributed = hemsTotalDistributed + withdrawalsTotalProcessed
+
+  // Column definitions for HEMS Distributions table
+  const hemsColumns: ColumnDef<Distribution>[] = [
+    {
+      key: "distributionDate",
+      header: "Date",
+      render: (d) => formatDate(d.distributionDate),
+      sortable: true,
+    },
+    {
+      key: "beneficiaryId",
+      header: "Beneficiary",
+      render: (d) => {
+        const beneficiary = beneficiaries.find(b => b.id === d.beneficiaryId)
+        return beneficiary ? `${beneficiary.firstName} ${beneficiary.lastName}` : "—"
+      },
+      sortable: true,
+    },
+    {
+      key: "hemsCategory",
+      header: "Category",
+      render: (d) => <Badge variant="secondary">{d.hemsCategory}</Badge>,
+      sortable: true,
+    },
+    {
+      key: "amount",
+      header: "Amount",
+      render: (d) => <span className="font-medium">{formatCurrency(d.amount)}</span>,
+      sortable: true,
+    },
+    {
+      key: "hemsJustification",
+      header: "Justification",
+      render: (d) => <span className="text-muted-foreground">{d.hemsJustification || "—"}</span>,
+    },
+  ]
+
+  // Column definitions for Distribution History table
+  const historyColumns: ColumnDef<Distribution>[] = [
+    {
+      key: "distributionDate",
+      header: "Date",
+      render: (d) => formatDate(d.distributionDate),
+      sortable: true,
+    },
+    {
+      key: "beneficiaryId",
+      header: "Beneficiary",
+      render: (d) => {
+        const beneficiary = beneficiaries.find(b => b.id === d.beneficiaryId)
+        return beneficiary ? `${beneficiary.firstName} ${beneficiary.lastName}` : "—"
+      },
+      sortable: true,
+    },
+    {
+      key: "distributionType",
+      header: "Type",
+      render: (d) => (
+        <Badge
+          variant={d.isWithdrawal ? "default" : "secondary"}
+          className={cn(
+            d.isWithdrawal && "bg-violet-100 text-violet-800 dark:bg-violet-900 dark:text-violet-100"
+          )}
+        >
+          {d.isWithdrawal ? "Withdrawal" : d.hemsCategory || d.distributionType}
+        </Badge>
+      ),
+      sortable: true,
+    },
+    {
+      key: "amount",
+      header: "Amount",
+      render: (d) => <span className="font-medium">{formatCurrency(d.amount)}</span>,
+      sortable: true,
+    },
+    {
+      key: "paymentMethod",
+      header: "Method",
+      render: (d) => d.paymentMethod,
+    },
+    {
+      key: "notes",
+      header: "Notes",
+      render: (d) => (
+        <EditableTextCell
+          value={d.notes}
+          onSave={async (val) => {
+            await updateDistribution(d.id, { notes: val })
+          }}
+        />
+      ),
+    },
+  ]
+
+  // Column definitions for Age-Based Withdrawals table
+  type WithdrawalRow = { beneficiary: Beneficiary; age25: WithdrawalRecord | null; age30: WithdrawalRecord | null }
+  const withdrawalColumns: ColumnDef<WithdrawalRow>[] = [
+    {
+      key: "beneficiary",
+      header: "Beneficiary",
+      render: (w) => (
+        <span className="font-medium">{w.beneficiary.firstName} {w.beneficiary.lastName}</span>
+      ),
+      sortable: true,
+    },
+    {
+      key: "age",
+      header: "Age",
+      render: (w) => w.beneficiary.dob ? calculateAge(w.beneficiary.dob) : "—",
+      sortable: true,
+    },
+    {
+      key: "share",
+      header: "Share",
+      render: (w) => `${w.beneficiary.sharePercent}%`,
+      sortable: true,
+    },
+    {
+      key: "age25",
+      header: "Age 25 (50%)",
+      render: (w) => {
+        if (!w.age25) return "—"
+        const status = getWithdrawalStatus(w.age25.eligibleDate)
+        return (
+          <div className="flex items-center gap-2">
+            <Badge
+              variant={w.age25.status === "COMPLETE" ? "secondary" : getStatusVariant(status?.status || "")}
+              className={cn(
+                w.age25.status !== "COMPLETE" && status?.isEligible && "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100"
+              )}
+            >
+              {w.age25.status === "COMPLETE" ? "WITHDRAWN" : status?.status}
+            </Badge>
+            <span className="text-xs text-muted-foreground">
+              {formatDate(w.age25.eligibleDate)}
+            </span>
+          </div>
+        )
+      },
+    },
+    {
+      key: "age30",
+      header: "Age 30 (50%)",
+      render: (w) => {
+        if (!w.age30) return "—"
+        const status = getWithdrawalStatus(w.age30.eligibleDate)
+        return (
+          <div className="flex items-center gap-2">
+            <Badge
+              variant={w.age30.status === "COMPLETE" ? "secondary" : getStatusVariant(status?.status || "")}
+              className={cn(
+                w.age30.status !== "COMPLETE" && status?.isEligible && "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100"
+              )}
+            >
+              {w.age30.status === "COMPLETE" ? "WITHDRAWN" : status?.status}
+            </Badge>
+            <span className="text-xs text-muted-foreground">
+              {formatDate(w.age30.eligibleDate)}
+            </span>
+          </div>
+        )
+      },
+    },
+    {
+      key: "actions",
+      header: "Actions",
+      render: (w) => {
+        const age25Status = w.age25 ? getWithdrawalStatus(w.age25.eligibleDate) : null
+        const age30Status = w.age30 ? getWithdrawalStatus(w.age30.eligibleDate) : null
+        return (
+          <div className="flex gap-2">
+            {w.age25 && age25Status?.isEligible && w.age25.status !== "COMPLETE" && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="border-green-300 text-green-700 hover:bg-green-50 dark:border-green-700 dark:text-green-300"
+                onClick={() => openWithdrawalForm(w.age25!)}
+              >
+                Process 25
+              </Button>
+            )}
+            {w.age30 && age30Status?.isEligible && w.age30.status !== "COMPLETE" && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="border-green-300 text-green-700 hover:bg-green-50 dark:border-green-700 dark:text-green-300"
+                onClick={() => openWithdrawalForm(w.age30!)}
+              >
+                Process 30
+              </Button>
+            )}
+          </div>
+        )
+      },
+    },
+  ]
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -279,6 +478,16 @@ export function Distributions() {
             ))}
           </SelectContent>
         </Select>
+      </div>
+
+      {/* Summary Metrics */}
+      <div className="@container">
+        <div className="grid gap-4 @xs:grid-cols-2 @lg:grid-cols-4">
+          <SummaryCard title="HEMS Distributed" value={formatCurrency(hemsTotalDistributed)} />
+          <SummaryCard title="Withdrawals Processed" value={formatCurrency(withdrawalsTotalProcessed)} />
+          <SummaryCard title="Eligible Withdrawals" value={eligibleWithdrawalsCount} />
+          <SummaryCard title="Total Distributed" value={formatCurrency(totalDistributed)} />
+        </div>
       </div>
 
       {/* Alerts */}
@@ -341,52 +550,12 @@ export function Distributions() {
               <CardTitle className="text-lg">Recent HEMS Distributions</CardTitle>
             </CardHeader>
             <CardContent>
-              {loading ? (
-                <div className="flex justify-center py-12">
-                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                </div>
-              ) : distributions.filter(d => d.hemsCategory && !d.isWithdrawal).length === 0 ? (
-                <p className="text-center py-8 text-muted-foreground">
-                  No HEMS distributions recorded
-                </p>
-              ) : (
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Beneficiary</TableHead>
-                        <TableHead>Category</TableHead>
-                        <TableHead>Amount</TableHead>
-                        <TableHead>Justification</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {distributions
-                        .filter(d => d.hemsCategory && !d.isWithdrawal)
-                        .slice(0, 10)
-                        .map((d) => {
-                          const beneficiary = beneficiaries.find(b => b.id === d.beneficiaryId)
-                          return (
-                            <TableRow key={d.id}>
-                              <TableCell>{formatDate(d.distributionDate)}</TableCell>
-                              <TableCell>
-                                {beneficiary ? `${beneficiary.firstName} ${beneficiary.lastName}` : "—"}
-                              </TableCell>
-                              <TableCell>
-                                <Badge variant="secondary">{d.hemsCategory}</Badge>
-                              </TableCell>
-                              <TableCell className="font-medium">{formatCurrency(d.amount)}</TableCell>
-                              <TableCell className="text-muted-foreground">
-                                {d.hemsJustification || "—"}
-                              </TableCell>
-                            </TableRow>
-                          )
-                        })}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
+              <DataTable
+                data={hemsDistributions.slice(0, 10)}
+                columns={hemsColumns}
+                isLoading={loading}
+                emptyMessage="No HEMS distributions recorded"
+              />
             </CardContent>
           </Card>
         </TabsContent>
@@ -401,106 +570,12 @@ export function Distributions() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {loading ? (
-                <div className="flex justify-center py-12">
-                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                </div>
-              ) : grandchildrenWithdrawals.length === 0 ? (
-                <p className="text-center py-12 text-muted-foreground">
-                  No grandchild withdrawal schedules found.
-                </p>
-              ) : (
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Beneficiary</TableHead>
-                        <TableHead>Age</TableHead>
-                        <TableHead>Share</TableHead>
-                        <TableHead>Age 25 (50%)</TableHead>
-                        <TableHead>Age 30 (50%)</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {grandchildrenWithdrawals.map((row) => {
-                        const age25Status = row.age25 ? getWithdrawalStatus(row.age25.eligibleDate) : null
-                        const age30Status = row.age30 ? getWithdrawalStatus(row.age30.eligibleDate) : null
-
-                        return (
-                          <TableRow key={row.beneficiary.id}>
-                            <TableCell className="font-medium">
-                              {row.beneficiary.firstName} {row.beneficiary.lastName}
-                            </TableCell>
-                            <TableCell>
-                              {row.beneficiary.dob ? calculateAge(row.beneficiary.dob) : "—"}
-                            </TableCell>
-                            <TableCell>{row.beneficiary.sharePercent}%</TableCell>
-                            <TableCell>
-                              {row.age25 ? (
-                                <div className="flex items-center gap-2">
-                                  <Badge
-                                    variant={row.age25.status === "COMPLETE" ? "secondary" : getStatusVariant(age25Status?.status || "")}
-                                    className={cn(
-                                      row.age25.status !== "COMPLETE" && age25Status?.isEligible && "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100"
-                                    )}
-                                  >
-                                    {row.age25.status === "COMPLETE" ? "WITHDRAWN" : age25Status?.status}
-                                  </Badge>
-                                  <span className="text-xs text-muted-foreground">
-                                    {formatDate(row.age25.eligibleDate)}
-                                  </span>
-                                </div>
-                              ) : "—"}
-                            </TableCell>
-                            <TableCell>
-                              {row.age30 ? (
-                                <div className="flex items-center gap-2">
-                                  <Badge
-                                    variant={row.age30.status === "COMPLETE" ? "secondary" : getStatusVariant(age30Status?.status || "")}
-                                    className={cn(
-                                      row.age30.status !== "COMPLETE" && age30Status?.isEligible && "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100"
-                                    )}
-                                  >
-                                    {row.age30.status === "COMPLETE" ? "WITHDRAWN" : age30Status?.status}
-                                  </Badge>
-                                  <span className="text-xs text-muted-foreground">
-                                    {formatDate(row.age30.eligibleDate)}
-                                  </span>
-                                </div>
-                              ) : "—"}
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex gap-2">
-                                {row.age25 && age25Status?.isEligible && row.age25.status !== "COMPLETE" && (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="border-green-300 text-green-700 hover:bg-green-50 dark:border-green-700 dark:text-green-300"
-                                    onClick={() => openWithdrawalForm(row.age25!)}
-                                  >
-                                    Process 25
-                                  </Button>
-                                )}
-                                {row.age30 && age30Status?.isEligible && row.age30.status !== "COMPLETE" && (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="border-green-300 text-green-700 hover:bg-green-50 dark:border-green-700 dark:text-green-300"
-                                    onClick={() => openWithdrawalForm(row.age30!)}
-                                  >
-                                    Process 30
-                                  </Button>
-                                )}
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        )
-                      })}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
+              <DataTable
+                data={grandchildrenWithdrawals}
+                columns={withdrawalColumns}
+                isLoading={loading}
+                emptyMessage="No grandchild withdrawal schedules found."
+              />
             </CardContent>
           </Card>
         </TabsContent>
@@ -512,63 +587,12 @@ export function Distributions() {
               <CardTitle className="text-lg">All Distributions</CardTitle>
             </CardHeader>
             <CardContent>
-              {loading ? (
-                <div className="flex justify-center py-12">
-                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                </div>
-              ) : distributions.length === 0 ? (
-                <p className="text-center py-12 text-muted-foreground">
-                  No distributions recorded
-                </p>
-              ) : (
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Beneficiary</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Amount</TableHead>
-                        <TableHead>Method</TableHead>
-                        <TableHead>Notes</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {distributions.map((d) => {
-                        const beneficiary = beneficiaries.find(b => b.id === d.beneficiaryId)
-                        return (
-                          <TableRow key={d.id}>
-                            <TableCell>{formatDate(d.distributionDate)}</TableCell>
-                            <TableCell>
-                              {beneficiary ? `${beneficiary.firstName} ${beneficiary.lastName}` : "—"}
-                            </TableCell>
-                            <TableCell>
-                              <Badge
-                                variant={d.isWithdrawal ? "default" : "secondary"}
-                                className={cn(
-                                  d.isWithdrawal && "bg-violet-100 text-violet-800 dark:bg-violet-900 dark:text-violet-100"
-                                )}
-                              >
-                                {d.isWithdrawal ? "Withdrawal" : d.hemsCategory || d.distributionType}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="font-medium">{formatCurrency(d.amount)}</TableCell>
-                            <TableCell>{d.paymentMethod}</TableCell>
-                            <TableCell>
-                              <EditableTextCell
-                                value={d.notes}
-                                onSave={async (val) => {
-                                  await updateDistribution(d.id, { notes: val })
-                                }}
-                              />
-                            </TableCell>
-                          </TableRow>
-                        )
-                      })}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
+              <DataTable
+                data={distributions}
+                columns={historyColumns}
+                isLoading={loading}
+                emptyMessage="No distributions recorded"
+              />
             </CardContent>
           </Card>
         </TabsContent>
