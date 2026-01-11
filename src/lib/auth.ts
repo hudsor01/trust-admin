@@ -59,7 +59,17 @@ export const auth = betterAuth({
       sendMagicLink: async ({ email, url, token }, request) => {
         log.info("Sending magic link", { email })
 
+        // Development mode: log link to console instead of failing
         if (!resend) {
+          if (process.env.NODE_ENV === "development") {
+            console.log("\n" + "=".repeat(80))
+            console.log("🔐 MAGIC LINK FOR:", email)
+            console.log("📧 Click this link to sign in:")
+            console.log(url)
+            console.log("=".repeat(80) + "\n")
+            log.warn("RESEND_API_KEY not set - magic link logged to console (development mode)")
+            return // Success - link logged to console
+          }
           log.error("Cannot send magic link - RESEND_API_KEY not configured")
           throw new Error("Email service not configured. Please set RESEND_API_KEY.")
         }

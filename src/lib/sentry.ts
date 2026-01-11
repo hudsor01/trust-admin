@@ -7,16 +7,19 @@
 import * as Sentry from "@sentry/react"
 
 export function initSentry() {
-  if (!import.meta.env.VITE_SENTRY_DSN) {
+  // Safely check for environment variables
+  const env = import.meta?.env || {}
+
+  if (!env.VITE_SENTRY_DSN) {
     console.warn("SENTRY_DSN not set - error reporting disabled")
     return
   }
 
-  const environment = import.meta.env.MODE || "development"
+  const environment = env.MODE || "development"
   const isProduction = environment === "production"
 
   Sentry.init({
-    dsn: import.meta.env.VITE_SENTRY_DSN,
+    dsn: env.VITE_SENTRY_DSN,
     environment,
     
     // Performance Monitoring
