@@ -3,8 +3,8 @@
  *
  * Based on best practices from https://orm.drizzle.team/docs/column-types/pg
  */
-import { sql } from "drizzle-orm";
-import { text, uuid, timestamp } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm"
+import { text, timestamp, uuid } from "drizzle-orm/pg-core"
 
 /**
  * Generate a UUID v4 using crypto.randomUUID()
@@ -13,7 +13,7 @@ import { text, uuid, timestamp } from "drizzle-orm/pg-core";
  * @example
  * id: text().primaryKey().$defaultFn(generateId)
  */
-export const generateId = () => crypto.randomUUID();
+export const generateId = () => crypto.randomUUID()
 
 /**
  * Standard ID column using text with UUID default
@@ -25,7 +25,7 @@ export const generateId = () => crypto.randomUUID();
  *   // other columns...
  * });
  */
-export const textId = () => text().primaryKey().$defaultFn(generateId);
+export const textId = () => text().primaryKey().$defaultFn(generateId)
 
 /**
  * Native UUID column with auto-generated default
@@ -37,7 +37,7 @@ export const textId = () => text().primaryKey().$defaultFn(generateId);
  *   // other columns...
  * });
  */
-export const uuidId = () => uuid().primaryKey().defaultRandom();
+export const uuidId = () => uuid().primaryKey().defaultRandom()
 
 /**
  * Standard timestamp columns for audit trails
@@ -57,7 +57,7 @@ export const timestamps = () => ({
   updatedAt: timestamp({ precision: 3, mode: "string" as const })
     .notNull()
     .$onUpdateFn(() => new Date().toISOString()),
-});
+})
 
 /**
  * Timestamp column with timezone support
@@ -67,4 +67,4 @@ export const timestamps = () => ({
  * eventDate: timestampWithTz()
  */
 export const timestampWithTz = () =>
-  timestamp({ precision: 3, mode: "string" as const, withTimezone: true });
+  timestamp({ precision: 3, mode: "string" as const, withTimezone: true })

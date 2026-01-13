@@ -4,19 +4,17 @@ function normalizeText(value: string | null | undefined): string {
 }
 
 function escapeCsvValue(value: string): string {
-  if (value.includes("\"")) {
-    value = value.replace(/\"/g, "\"\"")
+  if (value.includes('"')) {
+    value = value.replace(/"/g, '""')
   }
-  if (/[\n\r,\"]/.test(value)) {
+  if (/[\n\r,"]/.test(value)) {
     return `"${value}"`
   }
   return value
 }
 
 function buildCsv(rows: string[][]): string {
-  return rows
-    .map((row) => row.map((cell) => escapeCsvValue(cell)).join(","))
-    .join("\r\n")
+  return rows.map((row) => row.map((cell) => escapeCsvValue(cell)).join(",")).join("\r\n")
 }
 
 function downloadCsv(filename: string, rows: string[][]) {
@@ -88,9 +86,7 @@ export function exportTablesInContainer(container: HTMLElement, baseName: string
 
   tables.forEach((table, index) => {
     const nameHint = normalizeText(table.getAttribute("data-csv-name"))
-    const filename = nameHint
-      ? `${baseName}-${nameHint}.csv`
-      : `${baseName}-table-${index + 1}.csv`
+    const filename = nameHint ? `${baseName}-${nameHint}.csv` : `${baseName}-table-${index + 1}.csv`
     exportTableToCsv(table, filename)
   })
 

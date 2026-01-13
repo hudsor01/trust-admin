@@ -1,6 +1,6 @@
 /**
  * Sentry Error Reporting Configuration
- * 
+ *
  * Initializes Sentry for frontend error tracking with session replay
  * and performance monitoring. Only active when SENTRY_DSN is configured.
  */
@@ -21,14 +21,14 @@ export function initSentry() {
   Sentry.init({
     dsn: env.VITE_SENTRY_DSN,
     environment,
-    
+
     // Performance Monitoring
     tracesSampleRate: isProduction ? 0.2 : 1.0,
-    
+
     // Session Replay
     replaysSessionSampleRate: 0.1, // 10% of sessions
     replaysOnErrorSampleRate: 1.0, // 100% of sessions with errors
-    
+
     integrations: [
       Sentry.browserTracingIntegration(),
       Sentry.replayIntegration({
@@ -36,7 +36,7 @@ export function initSentry() {
         blockAllMedia: true, // Privacy: block images/video
       }),
     ],
-    
+
     // Filter sensitive data
     beforeSend(event) {
       // Remove user email from events (privacy)
@@ -46,6 +46,6 @@ export function initSentry() {
       return event
     },
   })
-  
+
   console.log(`✅ Sentry initialized for ${environment}`)
 }

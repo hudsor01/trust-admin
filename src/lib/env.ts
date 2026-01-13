@@ -20,7 +20,10 @@ const envSchema = z.object({
 
   // Authentication (required for production)
   // Generate with: openssl rand -base64 32
-  BETTER_AUTH_SECRET: z.string().min(32, "BETTER_AUTH_SECRET must be at least 32 characters").optional(),
+  BETTER_AUTH_SECRET: z
+    .string()
+    .min(32, "BETTER_AUTH_SECRET must be at least 32 characters")
+    .optional(),
 
   // Email (optional - server runs without email in development)
   RESEND_API_KEY: z.string().optional(),
@@ -52,7 +55,7 @@ export function validateEnvironment(): Env {
   const result = envSchema.safeParse(process.env)
 
   if (!result.success) {
-    console.error("\n" + "=".repeat(80))
+    console.error(`\n${"=".repeat(80)}`)
     console.error("❌ ENVIRONMENT VALIDATION FAILED")
     console.error("=".repeat(80))
     console.error("\nThe following environment variables are missing or invalid:\n")
@@ -60,7 +63,7 @@ export function validateEnvironment(): Env {
     const formatted = result.error.format()
     Object.entries(formatted).forEach(([key, value]) => {
       if (key !== "_errors" && value && typeof value === "object") {
-        const errors = (value as any)._errors
+        const errors = (value as { _errors?: string[] })._errors
         if (errors && errors.length > 0) {
           console.error(`  ${key}:`)
           errors.forEach((err: string) => console.error(`    - ${err}`))
@@ -68,10 +71,10 @@ export function validateEnvironment(): Env {
       }
     })
 
-    console.error("\n" + "=".repeat(80))
+    console.error(`\n${"=".repeat(80)}`)
     console.error("Please set the required environment variables and try again.")
     console.error("See .env.example for a template.")
-    console.error("=".repeat(80) + "\n")
+    console.error(`${"=".repeat(80)}\n`)
 
     process.exit(1)
   }
@@ -116,11 +119,11 @@ export function validateProductionEnvironment(env: Env): void {
   }
 
   if (warnings.length > 0) {
-    console.warn("\n" + "=".repeat(80))
+    console.warn(`\n${"=".repeat(80)}`)
     console.warn("⚠️  PRODUCTION ENVIRONMENT WARNINGS")
     console.warn("=".repeat(80))
     console.warn("\nThe following optional variables are recommended for production:\n")
     warnings.forEach((warning) => console.warn(`  - ${warning}`))
-    console.warn("\n" + "=".repeat(80) + "\n")
+    console.warn(`\n${"=".repeat(80)}\n`)
   }
 }

@@ -20,7 +20,7 @@ CREATE EXTENSION IF NOT EXISTS "pg_trgm";
 
 -- Case-insensitive text type
 CREATE EXTENSION IF NOT EXISTS "citext";
-`;
+`
 
 /**
  * Extension availability check queries
@@ -30,7 +30,7 @@ SELECT extname, extversion
 FROM pg_extension
 WHERE extname IN ('uuid-ossp', 'pg_trgm', 'citext')
 ORDER BY extname;
-`;
+`
 
 /**
  * Example: Using uuid_generate_v4() from uuid-ossp extension

@@ -7,8 +7,8 @@
  * @see https://orm.drizzle.team/docs/rls
  */
 
-import { sql } from "drizzle-orm";
-import { pgPolicy, pgRole } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm"
+import { pgPolicy, pgRole } from "drizzle-orm/pg-core"
 
 // =============================================================================
 // ROLE DEFINITIONS
@@ -25,28 +25,28 @@ export const adminRole = pgRole("admin", {
   createRole: false,
   createDb: false,
   inherit: true,
-});
+})
 
 // Trustee role - access to assigned trusts
 export const trusteeRole = pgRole("trustee", {
   createRole: false,
   createDb: false,
   inherit: true,
-});
+})
 
 // Beneficiary role - limited read access
 export const beneficiaryRole = pgRole("beneficiary_user", {
   createRole: false,
   createDb: false,
   inherit: true,
-});
+})
 
 // Read-only role for auditors
 export const auditorRole = pgRole("auditor", {
   createRole: false,
   createDb: false,
   inherit: true,
-});
+})
 
 // =============================================================================
 // POLICY PATTERNS
@@ -70,7 +70,7 @@ export const entityAccessPolicy = pgPolicy("entity_access_policy", {
       AND t.status = 'CURRENT'
     )
   `,
-});
+})
 
 /**
  * Example: Beneficiary data access policy
@@ -82,7 +82,7 @@ export const beneficiaryAccessPolicy = pgPolicy("beneficiary_self_access", {
   for: "select",
   to: beneficiaryRole,
   using: sql`id = current_setting('app.current_user_id')::uuid`,
-});
+})
 
 /**
  * Example: Admin full access policy
@@ -95,7 +95,7 @@ export const adminFullAccessPolicy = pgPolicy("admin_full_access", {
   to: adminRole,
   using: sql`true`,
   withCheck: sql`true`,
-});
+})
 
 /**
  * Example: Auditor read-only policy
@@ -107,7 +107,7 @@ export const auditorReadOnlyPolicy = pgPolicy("auditor_read_only", {
   for: "select",
   to: auditorRole,
   using: sql`true`,
-});
+})
 
 // =============================================================================
 // IMPLEMENTATION GUIDE

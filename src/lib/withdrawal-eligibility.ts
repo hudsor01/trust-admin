@@ -17,10 +17,10 @@ export interface BeneficiaryWithdrawalInfo {
   dob: Date | string | null
 
   // Withdrawal rules from trust
-  withdrawalAge1: number | null    // e.g., 25
-  withdrawalPct1: number | null    // e.g., 50
-  withdrawalAge2: number | null    // e.g., 30
-  withdrawalPct2: number | null    // e.g., 50
+  withdrawalAge1: number | null // e.g., 25
+  withdrawalPct1: number | null // e.g., 50
+  withdrawalAge2: number | null // e.g., 30
+  withdrawalPct2: number | null // e.g., 50
 
   // Track what's been withdrawn
   withdrawnAtAge1?: number
@@ -74,7 +74,7 @@ export interface WithdrawalEligibility {
 /**
  * Calculate age in years from date of birth
  */
-function calculateAge(dob: Date, asOfDate: Date = new Date()): number {
+function _calculateAge(dob: Date, asOfDate: Date = new Date()): number {
   const birthDate = new Date(dob)
   let age = asOfDate.getFullYear() - birthDate.getFullYear()
   const monthDiff = asOfDate.getMonth() - birthDate.getMonth()
@@ -97,8 +97,9 @@ function dateAtAge(dob: Date, age: number): Date {
   const targetDay = dob.getDate()
 
   // Handle February 29 in non-leap years
-  if (targetMonth === 1 && targetDay === 29) { // February 29
-    const isLeapYear = (targetYear % 4 === 0 && targetYear % 100 !== 0) || (targetYear % 400 === 0)
+  if (targetMonth === 1 && targetDay === 29) {
+    // February 29
+    const isLeapYear = (targetYear % 4 === 0 && targetYear % 100 !== 0) || targetYear % 400 === 0
     if (!isLeapYear) {
       // February 29 in non-leap year - use February 28
       return new Date(targetYear, 1, 28)
@@ -122,7 +123,7 @@ function daysBetween(date1: Date, date2: Date): number {
 export function calculateWithdrawalEligibility(
   beneficiary: BeneficiaryWithdrawalInfo,
   trustShareValue: number, // Their share of trust value
-  asOfDate: Date = new Date()
+  asOfDate: Date = new Date(),
 ): WithdrawalEligibility {
   const name = `${beneficiary.firstName} ${beneficiary.lastName}`
   const dob = beneficiary.dob ? new Date(beneficiary.dob) : null
@@ -231,9 +232,9 @@ export function calculateWithdrawalEligibility(
 export function calculateAllWithdrawalEligibility(
   beneficiaries: BeneficiaryWithdrawalInfo[],
   trustTotalValue: number,
-  asOfDate: Date = new Date()
+  asOfDate: Date = new Date(),
 ): WithdrawalEligibility[] {
-  return beneficiaries.map(b => {
+  return beneficiaries.map((b) => {
     // Calculate this beneficiary's share of trust value
     // Assuming sharePercent is stored elsewhere, we'll need it passed in
     // For now, we'll use a placeholder - in real usage, pass the share value directly
@@ -248,12 +249,13 @@ export function calculateAllWithdrawalEligibility(
  */
 export function getUpcomingEligibilities(
   eligibilities: WithdrawalEligibility[],
-  withinDays: number = 30
+  withinDays: number = 30,
 ): WithdrawalEligibility[] {
-  return eligibilities.filter(e =>
-    e.upcomingEligibility &&
-    e.upcomingEligibility.daysUntil <= withinDays &&
-    e.upcomingEligibility.daysUntil > 0
+  return eligibilities.filter(
+    (e) =>
+      e.upcomingEligibility &&
+      e.upcomingEligibility.daysUntil <= withinDays &&
+      e.upcomingEligibility.daysUntil > 0,
   )
 }
 
@@ -261,9 +263,9 @@ export function getUpcomingEligibilities(
  * Get beneficiaries currently eligible to withdraw
  */
 export function getCurrentlyEligible(
-  eligibilities: WithdrawalEligibility[]
+  eligibilities: WithdrawalEligibility[],
 ): WithdrawalEligibility[] {
-  return eligibilities.filter(e => e.totalEligibleNow > 0)
+  return eligibilities.filter((e) => e.totalEligibleNow > 0)
 }
 
 /**
@@ -279,7 +281,9 @@ export function formatEligibility(e: WithdrawalEligibility): string {
   if (e.age1) {
     if (e.age1.isEligible) {
       lines.push(`  Age ${e.age1.targetAge}: ELIGIBLE`)
-      lines.push(`    Available: $${e.age1.amountRemaining.toLocaleString()} of $${e.age1.amountAvailable.toLocaleString()}`)
+      lines.push(
+        `    Available: $${e.age1.amountRemaining.toLocaleString()} of $${e.age1.amountAvailable.toLocaleString()}`,
+      )
       if (e.age1.amountWithdrawn > 0) {
         lines.push(`    Already withdrawn: $${e.age1.amountWithdrawn.toLocaleString()}`)
       }
@@ -292,7 +296,9 @@ export function formatEligibility(e: WithdrawalEligibility): string {
   if (e.age2) {
     if (e.age2.isEligible) {
       lines.push(`  Age ${e.age2.targetAge}: ELIGIBLE`)
-      lines.push(`    Available: $${e.age2.amountRemaining.toLocaleString()} of $${e.age2.amountAvailable.toLocaleString()}`)
+      lines.push(
+        `    Available: $${e.age2.amountRemaining.toLocaleString()} of $${e.age2.amountAvailable.toLocaleString()}`,
+      )
       if (e.age2.amountWithdrawn > 0) {
         lines.push(`    Already withdrawn: $${e.age2.amountWithdrawn.toLocaleString()}`)
       }
@@ -306,7 +312,7 @@ export function formatEligibility(e: WithdrawalEligibility): string {
     lines.push(`  TOTAL AVAILABLE NOW: $${e.totalEligibleNow.toLocaleString()}`)
   }
 
-  return lines.join('\n')
+  return lines.join("\n")
 }
 
 /**
@@ -315,9 +321,9 @@ export function formatEligibility(e: WithdrawalEligibility): string {
 export function createWithdrawalRecord(
   beneficiaryId: string,
   entityId: string,
-  withdrawalType: 'AGE_25' | 'AGE_30',
+  withdrawalType: "AGE_25" | "AGE_30",
   eligibleDate: Date,
-  eligibleAmount: number
+  eligibleAmount: number,
 ): {
   beneficiaryId: string
   entityId: string
@@ -326,7 +332,7 @@ export function createWithdrawalRecord(
   eligibleAmount: string
   withdrawnAmount: string
   remainingAmount: string
-  status: 'ELIGIBLE' | 'NOT_YET_ELIGIBLE'
+  status: "ELIGIBLE" | "NOT_YET_ELIGIBLE"
 } {
   const now = new Date()
   const isEligible = now >= eligibleDate
@@ -337,8 +343,8 @@ export function createWithdrawalRecord(
     withdrawalType,
     eligibleDate: eligibleDate.toISOString(),
     eligibleAmount: eligibleAmount.toFixed(2),
-    withdrawnAmount: '0',
+    withdrawnAmount: "0",
     remainingAmount: eligibleAmount.toFixed(2),
-    status: isEligible ? 'ELIGIBLE' : 'NOT_YET_ELIGIBLE',
+    status: isEligible ? "ELIGIBLE" : "NOT_YET_ELIGIBLE",
   }
 }

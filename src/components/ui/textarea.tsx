@@ -19,13 +19,13 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
           "contrast-more:border-foreground/50 contrast-more:placeholder:text-muted-foreground/80",
           "md:text-sm",
           autoSize && "field-sizing-content max-h-[300px]",
-          className
+          className,
         )}
         ref={ref}
         {...props}
       />
     )
-  }
+  },
 )
 Textarea.displayName = "Textarea"
 

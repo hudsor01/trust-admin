@@ -8,12 +8,10 @@
  * loading states, and optimistic updates.
  */
 
-import { useState } from "react"
 import { Loader2 } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { formatCurrency, formatDate } from "@/utils/formatters"
-import { Input } from "@/components/ui/input"
+import { useState } from "react"
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
 import {
   Select,
   SelectContent,
@@ -21,6 +19,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { cn } from "@/lib/utils"
+import { formatCurrency, formatDate } from "@/utils/formatters"
 
 // =============================================================================
 // EDITABLE TEXT CELL
@@ -32,11 +32,7 @@ interface EditableTextCellProps {
   placeholder?: string
 }
 
-export function EditableTextCell({
-  value,
-  onSave,
-  placeholder = "—",
-}: EditableTextCellProps) {
+export function EditableTextCell({ value, onSave, placeholder = "—" }: EditableTextCellProps) {
   const [editing, setEditing] = useState(false)
   const [editValue, setEditValue] = useState(value || "")
   const [saving, setSaving] = useState(false)
@@ -71,7 +67,9 @@ export function EditableTextCell({
           className="h-7 text-sm"
           autoFocus
         />
-        {saving && <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 animate-spin" />}
+        {saving && (
+          <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 animate-spin" />
+        )}
       </div>
     )
   }
@@ -100,10 +98,7 @@ interface EditableCurrencyCellProps {
   onSave: (val: string | null) => Promise<unknown>
 }
 
-export function EditableCurrencyCell({
-  value,
-  onSave,
-}: EditableCurrencyCellProps) {
+export function EditableCurrencyCell({ value, onSave }: EditableCurrencyCellProps) {
   const [editing, setEditing] = useState(false)
   const [editValue, setEditValue] = useState(value || "")
   const [saving, setSaving] = useState(false)
@@ -139,7 +134,9 @@ export function EditableCurrencyCell({
           placeholder="$0.00"
           autoFocus
         />
-        {saving && <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 animate-spin" />}
+        {saving && (
+          <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 animate-spin" />
+        )}
       </div>
     )
   }
@@ -171,12 +168,7 @@ interface EditableSelectCellProps {
   variants?: Record<string, "default" | "secondary" | "destructive" | "outline">
 }
 
-export function EditableSelectCell({
-  value,
-  options,
-  onSave,
-  variants,
-}: EditableSelectCellProps) {
+export function EditableSelectCell({ value, options, onSave, variants }: EditableSelectCellProps) {
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
 
@@ -244,11 +236,7 @@ interface EditableDateCellProps {
   placeholder?: string
 }
 
-export function EditableDateCell({
-  value,
-  onSave,
-  placeholder = "—",
-}: EditableDateCellProps) {
+export function EditableDateCell({ value, onSave, placeholder = "—" }: EditableDateCellProps) {
   const [editing, setEditing] = useState(false)
   const [editValue, setEditValue] = useState(value ? value.split("T")[0] : "")
   const [saving, setSaving] = useState(false)
@@ -285,7 +273,9 @@ export function EditableDateCell({
           className="h-7 text-sm w-35"
           autoFocus
         />
-        {saving && <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 animate-spin" />}
+        {saving && (
+          <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 animate-spin" />
+        )}
       </div>
     )
   }
@@ -329,7 +319,7 @@ export function EditableNumberCell({
   const [saving, setSaving] = useState(false)
 
   const handleSave = async () => {
-    const numVal = editValue ? parseInt(editValue) : null
+    const numVal = editValue ? parseInt(editValue, 10) : null
     if (numVal === value) {
       setEditing(false)
       return
@@ -363,7 +353,9 @@ export function EditableNumberCell({
           className="h-7 text-sm w-16"
           autoFocus
         />
-        {saving && <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 animate-spin" />}
+        {saving && (
+          <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 animate-spin" />
+        )}
       </div>
     )
   }
@@ -392,10 +384,7 @@ interface EditablePercentCellProps {
   onSave: (val: string | null) => Promise<unknown>
 }
 
-export function EditablePercentCell({
-  value,
-  onSave,
-}: EditablePercentCellProps) {
+export function EditablePercentCell({ value, onSave }: EditablePercentCellProps) {
   const [editing, setEditing] = useState(false)
   const [editValue, setEditValue] = useState(value || "")
   const [saving, setSaving] = useState(false)
@@ -431,7 +420,9 @@ export function EditablePercentCell({
           placeholder="0.00"
           autoFocus
         />
-        {saving && <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 animate-spin" />}
+        {saving && (
+          <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 animate-spin" />
+        )}
       </div>
     )
   }

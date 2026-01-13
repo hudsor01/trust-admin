@@ -1,5 +1,5 @@
 import { toast } from "sonner"
-import { ApiError, type ErrorCode } from "@/lib/api-error"
+import { ApiError } from "@/lib/api-error"
 
 /**
  * Hook for displaying user-friendly error notifications

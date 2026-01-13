@@ -2,8 +2,8 @@
  * TanStack Query hooks for TrusteeFeeEntry resource
  */
 
-import { useQuery, useMutation, useQueryClient, queryOptions } from '@tanstack/react-query'
-import { toast } from 'sonner'
+import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { toast } from "sonner"
 
 export interface TrusteeFeeEntry {
   id: string
@@ -31,9 +31,9 @@ export interface TrusteeFeeEntry {
 
 // Query Keys
 export const trusteeFeeEntryKeys = {
-  all: ['trustee-fee-entries'] as const,
-  byEntity: (entityId: string) => ['trustee-fee-entries', 'entity', entityId] as const,
-  detail: (id: string) => ['trustee-fee-entries', id] as const,
+  all: ["trustee-fee-entries"] as const,
+  byEntity: (entityId: string) => ["trustee-fee-entries", "entity", entityId] as const,
+  detail: (id: string) => ["trustee-fee-entries", id] as const,
 }
 
 // Query Options
@@ -41,13 +41,17 @@ export const trusteeFeeEntriesQueryOptions = (entityId?: string) =>
   queryOptions({
     queryKey: entityId ? trusteeFeeEntryKeys.byEntity(entityId) : trusteeFeeEntryKeys.all,
     queryFn: async () => {
-      const url = entityId ? `/api/trustee-fee-entries?entityId=${entityId}` : '/api/trustee-fee-entries'
+      const url = entityId
+        ? `/api/trustee-fee-entries?entityId=${entityId}`
+        : "/api/trustee-fee-entries"
       const res = await fetch(url)
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ error: { message: `HTTP ${res.status}` } }))
+        const errorData = await res
+          .json()
+          .catch(() => ({ error: { message: `HTTP ${res.status}` } }))
         throw new Error(errorData.error?.message || `Failed to fetch: ${res.status}`)
       }
-      const data = await res.json() as TrusteeFeeEntry[]
+      const data = (await res.json()) as TrusteeFeeEntry[]
       return data.sort((a, b) => new Date(b.periodEnd).getTime() - new Date(a.periodEnd).getTime())
     },
     enabled: entityId ? !!entityId : true,
@@ -59,7 +63,9 @@ export const trusteeFeeEntryQueryOptions = (id: string) =>
     queryFn: async () => {
       const res = await fetch(`/api/trustee-fee-entries/${id}`)
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ error: { message: `HTTP ${res.status}` } }))
+        const errorData = await res
+          .json()
+          .catch(() => ({ error: { message: `HTTP ${res.status}` } }))
         throw new Error(errorData.error?.message || `Failed to fetch: ${res.status}`)
       }
       return res.json() as Promise<TrusteeFeeEntry>
@@ -81,19 +87,23 @@ export function useCreateTrusteeFeeEntry() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (trusteeFeeEntry: Partial<TrusteeFeeEntry>) => {
-      const res = await fetch('/api/trustee-fee-entries', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/trustee-fee-entries", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(trusteeFeeEntry),
       })
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ error: { message: `HTTP ${res.status}` } }))
-        if (errorData.error?.code === 'VALIDATION_ERROR' && errorData.error.details?.fields) {
+        const errorData = await res
+          .json()
+          .catch(() => ({ error: { message: `HTTP ${res.status}` } }))
+        if (errorData.error?.code === "VALIDATION_ERROR" && errorData.error.details?.fields) {
           const fields = errorData.error.details.fields as Record<string, string>
-          const fieldErrors = Object.entries(fields).map(([field, message]) => `${field}: ${message}`).join('\n')
+          const fieldErrors = Object.entries(fields)
+            .map(([field, message]) => `${field}: ${message}`)
+            .join("\n")
           toast.error(errorData.error.message, { description: fieldErrors })
         } else {
-          toast.error(errorData.error?.message || 'Failed to create fee entry')
+          toast.error(errorData.error?.message || "Failed to create fee entry")
         }
         throw new Error(errorData.error?.message || `Failed to create: ${res.status}`)
       }
@@ -102,7 +112,7 @@ export function useCreateTrusteeFeeEntry() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: trusteeFeeEntryKeys.all })
       queryClient.invalidateQueries({ queryKey: trusteeFeeEntryKeys.byEntity(data.entityId) })
-      toast.success('Fee entry created successfully')
+      toast.success("Fee entry created successfully")
     },
   })
 }
@@ -112,18 +122,22 @@ export function useUpdateTrusteeFeeEntry() {
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<TrusteeFeeEntry> }) => {
       const res = await fetch(`/api/trustee-fee-entries/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       })
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ error: { message: `HTTP ${res.status}` } }))
-        if (errorData.error?.code === 'VALIDATION_ERROR' && errorData.error.details?.fields) {
+        const errorData = await res
+          .json()
+          .catch(() => ({ error: { message: `HTTP ${res.status}` } }))
+        if (errorData.error?.code === "VALIDATION_ERROR" && errorData.error.details?.fields) {
           const fields = errorData.error.details.fields as Record<string, string>
-          const fieldErrors = Object.entries(fields).map(([field, message]) => `${field}: ${message}`).join('\n')
+          const fieldErrors = Object.entries(fields)
+            .map(([field, message]) => `${field}: ${message}`)
+            .join("\n")
           toast.error(errorData.error.message, { description: fieldErrors })
         } else {
-          toast.error(errorData.error?.message || 'Failed to update fee entry')
+          toast.error(errorData.error?.message || "Failed to update fee entry")
         }
         throw new Error(errorData.error?.message || `Failed to update: ${res.status}`)
       }
@@ -133,7 +147,7 @@ export function useUpdateTrusteeFeeEntry() {
       queryClient.invalidateQueries({ queryKey: trusteeFeeEntryKeys.all })
       queryClient.invalidateQueries({ queryKey: trusteeFeeEntryKeys.byEntity(data.entityId) })
       queryClient.invalidateQueries({ queryKey: trusteeFeeEntryKeys.detail(data.id) })
-      toast.success('Fee entry updated successfully')
+      toast.success("Fee entry updated successfully")
     },
   })
 }
@@ -142,16 +156,18 @@ export function useDeleteTrusteeFeeEntry() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/trustee-fee-entries/${id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/trustee-fee-entries/${id}`, { method: "DELETE" })
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ error: { message: `HTTP ${res.status}` } }))
-        toast.error(errorData.error?.message || 'Failed to delete fee entry')
+        const errorData = await res
+          .json()
+          .catch(() => ({ error: { message: `HTTP ${res.status}` } }))
+        toast.error(errorData.error?.message || "Failed to delete fee entry")
         throw new Error(errorData.error?.message || `Failed to delete: ${res.status}`)
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: trusteeFeeEntryKeys.all })
-      toast.success('Fee entry deleted successfully')
+      toast.success("Fee entry deleted successfully")
     },
   })
 }

@@ -1,18 +1,15 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Trash2, Plus, Check, Pencil, Loader2 } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Textarea } from "@/components/ui/textarea"
-import { Label } from "@/components/ui/label"
-import { DataTable, type ColumnDef } from "@/components/data-table"
+import { Check, Loader2, Pencil, Plus, Trash2 } from "lucide-react"
+import { useEffect, useState } from "react"
+import type { ColumnDef } from "@/components/data-table"
+import { EditableSelectCell, EditableTextCell } from "@/components/editable-cells"
 import { ResourceDialog } from "@/components/resource-dialog"
-import { useResourceForm } from "@/hooks/use-resource-form"
-import { insertSpecificBequestSchema } from "../../db/validation"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import {
   Select,
   SelectContent,
@@ -21,22 +18,26 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
-import { formatDate } from "../utils/formatters"
-import { EditableTextCell, EditableSelectCell } from "@/components/editable-cells"
-import { useEntities } from "@/hooks/entities/queries"
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { Textarea } from "@/components/ui/textarea"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { useBeneficiaries } from "@/hooks/beneficiaries/queries"
+import { useEntities } from "@/hooks/entities/queries"
 import {
-  useSpecificBequests,
-  useCreateSpecificBequest,
-  useUpdateSpecificBequest,
-  useDeleteSpecificBequest,
   type SpecificBequest as SpecificBequestType,
+  useCreateSpecificBequest,
+  useDeleteSpecificBequest,
+  useSpecificBequests,
+  useUpdateSpecificBequest,
 } from "@/hooks/specific-bequests/queries"
+import { useResourceForm } from "@/hooks/use-resource-form"
+import { formatDate } from "../utils/formatters"
 
 // Interfaces imported from hooks
 
@@ -57,7 +58,9 @@ export function Bequests() {
   const { data: entities = [], isLoading: entitiesLoading } = useEntities()
   const [selectedEntity, setSelectedEntity] = useState<string | null>(null)
   const { data: beneficiaries = [] } = useBeneficiaries(selectedEntity || undefined)
-  const { data: bequests = [], isLoading: bequestsLoading } = useSpecificBequests(selectedEntity || undefined)
+  const { data: bequests = [], isLoading: bequestsLoading } = useSpecificBequests(
+    selectedEntity || undefined,
+  )
   const createBequestMutation = useCreateSpecificBequest()
   const updateBequestMutation = useUpdateSpecificBequest()
   const deleteBequestMutation = useDeleteSpecificBequest()
@@ -157,7 +160,7 @@ export function Bequests() {
   const distributedBequests = bequests.filter((b) => b.dateDistributed)
 
   // Column definitions for pending bequests table
-  const pendingColumns: ColumnDef<SpecificBequestType>[] = [
+  const _pendingColumns: ColumnDef<SpecificBequestType>[] = [
     {
       key: "description",
       header: "Item",
@@ -264,7 +267,7 @@ export function Bequests() {
   ]
 
   // Column definitions for distributed bequests table
-  const distributedColumns: ColumnDef<SpecificBequestType>[] = [
+  const _distributedColumns: ColumnDef<SpecificBequestType>[] = [
     {
       key: "description",
       header: "Item",
@@ -275,8 +278,7 @@ export function Bequests() {
       header: "Category",
       render: (bequest) => (
         <Badge variant="outline">
-          {BEQUEST_CATEGORIES.find((c) => c.value === bequest.category)?.label ||
-            bequest.category}
+          {BEQUEST_CATEGORIES.find((c) => c.value === bequest.category)?.label || bequest.category}
         </Badge>
       ),
     },
@@ -510,7 +512,7 @@ export function Bequests() {
         <div className="space-y-4">
           {/* Description - Required */}
           <formInstance.Field name="description">
-            {(field: any) => (
+            {(field) => (
               <div className="space-y-2">
                 <Label htmlFor="description">Description *</Label>
                 <Textarea
@@ -530,13 +532,10 @@ export function Bequests() {
 
           {/* Category */}
           <formInstance.Field name="category">
-            {(field: any) => (
+            {(field) => (
               <div className="space-y-2">
                 <Label htmlFor="category">Category</Label>
-                <Select
-                  value={field.state.value}
-                  onValueChange={(v) => field.handleChange(v)}
-                >
+                <Select value={field.state.value} onValueChange={(v) => field.handleChange(v)}>
                   <SelectTrigger id="category" onBlur={field.handleBlur}>
                     <SelectValue />
                   </SelectTrigger>
@@ -554,13 +553,10 @@ export function Bequests() {
 
           {/* Beneficiary */}
           <formInstance.Field name="beneficiaryId">
-            {(field: any) => (
+            {(field) => (
               <div className="space-y-2">
                 <Label htmlFor="beneficiary">Beneficiary (if applicable)</Label>
-                <Select
-                  value={field.state.value}
-                  onValueChange={(v) => field.handleChange(v)}
-                >
+                <Select value={field.state.value} onValueChange={(v) => field.handleChange(v)}>
                   <SelectTrigger id="beneficiary" onBlur={field.handleBlur}>
                     <SelectValue placeholder="Select beneficiary" />
                   </SelectTrigger>
@@ -579,7 +575,7 @@ export function Bequests() {
 
           {/* Recipient Name */}
           <formInstance.Field name="recipientName">
-            {(field: any) => (
+            {(field) => (
               <div className="space-y-2">
                 <Label htmlFor="recipientName">Recipient Name (if not a beneficiary)</Label>
                 <Input
@@ -598,7 +594,7 @@ export function Bequests() {
 
           {/* Date Distributed */}
           <formInstance.Field name="dateDistributed">
-            {(field: any) => (
+            {(field) => (
               <div className="space-y-2">
                 <Label htmlFor="dateDistributed">Date Distributed</Label>
                 <Input
@@ -615,7 +611,7 @@ export function Bequests() {
 
           {/* Notes */}
           <formInstance.Field name="notes">
-            {(field: any) => (
+            {(field) => (
               <div className="space-y-2">
                 <Label htmlFor="notes">Notes</Label>
                 <Textarea

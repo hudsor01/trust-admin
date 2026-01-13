@@ -4,18 +4,11 @@
  * Displays the audit trail of all database changes for compliance and debugging.
  */
 
-import { useState, useMemo } from "react"
-import { ClipboardList, Loader2, Plus, Pencil, Trash2 } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { ClipboardList, Loader2, Pencil, Plus, Trash2 } from "lucide-react"
+import { useMemo, useState } from "react"
 import { Badge } from "@/components/ui/badge"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import {
   Select,
   SelectContent,
@@ -24,12 +17,14 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import { useActivityLogs, type ActivityLog as ActivityLogType } from "@/hooks/activity-logs/queries"
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { type ActivityLog as ActivityLogType, useActivityLogs } from "@/hooks/activity-logs/queries"
 import { formatDate } from "@/utils/formatters"
 
 const ACTION_LABELS: Record<string, string> = {
@@ -102,9 +97,7 @@ export function ActivityLog() {
         <ClipboardList className="h-6 w-6 text-muted-foreground" />
         <div>
           <h2 className="text-2xl font-semibold tracking-tight">Activity Log</h2>
-          <p className="text-sm text-muted-foreground">
-            Audit trail of all database changes
-          </p>
+          <p className="text-sm text-muted-foreground">Audit trail of all database changes</p>
         </div>
       </div>
 
@@ -192,9 +185,7 @@ export function ActivityLog() {
       {filteredLogs.length === 0 ? (
         <Card>
           <CardContent className="py-12">
-            <p className="text-center text-muted-foreground">
-              No activity log entries found.
-            </p>
+            <p className="text-center text-muted-foreground">No activity log entries found.</p>
           </CardContent>
         </Card>
       ) : (
@@ -212,23 +203,16 @@ export function ActivityLog() {
             <TableBody>
               {filteredLogs.map((log) => (
                 <TableRow key={log.id}>
-                  <TableCell className="text-sm">
-                    {formatDate(log.createdAt)}
-                  </TableCell>
+                  <TableCell className="text-sm">{formatDate(log.createdAt)}</TableCell>
                   <TableCell>
-                    <Badge
-                      variant={ACTION_VARIANTS[log.action]}
-                      className="gap-1"
-                    >
+                    <Badge variant={ACTION_VARIANTS[log.action]} className="gap-1">
                       {ACTION_ICONS[log.action]}
                       {ACTION_LABELS[log.action] || log.action}
                     </Badge>
                   </TableCell>
                   <TableCell className="font-medium">{log.tableName}</TableCell>
                   <TableCell className="font-mono text-sm text-muted-foreground">
-                    {log.recordId.length > 12
-                      ? `${log.recordId.slice(0, 12)}...`
-                      : log.recordId}
+                    {log.recordId.length > 12 ? `${log.recordId.slice(0, 12)}...` : log.recordId}
                   </TableCell>
                   <TableCell className="text-right">
                     <button
@@ -284,9 +268,7 @@ export function ActivityLog() {
               {/* Old Values */}
               {selectedLog?.oldValues && (
                 <div>
-                  <p className="text-sm font-medium mb-2 text-muted-foreground">
-                    Previous Values
-                  </p>
+                  <p className="text-sm font-medium mb-2 text-muted-foreground">Previous Values</p>
                   <pre className="bg-muted/50 rounded-lg p-4 text-xs overflow-x-auto">
                     {formatJson(selectedLog?.oldValues)}
                   </pre>
@@ -296,9 +278,7 @@ export function ActivityLog() {
               {/* New Values */}
               {selectedLog?.newValues && (
                 <div>
-                  <p className="text-sm font-medium mb-2 text-muted-foreground">
-                    New Values
-                  </p>
+                  <p className="text-sm font-medium mb-2 text-muted-foreground">New Values</p>
                   <pre className="bg-muted/50 rounded-lg p-4 text-xs overflow-x-auto">
                     {formatJson(selectedLog?.newValues)}
                   </pre>

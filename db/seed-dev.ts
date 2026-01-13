@@ -10,24 +10,24 @@
  *   bun run db:seed:dev           # Seed with default count
  *   bun run db:seed:dev -- 100    # Seed with custom count
  */
-import { seed, reset } from "drizzle-seed";
-import { db } from "./index";
-import * as schema from "./schema";
+import { reset, seed } from "drizzle-seed"
+import { db } from "./index"
+import * as schema from "./schema"
 
-const SEED_NUMBER = 42; // Deterministic seed for reproducible data
-const DEFAULT_COUNT = 10;
+const SEED_NUMBER = 42 // Deterministic seed for reproducible data
+const DEFAULT_COUNT = 10
 
 async function seedDev() {
-  const count = parseInt(process.argv[2] || String(DEFAULT_COUNT), 10);
-  console.log(`Seeding development database with ${count} records per table...`);
-  console.log(`   Using seed: ${SEED_NUMBER} (deterministic)`);
+  const count = parseInt(process.argv[2] || String(DEFAULT_COUNT), 10)
+  console.log(`Seeding development database with ${count} records per table...`)
+  console.log(`   Using seed: ${SEED_NUMBER} (deterministic)`)
 
   // Reset tables before seeding (clears existing data)
-  console.log("\nResetting tables...");
-  await reset(db, schema);
+  console.log("\nResetting tables...")
+  await reset(db, schema)
 
   // Seed with refinements for realistic data
-  console.log("\nGenerating data...");
+  console.log("\nGenerating data...")
 
   await seed(db, schema, { count, seed: SEED_NUMBER }).refine((f) => ({
     // Entity - Trust/LLC/Corporation
@@ -186,7 +186,14 @@ async function seedDev() {
       columns: {
         id: f.uuid(),
         institution: f.valuesFromArray({
-          values: ["Fidelity", "Vanguard", "Charles Schwab", "TD Ameritrade", "E*TRADE", "Merrill Lynch"],
+          values: [
+            "Fidelity",
+            "Vanguard",
+            "Charles Schwab",
+            "TD Ameritrade",
+            "E*TRADE",
+            "Merrill Lynch",
+          ],
           isUnique: false,
         }),
         accountType: f.valuesFromArray({
@@ -279,7 +286,14 @@ async function seedDev() {
         title: f.loremIpsum({ sentencesCount: 1 }),
         artist: f.fullName(),
         medium: f.valuesFromArray({
-          values: ["Oil on Canvas", "Watercolor", "Acrylic", "Bronze Sculpture", "Photography", "Mixed Media"],
+          values: [
+            "Oil on Canvas",
+            "Watercolor",
+            "Acrylic",
+            "Bronze Sculpture",
+            "Photography",
+            "Mixed Media",
+          ],
           isUnique: false,
         }),
         dimensions: f.valuesFromArray({
@@ -292,19 +306,19 @@ async function seedDev() {
       },
       count: Math.ceil(count / 2),
     },
-  }));
+  }))
 
-  console.log("\nDevelopment seed complete.");
-  console.log(`   Entities: ${count}`);
-  console.log(`   Beneficiaries: ${count * 2}`);
-  console.log(`   Tasks: ${count * 3}`);
-  console.log(`   Financial accounts: ${count * 2}`);
-  console.log(`   Properties: ${Math.ceil(count / 2) + Math.ceil(count / 3)}`);
+  console.log("\nDevelopment seed complete.")
+  console.log(`   Entities: ${count}`)
+  console.log(`   Beneficiaries: ${count * 2}`)
+  console.log(`   Tasks: ${count * 3}`)
+  console.log(`   Financial accounts: ${count * 2}`)
+  console.log(`   Properties: ${Math.ceil(count / 2) + Math.ceil(count / 3)}`)
 
-  process.exit(0);
+  process.exit(0)
 }
 
 seedDev().catch((err) => {
-  console.error("Dev seed failed:", err);
-  process.exit(1);
-});
+  console.error("Dev seed failed:", err)
+  process.exit(1)
+})

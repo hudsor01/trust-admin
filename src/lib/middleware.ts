@@ -1,10 +1,10 @@
-import { auth, type AppUser } from "./auth"
 import { ApiError } from "./api-error"
+import { type AppUser, auth } from "./auth"
+import { recordAuthEvent } from "./auth-events"
 import { logger } from "./logger"
-import { recordAuthEvent, recordSignIn } from "./auth-events"
 
 // Request-scoped session cache (garbage collected with request)
-const sessionCache = new WeakMap<Request, Promise<{ user: AppUser; session: any } | null>>()
+const sessionCache = new WeakMap<Request, Promise<{ user: AppUser; session: unknown } | null>>()
 
 /**
  * Get session with request-level caching
@@ -17,11 +17,14 @@ async function getCachedSession(req: Request) {
   }
 
   // Fetch and cache
-  const sessionPromise = auth.api.getSession({ headers: req.headers })
-    .then(session => session ? {
-      user: session.user as AppUser,
-      session: session.session
-    } : null)
+  const sessionPromise = auth.api.getSession({ headers: req.headers }).then((session) =>
+    session
+      ? {
+          user: session.user as AppUser,
+          session: session.session,
+        }
+      : null,
+  )
 
   sessionCache.set(req, sessionPromise)
   return sessionPromise
@@ -34,11 +37,11 @@ async function getCachedSession(req: Request) {
  */
 export async function requireAuth(
   req: Request,
-  allowedRoles?: Array<"admin" | "beneficiary">
+  allowedRoles?: Array<"admin" | "beneficiary">,
 ): Promise<AppUser> {
   const url = new URL(req.url)
-  const ip = req.headers.get("x-forwarded-for")?.split(",")[0] ||
-             req.headers.get("x-real-ip") || "unknown"
+  const ip =
+    req.headers.get("x-forwarded-for")?.split(",")[0] || req.headers.get("x-real-ip") || "unknown"
   const userAgent = req.headers.get("user-agent") || "unknown"
 
   try {
@@ -80,9 +83,7 @@ export async function requireAuth(
         path: url.pathname,
         ip,
       })
-      throw ApiError.forbidden(
-        `Access denied. Required role: ${allowedRoles.join(" or ")}`
-      )
+      throw ApiError.forbidden(`Access denied. Required role: ${allowedRoles.join(" or ")}`)
     }
 
     // Log successful access (debug level to avoid spam)

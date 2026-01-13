@@ -1,6 +1,6 @@
+import { Info } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Info } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 interface QuantityInputProps {
@@ -33,7 +33,7 @@ export function QuantityInput({ value, onChange }: QuantityInputProps) {
         min="1"
         max="100"
         value={value}
-        onChange={(e) => onChange(Math.max(1, Math.min(100, parseInt(e.target.value) || 1)))}
+        onChange={(e) => onChange(Math.max(1, Math.min(100, parseInt(e.target.value, 10) || 1)))}
       />
       <p className="text-xs text-muted-foreground">
         Create {value} {value === 1 ? "record" : "records"} with this information

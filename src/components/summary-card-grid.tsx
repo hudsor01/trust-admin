@@ -24,10 +24,7 @@ export interface SummaryCardGridProps {
  * </SummaryCardGrid>
  * ```
  */
-export function SummaryCardGrid({
-  children,
-  columns = 3,
-}: SummaryCardGridProps) {
+export function SummaryCardGrid({ children, columns = 3 }: SummaryCardGridProps) {
   const columnClasses = {
     1: "lg:grid-cols-1",
     2: "lg:grid-cols-2",
@@ -37,9 +34,5 @@ export function SummaryCardGrid({
 
   const lgColClass = columnClasses[columns as keyof typeof columnClasses] || "lg:grid-cols-3"
 
-  return (
-    <div className={`grid gap-6 grid-cols-1 md:grid-cols-2 ${lgColClass}`}>
-      {children}
-    </div>
-  )
+  return <div className={`grid gap-6 grid-cols-1 md:grid-cols-2 ${lgColClass}`}>{children}</div>
 }

@@ -6,15 +6,10 @@
  * Button that copies text to clipboard with visual feedback.
  */
 
+import { Check, Copy } from "lucide-react"
 import { useState } from "react"
-import { Copy, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 interface CopyButtonProps {
   value: string
@@ -40,11 +35,7 @@ export function CopyButton({ value, className }: CopyButtonProps) {
             className={className || "h-6 w-6"}
             onClick={handleCopy}
           >
-            {copied ? (
-              <Check className="h-3 w-3 text-success" />
-            ) : (
-              <Copy className="h-3 w-3" />
-            )}
+            {copied ? <Check className="h-3 w-3 text-success" /> : <Copy className="h-3 w-3" />}
           </Button>
         </TooltipTrigger>
         <TooltipContent>

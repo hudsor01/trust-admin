@@ -6,26 +6,13 @@
  * Admin page for reviewing and approving/denying HEMS requests from beneficiaries.
  */
 
-import { useState, useMemo } from "react"
-
-import { Loader2, CheckCircle, XCircle, Clock, FileText, DollarSign } from "lucide-react"
-
-import { Button } from "@/components/ui/button"
-
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-
+import { CheckCircle, Clock, DollarSign, FileText, Loader2, XCircle } from "lucide-react"
+import { useMemo, useState } from "react"
+import { type ColumnDef, DataTable } from "@/components/data-table"
 import { Badge } from "@/components/ui/badge"
-
-import { Input } from "@/components/ui/input"
-
-import { Label } from "@/components/ui/label"
-
-import { Textarea } from "@/components/ui/textarea"
-
-import { DataTable, type ColumnDef } from "@/components/data-table"
-
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
-
   Dialog,
   DialogContent,
   DialogDescription,
@@ -33,8 +20,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import {
-
   Select,
   SelectContent,
   SelectItem,
@@ -42,24 +30,28 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Textarea } from "@/components/ui/textarea"
 
 import { useEntities } from "@/hooks/entities/queries"
 
 import {
-
-  useHemsRequests,
+  type HemsRequest as HemsRequestType,
   useApproveHemsRequest,
   useDenyHemsRequest,
-  type HemsRequest as HemsRequestType,
+  useHemsRequests,
 } from "@/hooks/hems-requests/queries"
-import { formatCurrency, formatDate } from "@/utils/formatters"
 import { STATUS_VARIANTS } from "@/lib/constants"
+import { formatCurrency, formatDate } from "@/utils/formatters"
 
 // Extended type for HemsRequest with beneficiary join
 type HemsRequestWithBeneficiary = HemsRequestType & {
-  beneficiary: { firstName: string; lastName: string; email?: string | null; sharePercent?: number | null }
+  beneficiary: {
+    firstName: string
+    lastName: string
+    email?: string | null
+    sharePercent?: number | null
+  }
 }
-
 
 // Interfaces imported from hooks
 
@@ -83,7 +75,10 @@ const STATUS_LABELS: Record<string, string> = {
 export function HemsQueue() {
   const { data: entities = [], isLoading: entitiesLoading } = useEntities()
   const [selectedEntity, setSelectedEntity] = useState<string | null>(null)
-  const { data: requests = [], isLoading: requestsLoading } = useHemsRequests(undefined, selectedEntity || undefined)
+  const { data: requests = [], isLoading: requestsLoading } = useHemsRequests(
+    undefined,
+    selectedEntity || undefined,
+  )
 
   // Cast to include beneficiary data (API returns joined data)
   const requestsWithBeneficiary = requests as unknown as HemsRequestWithBeneficiary[]
@@ -104,11 +99,11 @@ export function HemsQueue() {
   // Filter requests by status
   const pendingRequests = useMemo(
     () => requestsWithBeneficiary.filter((r) => r.status === "PENDING"),
-    [requestsWithBeneficiary]
+    [requestsWithBeneficiary],
   )
   const reviewedRequests = useMemo(
     () => requestsWithBeneficiary.filter((r) => r.status !== "PENDING"),
-    [requestsWithBeneficiary]
+    [requestsWithBeneficiary],
   )
 
   const displayedRequests = activeTab === "pending" ? pendingRequests : reviewedRequests
@@ -118,9 +113,7 @@ export function HemsQueue() {
     {
       key: "createdAt",
       header: "Date",
-      render: (request) => (
-        <span className="text-sm">{formatDate(request.createdAt)}</span>
-      ),
+      render: (request) => <span className="text-sm">{formatDate(request.createdAt)}</span>,
     },
     {
       key: "beneficiary",
@@ -131,9 +124,7 @@ export function HemsQueue() {
             {request.beneficiary.firstName} {request.beneficiary.lastName}
           </p>
           {request.beneficiary.email && (
-            <p className="text-xs text-muted-foreground">
-              {request.beneficiary.email}
-            </p>
+            <p className="text-xs text-muted-foreground">{request.beneficiary.email}</p>
           )}
         </div>
       ),
@@ -142,18 +133,14 @@ export function HemsQueue() {
       key: "category",
       header: "Category",
       render: (request) => (
-        <Badge variant="outline">
-          {CATEGORY_LABELS[request.category] || request.category}
-        </Badge>
+        <Badge variant="outline">{CATEGORY_LABELS[request.category] || request.category}</Badge>
       ),
     },
     {
       key: "amountRequested",
       header: "Amount",
       render: (request) => (
-        <span className="font-medium">
-          {formatCurrency(parseFloat(request.amountRequested))}
-        </span>
+        <span className="font-medium">{formatCurrency(parseFloat(request.amountRequested))}</span>
       ),
     },
     {
@@ -174,11 +161,7 @@ export function HemsQueue() {
             Review
           </Button>
         ) : (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => openReview(request)}
-          >
+          <Button variant="ghost" size="sm" onClick={() => openReview(request)}>
             View
           </Button>
         ),
@@ -186,8 +169,8 @@ export function HemsQueue() {
   ]
 
   // Open review dialog
-  const openReview = (request: HemsRequestType) => {
-    setReviewingRequest(request as any)
+  const openReview = (request: HemsRequestWithBeneficiary) => {
+    setReviewingRequest(request)
     setApprovedAmount(request.amountRequested)
     setReviewNotes("")
   }
@@ -289,7 +272,7 @@ export function HemsQueue() {
           <CardContent>
             <div className="text-2xl font-bold">
               {formatCurrency(
-                pendingRequests.reduce((sum, r) => sum + parseFloat(r.amountRequested || "0"), 0)
+                pendingRequests.reduce((sum, r) => sum + parseFloat(r.amountRequested || "0"), 0),
               )}
             </div>
             <p className="text-xs text-muted-foreground">pending approval</p>
@@ -303,7 +286,11 @@ export function HemsQueue() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {requestsWithBeneficiary.filter((r) => r.status === "APPROVED" || r.status === "DISTRIBUTED").length}
+              {
+                requestsWithBeneficiary.filter(
+                  (r) => r.status === "APPROVED" || r.status === "DISTRIBUTED",
+                ).length
+              }
             </div>
             <p className="text-xs text-muted-foreground">approved</p>
           </CardContent>
@@ -339,10 +326,7 @@ export function HemsQueue() {
               </CardContent>
             </Card>
           ) : (
-            <DataTable
-              data={displayedRequests}
-              columns={columns}
-            />
+            <DataTable data={displayedRequests} columns={columns} />
           )}
         </TabsContent>
       </Tabs>

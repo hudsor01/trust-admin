@@ -1,14 +1,14 @@
+import * as Sentry from "@sentry/react"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import React from "react"
 import { createRoot } from "react-dom/client"
 import { ErrorBoundary } from "react-error-boundary"
 import { Toaster } from "sonner"
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import * as Sentry from "@sentry/react"
 import { initSentry } from "./lib/sentry"
 import "sonner/dist/styles.css"
 import "./styles/globals.css"
-import { App } from "./App"
 import { ThemeProvider } from "@/components/theme-provider"
+import { App } from "./App"
 
 // Initialize Sentry error reporting
 initSentry()
@@ -25,7 +25,13 @@ const queryClient = new QueryClient({
   },
 })
 
-function ErrorFallback({ error, resetErrorBoundary }: { error: Error; resetErrorBoundary: () => void }) {
+function ErrorFallback({
+  error,
+  resetErrorBoundary,
+}: {
+  error: Error
+  resetErrorBoundary: () => void
+}) {
   return (
     <div className="flex items-center justify-center min-h-screen bg-background">
       <div className="text-center space-y-4 p-8 max-w-md">
@@ -66,5 +72,5 @@ root.render(
         <Toaster position="top-right" duration={5000} richColors />
       </ErrorBoundary>
     </QueryClientProvider>
-  </React.StrictMode>
+  </React.StrictMode>,
 )

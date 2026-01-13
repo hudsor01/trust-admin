@@ -1,6 +1,6 @@
+import { CheckCircle2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { CheckCircle2 } from "lucide-react"
 
 interface SubmissionSuccessProps {
   itemsCreated: number
@@ -8,7 +8,11 @@ interface SubmissionSuccessProps {
   onSubmitAnother: () => void
 }
 
-export function SubmissionSuccess({ itemsCreated, itemType, onSubmitAnother }: SubmissionSuccessProps) {
+export function SubmissionSuccess({
+  itemsCreated,
+  itemType,
+  onSubmitAnother,
+}: SubmissionSuccessProps) {
   return (
     <Card className="max-w-lg mx-auto">
       <CardContent className="pt-6">
@@ -19,7 +23,8 @@ export function SubmissionSuccess({ itemsCreated, itemType, onSubmitAnother }: S
           <div>
             <h3 className="text-lg font-semibold">Submission Successful</h3>
             <p className="text-muted-foreground mt-2">
-              {itemsCreated} {itemType} {itemsCreated === 1 ? "record" : "records"} submitted successfully
+              {itemsCreated} {itemType} {itemsCreated === 1 ? "record" : "records"} submitted
+              successfully
             </p>
           </div>
           <div className="pt-4">

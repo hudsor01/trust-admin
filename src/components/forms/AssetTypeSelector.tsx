@@ -1,5 +1,11 @@
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { ASSET_TYPES } from "@/lib/public-form-config"
 
 interface AssetTypeSelectorProps {

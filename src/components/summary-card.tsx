@@ -1,4 +1,4 @@
-import { TrendingUp, TrendingDown, type LucideIcon } from "lucide-react"
+import { type LucideIcon, TrendingDown, TrendingUp } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 
@@ -53,8 +53,7 @@ export function SummaryCard({
   isLoading = false,
   formatter,
 }: SummaryCardProps) {
-  const formattedValue =
-    typeof value === "number" && formatter ? formatter(value) : value
+  const formattedValue = typeof value === "number" && formatter ? formatter(value) : value
 
   if (isLoading) {
     return (

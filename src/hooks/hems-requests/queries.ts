@@ -2,8 +2,8 @@
  * TanStack Query hooks for HemsRequest resource
  */
 
-import { useQuery, useMutation, useQueryClient, queryOptions } from '@tanstack/react-query'
-import { toast } from 'sonner'
+import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { toast } from "sonner"
 
 export interface HemsRequest {
   id: string
@@ -25,10 +25,11 @@ export interface HemsRequest {
 
 // Query Keys
 export const hemsRequestKeys = {
-  all: ['hems-requests'] as const,
-  byBeneficiary: (beneficiaryId: string) => ['hems-requests', 'beneficiary', beneficiaryId] as const,
-  byEntity: (entityId: string) => ['hems-requests', 'entity', entityId] as const,
-  detail: (id: string) => ['hems-requests', id] as const,
+  all: ["hems-requests"] as const,
+  byBeneficiary: (beneficiaryId: string) =>
+    ["hems-requests", "beneficiary", beneficiaryId] as const,
+  byEntity: (entityId: string) => ["hems-requests", "entity", entityId] as const,
+  detail: (id: string) => ["hems-requests", id] as const,
 }
 
 // Query Options
@@ -37,21 +38,23 @@ export const hemsRequestsQueryOptions = (beneficiaryId?: string, entityId?: stri
     queryKey: beneficiaryId
       ? hemsRequestKeys.byBeneficiary(beneficiaryId)
       : entityId
-      ? hemsRequestKeys.byEntity(entityId)
-      : hemsRequestKeys.all,
+        ? hemsRequestKeys.byEntity(entityId)
+        : hemsRequestKeys.all,
     queryFn: async () => {
-      let url = '/api/hems-requests'
+      let url = "/api/hems-requests"
       const params = new URLSearchParams()
-      if (beneficiaryId) params.append('beneficiaryId', beneficiaryId)
-      if (entityId) params.append('entityId', entityId)
+      if (beneficiaryId) params.append("beneficiaryId", beneficiaryId)
+      if (entityId) params.append("entityId", entityId)
       if (params.toString()) url += `?${params.toString()}`
 
       const res = await fetch(url)
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ error: { message: `HTTP ${res.status}` } }))
+        const errorData = await res
+          .json()
+          .catch(() => ({ error: { message: `HTTP ${res.status}` } }))
         throw new Error(errorData.error?.message || `Failed to fetch: ${res.status}`)
       }
-      const data = await res.json() as HemsRequest[]
+      const data = (await res.json()) as HemsRequest[]
       return data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     },
     enabled: beneficiaryId ? !!beneficiaryId : entityId ? !!entityId : true,
@@ -63,7 +66,9 @@ export const hemsRequestQueryOptions = (id: string) =>
     queryFn: async () => {
       const res = await fetch(`/api/hems-requests/${id}`)
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ error: { message: `HTTP ${res.status}` } }))
+        const errorData = await res
+          .json()
+          .catch(() => ({ error: { message: `HTTP ${res.status}` } }))
         throw new Error(errorData.error?.message || `Failed to fetch: ${res.status}`)
       }
       return res.json() as Promise<HemsRequest>
@@ -85,19 +90,23 @@ export function useCreateHemsRequest() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (hemsRequest: Partial<HemsRequest>) => {
-      const res = await fetch('/api/hems-requests', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/hems-requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(hemsRequest),
       })
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ error: { message: `HTTP ${res.status}` } }))
-        if (errorData.error?.code === 'VALIDATION_ERROR' && errorData.error.details?.fields) {
+        const errorData = await res
+          .json()
+          .catch(() => ({ error: { message: `HTTP ${res.status}` } }))
+        if (errorData.error?.code === "VALIDATION_ERROR" && errorData.error.details?.fields) {
           const fields = errorData.error.details.fields as Record<string, string>
-          const fieldErrors = Object.entries(fields).map(([field, message]) => `${field}: ${message}`).join('\n')
+          const fieldErrors = Object.entries(fields)
+            .map(([field, message]) => `${field}: ${message}`)
+            .join("\n")
           toast.error(errorData.error.message, { description: fieldErrors })
         } else {
-          toast.error(errorData.error?.message || 'Failed to create HEMS request')
+          toast.error(errorData.error?.message || "Failed to create HEMS request")
         }
         throw new Error(errorData.error?.message || `Failed to create: ${res.status}`)
       }
@@ -106,7 +115,7 @@ export function useCreateHemsRequest() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: hemsRequestKeys.all })
       queryClient.invalidateQueries({ queryKey: hemsRequestKeys.byBeneficiary(data.beneficiaryId) })
-      toast.success('HEMS request created successfully')
+      toast.success("HEMS request created successfully")
     },
   })
 }
@@ -116,18 +125,22 @@ export function useUpdateHemsRequest() {
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<HemsRequest> }) => {
       const res = await fetch(`/api/hems-requests/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       })
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ error: { message: `HTTP ${res.status}` } }))
-        if (errorData.error?.code === 'VALIDATION_ERROR' && errorData.error.details?.fields) {
+        const errorData = await res
+          .json()
+          .catch(() => ({ error: { message: `HTTP ${res.status}` } }))
+        if (errorData.error?.code === "VALIDATION_ERROR" && errorData.error.details?.fields) {
           const fields = errorData.error.details.fields as Record<string, string>
-          const fieldErrors = Object.entries(fields).map(([field, message]) => `${field}: ${message}`).join('\n')
+          const fieldErrors = Object.entries(fields)
+            .map(([field, message]) => `${field}: ${message}`)
+            .join("\n")
           toast.error(errorData.error.message, { description: fieldErrors })
         } else {
-          toast.error(errorData.error?.message || 'Failed to update HEMS request')
+          toast.error(errorData.error?.message || "Failed to update HEMS request")
         }
         throw new Error(errorData.error?.message || `Failed to update: ${res.status}`)
       }
@@ -137,7 +150,7 @@ export function useUpdateHemsRequest() {
       queryClient.invalidateQueries({ queryKey: hemsRequestKeys.all })
       queryClient.invalidateQueries({ queryKey: hemsRequestKeys.byBeneficiary(data.beneficiaryId) })
       queryClient.invalidateQueries({ queryKey: hemsRequestKeys.detail(data.id) })
-      toast.success('HEMS request updated successfully')
+      toast.success("HEMS request updated successfully")
     },
   })
 }
@@ -146,16 +159,18 @@ export function useDeleteHemsRequest() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/hems-requests/${id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/hems-requests/${id}`, { method: "DELETE" })
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ error: { message: `HTTP ${res.status}` } }))
-        toast.error(errorData.error?.message || 'Failed to delete HEMS request')
+        const errorData = await res
+          .json()
+          .catch(() => ({ error: { message: `HTTP ${res.status}` } }))
+        toast.error(errorData.error?.message || "Failed to delete HEMS request")
         throw new Error(errorData.error?.message || `Failed to delete: ${res.status}`)
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: hemsRequestKeys.all })
-      toast.success('HEMS request deleted successfully')
+      toast.success("HEMS request deleted successfully")
     },
   })
 }
@@ -164,15 +179,25 @@ export function useDeleteHemsRequest() {
 export function useApproveHemsRequest() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({ id, approvedAmount, reviewNotes }: { id: string; approvedAmount: string; reviewNotes?: string }) => {
+    mutationFn: async ({
+      id,
+      approvedAmount,
+      reviewNotes,
+    }: {
+      id: string
+      approvedAmount: string
+      reviewNotes?: string
+    }) => {
       const res = await fetch(`/api/hems-requests/${id}/approve`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ approvedAmount, reviewNotes }),
       })
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ error: { message: `HTTP ${res.status}` } }))
-        toast.error(errorData.error?.message || 'Failed to approve HEMS request')
+        const errorData = await res
+          .json()
+          .catch(() => ({ error: { message: `HTTP ${res.status}` } }))
+        toast.error(errorData.error?.message || "Failed to approve HEMS request")
         throw new Error(errorData.error?.message || `Failed to approve: ${res.status}`)
       }
       return res.json() as Promise<HemsRequest>
@@ -180,7 +205,7 @@ export function useApproveHemsRequest() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: hemsRequestKeys.all })
       queryClient.invalidateQueries({ queryKey: hemsRequestKeys.detail(data.id) })
-      toast.success('HEMS request approved successfully')
+      toast.success("HEMS request approved successfully")
     },
   })
 }
@@ -190,13 +215,15 @@ export function useDenyHemsRequest() {
   return useMutation({
     mutationFn: async ({ id, reviewNotes }: { id: string; reviewNotes?: string }) => {
       const res = await fetch(`/api/hems-requests/${id}/deny`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ reviewNotes }),
       })
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ error: { message: `HTTP ${res.status}` } }))
-        toast.error(errorData.error?.message || 'Failed to deny HEMS request')
+        const errorData = await res
+          .json()
+          .catch(() => ({ error: { message: `HTTP ${res.status}` } }))
+        toast.error(errorData.error?.message || "Failed to deny HEMS request")
         throw new Error(errorData.error?.message || `Failed to deny: ${res.status}`)
       }
       return res.json() as Promise<HemsRequest>
@@ -204,7 +231,7 @@ export function useDenyHemsRequest() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: hemsRequestKeys.all })
       queryClient.invalidateQueries({ queryKey: hemsRequestKeys.detail(data.id) })
-      toast.success('HEMS request denied')
+      toast.success("HEMS request denied")
     },
   })
 }

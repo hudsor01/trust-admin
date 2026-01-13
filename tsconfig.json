@@ -22,5 +22,12 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false
-  }
+  },
+  "exclude": [
+    "tests/**/*",
+    "test-index-usage.ts",
+    "node_modules",
+    "dist",
+    "build"
+  ]
 }

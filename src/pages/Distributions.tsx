@@ -1,15 +1,18 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Plus, Loader2, AlertCircle } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { ResourceDialog } from "@/components/resource-dialog"
-import { useResourceForm } from "@/hooks/use-resource-form"
+import { AlertCircle, Plus } from "lucide-react"
+import { useEffect, useState } from "react"
 import { z } from "zod"
+import { type ColumnDef, DataTable } from "@/components/data-table"
+import { EditableTextCell } from "@/components/editable-cells"
+import { ResourceDialog } from "@/components/resource-dialog"
+import { SummaryCard } from "@/components/summary-card"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import {
   Select,
   SelectContent,
@@ -18,65 +21,38 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { formatDate, formatCurrency, calculateAge, getWithdrawalStatus } from "../utils/formatters"
-import { EditableTextCell } from "@/components/editable-cells"
-import { SummaryCard } from "@/components/summary-card"
-import { DataTable, type ColumnDef } from "@/components/data-table"
+import { type Beneficiary, useBeneficiaries } from "@/hooks/beneficiaries/queries"
+import {
+  type Distribution,
+  useCreateDistribution,
+  useDistributions,
+  useUpdateDistribution,
+} from "@/hooks/distributions/queries"
 import { useEntities } from "@/hooks/entities/queries"
-import { useBeneficiaries } from "@/hooks/beneficiaries/queries"
-import { useWithdrawalRecords, useUpdateWithdrawalRecord } from "@/hooks/withdrawal-records/queries"
-import { useDistributions, useCreateDistribution, useUpdateDistribution } from "@/hooks/distributions/queries"
+import { useResourceForm } from "@/hooks/use-resource-form"
+import {
+  useUpdateWithdrawalRecord,
+  useWithdrawalRecords,
+  type WithdrawalRecord,
+} from "@/hooks/withdrawal-records/queries"
+import { cn } from "@/lib/utils"
+import { calculateAge, formatCurrency, formatDate, getWithdrawalStatus } from "../utils/formatters"
 
-interface Beneficiary {
-  id: string
-  entityId: string
-  firstName: string
-  lastName: string
-  relationshipType: string
-  sharePercent: string
-  dob: string | null
-  distributionStandard: string | null
-}
-
-interface WithdrawalRecord {
-  id: string
-  beneficiaryId: string
-  entityId: string
-  withdrawalType: string
-  eligibleDate: string
-  eligibleAmount: string
-  withdrawnAmount: string | null
-  status: string
-  exercisedDate: string | null
-}
-
-interface Distribution {
-  id: string
-  beneficiaryId: string
-  entityId: string
-  distributionDate: string
-  amount: string
-  distributionType: string
-  hemsCategory: string | null
-  hemsJustification: string | null
-  isWithdrawal: boolean
-  paymentMethod: string
-  notes: string | null
-}
-
-interface Entity {
-  id: string
-  name: string
-  dod: string | null
+interface GrandchildWithdrawal {
+  beneficiary: Beneficiary
+  age25: WithdrawalRecord | null
+  age30: WithdrawalRecord | null
 }
 
 const HEMS_CATEGORIES = [
   { value: "HEALTH", label: "Health", description: "Medical expenses, insurance, treatments" },
   { value: "EDUCATION", label: "Education", description: "Tuition, books, educational programs" },
-  { value: "MAINTENANCE", label: "Maintenance", description: "Living expenses, housing, utilities" },
+  {
+    value: "MAINTENANCE",
+    label: "Maintenance",
+    description: "Living expenses, housing, utilities",
+  },
   { value: "SUPPORT", label: "Support", description: "General support and welfare" },
 ]
 
@@ -106,8 +82,13 @@ export function Distributions() {
   // Use TanStack Query hooks
   const { data: entities = [], isLoading: entitiesLoading } = useEntities()
   const [selectedEntity, setSelectedEntity] = useState<string | null>(null)
-  const { data: beneficiaries = [], isLoading: beneficiariesLoading } = useBeneficiaries(selectedEntity || undefined)
-  const { data: distributions = [], isLoading: distributionsLoading } = useDistributions(undefined, selectedEntity || undefined)
+  const { data: beneficiaries = [], isLoading: beneficiariesLoading } = useBeneficiaries(
+    selectedEntity || undefined,
+  )
+  const { data: distributions = [], isLoading: distributionsLoading } = useDistributions(
+    undefined,
+    selectedEntity || undefined,
+  )
   const createDistributionMutation = useCreateDistribution()
   const updateDistributionMutation = useUpdateDistribution()
 
@@ -161,7 +142,7 @@ export function Distributions() {
     onSubmit: async (data) => {
       if (!selectedWithdrawal) return
       const amount = parseFloat(data.amount.replace(/[,$]/g, ""))
-      
+
       // Create distribution first
       const distData = await createDistributionMutation.mutateAsync({
         beneficiaryId: selectedWithdrawal?.beneficiaryId,
@@ -211,36 +192,38 @@ export function Distributions() {
   }
 
   // Get eligible withdrawals
-  const eligibleWithdrawals = withdrawalRecords.filter(w => {
+  const eligibleWithdrawals = withdrawalRecords.filter((w) => {
     const status = getWithdrawalStatus(w.eligibleDate)
     return status.isEligible && w.status !== "COMPLETE"
   })
 
   // Get HEMS-eligible beneficiaries
-  const hemsBeneficiaries = beneficiaries.filter(b =>
-    b.distributionStandard === "HEMS" || b.relationshipType !== "GRANDCHILD"
+  const hemsBeneficiaries = beneficiaries.filter(
+    (b) => b.distributionStandard === "HEMS" || b.relationshipType !== "GRANDCHILD",
   )
 
   // Get grandchildren with withdrawal schedules
   const grandchildrenWithdrawals = withdrawalRecords.reduce((acc, wr) => {
-    const beneficiary = beneficiaries.find(b => b.id === wr.beneficiaryId)
+    const beneficiary = beneficiaries.find((b) => b.id === wr.beneficiaryId)
     if (!beneficiary) return acc
 
-    const existing = acc.find(a => a.beneficiary.id === beneficiary.id)
+    const existing = acc.find((a) => a.beneficiary.id === beneficiary.id)
     if (existing) {
-      if (wr.withdrawalType === "AGE_25") existing.age25 = wr as any
-      if (wr.withdrawalType === "AGE_30") existing.age30 = wr as any
+      if (wr.withdrawalType === "AGE_25") existing.age25 = wr
+      if (wr.withdrawalType === "AGE_30") existing.age30 = wr
     } else {
       acc.push({
-        beneficiary: beneficiary as any,
-        age25: wr.withdrawalType === "AGE_25" ? (wr as any) : null,
-        age30: wr.withdrawalType === "AGE_30" ? (wr as any) : null,
+        beneficiary,
+        age25: wr.withdrawalType === "AGE_25" ? wr : null,
+        age30: wr.withdrawalType === "AGE_30" ? wr : null,
       })
     }
     return acc
-  }, [] as any[])
+  }, [] as GrandchildWithdrawal[])
 
-  const getStatusVariant = (status: string): "default" | "secondary" | "destructive" | "outline" => {
+  const getStatusVariant = (
+    status: string,
+  ): "default" | "secondary" | "destructive" | "outline" => {
     switch (status) {
       case "ELIGIBLE":
         return "default"
@@ -252,10 +235,10 @@ export function Distributions() {
   }
 
   // Calculate metrics for summary cards
-  const hemsDistributions = distributions.filter(d => d.hemsCategory && !d.isWithdrawal)
+  const hemsDistributions = distributions.filter((d) => d.hemsCategory && !d.isWithdrawal)
   const hemsTotalDistributed = hemsDistributions.reduce((sum, d) => sum + parseFloat(d.amount), 0)
   const withdrawalsTotalProcessed = distributions
-    .filter(d => d.distributionType === "AGE_BASED_WITHDRAWAL" || d.isWithdrawal)
+    .filter((d) => d.distributionType === "AGE_BASED_WITHDRAWAL" || d.isWithdrawal)
     .reduce((sum, d) => sum + parseFloat(d.amount), 0)
   const eligibleWithdrawalsCount = eligibleWithdrawals.length
   const totalDistributed = hemsTotalDistributed + withdrawalsTotalProcessed
@@ -272,7 +255,7 @@ export function Distributions() {
       key: "beneficiaryId",
       header: "Beneficiary",
       render: (d) => {
-        const beneficiary = beneficiaries.find(b => b.id === d.beneficiaryId)
+        const beneficiary = beneficiaries.find((b) => b.id === d.beneficiaryId)
         return beneficiary ? `${beneficiary.firstName} ${beneficiary.lastName}` : "—"
       },
       sortable: true,
@@ -308,7 +291,7 @@ export function Distributions() {
       key: "beneficiaryId",
       header: "Beneficiary",
       render: (d) => {
-        const beneficiary = beneficiaries.find(b => b.id === d.beneficiaryId)
+        const beneficiary = beneficiaries.find((b) => b.id === d.beneficiaryId)
         return beneficiary ? `${beneficiary.firstName} ${beneficiary.lastName}` : "—"
       },
       sortable: true,
@@ -320,7 +303,8 @@ export function Distributions() {
         <Badge
           variant={d.isWithdrawal ? "default" : "secondary"}
           className={cn(
-            d.isWithdrawal && "bg-violet-100 text-violet-800 dark:bg-violet-900 dark:text-violet-100"
+            d.isWithdrawal &&
+              "bg-violet-100 text-violet-800 dark:bg-violet-900 dark:text-violet-100",
           )}
         >
           {d.isWithdrawal ? "Withdrawal" : d.hemsCategory || d.distributionType}
@@ -354,20 +338,26 @@ export function Distributions() {
   ]
 
   // Column definitions for Age-Based Withdrawals table
-  type WithdrawalRow = { beneficiary: Beneficiary; age25: WithdrawalRecord | null; age30: WithdrawalRecord | null }
+  type WithdrawalRow = {
+    beneficiary: Beneficiary
+    age25: WithdrawalRecord | null
+    age30: WithdrawalRecord | null
+  }
   const withdrawalColumns: ColumnDef<WithdrawalRow>[] = [
     {
       key: "beneficiary",
       header: "Beneficiary",
       render: (w) => (
-        <span className="font-medium">{w.beneficiary.firstName} {w.beneficiary.lastName}</span>
+        <span className="font-medium">
+          {w.beneficiary.firstName} {w.beneficiary.lastName}
+        </span>
       ),
       sortable: true,
     },
     {
       key: "age",
       header: "Age",
-      render: (w) => w.beneficiary.dob ? calculateAge(w.beneficiary.dob) : "—",
+      render: (w) => (w.beneficiary.dob ? calculateAge(w.beneficiary.dob) : "—"),
       sortable: true,
     },
     {
@@ -385,9 +375,13 @@ export function Distributions() {
         return (
           <div className="flex items-center gap-2">
             <Badge
-              variant={w.age25.status === "COMPLETE" ? "secondary" : getStatusVariant(status?.status || "")}
+              variant={
+                w.age25.status === "COMPLETE" ? "secondary" : getStatusVariant(status?.status || "")
+              }
               className={cn(
-                w.age25.status !== "COMPLETE" && status?.isEligible && "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100"
+                w.age25.status !== "COMPLETE" &&
+                  status?.isEligible &&
+                  "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100",
               )}
             >
               {w.age25.status === "COMPLETE" ? "WITHDRAWN" : status?.status}
@@ -408,9 +402,13 @@ export function Distributions() {
         return (
           <div className="flex items-center gap-2">
             <Badge
-              variant={w.age30.status === "COMPLETE" ? "secondary" : getStatusVariant(status?.status || "")}
+              variant={
+                w.age30.status === "COMPLETE" ? "secondary" : getStatusVariant(status?.status || "")
+              }
               className={cn(
-                w.age30.status !== "COMPLETE" && status?.isEligible && "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100"
+                w.age30.status !== "COMPLETE" &&
+                  status?.isEligible &&
+                  "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100",
               )}
             >
               {w.age30.status === "COMPLETE" ? "WITHDRAWN" : status?.status}
@@ -462,9 +460,7 @@ export function Distributions() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-semibold tracking-tight text-balance">Distributions</h2>
-          <p className="text-sm text-muted-foreground">
-            HEMS requests and age-based withdrawals
-          </p>
+          <p className="text-sm text-muted-foreground">HEMS requests and age-based withdrawals</p>
         </div>
         <Select value={selectedEntity || ""} onValueChange={setSelectedEntity}>
           <SelectTrigger className="w-[250px]">
@@ -484,7 +480,10 @@ export function Distributions() {
       <div className="@container">
         <div className="grid gap-4 @xs:grid-cols-2 @lg:grid-cols-4">
           <SummaryCard title="HEMS Distributed" value={formatCurrency(hemsTotalDistributed)} />
-          <SummaryCard title="Withdrawals Processed" value={formatCurrency(withdrawalsTotalProcessed)} />
+          <SummaryCard
+            title="Withdrawals Processed"
+            value={formatCurrency(withdrawalsTotalProcessed)}
+          />
           <SummaryCard title="Eligible Withdrawals" value={eligibleWithdrawalsCount} />
           <SummaryCard title="Total Distributed" value={formatCurrency(totalDistributed)} />
         </div>
@@ -494,9 +493,12 @@ export function Distributions() {
       {eligibleWithdrawals.length > 0 && (
         <Alert className="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950">
           <AlertCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-          <AlertTitle className="text-green-800 dark:text-green-200">Eligible Withdrawals</AlertTitle>
+          <AlertTitle className="text-green-800 dark:text-green-200">
+            Eligible Withdrawals
+          </AlertTitle>
           <AlertDescription className="text-green-700 dark:text-green-300">
-            {eligibleWithdrawals.length} withdrawal{eligibleWithdrawals.length > 1 ? "s are" : " is"} eligible to be processed.
+            {eligibleWithdrawals.length} withdrawal
+            {eligibleWithdrawals.length > 1 ? "s are" : " is"} eligible to be processed.
           </AlertDescription>
         </Alert>
       )}
@@ -609,13 +611,10 @@ export function Distributions() {
         <div className="space-y-4">
           {/* Beneficiary - Required */}
           <hemsFormInstance.Field name="beneficiaryId">
-            {(field: any) => (
+            {(field) => (
               <div className="space-y-2">
                 <Label>Beneficiary *</Label>
-                <Select
-                  value={field.state.value}
-                  onValueChange={(v) => field.handleChange(v)}
-                >
+                <Select value={field.state.value} onValueChange={(v) => field.handleChange(v)}>
                   <SelectTrigger onBlur={field.handleBlur}>
                     <SelectValue placeholder="Select beneficiary" />
                   </SelectTrigger>
@@ -636,13 +635,10 @@ export function Distributions() {
 
           {/* HEMS Category */}
           <hemsFormInstance.Field name="hemsCategory">
-            {(field: any) => (
+            {(field) => (
               <div className="space-y-2">
                 <Label>HEMS Category</Label>
-                <Select
-                  value={field.state.value}
-                  onValueChange={(v) => field.handleChange(v)}
-                >
+                <Select value={field.state.value} onValueChange={(v) => field.handleChange(v)}>
                   <SelectTrigger onBlur={field.handleBlur}>
                     <SelectValue />
                   </SelectTrigger>
@@ -660,7 +656,7 @@ export function Distributions() {
 
           {/* Amount - Required */}
           <hemsFormInstance.Field name="amount">
-            {(field: any) => (
+            {(field) => (
               <div className="space-y-2">
                 <Label>Amount *</Label>
                 <Input
@@ -679,7 +675,7 @@ export function Distributions() {
 
           {/* Justification - Required */}
           <hemsFormInstance.Field name="hemsJustification">
-            {(field: any) => (
+            {(field) => (
               <div className="space-y-2">
                 <Label>Justification *</Label>
                 <Textarea
@@ -698,13 +694,10 @@ export function Distributions() {
 
           {/* Payment Method */}
           <hemsFormInstance.Field name="paymentMethod">
-            {(field: any) => (
+            {(field) => (
               <div className="space-y-2">
                 <Label>Payment Method</Label>
-                <Select
-                  value={field.state.value}
-                  onValueChange={(v) => field.handleChange(v)}
-                >
+                <Select value={field.state.value} onValueChange={(v) => field.handleChange(v)}>
                   <SelectTrigger onBlur={field.handleBlur}>
                     <SelectValue />
                   </SelectTrigger>
@@ -722,7 +715,7 @@ export function Distributions() {
 
           {/* Additional Notes */}
           <hemsFormInstance.Field name="notes">
-            {(field: any) => (
+            {(field) => (
               <div className="space-y-2">
                 <Label>Additional Notes</Label>
                 <Textarea
@@ -746,7 +739,11 @@ export function Distributions() {
             setSelectedWithdrawal(null)
           }
         }}
-        title={selectedWithdrawal ? `Process ${selectedWithdrawal?.withdrawalType === "AGE_25" ? "Age 25" : "Age 30"} Withdrawal` : "Process Withdrawal"}
+        title={
+          selectedWithdrawal
+            ? `Process ${selectedWithdrawal?.withdrawalType === "AGE_25" ? "Age 25" : "Age 30"} Withdrawal`
+            : "Process Withdrawal"
+        }
         onSubmit={withdrawalForm.handleSave}
         isLoading={withdrawalForm.isSubmitting}
       >
@@ -755,14 +752,15 @@ export function Distributions() {
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                Processing {selectedWithdrawal?.withdrawalType === "AGE_25" ? "50%" : "50%"} withdrawal for beneficiary.
-                Eligible since: {formatDate(selectedWithdrawal?.eligibleDate)}
+                Processing {selectedWithdrawal?.withdrawalType === "AGE_25" ? "50%" : "50%"}{" "}
+                withdrawal for beneficiary. Eligible since:{" "}
+                {formatDate(selectedWithdrawal?.eligibleDate)}
               </AlertDescription>
             </Alert>
 
             {/* Withdrawal Amount - Required */}
             <withdrawalFormInstance.Field name="amount">
-              {(field: any) => (
+              {(field) => (
                 <div className="space-y-2">
                   <Label>Withdrawal Amount *</Label>
                   <Input
@@ -781,13 +779,10 @@ export function Distributions() {
 
             {/* Payment Method */}
             <withdrawalFormInstance.Field name="paymentMethod">
-              {(field: any) => (
+              {(field) => (
                 <div className="space-y-2">
                   <Label>Payment Method</Label>
-                  <Select
-                    value={field.state.value}
-                    onValueChange={(v) => field.handleChange(v)}
-                  >
+                  <Select value={field.state.value} onValueChange={(v) => field.handleChange(v)}>
                     <SelectTrigger onBlur={field.handleBlur}>
                       <SelectValue />
                     </SelectTrigger>
@@ -805,7 +800,7 @@ export function Distributions() {
 
             {/* Notes */}
             <withdrawalFormInstance.Field name="notes">
-              {(field: any) => (
+              {(field) => (
                 <div className="space-y-2">
                   <Label>Notes</Label>
                   <Textarea

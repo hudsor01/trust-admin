@@ -1,9 +1,26 @@
+import {
+  CheckCircle,
+  Clock,
+  DollarSign,
+  Loader2,
+  Mail,
+  Percent,
+  Phone,
+  Plus,
+  User,
+} from "lucide-react"
 import { useEffect, useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Loader2, User, Percent, DollarSign, Phone, Mail, CheckCircle, Clock, Plus } from "lucide-react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import { formatCurrency, formatDate, formatPercent } from "@/utils/formatters"
 import { HemsRequestForm } from "./HemsRequestForm"
 
@@ -106,24 +123,18 @@ export function PortalDashboard() {
   // Calculate totals
   const totalDistributed = beneficiary.distributions.reduce(
     (sum, d) => sum + parseFloat(d.amount || "0"),
-    0
+    0,
   )
 
-  const pendingDistributions = beneficiary.distributions.filter(
-    (d) => !d.approvalDate
-  )
-  const approvedDistributions = beneficiary.distributions.filter(
-    (d) => d.approvalDate
-  )
+  const pendingDistributions = beneficiary.distributions.filter((d) => !d.approvalDate)
+  const approvedDistributions = beneficiary.distributions.filter((d) => d.approvalDate)
 
   return (
     <div className="space-y-6">
       {/* Welcome Header */}
       <div>
         <h1 className="text-2xl font-semibold">Welcome, {beneficiary.firstName}</h1>
-        <p className="text-muted-foreground">
-          Here's an overview of your trust information
-        </p>
+        <p className="text-muted-foreground">Here's an overview of your trust information</p>
       </div>
 
       {/* Summary Cards */}
@@ -139,9 +150,7 @@ export function PortalDashboard() {
                 ? formatPercent(parseFloat(beneficiary.sharePercent) / 100)
                 : "N/A"}
             </div>
-            <p className="text-xs text-muted-foreground">
-              of residuary estate
-            </p>
+            <p className="text-xs text-muted-foreground">of residuary estate</p>
           </CardContent>
         </Card>
 
@@ -151,9 +160,7 @@ export function PortalDashboard() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {formatCurrency(totalDistributed)}
-            </div>
+            <div className="text-2xl font-bold">{formatCurrency(totalDistributed)}</div>
             <p className="text-xs text-muted-foreground">
               {approvedDistributions.length} distribution(s)
             </p>
@@ -166,12 +173,8 @@ export function PortalDashboard() {
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {pendingDistributions.length}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              request(s) awaiting approval
-            </p>
+            <div className="text-2xl font-bold">{pendingDistributions.length}</div>
+            <p className="text-xs text-muted-foreground">request(s) awaiting approval</p>
           </CardContent>
         </Card>
       </div>
@@ -219,9 +222,7 @@ export function PortalDashboard() {
                 <DollarSign className="h-5 w-5 text-muted-foreground" />
                 <div>
                   <p className="text-sm text-muted-foreground">Distribution Standard</p>
-                  <Badge variant="secondary">
-                    {beneficiary.distributionStandard}
-                  </Badge>
+                  <Badge variant="secondary">{beneficiary.distributionStandard}</Badge>
                 </div>
               </div>
             )}
@@ -233,9 +234,7 @@ export function PortalDashboard() {
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Distribution History</CardTitle>
-          <CardDescription>
-            All distributions made from the trust to you
-          </CardDescription>
+          <CardDescription>All distributions made from the trust to you</CardDescription>
         </CardHeader>
         <CardContent>
           {beneficiary.distributions.length === 0 ? (
@@ -256,15 +255,11 @@ export function PortalDashboard() {
               <TableBody>
                 {beneficiary.distributions.map((dist) => (
                   <TableRow key={dist.id}>
-                    <TableCell>
-                      {formatDate(dist.distributionDate)}
-                    </TableCell>
+                    <TableCell>{formatDate(dist.distributionDate)}</TableCell>
                     <TableCell>
                       <Badge variant="outline">{dist.distributionType}</Badge>
                     </TableCell>
-                    <TableCell>
-                      {dist.hemsCategory || "-"}
-                    </TableCell>
+                    <TableCell>{dist.hemsCategory || "-"}</TableCell>
                     <TableCell className="text-right font-medium">
                       {formatCurrency(parseFloat(dist.amount))}
                     </TableCell>
@@ -293,9 +288,7 @@ export function PortalDashboard() {
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Request a Distribution</CardTitle>
-          <CardDescription>
-            Submit a request for funds under the HEMS standard
-          </CardDescription>
+          <CardDescription>Submit a request for funds under the HEMS standard</CardDescription>
         </CardHeader>
         <CardContent>
           <Button onClick={() => setShowRequestForm(true)} className="w-full gap-2">

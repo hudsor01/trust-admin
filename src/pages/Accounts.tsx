@@ -1,27 +1,18 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Trash2, Plus, Loader2 } from "lucide-react"
-import { formatCurrency } from "../utils/formatters"
+import { Loader2, Plus, Trash2 } from "lucide-react"
+import { useEffect, useState } from "react"
+import { type ColumnDef, DataTable } from "@/components/data-table"
 import {
-  EditableTextCell,
   EditableCurrencyCell,
   EditableSelectCell,
+  EditableTextCell,
 } from "@/components/editable-cells"
-import { DataTable, type ColumnDef } from "@/components/data-table"
-import { Card, CardContent } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
+import { ResourceDialog } from "@/components/resource-dialog"
 import { Badge } from "@/components/ui/badge"
-import { Textarea } from "@/components/ui/textarea"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
 import {
   Select,
   SelectContent,
@@ -29,37 +20,33 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Textarea } from "@/components/ui/textarea"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
-
+  type BankAccount,
+  useBankAccounts,
+  useCreateBankAccount,
+  useDeleteBankAccount,
+  useUpdateBankAccount,
+} from "@/hooks/bank-accounts/queries"
 // Import types and hooks from centralized location
 import { useEntities } from "@/hooks/entities/queries"
 import {
-  useBankAccounts,
-  useCreateBankAccount,
-  useUpdateBankAccount,
-  useDeleteBankAccount,
-  type BankAccount,
-} from "@/hooks/bank-accounts/queries"
-import {
-  useInvestmentAccounts,
-  useCreateInvestmentAccount,
-  useUpdateInvestmentAccount,
-  useDeleteInvestmentAccount,
   type InvestmentAccount,
+  useCreateInvestmentAccount,
+  useDeleteInvestmentAccount,
+  useInvestmentAccounts,
+  useUpdateInvestmentAccount,
 } from "@/hooks/investment-accounts/queries"
+import { useResourceForm } from "@/hooks/use-resource-form"
+import { STATUS_VARIANTS, TRANSFER_STATUS } from "@/lib/constants"
 import {
   bankAccountFormDefaults,
   investmentAccountFormDefaults,
   toDateInput,
 } from "@/lib/form-factory"
-import { TRANSFER_STATUS, STATUS_VARIANTS } from "@/lib/constants"
-import { useResourceForm } from "@/hooks/use-resource-form"
-import { ResourceDialog } from "@/components/resource-dialog"
+import { formatCurrency } from "../utils/formatters"
 
 const BANK_ACCOUNT_TYPES = [
   { value: "CHECKING", label: "Checking" },
@@ -116,14 +103,14 @@ interface InvestmentFormData {
 function maskAccountNumber(num: string | null): string {
   if (!num) return "—"
   if (num.length <= 4) return num
-  return "****" + num.slice(-4)
+  return `****${num.slice(-4)}`
 }
 
 // Bank Accounts column configuration
 const createBankAccountColumns = (
-  updateBankAccount: (id: string, data: any) => Promise<any>,
-  handleDeleteBank: (id: string) => void
-): ColumnDef<any>[] => [
+  updateBankAccount: (id: string, data: Partial<BankAccount>) => Promise<BankAccount>,
+  handleDeleteBank: (id: string) => void,
+): ColumnDef<BankAccount>[] => [
   {
     key: "institution",
     header: "Institution",
@@ -231,9 +218,12 @@ const createBankAccountColumns = (
 
 // Investment Accounts column configuration
 const createInvestmentAccountColumns = (
-  updateInvestmentAccount: (id: string, data: any) => Promise<any>,
-  handleDeleteInvestment: (id: string) => void
-): ColumnDef<any>[] => [
+  updateInvestmentAccount: (
+    id: string,
+    data: Partial<InvestmentAccount>,
+  ) => Promise<InvestmentAccount>,
+  handleDeleteInvestment: (id: string) => void,
+): ColumnDef<InvestmentAccount>[] => [
   {
     key: "institution",
     header: "Institution",
@@ -358,13 +348,17 @@ export function Accounts() {
   const [activeTab, setActiveTab] = useState("bank")
 
   // Bank account hooks
-  const { data: bankAccounts = [], isLoading: bankLoading } = useBankAccounts(selectedEntity || undefined)
+  const { data: bankAccounts = [], isLoading: bankLoading } = useBankAccounts(
+    selectedEntity || undefined,
+  )
   const createBankAccountMutation = useCreateBankAccount()
   const updateBankAccountMutation = useUpdateBankAccount()
   const deleteBankAccountMutation = useDeleteBankAccount()
 
   // Investment account hooks
-  const { data: investmentAccounts = [], isLoading: investmentLoading } = useInvestmentAccounts(selectedEntity || undefined)
+  const { data: investmentAccounts = [], isLoading: investmentLoading } = useInvestmentAccounts(
+    selectedEntity || undefined,
+  )
   const createInvestmentAccountMutation = useCreateInvestmentAccount()
   const updateInvestmentAccountMutation = useUpdateInvestmentAccount()
   const deleteInvestmentAccountMutation = useDeleteInvestmentAccount()
@@ -383,8 +377,8 @@ export function Accounts() {
   const {
     isOpen: isBankOpen,
     close: closeBankDialog,
-    form: bankFormData,
-    setForm: setBankFormData,
+    form: _bankFormData,
+    setForm: _setBankFormData,
     handleEdit: handleEditBankForm,
     handleAdd: handleAddBank,
     handleSave: handleSaveBank,
@@ -423,8 +417,8 @@ export function Accounts() {
   const {
     isOpen: isInvestmentOpen,
     close: closeInvestmentDialog,
-    form: investmentFormData,
-    setForm: setInvestmentFormData,
+    form: _investmentFormData,
+    setForm: _setInvestmentFormData,
     handleEdit: handleEditInvestmentForm,
     handleAdd: handleAddInvestment,
     handleSave: handleSaveInvestment,
@@ -441,9 +435,9 @@ export function Accounts() {
         accountType: data.accountType,
         accountName: data.accountName,
         accountNumber: data.accountNumber || undefined,
-        dodValue: parseFloat(data.dodValue) || undefined,
+        dodValue: data.dodValue || undefined,
         dodValueDate: data.dodValueDate || undefined,
-        costBasis: parseFloat(data.costBasis) || undefined,
+        costBasis: data.costBasis || undefined,
         taxDeferred: data.accountType.includes("IRA") || data.accountType === "K401",
         beneficiaryDesignated: false,
         status: data.status,
@@ -451,9 +445,9 @@ export function Accounts() {
         notes: data.notes || undefined,
       }
       if (isEditingInvestment && editingInvestmentId) {
-        await updateInvestmentAccount(editingInvestmentId, payload as any)
+        await updateInvestmentAccount(editingInvestmentId, payload)
       } else {
-        await createInvestmentAccountMutation.mutateAsync(payload as any)
+        await createInvestmentAccountMutation.mutateAsync(payload)
       }
       setEditingInvestmentId(null)
     },
@@ -467,7 +461,7 @@ export function Accounts() {
   }, [entities, selectedEntity])
 
   // Custom edit handlers that transform entity → form data
-  const handleEditBank = (bank: BankAccount) => {
+  const _handleEditBank = (bank: BankAccount) => {
     setEditingBankId(bank.id)
     handleEditBankForm({
       institution: bank.institution,
@@ -483,7 +477,7 @@ export function Accounts() {
     })
   }
 
-  const handleEditInvestment = (investment: InvestmentAccount) => {
+  const _handleEditInvestment = (investment: InvestmentAccount) => {
     setEditingInvestmentId(investment.id)
     handleEditInvestmentForm({
       institution: investment.institution,
@@ -519,14 +513,14 @@ export function Accounts() {
 
   // Inline update handlers for editable cells
   const handleUpdateBank = async (id: string, updates: Partial<BankAccount>) => {
-    await updateBankAccount(id, updates)
+    return await updateBankAccount(id, updates)
   }
 
   const handleUpdateInvestment = async (id: string, updates: Partial<InvestmentAccount>) => {
-    await updateInvestmentAccount(id, updates)
+    return await updateInvestmentAccount(id, updates)
   }
 
-  const loading = entitiesLoading || bankLoading || investmentLoading
+  const _loading = entitiesLoading || bankLoading || investmentLoading
 
   if (entitiesLoading) {
     return (
@@ -538,15 +532,18 @@ export function Accounts() {
 
   // Create column configurations
   const bankColumns = createBankAccountColumns(handleUpdateBank, handleDeleteBank)
-  const investmentColumns = createInvestmentAccountColumns(handleUpdateInvestment, handleDeleteInvestment)
+  const investmentColumns = createInvestmentAccountColumns(
+    handleUpdateInvestment,
+    handleDeleteInvestment,
+  )
 
   const totalBankValue = bankAccounts.reduce(
     (sum, a) => sum + (parseFloat(a.dodValue || "0") || 0),
-    0
+    0,
   )
   const totalInvestmentValue = investmentAccounts.reduce(
     (sum, a) => sum + (parseFloat(a.dodValue || "0") || 0),
-    0
+    0,
   )
 
   return (
@@ -555,14 +552,9 @@ export function Accounts() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-semibold tracking-tight text-balance">Accounts</h2>
-          <p className="text-sm text-muted-foreground">
-            Manage financial accounts
-          </p>
+          <p className="text-sm text-muted-foreground">Manage financial accounts</p>
         </div>
-        <Select
-          value={selectedEntity || undefined}
-          onValueChange={setSelectedEntity}
-        >
+        <Select value={selectedEntity || undefined} onValueChange={setSelectedEntity}>
           <SelectTrigger className="w-[280px]">
             <SelectValue placeholder="Select entity" />
           </SelectTrigger>
@@ -583,7 +575,8 @@ export function Accounts() {
               Bank Accounts ({bankAccounts.length}) - {formatCurrency(totalBankValue.toString())}
             </TabsTrigger>
             <TabsTrigger value="investment">
-              Investment Accounts ({investmentAccounts.length}) - {formatCurrency(totalInvestmentValue.toString())}
+              Investment Accounts ({investmentAccounts.length}) -{" "}
+              {formatCurrency(totalInvestmentValue.toString())}
             </TabsTrigger>
           </TabsList>
 
@@ -633,7 +626,7 @@ export function Accounts() {
             <div className="grid grid-cols-2 gap-4">
               {/* Institution */}
               <bankFormInstance.Field name="institution">
-                {(field: any) => (
+                {(field) => (
                   <div className="space-y-2">
                     <Label htmlFor="bank-institution">Institution *</Label>
                     <Input
@@ -649,13 +642,10 @@ export function Accounts() {
 
               {/* Account Type */}
               <bankFormInstance.Field name="accountType">
-                {(field: any) => (
+                {(field) => (
                   <div className="space-y-2">
                     <Label htmlFor="bank-type">Account Type *</Label>
-                    <Select
-                      value={field.state.value}
-                      onValueChange={(v) => field.handleChange(v)}
-                    >
+                    <Select value={field.state.value} onValueChange={(v) => field.handleChange(v)}>
                       <SelectTrigger id="bank-type">
                         <SelectValue />
                       </SelectTrigger>
@@ -674,7 +664,7 @@ export function Accounts() {
 
             {/* Account Name */}
             <bankFormInstance.Field name="accountName">
-              {(field: any) => (
+              {(field) => (
                 <div className="space-y-2 mt-4">
                   <Label htmlFor="bank-name">Account Name</Label>
                   <Input
@@ -691,7 +681,7 @@ export function Accounts() {
             <div className="grid grid-cols-2 gap-4 mt-4">
               {/* Account Number */}
               <bankFormInstance.Field name="accountNumber">
-                {(field: any) => (
+                {(field) => (
                   <div className="space-y-2">
                     <Label htmlFor="bank-number">Account Number *</Label>
                     <Input
@@ -706,7 +696,7 @@ export function Accounts() {
 
               {/* Routing Number */}
               <bankFormInstance.Field name="routingNumber">
-                {(field: any) => (
+                {(field) => (
                   <div className="space-y-2">
                     <Label htmlFor="bank-routing">Routing Number</Label>
                     <Input
@@ -726,7 +716,7 @@ export function Accounts() {
             <div className="grid grid-cols-2 gap-4">
               {/* DOD Value */}
               <bankFormInstance.Field name="dodValue">
-                {(field: any) => (
+                {(field) => (
                   <div className="space-y-2">
                     <Label htmlFor="bank-dod-value">DOD Balance</Label>
                     <Input
@@ -742,7 +732,7 @@ export function Accounts() {
 
               {/* DOD Value Date */}
               <bankFormInstance.Field name="dodValueDate">
-                {(field: any) => (
+                {(field) => (
                   <div className="space-y-2">
                     <Label htmlFor="bank-dod-date">DOD Value Date</Label>
                     <Input
@@ -763,13 +753,10 @@ export function Accounts() {
             <div className="grid grid-cols-2 gap-4">
               {/* Account Status */}
               <bankFormInstance.Field name="status">
-                {(field: any) => (
+                {(field) => (
                   <div className="space-y-2">
                     <Label htmlFor="bank-status">Account Status *</Label>
-                    <Select
-                      value={field.state.value}
-                      onValueChange={(v) => field.handleChange(v)}
-                    >
+                    <Select value={field.state.value} onValueChange={(v) => field.handleChange(v)}>
                       <SelectTrigger id="bank-status">
                         <SelectValue />
                       </SelectTrigger>
@@ -787,13 +774,10 @@ export function Accounts() {
 
               {/* Transfer Status */}
               <bankFormInstance.Field name="transferStatus">
-                {(field: any) => (
+                {(field) => (
                   <div className="space-y-2">
                     <Label htmlFor="bank-transfer">Transfer Status *</Label>
-                    <Select
-                      value={field.state.value}
-                      onValueChange={(v) => field.handleChange(v)}
-                    >
+                    <Select value={field.state.value} onValueChange={(v) => field.handleChange(v)}>
                       <SelectTrigger id="bank-transfer">
                         <SelectValue />
                       </SelectTrigger>
@@ -813,7 +797,7 @@ export function Accounts() {
 
           {/* Notes */}
           <bankFormInstance.Field name="notes">
-            {(field: any) => (
+            {(field) => (
               <div className="space-y-2">
                 <Label htmlFor="bank-notes">Notes</Label>
                 <Textarea
@@ -843,7 +827,7 @@ export function Accounts() {
             <div className="grid grid-cols-2 gap-4">
               {/* Institution */}
               <investmentFormInstance.Field name="institution">
-                {(field: any) => (
+                {(field) => (
                   <div className="space-y-2">
                     <Label htmlFor="inv-institution">Institution *</Label>
                     <Input
@@ -859,13 +843,10 @@ export function Accounts() {
 
               {/* Account Type */}
               <investmentFormInstance.Field name="accountType">
-                {(field: any) => (
+                {(field) => (
                   <div className="space-y-2">
                     <Label htmlFor="inv-type">Account Type *</Label>
-                    <Select
-                      value={field.state.value}
-                      onValueChange={(v) => field.handleChange(v)}
-                    >
+                    <Select value={field.state.value} onValueChange={(v) => field.handleChange(v)}>
                       <SelectTrigger id="inv-type">
                         <SelectValue />
                       </SelectTrigger>
@@ -885,7 +866,7 @@ export function Accounts() {
             <div className="grid grid-cols-2 gap-4 mt-4">
               {/* Account Name */}
               <investmentFormInstance.Field name="accountName">
-                {(field: any) => (
+                {(field) => (
                   <div className="space-y-2">
                     <Label htmlFor="inv-name">Account Name</Label>
                     <Input
@@ -901,7 +882,7 @@ export function Accounts() {
 
               {/* Account Number */}
               <investmentFormInstance.Field name="accountNumber">
-                {(field: any) => (
+                {(field) => (
                   <div className="space-y-2">
                     <Label htmlFor="inv-number">Account Number *</Label>
                     <Input
@@ -921,7 +902,7 @@ export function Accounts() {
             <div className="grid grid-cols-3 gap-4">
               {/* DOD Value */}
               <investmentFormInstance.Field name="dodValue">
-                {(field: any) => (
+                {(field) => (
                   <div className="space-y-2">
                     <Label htmlFor="inv-dod-value">DOD Value</Label>
                     <Input
@@ -937,7 +918,7 @@ export function Accounts() {
 
               {/* DOD Value Date */}
               <investmentFormInstance.Field name="dodValueDate">
-                {(field: any) => (
+                {(field) => (
                   <div className="space-y-2">
                     <Label htmlFor="inv-dod-date">DOD Value Date</Label>
                     <Input
@@ -953,7 +934,7 @@ export function Accounts() {
 
               {/* Cost Basis */}
               <investmentFormInstance.Field name="costBasis">
-                {(field: any) => (
+                {(field) => (
                   <div className="space-y-2">
                     <Label htmlFor="inv-cost-basis">Cost Basis</Label>
                     <Input
@@ -974,13 +955,10 @@ export function Accounts() {
             <div className="grid grid-cols-2 gap-4">
               {/* Account Status */}
               <investmentFormInstance.Field name="status">
-                {(field: any) => (
+                {(field) => (
                   <div className="space-y-2">
                     <Label htmlFor="inv-status">Account Status *</Label>
-                    <Select
-                      value={field.state.value}
-                      onValueChange={(v) => field.handleChange(v)}
-                    >
+                    <Select value={field.state.value} onValueChange={(v) => field.handleChange(v)}>
                       <SelectTrigger id="inv-status">
                         <SelectValue />
                       </SelectTrigger>
@@ -998,13 +976,10 @@ export function Accounts() {
 
               {/* Transfer Status */}
               <investmentFormInstance.Field name="transferStatus">
-                {(field: any) => (
+                {(field) => (
                   <div className="space-y-2">
                     <Label htmlFor="inv-transfer">Transfer Status *</Label>
-                    <Select
-                      value={field.state.value}
-                      onValueChange={(v) => field.handleChange(v)}
-                    >
+                    <Select value={field.state.value} onValueChange={(v) => field.handleChange(v)}>
                       <SelectTrigger id="inv-transfer">
                         <SelectValue />
                       </SelectTrigger>
@@ -1024,7 +999,7 @@ export function Accounts() {
 
           {/* Notes */}
           <investmentFormInstance.Field name="notes">
-            {(field: any) => (
+            {(field) => (
               <div className="space-y-2">
                 <Label htmlFor="inv-notes">Notes</Label>
                 <Textarea

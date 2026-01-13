@@ -1,17 +1,15 @@
 "use client"
 
-import { useState, useEffect, useMemo, useCallback } from "react"
-import { Trash2, Plus, Pencil, Loader2, FileText, Download } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { formatCurrency, formatDate } from "../utils/formatters"
+import { FileText, Loader2, Plus } from "lucide-react"
+import { useCallback, useEffect, useMemo, useState } from "react"
+import { type ColumnDef, DataTable } from "@/components/data-table"
+import { EditableCurrencyCell, EditableTextCell } from "@/components/editable-cells"
+import { ResourceDialog } from "@/components/resource-dialog"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
-import { Switch } from "@/components/ui/switch"
-import { Textarea } from "@/components/ui/textarea"
 import {
   Select,
   SelectContent,
@@ -19,49 +17,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import { EditableTextCell, EditableCurrencyCell } from "@/components/editable-cells"
-import { useResourceForm } from "@/hooks/use-resource-form"
-import { ResourceDialog } from "@/components/resource-dialog"
-import { DataTable, type ColumnDef } from "@/components/data-table"
+import { Separator } from "@/components/ui/separator"
+import { Switch } from "@/components/ui/switch"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Textarea } from "@/components/ui/textarea"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { useEntities } from "@/hooks/entities/queries"
 import {
-  useTrustAccounting,
-  useTrustAccountingPaginated,
+  type TrustAccounting,
   useCreateTrustAccountingEntry,
-  useUpdateTrustAccountingEntry,
   useDeleteTrustAccountingEntry,
-  type PaginatedResult,
+  useTrustAccountingPaginated,
+  useUpdateTrustAccountingEntry,
 } from "@/hooks/trust-accounting/queries"
-
-interface TrustAccounting {
-  id: string
-  entityId: string
-  accountingDate: string
-  entryType: string
-  incomeType: string | null
-  expenseType: string | null
-  amount: string
-  description: string | null
-  isPrincipal: boolean
-  taxDeductible: boolean
-  fiscalYear: number | null
-  referenceNumber: string | null
-  sourceAssetType: string | null
-  sourceAssetId: string | null
-}
-
-interface Entity {
-  id: string
-  name: string
-  dod: string | null
-}
+import { useResourceForm } from "@/hooks/use-resource-form"
+import { cn } from "@/lib/utils"
+import { formatCurrency, formatDate } from "../utils/formatters"
 
 interface BankAccount {
   id: string
@@ -132,7 +103,7 @@ interface AccountingFormData {
   description: string
   isPrincipal: boolean
   taxDeductible: boolean
-  referenceNumber: string
+  checkNumber: string
 }
 
 export function Accounting() {
@@ -145,12 +116,9 @@ export function Accounting() {
   const pageSize = 20
 
   // Use paginated query
-  const {
-    data: paginatedResult,
-    isLoading: entriesLoading
-  } = useTrustAccountingPaginated(
+  const { data: paginatedResult, isLoading: entriesLoading } = useTrustAccountingPaginated(
     selectedEntity || undefined,
-    { page: currentPage, pageSize }
+    { page: currentPage, pageSize },
   )
 
   const entries = paginatedResult?.data || []
@@ -174,14 +142,14 @@ export function Accounting() {
     description: "",
     isPrincipal: false,
     taxDeductible: false,
-    referenceNumber: "",
+    checkNumber: "",
   }
 
   const {
     isOpen: isDialogOpen,
     close: closeDialog,
-    form: entryForm,
-    setForm: setEntryForm,
+    form: _entryForm,
+    setForm: _setEntryForm,
     handleEdit: handleEditEntry,
     handleAdd: handleAddEntry,
     handleSave: handleSaveEntry,
@@ -202,7 +170,7 @@ export function Accounting() {
         description: data.description || undefined,
         isPrincipal: data.isPrincipal,
         taxDeductible: data.taxDeductible,
-        referenceNumber: data.referenceNumber || undefined,
+        checkNumber: data.checkNumber || undefined,
         fiscalYear: data.accountingDate
           ? new Date(data.accountingDate).getFullYear()
           : new Date().getFullYear(),
@@ -224,6 +192,7 @@ export function Accounting() {
   }, [entities, selectedEntity])
 
   // Reset to page 1 when entity changes
+  // biome-ignore lint/correctness/useExhaustiveDependencies: We intentionally depend on selectedEntity to reset pagination
   useEffect(() => {
     setCurrentPage(1)
   }, [selectedEntity])
@@ -238,9 +207,8 @@ export function Accounting() {
   }
 
   const updateEntry = async (id: string, updates: Partial<TrustAccounting>) => {
-    await updateEntryMutation.mutateAsync({ id, data: updates as any })
+    await updateEntryMutation.mutateAsync({ id, data: updates })
   }
-
 
   // Calculate totals - Texas 113.152(2) requires categorization by principal and income
   const {
@@ -255,41 +223,41 @@ export function Accounting() {
     principalDisbursements,
     incomeDisbursements,
   } = useMemo(() => {
-      const income = entries.filter((e) => e.entryType === "INCOME")
-      const expense = entries.filter((e) => e.entryType === "EXPENSE")
-      const incTotal = income.reduce((sum, e) => sum + parseFloat(e.amount || "0"), 0)
-      const expTotal = expense.reduce((sum, e) => sum + parseFloat(e.amount || "0"), 0)
-      const deductible = expense
-        .filter((e) => e.taxDeductible)
-        .reduce((sum, e) => sum + parseFloat(e.amount || "0"), 0)
+    const income = entries.filter((e) => e.entryType === "INCOME")
+    const expense = entries.filter((e) => e.entryType === "EXPENSE")
+    const incTotal = income.reduce((sum, e) => sum + parseFloat(e.amount || "0"), 0)
+    const expTotal = expense.reduce((sum, e) => sum + parseFloat(e.amount || "0"), 0)
+    const deductible = expense
+      .filter((e) => e.taxDeductible)
+      .reduce((sum, e) => sum + parseFloat(e.amount || "0"), 0)
 
-      // Texas 113.152(2) - categorize by principal and income
-      const principalRec = income
-        .filter((e) => e.isPrincipal)
-        .reduce((sum, e) => sum + parseFloat(e.amount || "0"), 0)
-      const incomeRec = income
-        .filter((e) => !e.isPrincipal)
-        .reduce((sum, e) => sum + parseFloat(e.amount || "0"), 0)
-      const principalDisb = expense
-        .filter((e) => e.isPrincipal)
-        .reduce((sum, e) => sum + parseFloat(e.amount || "0"), 0)
-      const incomeDisb = expense
-        .filter((e) => !e.isPrincipal)
-        .reduce((sum, e) => sum + parseFloat(e.amount || "0"), 0)
+    // Texas 113.152(2) - categorize by principal and income
+    const principalRec = income
+      .filter((e) => e.isPrincipal)
+      .reduce((sum, e) => sum + parseFloat(e.amount || "0"), 0)
+    const incomeRec = income
+      .filter((e) => !e.isPrincipal)
+      .reduce((sum, e) => sum + parseFloat(e.amount || "0"), 0)
+    const principalDisb = expense
+      .filter((e) => e.isPrincipal)
+      .reduce((sum, e) => sum + parseFloat(e.amount || "0"), 0)
+    const incomeDisb = expense
+      .filter((e) => !e.isPrincipal)
+      .reduce((sum, e) => sum + parseFloat(e.amount || "0"), 0)
 
-      return {
-        incomeEntries: income,
-        expenseEntries: expense,
-        incomeTotal: incTotal,
-        expenseTotal: expTotal,
-        netIncome: incTotal - expTotal,
-        deductibleExpenses: deductible,
-        principalReceipts: principalRec,
-        incomeReceipts: incomeRec,
-        principalDisbursements: principalDisb,
-        incomeDisbursements: incomeDisb,
-      }
-    }, [entries])
+    return {
+      incomeEntries: income,
+      expenseEntries: expense,
+      incomeTotal: incTotal,
+      expenseTotal: expTotal,
+      netIncome: incTotal - expTotal,
+      deductibleExpenses: deductible,
+      principalReceipts: principalRec,
+      incomeReceipts: incomeRec,
+      principalDisbursements: principalDisb,
+      incomeDisbursements: incomeDisb,
+    }
+  }, [entries])
 
   // Filter based on active tab
   const filteredEntries = useMemo(() => {
@@ -321,15 +289,21 @@ export function Accounting() {
         fetch(`/api/liabilities?entityId=${selectedEntity}`),
       ])
 
-      const [bankAccounts, investmentAccounts, homesteads, rentalProperties, vehicles, liabilities] =
-        await Promise.all([
-          bankAccountsRes.json() as Promise<BankAccount[]>,
-          investmentAccountsRes.json() as Promise<InvestmentAccount[]>,
-          homesteadsRes.json() as Promise<Property[]>,
-          rentalPropertiesRes.json() as Promise<Property[]>,
-          vehiclesRes.json() as Promise<Vehicle[]>,
-          liabilitiesRes.json() as Promise<Liability[]>,
-        ])
+      const [
+        bankAccounts,
+        investmentAccounts,
+        homesteads,
+        rentalProperties,
+        vehicles,
+        liabilities,
+      ] = await Promise.all([
+        bankAccountsRes.json() as Promise<BankAccount[]>,
+        investmentAccountsRes.json() as Promise<InvestmentAccount[]>,
+        homesteadsRes.json() as Promise<Property[]>,
+        rentalPropertiesRes.json() as Promise<Property[]>,
+        vehiclesRes.json() as Promise<Vehicle[]>,
+        liabilitiesRes.json() as Promise<Liability[]>,
+      ])
 
       const entity = entities.find((e) => e.id === selectedEntity)
       const reportDate = new Date().toLocaleDateString("en-US", {
@@ -439,7 +413,8 @@ export function Accounting() {
     <tbody>
       ${incomeEntries
         .sort((a, b) => new Date(a.accountingDate).getTime() - new Date(b.accountingDate).getTime())
-        .map((e) => `
+        .map(
+          (e) => `
           <tr>
             <td>${formatDate(e.accountingDate)}</td>
             <td>${e.description || "—"}</td>
@@ -447,7 +422,9 @@ export function Accounting() {
             <td>${e.isPrincipal ? "Principal" : "Income"}</td>
             <td class="amount">${formatCurrency(e.amount)}</td>
           </tr>
-        `).join("")}
+        `,
+        )
+        .join("")}
       <tr class="subtotal-row">
         <td colspan="3">Principal Receipts</td>
         <td>Principal</td>
@@ -479,7 +456,8 @@ export function Accounting() {
     <tbody>
       ${expenseEntries
         .sort((a, b) => new Date(a.accountingDate).getTime() - new Date(b.accountingDate).getTime())
-        .map((e) => `
+        .map(
+          (e) => `
           <tr>
             <td>${formatDate(e.accountingDate)}</td>
             <td>${e.description || "—"}</td>
@@ -487,7 +465,9 @@ export function Accounting() {
             <td>${e.isPrincipal ? "Principal" : "Income"}</td>
             <td class="amount">${formatCurrency(e.amount)}</td>
           </tr>
-        `).join("")}
+        `,
+        )
+        .join("")}
       <tr class="subtotal-row">
         <td colspan="3">Principal Disbursements</td>
         <td>Principal</td>
@@ -523,21 +503,29 @@ export function Accounting() {
       </tr>
     </thead>
     <tbody>
-      ${homesteads.map((p) => `
+      ${homesteads
+        .map(
+          (p) => `
         <tr>
           <td>Homestead</td>
           <td>${p.streetAddress}</td>
           <td class="amount">${p.estimatedValue ? formatCurrency(p.estimatedValue) : "—"}</td>
         </tr>
-      `).join("")}
-      ${rentalProperties.map((p) => `
+      `,
+        )
+        .join("")}
+      ${rentalProperties
+        .map(
+          (p) => `
         <tr>
           <td>Rental Property</td>
           <td>${p.streetAddress}</td>
           <td class="amount">${p.estimatedValue ? formatCurrency(p.estimatedValue) : "—"}</td>
         </tr>
-      `).join("")}
-      ${homesteads.length === 0 && rentalProperties.length === 0 ? '<tr><td colspan="3" style="text-align:center;color:#666;">No real property recorded</td></tr>' : ''}
+      `,
+        )
+        .join("")}
+      ${homesteads.length === 0 && rentalProperties.length === 0 ? '<tr><td colspan="3" style="text-align:center;color:#666;">No real property recorded</td></tr>' : ""}
     </tbody>
   </table>
 
@@ -550,13 +538,17 @@ export function Accounting() {
       </tr>
     </thead>
     <tbody>
-      ${vehicles.map((v) => `
+      ${vehicles
+        .map(
+          (v) => `
         <tr>
           <td>${v.year} ${v.make} ${v.model}</td>
           <td class="amount">${v.estimatedValue ? formatCurrency(v.estimatedValue) : "—"}</td>
         </tr>
-      `).join("")}
-      ${vehicles.length === 0 ? '<tr><td colspan="2" style="text-align:center;color:#666;">No vehicles recorded</td></tr>' : ''}
+      `,
+        )
+        .join("")}
+      ${vehicles.length === 0 ? '<tr><td colspan="2" style="text-align:center;color:#666;">No vehicles recorded</td></tr>' : ""}
     </tbody>
   </table>
 
@@ -574,20 +566,28 @@ export function Accounting() {
       </tr>
     </thead>
     <tbody>
-      ${bankAccounts.map((a) => `
+      ${bankAccounts
+        .map(
+          (a) => `
         <tr>
           <td>${a.bankName}</td>
           <td>${a.accountType}</td>
           <td class="amount">${a.currentBalance ? formatCurrency(a.currentBalance) : "—"}</td>
         </tr>
-      `).join("")}
-      ${bankAccounts.length === 0 ? '<tr><td colspan="3" style="text-align:center;color:#666;">No bank accounts recorded</td></tr>' : ''}
-      ${bankAccounts.length > 0 ? `
+      `,
+        )
+        .join("")}
+      ${bankAccounts.length === 0 ? '<tr><td colspan="3" style="text-align:center;color:#666;">No bank accounts recorded</td></tr>' : ""}
+      ${
+        bankAccounts.length > 0
+          ? `
         <tr class="total-row">
           <td colspan="2">Total Bank Accounts</td>
           <td class="amount">${formatCurrency(bankAccounts.reduce((sum, a) => sum + parseFloat(a.currentBalance || "0"), 0))}</td>
         </tr>
-      ` : ''}
+      `
+          : ""
+      }
     </tbody>
   </table>
 
@@ -601,20 +601,28 @@ export function Accounting() {
       </tr>
     </thead>
     <tbody>
-      ${investmentAccounts.map((a) => `
+      ${investmentAccounts
+        .map(
+          (a) => `
         <tr>
           <td>${a.firmName}</td>
           <td>${a.accountType}</td>
           <td class="amount">${a.currentBalance ? formatCurrency(a.currentBalance) : "—"}</td>
         </tr>
-      `).join("")}
-      ${investmentAccounts.length === 0 ? '<tr><td colspan="3" style="text-align:center;color:#666;">No investment accounts recorded</td></tr>' : ''}
-      ${investmentAccounts.length > 0 ? `
+      `,
+        )
+        .join("")}
+      ${investmentAccounts.length === 0 ? '<tr><td colspan="3" style="text-align:center;color:#666;">No investment accounts recorded</td></tr>' : ""}
+      ${
+        investmentAccounts.length > 0
+          ? `
         <tr class="total-row">
           <td colspan="2">Total Investment Accounts</td>
           <td class="amount">${formatCurrency(investmentAccounts.reduce((sum, a) => sum + parseFloat(a.currentBalance || "0"), 0))}</td>
         </tr>
-      ` : ''}
+      `
+          : ""
+      }
     </tbody>
   </table>
 
@@ -633,7 +641,10 @@ export function Accounting() {
       </tr>
     </thead>
     <tbody>
-      ${liabilities.filter((l) => l.liabilityStatus !== "PAID_OFF").map((l) => `
+      ${liabilities
+        .filter((l) => l.liabilityStatus !== "PAID_OFF")
+        .map(
+          (l) => `
         <tr>
           <td>${l.creditor}</td>
           <td>${l.liabilityType.replace(/_/g, " ")}</td>
@@ -641,14 +652,20 @@ export function Accounting() {
           <td class="amount">${formatCurrency(l.originalAmount)}</td>
           <td class="amount">${formatCurrency(l.currentBalance)}</td>
         </tr>
-      `).join("")}
-      ${liabilities.filter((l) => l.liabilityStatus !== "PAID_OFF").length === 0 ? '<tr><td colspan="5" style="text-align:center;color:#666;">No outstanding liabilities</td></tr>' : ''}
-      ${liabilities.filter((l) => l.liabilityStatus !== "PAID_OFF").length > 0 ? `
+      `,
+        )
+        .join("")}
+      ${liabilities.filter((l) => l.liabilityStatus !== "PAID_OFF").length === 0 ? '<tr><td colspan="5" style="text-align:center;color:#666;">No outstanding liabilities</td></tr>' : ""}
+      ${
+        liabilities.filter((l) => l.liabilityStatus !== "PAID_OFF").length > 0
+          ? `
         <tr class="total-row">
           <td colspan="4">Total Liabilities</td>
           <td class="amount">${formatCurrency(liabilities.filter((l) => l.liabilityStatus !== "PAID_OFF").reduce((sum, l) => sum + parseFloat(l.currentBalance || "0"), 0))}</td>
         </tr>
-      ` : ''}
+      `
+          : ""
+      }
     </tbody>
   </table>
 
@@ -660,7 +677,7 @@ export function Accounting() {
         <td>Total Cash & Investments</td>
         <td class="amount">${formatCurrency(
           bankAccounts.reduce((sum, a) => sum + parseFloat(a.currentBalance || "0"), 0) +
-          investmentAccounts.reduce((sum, a) => sum + parseFloat(a.currentBalance || "0"), 0)
+            investmentAccounts.reduce((sum, a) => sum + parseFloat(a.currentBalance || "0"), 0),
         )}</td>
       </tr>
       <tr>
@@ -671,8 +688,10 @@ export function Accounting() {
         <td>Net Cash Position</td>
         <td class="amount">${formatCurrency(
           bankAccounts.reduce((sum, a) => sum + parseFloat(a.currentBalance || "0"), 0) +
-          investmentAccounts.reduce((sum, a) => sum + parseFloat(a.currentBalance || "0"), 0) -
-          liabilities.filter((l) => l.liabilityStatus !== "PAID_OFF").reduce((sum, l) => sum + parseFloat(l.currentBalance || "0"), 0)
+            investmentAccounts.reduce((sum, a) => sum + parseFloat(a.currentBalance || "0"), 0) -
+            liabilities
+              .filter((l) => l.liabilityStatus !== "PAID_OFF")
+              .reduce((sum, l) => sum + parseFloat(l.currentBalance || "0"), 0),
         )}</td>
       </tr>
     </tbody>
@@ -723,9 +742,9 @@ export function Accounting() {
       expenseType: entry.expenseType || "PROFESSIONAL_FEE",
       amount: entry.amount,
       description: entry.description || "",
-      isPrincipal: entry.isPrincipal,
-      taxDeductible: entry.taxDeductible,
-      referenceNumber: entry.referenceNumber || "",
+      isPrincipal: entry.isPrincipal ?? false,
+      taxDeductible: entry.taxDeductible ?? false,
+      checkNumber: entry.checkNumber || "",
     })
   }
 
@@ -742,9 +761,7 @@ export function Accounting() {
       render: (entry) => (
         <Badge
           variant={entry.entryType === "INCOME" ? "default" : "destructive"}
-          className={cn(
-            entry.entryType === "INCOME" && "bg-success hover:bg-success/90"
-          )}
+          className={cn(entry.entryType === "INCOME" && "bg-success hover:bg-success/90")}
         >
           {entry.entryType}
         </Badge>
@@ -767,7 +784,7 @@ export function Accounting() {
       render: (entry) => (
         <EditableTextCell
           value={entry.description}
-          onSave={async (v) => updateEntry(entry.id, { description: v || null })}
+          onSave={async (v) => updateEntry(entry.id, { description: v || undefined })}
           placeholder="Add description"
         />
       ),
@@ -776,7 +793,12 @@ export function Accounting() {
       key: "amount",
       header: "Amount",
       render: (entry) => (
-        <div className={cn("text-right", entry.entryType === "INCOME" ? "text-success" : "text-destructive")}>
+        <div
+          className={cn(
+            "text-right",
+            entry.entryType === "INCOME" ? "text-success" : "text-destructive",
+          )}
+        >
           <EditableCurrencyCell
             value={entry.amount}
             onSave={async (v) => updateEntry(entry.id, { amount: v || "" })}
@@ -793,7 +815,9 @@ export function Accounting() {
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Badge variant="outline" className="text-xs">P</Badge>
+                  <Badge variant="outline" className="text-xs">
+                    P
+                  </Badge>
                 </TooltipTrigger>
                 <TooltipContent>Principal (not income)</TooltipContent>
               </Tooltip>
@@ -803,7 +827,9 @@ export function Accounting() {
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Badge variant="secondary" className="text-xs">D</Badge>
+                  <Badge variant="secondary" className="text-xs">
+                    D
+                  </Badge>
                 </TooltipTrigger>
                 <TooltipContent>Tax Deductible</TooltipContent>
               </Tooltip>
@@ -885,7 +911,7 @@ export function Accounting() {
               <p
                 className={cn(
                   "mt-2 text-2xl font-bold",
-                  netIncome >= 0 ? "text-success" : "text-destructive"
+                  netIncome >= 0 ? "text-success" : "text-destructive",
                 )}
               >
                 {formatCurrency(netIncome)}
@@ -913,7 +939,9 @@ export function Accounting() {
                 <p className="text-sm font-medium">Receipts</p>
                 <div className="flex justify-between items-center py-2 border-b">
                   <span className="text-sm text-muted-foreground">Principal</span>
-                  <span className="font-medium tabular-nums">{formatCurrency(principalReceipts)}</span>
+                  <span className="font-medium tabular-nums">
+                    {formatCurrency(principalReceipts)}
+                  </span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b">
                   <span className="text-sm text-muted-foreground">Income</span>
@@ -928,15 +956,21 @@ export function Accounting() {
                 <p className="text-sm font-medium">Disbursements</p>
                 <div className="flex justify-between items-center py-2 border-b">
                   <span className="text-sm text-muted-foreground">Principal</span>
-                  <span className="font-medium tabular-nums">{formatCurrency(principalDisbursements)}</span>
+                  <span className="font-medium tabular-nums">
+                    {formatCurrency(principalDisbursements)}
+                  </span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b">
                   <span className="text-sm text-muted-foreground">Income</span>
-                  <span className="font-medium tabular-nums">{formatCurrency(incomeDisbursements)}</span>
+                  <span className="font-medium tabular-nums">
+                    {formatCurrency(incomeDisbursements)}
+                  </span>
                 </div>
                 <div className="flex justify-between items-center py-2 font-medium">
                   <span className="text-sm">Total</span>
-                  <span className="tabular-nums text-destructive">{formatCurrency(expenseTotal)}</span>
+                  <span className="tabular-nums text-destructive">
+                    {formatCurrency(expenseTotal)}
+                  </span>
                 </div>
               </div>
             </div>
@@ -972,7 +1006,7 @@ export function Accounting() {
             <CardContent className="pt-4">
               <DataTable
                 columns={accountingColumns}
-                data={filteredEntries as any}
+                data={filteredEntries}
                 isLoading={loading}
                 emptyMessage="No entries recorded yet. Click 'Add Entry' to start tracking."
                 onEdit={openEditForm}
@@ -1000,7 +1034,7 @@ export function Accounting() {
         <div className="space-y-4">
           {/* Date */}
           <formInstance.Field name="accountingDate">
-            {(field: any) => (
+            {(field) => (
               <div className="space-y-2">
                 <Label htmlFor="date">Date</Label>
                 <Input
@@ -1019,13 +1053,10 @@ export function Accounting() {
 
           {/* Entry Type */}
           <formInstance.Field name="entryType">
-            {(field: any) => (
+            {(field) => (
               <div className="space-y-2">
                 <Label htmlFor="entryType">Entry Type</Label>
-                <Select
-                  value={field.state.value}
-                  onValueChange={(v) => field.handleChange(v)}
-                >
+                <Select value={field.state.value} onValueChange={(v) => field.handleChange(v)}>
                   <SelectTrigger id="entryType">
                     <SelectValue />
                   </SelectTrigger>
@@ -1042,11 +1073,11 @@ export function Accounting() {
           </formInstance.Field>
 
           {/* Conditional Category Selection */}
-          <formInstance.Subscribe selector={(state: any) => state.values.entryType}>
-            {(entryType: any) =>
+          <formInstance.Subscribe<string> selector={(state) => state.values.entryType}>
+            {(entryType) =>
               entryType === "INCOME" ? (
                 <formInstance.Field name="incomeType">
-                  {(field: any) => (
+                  {(field) => (
                     <div className="space-y-2">
                       <Label htmlFor="incomeType">Income Category</Label>
                       <Select
@@ -1072,7 +1103,7 @@ export function Accounting() {
                 </formInstance.Field>
               ) : (
                 <formInstance.Field name="expenseType">
-                  {(field: any) => (
+                  {(field) => (
                     <div className="space-y-2">
                       <Label htmlFor="expenseType">Expense Category</Label>
                       <Select
@@ -1102,7 +1133,7 @@ export function Accounting() {
 
           {/* Amount */}
           <formInstance.Field name="amount">
-            {(field: any) => (
+            {(field) => (
               <div className="space-y-2">
                 <Label htmlFor="amount">Amount</Label>
                 <Input
@@ -1122,7 +1153,7 @@ export function Accounting() {
 
           {/* Description */}
           <formInstance.Field name="description">
-            {(field: any) => (
+            {(field) => (
               <div className="space-y-2">
                 <Label htmlFor="description">Description</Label>
                 <Textarea
@@ -1140,8 +1171,8 @@ export function Accounting() {
           </formInstance.Field>
 
           {/* Reference Number */}
-          <formInstance.Field name="referenceNumber">
-            {(field: any) => (
+          <formInstance.Field name="checkNumber">
+            {(field) => (
               <div className="space-y-2">
                 <Label htmlFor="reference">Reference Number</Label>
                 <Input
@@ -1162,7 +1193,7 @@ export function Accounting() {
 
           {/* isPrincipal Switch */}
           <formInstance.Field name="isPrincipal">
-            {(field: any) => (
+            {(field) => (
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
                   <Label htmlFor="isPrincipal">Principal (not income)</Label>
@@ -1180,11 +1211,11 @@ export function Accounting() {
           </formInstance.Field>
 
           {/* taxDeductible Switch (conditional) */}
-          <formInstance.Subscribe selector={(state: any) => state.values.entryType}>
-            {(entryType: any) =>
+          <formInstance.Subscribe<string> selector={(state) => state.values.entryType}>
+            {(entryType) =>
               entryType === "EXPENSE" && (
                 <formInstance.Field name="taxDeductible">
-                  {(field: any) => (
+                  {(field) => (
                     <div className="flex items-center justify-between">
                       <div className="space-y-0.5">
                         <Label htmlFor="taxDeductible">Tax Deductible</Label>

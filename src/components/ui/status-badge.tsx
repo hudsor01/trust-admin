@@ -1,8 +1,8 @@
 "use client"
 
-import { cn } from "@/lib/utils"
-import { Badge } from "@/components/ui/badge"
 import type { ReactNode } from "react"
+import { Badge } from "@/components/ui/badge"
+import { cn } from "@/lib/utils"
 
 type StatusType =
   | "current"
@@ -47,32 +47,61 @@ export function StatusBadge({ status, children, className }: StatusBadgeProps) {
   const styles = statusStyles[normalizedStatus] || statusStyles.default
 
   return (
-    <Badge
-      variant="outline"
-      className={cn("font-medium", styles, className)}
-    >
+    <Badge variant="outline" className={cn("font-medium", styles, className)}>
       {children || status}
     </Badge>
   )
 }
 
 // Convenience exports for common statuses
-export function CurrentBadge({ children = "Current", className }: Omit<StatusBadgeProps, "status">) {
-  return <StatusBadge status="current" className={className}>{children}</StatusBadge>
+export function CurrentBadge({
+  children = "Current",
+  className,
+}: Omit<StatusBadgeProps, "status">) {
+  return (
+    <StatusBadge status="current" className={className}>
+      {children}
+    </StatusBadge>
+  )
 }
 
-export function SuccessorBadge({ children = "Successor", className }: Omit<StatusBadgeProps, "status">) {
-  return <StatusBadge status="successor" className={className}>{children}</StatusBadge>
+export function SuccessorBadge({
+  children = "Successor",
+  className,
+}: Omit<StatusBadgeProps, "status">) {
+  return (
+    <StatusBadge status="successor" className={className}>
+      {children}
+    </StatusBadge>
+  )
 }
 
-export function PendingBadge({ children = "Pending", className }: Omit<StatusBadgeProps, "status">) {
-  return <StatusBadge status="pending" className={className}>{children}</StatusBadge>
+export function PendingBadge({
+  children = "Pending",
+  className,
+}: Omit<StatusBadgeProps, "status">) {
+  return (
+    <StatusBadge status="pending" className={className}>
+      {children}
+    </StatusBadge>
+  )
 }
 
-export function ApprovedBadge({ children = "Approved", className }: Omit<StatusBadgeProps, "status">) {
-  return <StatusBadge status="approved" className={className}>{children}</StatusBadge>
+export function ApprovedBadge({
+  children = "Approved",
+  className,
+}: Omit<StatusBadgeProps, "status">) {
+  return (
+    <StatusBadge status="approved" className={className}>
+      {children}
+    </StatusBadge>
+  )
 }
 
 export function DeniedBadge({ children = "Denied", className }: Omit<StatusBadgeProps, "status">) {
-  return <StatusBadge status="denied" className={className}>{children}</StatusBadge>
+  return (
+    <StatusBadge status="denied" className={className}>
+      {children}
+    </StatusBadge>
+  )
 }
