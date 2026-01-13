@@ -171,7 +171,7 @@ export function Settings() {
       email: "",
       phone: "",
     },
-    validationSchema: insertContactSchema,
+    schema: insertContactSchema as any,
     onSubmit: async (data) => {
       await createContactMutation.mutateAsync({
         name: data.name.trim(),
@@ -378,7 +378,7 @@ export function Settings() {
                   <div className="space-y-4">
                     {/* Name - Required */}
                     <formInstance.Field name="name">
-                      {(field) => (
+                      {(field: any) => (
                         <div className="space-y-2">
                           <Label htmlFor="contact-name">Name *</Label>
                           <Input
@@ -397,7 +397,7 @@ export function Settings() {
 
                     {/* Company */}
                     <formInstance.Field name="company">
-                      {(field) => (
+                      {(field: any) => (
                         <div className="space-y-2">
                           <Label htmlFor="contact-company">Company</Label>
                           <Input
@@ -413,7 +413,7 @@ export function Settings() {
 
                     {/* Role */}
                     <formInstance.Field name="role">
-                      {(field) => (
+                      {(field: any) => (
                         <div className="space-y-2">
                           <Label htmlFor="contact-role">Role</Label>
                           <Select
@@ -437,7 +437,7 @@ export function Settings() {
 
                     {/* Email */}
                     <formInstance.Field name="email">
-                      {(field) => (
+                      {(field: any) => (
                         <div className="space-y-2">
                           <Label htmlFor="contact-email">Email</Label>
                           <Input
@@ -454,7 +454,7 @@ export function Settings() {
 
                     {/* Phone */}
                     <formInstance.Field name="phone">
-                      {(field) => (
+                      {(field: any) => (
                         <div className="space-y-2">
                           <Label htmlFor="contact-phone">Phone</Label>
                           <Input

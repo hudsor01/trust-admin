@@ -86,6 +86,12 @@ export function Vehicles() {
   // Mutation hooks
   const createVehicleMutation = useCreateVehicle()
   const updateVehicleMutation = useUpdateVehicle()
+
+  // Wrapper function to match inline cell API
+  const updateVehicle = async (id: string, data: Partial<Vehicle>) => {
+    return await updateVehicleMutation.mutateAsync({ id, data })
+  }
+
   const deleteVehicleMutation = useDeleteVehicle()
 
   const [searchQuery, setSearchQuery] = useState("")
@@ -116,14 +122,14 @@ export function Vehicles() {
         notes: data.notes || null,
       }
 
-      if (vehicleForm.isEditing) {
-        const editingId = (vehicleForm.form as any).id
-        await updateVehicleMutation.mutateAsync({ id: editingId, data: payload })
+      if (vehicleForm.isEditing && vehicleForm.editing) {
+        const editingId = (vehicleForm.editing as any).id
+        await updateVehicleMutation.mutateAsync({ id: editingId, data: payload as any })
       } else {
-        await createVehicleMutation.mutateAsync(payload)
+        await createVehicleMutation.mutateAsync(payload as any)
       }
     },
-    schema: insertVehicleSchema,
+    schema: insertVehicleSchema as any,
   })
 
   // Auto-select first entity
@@ -136,7 +142,6 @@ export function Vehicles() {
   const handleEdit = (v: Vehicle) => {
     vehicleForm.handleEdit({
       ...v,
-      id: v.id, // Include id for update
       color: v.color || "",
       licensePlate: v.licensePlate || "",
       acquisitionDate: toDateInput(v.acquisitionDate),
@@ -407,7 +412,7 @@ export function Vehicles() {
               <h4 className="text-sm font-medium mb-3">Vehicle Information</h4>
               <div className="grid grid-cols-3 gap-4">
                 <vehicleForm.formInstance.Field name="year">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label htmlFor="year">Year *</Label>
                       <Input
@@ -426,7 +431,7 @@ export function Vehicles() {
                   )}
                 </vehicleForm.formInstance.Field>
                 <vehicleForm.formInstance.Field name="make">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label htmlFor="make">Make *</Label>
                       <Input
@@ -443,7 +448,7 @@ export function Vehicles() {
                   )}
                 </vehicleForm.formInstance.Field>
                 <vehicleForm.formInstance.Field name="model">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label htmlFor="model">Model *</Label>
                       <Input
@@ -462,7 +467,7 @@ export function Vehicles() {
               </div>
               <div className="grid grid-cols-2 gap-4 mt-4">
                 <vehicleForm.formInstance.Field name="vin">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label htmlFor="vin">VIN *</Label>
                       <Input
@@ -479,7 +484,7 @@ export function Vehicles() {
                   )}
                 </vehicleForm.formInstance.Field>
                 <vehicleForm.formInstance.Field name="color">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label htmlFor="color">Color</Label>
                       <Input
@@ -497,7 +502,7 @@ export function Vehicles() {
               </div>
               <div className="grid grid-cols-3 gap-4 mt-4">
                 <vehicleForm.formInstance.Field name="licensePlate">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label htmlFor="licensePlate">License Plate</Label>
                       <Input
@@ -513,7 +518,7 @@ export function Vehicles() {
                   )}
                 </vehicleForm.formInstance.Field>
                 <vehicleForm.formInstance.Field name="mileage">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label htmlFor="mileage">Mileage</Label>
                       <Input
@@ -530,7 +535,7 @@ export function Vehicles() {
                   )}
                 </vehicleForm.formInstance.Field>
                 <vehicleForm.formInstance.Field name="titleStatus">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label htmlFor="titleStatus">Title Status *</Label>
                       <Select
@@ -562,7 +567,7 @@ export function Vehicles() {
               <h4 className="text-sm font-medium mb-3">Acquisition</h4>
               <div className="grid grid-cols-2 gap-4">
                 <vehicleForm.formInstance.Field name="acquisitionDate">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label htmlFor="acquisitionDate">Acquisition Date</Label>
                       <Input
@@ -579,7 +584,7 @@ export function Vehicles() {
                   )}
                 </vehicleForm.formInstance.Field>
                 <vehicleForm.formInstance.Field name="acquisitionCost">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label htmlFor="acquisitionCost">Acquisition Cost</Label>
                       <Input
@@ -603,7 +608,7 @@ export function Vehicles() {
               <h4 className="text-sm font-medium mb-3">Date of Death Valuation</h4>
               <div className="grid grid-cols-3 gap-4">
                 <vehicleForm.formInstance.Field name="dodValue">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label htmlFor="dodValue">DOD Value</Label>
                       <Input
@@ -620,7 +625,7 @@ export function Vehicles() {
                   )}
                 </vehicleForm.formInstance.Field>
                 <vehicleForm.formInstance.Field name="dodValueDate">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label htmlFor="dodValueDate">DOD Value Date</Label>
                       <Input
@@ -637,7 +642,7 @@ export function Vehicles() {
                   )}
                 </vehicleForm.formInstance.Field>
                 <vehicleForm.formInstance.Field name="dodValueType">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label htmlFor="dodValueType">Valuation Type</Label>
                       <Select
@@ -669,7 +674,7 @@ export function Vehicles() {
               <h4 className="text-sm font-medium mb-3">Status</h4>
               <div className="grid grid-cols-2 gap-4">
                 <vehicleForm.formInstance.Field name="status">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label htmlFor="status">Asset Status *</Label>
                       <Select
@@ -694,7 +699,7 @@ export function Vehicles() {
                   )}
                 </vehicleForm.formInstance.Field>
                 <vehicleForm.formInstance.Field name="transferStatus">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label htmlFor="transferStatus">Transfer Status *</Label>
                       <Select
@@ -723,7 +728,7 @@ export function Vehicles() {
 
             {/* Notes */}
             <vehicleForm.formInstance.Field name="notes">
-              {(field) => (
+              {(field: any) => (
                 <div className="space-y-2">
                   <Label htmlFor="notes">Notes</Label>
                   <Textarea

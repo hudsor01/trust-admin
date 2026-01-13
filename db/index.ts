@@ -6,12 +6,17 @@ import * as relations from "./relations";
 // Strip ?schema=public suffix if present in DATABASE_URL
 const databaseUrl = process.env.DATABASE_URL!.replace(/\?schema=\w+$/, "");
 
-// postgres-js with connection pool and auto-reconnect
+// postgres-js optimized for Neon serverless PostgreSQL
 const client = postgres(databaseUrl, {
-  max: 10,                    // Maximum pool size
-  idle_timeout: 20,           // Close idle connections after 20s
-  connect_timeout: 10,        // Connection timeout
-  max_lifetime: 60 * 30,      // Max connection lifetime 30 min
+  max: 50,                    // Neon supports 10K via pooler - increased from 10
+  idle_timeout: 10,           // Faster cleanup for serverless (was 20)
+  connect_timeout: 5,         // Faster failover (was 10)
+  max_lifetime: 60 * 15,      // 15min for serverless best practice (was 30min)
+  prepare: true,              // Enable prepared statements (auto-caching)
+  fetch_types: false,         // Skip type fetching (we use Drizzle schema)
+  connection: {
+    application_name: 'trust-admin',  // Better monitoring in Neon dashboard
+  },
 });
 
 // Drizzle instance with schema and relations for relational queries

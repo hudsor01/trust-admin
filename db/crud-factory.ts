@@ -16,6 +16,21 @@ interface CrudOptions {
   hasUpdatedAt?: boolean;
 }
 
+/**
+ * Type helper to add id and updatedAt to Insert type
+ */
+type InsertWithMeta<T> = T & {
+  id: string;
+  updatedAt?: string;
+};
+
+/**
+ * Type helper to add updatedAt to Update type
+ */
+type UpdateWithMeta<T> = T & {
+  updatedAt?: string;
+};
+
 interface PaginationOptions {
   /** Maximum number of records to return */
   limit?: number;
@@ -59,14 +74,15 @@ export function createCrud<
       // If no pagination options, return simple array (backward compatible)
       if (!pagination || (!pagination.limit && !pagination.includeTotalCount)) {
         if (filterValue && filterColumn) {
+          // Type cast required: Drizzle's type system doesn't recognize table[filterColumn] as Column
           const results = await db
             .select()
-            .from(table)
-            .where(eq(table[filterColumn as keyof T], filterValue));
-          return results;
+            .from(table as any)
+            .where(eq(table[filterColumn as keyof T] as any, filterValue));
+          return results as Select[];
         }
-        const results = await db.select().from(table);
-        return results;
+        const results = await db.select().from(table as any);
+        return results as Select[];
       }
 
       // Paginated query
@@ -76,15 +92,16 @@ export function createCrud<
       let totalCount: number | undefined;
       if (includeTotalCount) {
         if (filterValue && filterColumn) {
+          // Type cast required: Drizzle's generic constraints for table parameter
           const countResult = await db
             .select({ count: sql<number>`count(*)` })
-            .from(table)
-            .where(eq(table[filterColumn as keyof T], filterValue));
+            .from(table as any)
+            .where(eq(table[filterColumn as keyof T] as any, filterValue));
           totalCount = countResult[0] ? Number(countResult[0].count) : 0;
         } else {
           const countResult = await db
             .select({ count: sql<number>`count(*)` })
-            .from(table);
+            .from(table as any);
           totalCount = countResult[0] ? Number(countResult[0].count) : 0;
         }
       }
@@ -92,15 +109,16 @@ export function createCrud<
       // Get paginated data
       let data: Select[];
       if (filterValue && filterColumn) {
+        // Type cast required: Drizzle's type system doesn't recognize dynamic filter columns
         const query = db
           .select()
-          .from(table)
-          .where(eq(table[filterColumn as keyof T], filterValue));
+          .from(table as any)
+          .where(eq(table[filterColumn as keyof T] as any, filterValue));
 
-        data = await (limit ? query.limit(limit).offset(offset) : query);
+        data = (await (limit ? query.limit(limit).offset(offset) : query)) as Select[];
       } else {
-        const query = db.select().from(table);
-        data = await (limit ? query.limit(limit).offset(offset) : query);
+        const query = db.select().from(table as any);
+        data = (await (limit ? query.limit(limit).offset(offset) : query)) as Select[];
       }
 
       return {
@@ -116,26 +134,30 @@ export function createCrud<
      * Get a single record by ID
      */
     async getById(id: string): Promise<Select | undefined> {
+      // Type cast required: Drizzle's generic constraints for table parameter
       const results = await db
         .select()
-        .from(table)
-        .where(eq(table.id, id));
-      return results[0];
+        .from(table as any)
+        .where(eq((table as any).id, id));
+      return results[0] as Select | undefined;
     },
 
     /**
      * Create a new record
      */
     async create(data: Insert): Promise<Select> {
+      // Check if data already has an id field
+      const hasId = 'id' in (data as any) && typeof (data as Record<string, unknown>).id === 'string';
+
       const values = {
         ...data,
-        // Type cast needed: Insert type may not have id, but we need to access/generate it
-        id: (data as any).id || generateId(),
+        id: hasId ? (data as Record<string, unknown>).id as string : generateId(),
         ...(hasUpdatedAt && { updatedAt: new Date().toISOString() }),
       };
+
+      // Type cast required: Drizzle's insert type constraints are too restrictive for dynamic table types
       const [created] = await db
-        .insert(table)
-        // Type cast needed: Drizzle expects exact Insert type, but we've added id/updatedAt
+        .insert(table as any)
         .values(values as any)
         .returning();
       return created as Select;
@@ -145,15 +167,16 @@ export function createCrud<
      * Update a record by ID
      */
     async update(id: string, data: Partial<Insert>): Promise<Select | undefined> {
-      const values = {
+      const values: UpdateWithMeta<Partial<Insert>> = {
         ...data,
         ...(hasUpdatedAt && { updatedAt: new Date().toISOString() }),
       };
+
+      // Type cast required: Drizzle's generic constraints for table and values
       const [updated] = await db
-        .update(table)
-        // Type cast needed: Drizzle expects exact Update type, but we've added updatedAt
+        .update(table as any)
         .set(values as any)
-        .where(eq(table.id, id))
+        .where(eq((table as any).id, id))
         .returning();
       return updated as Select | undefined;
     },
@@ -162,9 +185,10 @@ export function createCrud<
      * Delete a record by ID
      */
     async delete(id: string): Promise<Select | undefined> {
+      // Type cast required: Drizzle's generic constraints for table parameter
       const [deleted] = await db
-        .delete(table)
-        .where(eq(table.id, id))
+        .delete(table as any)
+        .where(eq((table as any).id, id))
         .returning();
       return deleted as Select | undefined;
     },

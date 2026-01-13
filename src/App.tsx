@@ -208,7 +208,7 @@ export function App() {
 
   return (
     <SidebarProvider>
-      <AppSidebar currentRoute={currentRoute} onNavigate={navigate} />
+      <AppSidebar currentRoute={currentRoute as any} onNavigate={navigate} />
       <SidebarInset>
         <header className="flex h-14 shrink-0 items-center gap-2 border-b bg-background px-4">
           <SidebarTrigger className="-ml-1" />

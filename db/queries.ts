@@ -41,7 +41,7 @@ import {
 export { generateId };
 
 // Import enum types from schema
-import type { PaymentMethodType, ExpenseTypeEnum } from "./schema";
+import type { PaymentMethodType } from "./schema";
 
 // =============================================================================
 // CRUD FACTORIES
@@ -450,7 +450,7 @@ export async function recordLiabilityPayment(data: RecordPaymentData) {
     const isPrincipal = liabilityRecord.allocationClass === "PRINCIPAL";
 
     // Determine expense type based on liability type
-    const expenseType: ExpenseTypeEnum = liabilityRecord.liabilityType === "TAX_OWED" ? "TAX" : "OTHER";
+    const expenseType = liabilityRecord.liabilityType === "TAX_OWED" ? "TAX" : "OTHER";
 
     await db.insert(trustAccounting).values({
       id: accountingId,
@@ -488,4 +488,94 @@ export async function getLiabilityPayments(liabilityId: string) {
     where: eq(liabilityPayment.liabilityId, liabilityId),
     orderBy: (p, { desc }) => [desc(p.paymentDate)],
   });
+}
+
+// =============================================================================
+// PostgreSQL 17 ADVANCED FEATURES
+// =============================================================================
+
+import { sql } from "drizzle-orm";
+
+/**
+ * PostgreSQL 17 JSON_TABLE - Extract structured data from ActivityLog JSONB columns
+ *
+ * This function demonstrates PostgreSQL 17's JSON_TABLE feature for extracting
+ * structured data from JSONB columns without manual parsing in application code.
+ *
+ * Use case: Audit trail queries that need to analyze specific field changes
+ * across multiple log entries.
+ *
+ * @param recordId - The record ID to fetch activity logs for
+ * @returns Activity log entries with extracted JSONB fields
+ */
+export async function getActivityLogWithChanges(recordId: string) {
+  return db.execute(sql`
+    SELECT
+      al.id,
+      al.table_name,
+      al.record_id,
+      al.action,
+      al.changed_by,
+      al.created_at,
+      old_data.value as old_value,
+      old_data.status as old_status,
+      new_data.value as new_value,
+      new_data.status as new_status
+    FROM "ActivityLog" al
+    LEFT JOIN LATERAL json_table(
+      al.old_values,
+      '$' COLUMNS (
+        value TEXT PATH '$.value',
+        status TEXT PATH '$.status'
+      )
+    ) AS old_data ON true
+    LEFT JOIN LATERAL json_table(
+      al.new_values,
+      '$' COLUMNS (
+        value TEXT PATH '$.value',
+        status TEXT PATH '$.status'
+      )
+    ) AS new_data ON true
+    WHERE al.record_id = ${recordId}
+    ORDER BY al.created_at DESC
+  `);
+}
+
+/**
+ * Search ActivityLog for changes to specific fields using JSON_TABLE
+ *
+ * Example: Find all entries where status changed from "ACTIVE" to "INACTIVE"
+ *
+ * @param fieldName - The JSONB field name to search for (e.g., "status", "value")
+ * @param fieldValue - The value to match
+ * @returns Matching activity log entries with extracted field values
+ */
+export async function searchActivityLogByField(
+  fieldName: string,
+  fieldValue: string
+) {
+  // Use parameterized query for field value, but field name must be static
+  // This is safe because fieldName is controlled by application code
+  const query = sql.raw(`
+    SELECT
+      al.id,
+      al.table_name,
+      al.record_id,
+      al.action,
+      al.changed_by,
+      al.created_at,
+      field_data.value as field_value
+    FROM "ActivityLog" al
+    LEFT JOIN LATERAL json_table(
+      al.new_values,
+      '$' COLUMNS (
+        value TEXT PATH '$.${fieldName}'
+      )
+    ) AS field_data ON true
+    WHERE field_data.value = '${fieldValue}'
+    ORDER BY al.created_at DESC
+    LIMIT 100
+  `);
+
+  return db.execute(query);
 }

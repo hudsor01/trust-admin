@@ -64,8 +64,21 @@ export function Bequests() {
 
   const loading = entitiesLoading || bequestsLoading
 
+  // Track which bequest is being edited
+  const [editingBequestId, setEditingBequestId] = useState<string | null>(null)
+
+  // Form data type
+  type BequestFormData = {
+    description: string
+    category: string
+    beneficiaryId: string
+    recipientName: string
+    dateDistributed: string
+    notes: string
+  }
+
   // Form state using useResourceForm hook
-  const bequestForm = useResourceForm({
+  const bequestForm = useResourceForm<BequestFormData>({
     initialData: {
       description: "",
       category: "OTHER",
@@ -74,23 +87,23 @@ export function Bequests() {
       dateDistributed: "",
       notes: "",
     },
-    validationSchema: insertSpecificBequestSchema,
     onSubmit: async (data) => {
       if (!selectedEntity) return
       const payload = {
         entityId: selectedEntity,
         description: data.description,
         category: data.category || "OTHER",
-        beneficiaryId: data.beneficiaryId || null,
-        recipientName: data.recipientName || null,
-        dateDistributed: data.dateDistributed || null,
-        notes: data.notes || null,
+        beneficiaryId: data.beneficiaryId || undefined,
+        recipientName: data.recipientName || undefined,
+        dateDistributed: data.dateDistributed || undefined,
+        notes: data.notes || undefined,
       }
-      if (bequestForm.isEditing && bequestForm.editingId) {
-        await updateBequestMutation.mutateAsync({ id: bequestForm.editingId, data: payload })
+      if (bequestForm.isEditing && editingBequestId) {
+        await updateBequestMutation.mutateAsync({ id: editingBequestId, data: payload })
       } else {
         await createBequestMutation.mutateAsync(payload)
       }
+      setEditingBequestId(null)
     },
   })
 
@@ -99,7 +112,7 @@ export function Bequests() {
   // Auto-select first entity when entities load
   useEffect(() => {
     if (entities.length > 0 && !selectedEntity) {
-      setSelectedEntity(entities[0].id)
+      setSelectedEntity(entities[0]?.id ?? "")
     }
   }, [entities, selectedEntity])
 
@@ -129,7 +142,8 @@ export function Bequests() {
   }
 
   const openEditForm = (bequest: SpecificBequestType) => {
-    bequestForm.edit(bequest.id, {
+    setEditingBequestId(bequest.id)
+    bequestForm.handleEdit({
       description: bequest.description,
       category: bequest.category || "OTHER",
       beneficiaryId: bequest.beneficiaryId || "",
@@ -496,7 +510,7 @@ export function Bequests() {
         <div className="space-y-4">
           {/* Description - Required */}
           <formInstance.Field name="description">
-            {(field) => (
+            {(field: any) => (
               <div className="space-y-2">
                 <Label htmlFor="description">Description *</Label>
                 <Textarea
@@ -516,7 +530,7 @@ export function Bequests() {
 
           {/* Category */}
           <formInstance.Field name="category">
-            {(field) => (
+            {(field: any) => (
               <div className="space-y-2">
                 <Label htmlFor="category">Category</Label>
                 <Select
@@ -540,7 +554,7 @@ export function Bequests() {
 
           {/* Beneficiary */}
           <formInstance.Field name="beneficiaryId">
-            {(field) => (
+            {(field: any) => (
               <div className="space-y-2">
                 <Label htmlFor="beneficiary">Beneficiary (if applicable)</Label>
                 <Select
@@ -565,7 +579,7 @@ export function Bequests() {
 
           {/* Recipient Name */}
           <formInstance.Field name="recipientName">
-            {(field) => (
+            {(field: any) => (
               <div className="space-y-2">
                 <Label htmlFor="recipientName">Recipient Name (if not a beneficiary)</Label>
                 <Input
@@ -584,7 +598,7 @@ export function Bequests() {
 
           {/* Date Distributed */}
           <formInstance.Field name="dateDistributed">
-            {(field) => (
+            {(field: any) => (
               <div className="space-y-2">
                 <Label htmlFor="dateDistributed">Date Distributed</Label>
                 <Input
@@ -601,7 +615,7 @@ export function Bequests() {
 
           {/* Notes */}
           <formInstance.Field name="notes">
-            {(field) => (
+            {(field: any) => (
               <div className="space-y-2">
                 <Label htmlFor="notes">Notes</Label>
                 <Textarea

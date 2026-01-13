@@ -210,6 +210,14 @@ export function Properties() {
   const { data: homesteads = [], isLoading: homesteadsLoading } = useHomesteads(selectedEntity || undefined)
   const createHomesteadMutation = useCreateHomestead()
   const updateHomesteadMutation = useUpdateHomestead()
+
+  // Wrapper functions to match inline cell API
+  const updateHomestead = async (id: string, data: Partial<Homestead>) => {
+    return await updateHomesteadMutation.mutateAsync({ id, data })
+  }
+  const updateRental = async (id: string, data: Partial<RentalProperty>) => {
+    return await updateRentalMutation.mutateAsync({ id, data })
+  }
   const deleteHomesteadMutation = useDeleteHomestead()
 
   // Track editing ID for Homestead
@@ -252,7 +260,7 @@ export function Properties() {
         dodValue: data.dodValue || null,
         dodValueDate: data.dodValueDate || null,
         dodValueType: data.dodValueType || null,
-        dodAffidavitFiled: data.dodAffidavitFiled,
+        dodAffidavitFiled: data.dodAffidavitFiled || false,
         dodAffidavitDate: data.dodAffidavitDate || null,
         clerkFileNo: data.clerkFileNo || null,
         status: data.status,
@@ -261,9 +269,9 @@ export function Properties() {
       }
 
       if (isEditingHomestead && editingHomesteadId) {
-        await updateHomesteadMutation.mutateAsync({ id: editingHomesteadId, data: payload })
+        await updateHomesteadMutation.mutateAsync({ id: editingHomesteadId, data: payload as any })
       } else {
-        await createHomesteadMutation.mutateAsync(payload)
+        await createHomesteadMutation.mutateAsync(payload as any)
       }
     },
   })
@@ -290,7 +298,7 @@ export function Properties() {
       dodValue: h.dodValue || "",
       dodValueDate: toDateInput(h.dodValueDate) || "",
       dodValueType: h.dodValueType || "",
-      dodAffidavitFiled: h.dodAffidavitFiled,
+      dodAffidavitFiled: h.dodAffidavitFiled || false,
       dodAffidavitDate: toDateInput(h.dodAffidavitDate) || "",
       clerkFileNo: h.clerkFileNo || "",
       status: h.status,
@@ -350,7 +358,7 @@ export function Properties() {
         dodValue: data.dodValue || null,
         dodValueDate: data.dodValueDate || null,
         dodValueType: data.dodValueType || null,
-        dodAffidavitFiled: data.dodAffidavitFiled,
+        dodAffidavitFiled: data.dodAffidavitFiled || false,
         dodAffidavitDate: data.dodAffidavitDate || null,
         clerkFileNo: data.clerkFileNo || null,
         status: data.status,
@@ -359,9 +367,9 @@ export function Properties() {
       }
 
       if (isEditingRental && editingRentalId) {
-        await updateRentalMutation.mutateAsync({ id: editingRentalId, data: payload })
+        await updateRentalMutation.mutateAsync({ id: editingRentalId, data: payload as any })
       } else {
-        await createRentalMutation.mutateAsync(payload)
+        await createRentalMutation.mutateAsync(payload as any)
       }
     },
   })
@@ -393,7 +401,7 @@ export function Properties() {
       dodValue: r.dodValue || "",
       dodValueDate: toDateInput(r.dodValueDate) || "",
       dodValueType: r.dodValueType || "",
-      dodAffidavitFiled: r.dodAffidavitFiled,
+      dodAffidavitFiled: r.dodAffidavitFiled || false,
       dodAffidavitDate: toDateInput(r.dodAffidavitDate) || "",
       clerkFileNo: r.clerkFileNo || "",
       status: r.status,
@@ -438,7 +446,7 @@ export function Properties() {
       render: (item) => (
         <EditableTextCell
           value={item.name}
-          onSave={async (v) => updateRental(item.id, { name: v })}
+          onSave={async (v: any) => updateRental(item.id, { name: v })}
         />
       ),
     },
@@ -461,7 +469,7 @@ export function Properties() {
       render: (item) => (
         <EditableNumberCell
           value={item.units}
-          onSave={async (v) => updateRental(item.id, { units: v })}
+          onSave={async (v: any) => updateRental(item.id, { units: v })}
         />
       ),
     },
@@ -472,7 +480,7 @@ export function Properties() {
       render: (item) => (
         <EditableCurrencyCell
           value={item.monthlyRent}
-          onSave={async (v) => updateRental(item.id, { monthlyRent: v })}
+          onSave={async (v: any) => updateRental(item.id, { monthlyRent: v })}
         />
       ),
     },
@@ -483,7 +491,7 @@ export function Properties() {
       render: (item) => (
         <EditableCurrencyCell
           value={item.dodValue}
-          onSave={async (v) => updateRental(item.id, { dodValue: v })}
+          onSave={async (v: any) => updateRental(item.id, { dodValue: v })}
         />
       ),
     },
@@ -494,7 +502,7 @@ export function Properties() {
         <EditableSelectCell
           value={item.rentalStatus}
           options={RENTAL_STATUS}
-          onSave={async (v) => updateRental(item.id, { rentalStatus: v })}
+          onSave={async (v: any) => updateRental(item.id, { rentalStatus: v })}
           variants={STATUS_VARIANTS}
         />
       ),
@@ -506,7 +514,7 @@ export function Properties() {
         <EditableSelectCell
           value={item.transferStatus}
           options={TRANSFER_STATUS}
-          onSave={async (v) => updateRental(item.id, { transferStatus: v })}
+          onSave={async (v: any) => updateRental(item.id, { transferStatus: v })}
           variants={STATUS_VARIANTS}
         />
       ),
@@ -737,7 +745,7 @@ export function Properties() {
               <h4 className="mb-3 text-sm font-medium">Address</h4>
               <div className="space-y-3">
                 <homesteadFormInstance.Field name="streetAddress">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label htmlFor="h-street">Street Address</Label>
                       <Input
@@ -754,7 +762,7 @@ export function Properties() {
                 </homesteadFormInstance.Field>
                 <div className="grid grid-cols-4 gap-3">
                   <homesteadFormInstance.Field name="city">
-                    {(field) => (
+                    {(field: any) => (
                       <div className="space-y-2">
                         <Label htmlFor="h-city">City</Label>
                         <Input
@@ -770,7 +778,7 @@ export function Properties() {
                     )}
                   </homesteadFormInstance.Field>
                   <homesteadFormInstance.Field name="state">
-                    {(field) => (
+                    {(field: any) => (
                       <div className="space-y-2">
                         <Label htmlFor="h-state">State</Label>
                         <Input
@@ -786,7 +794,7 @@ export function Properties() {
                     )}
                   </homesteadFormInstance.Field>
                   <homesteadFormInstance.Field name="zip">
-                    {(field) => (
+                    {(field: any) => (
                       <div className="space-y-2">
                         <Label htmlFor="h-zip">ZIP</Label>
                         <Input
@@ -802,7 +810,7 @@ export function Properties() {
                     )}
                   </homesteadFormInstance.Field>
                   <homesteadFormInstance.Field name="county">
-                    {(field) => (
+                    {(field: any) => (
                       <div className="space-y-2">
                         <Label htmlFor="h-county">County</Label>
                         <Input
@@ -825,7 +833,7 @@ export function Properties() {
               <h4 className="mb-3 text-sm font-medium">Property Details</h4>
               <div className="grid grid-cols-3 gap-3">
                 <homesteadFormInstance.Field name="propertyType">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label>Property Type</Label>
                       <Select
@@ -850,7 +858,7 @@ export function Properties() {
                   )}
                 </homesteadFormInstance.Field>
                 <homesteadFormInstance.Field name="yearBuilt">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label htmlFor="h-year">Year Built</Label>
                       <Input
@@ -867,7 +875,7 @@ export function Properties() {
                   )}
                 </homesteadFormInstance.Field>
                 <homesteadFormInstance.Field name="squareFeet">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label htmlFor="h-sqft">Square Feet</Label>
                       <Input
@@ -886,7 +894,7 @@ export function Properties() {
               </div>
               <div className="mt-3 grid grid-cols-4 gap-3">
                 <homesteadFormInstance.Field name="bedrooms">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label htmlFor="h-beds">Bedrooms</Label>
                       <Input
@@ -903,7 +911,7 @@ export function Properties() {
                   )}
                 </homesteadFormInstance.Field>
                 <homesteadFormInstance.Field name="bathrooms">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label htmlFor="h-baths">Bathrooms</Label>
                       <Input
@@ -919,7 +927,7 @@ export function Properties() {
                   )}
                 </homesteadFormInstance.Field>
                 <homesteadFormInstance.Field name="lotSizeAcres">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label htmlFor="h-lot">Lot Size (acres)</Label>
                       <Input
@@ -935,7 +943,7 @@ export function Properties() {
                   )}
                 </homesteadFormInstance.Field>
                 <homesteadFormInstance.Field name="parcelNumber">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label htmlFor="h-parcel">Parcel Number</Label>
                       <Input
@@ -957,7 +965,7 @@ export function Properties() {
               <h4 className="mb-3 text-sm font-medium">Acquisition</h4>
               <div className="grid grid-cols-2 gap-3">
                 <homesteadFormInstance.Field name="acquisitionDate">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label htmlFor="h-acq-date">Acquisition Date</Label>
                       <Input
@@ -974,7 +982,7 @@ export function Properties() {
                   )}
                 </homesteadFormInstance.Field>
                 <homesteadFormInstance.Field name="acquisitionCost">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label htmlFor="h-acq-cost">Acquisition Cost</Label>
                       <Input
@@ -997,7 +1005,7 @@ export function Properties() {
               <h4 className="mb-3 text-sm font-medium">Date of Death Valuation</h4>
               <div className="grid grid-cols-3 gap-3">
                 <homesteadFormInstance.Field name="dodValue">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label htmlFor="h-dod-val">DOD Value</Label>
                       <Input
@@ -1014,7 +1022,7 @@ export function Properties() {
                   )}
                 </homesteadFormInstance.Field>
                 <homesteadFormInstance.Field name="dodValueDate">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label htmlFor="h-dod-date">DOD Value Date</Label>
                       <Input
@@ -1031,7 +1039,7 @@ export function Properties() {
                   )}
                 </homesteadFormInstance.Field>
                 <homesteadFormInstance.Field name="dodValueType">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label>Valuation Type</Label>
                       <Select
@@ -1062,7 +1070,7 @@ export function Properties() {
               <h4 className="mb-3 text-sm font-medium">DOD Affidavit (Texas)</h4>
               <div className="grid grid-cols-3 items-end gap-3">
                 <homesteadFormInstance.Field name="dodAffidavitFiled">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="flex items-center gap-2">
                       <Checkbox
                         id="h-affidavit"
@@ -1073,11 +1081,11 @@ export function Properties() {
                     </div>
                   )}
                 </homesteadFormInstance.Field>
-                <homesteadFormInstance.Subscribe selector={(state) => state.values.dodAffidavitFiled}>
-                  {(dodAffidavitFiled) => (
+                <homesteadFormInstance.Subscribe selector={(state: any) => state.values.dodAffidavitFiled}>
+                  {(dodAffidavitFiled: any) => (
                     <>
                       <homesteadFormInstance.Field name="dodAffidavitDate">
-                        {(field) => (
+                        {(field: any) => (
                           <div className="space-y-2">
                             <Label htmlFor="h-filing-date">Filing Date</Label>
                             <Input
@@ -1095,7 +1103,7 @@ export function Properties() {
                         )}
                       </homesteadFormInstance.Field>
                       <homesteadFormInstance.Field name="clerkFileNo">
-                        {(field) => (
+                        {(field: any) => (
                           <div className="space-y-2">
                             <Label htmlFor="h-clerk">Clerk File Number</Label>
                             <Input
@@ -1121,7 +1129,7 @@ export function Properties() {
               <h4 className="mb-3 text-sm font-medium">Status</h4>
               <div className="grid grid-cols-2 gap-3">
                 <homesteadFormInstance.Field name="status">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label>Asset Status</Label>
                       <Select
@@ -1146,7 +1154,7 @@ export function Properties() {
                   )}
                 </homesteadFormInstance.Field>
                 <homesteadFormInstance.Field name="transferStatus">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label>Transfer Status</Label>
                       <Select
@@ -1174,7 +1182,7 @@ export function Properties() {
             </div>
 
             <homesteadFormInstance.Field name="notes">
-              {(field) => (
+              {(field: any) => (
                 <div className="space-y-2">
                   <Label htmlFor="h-notes">Notes</Label>
                   <Textarea
@@ -1207,7 +1215,7 @@ export function Properties() {
               <h4 className="mb-3 text-sm font-medium">Property Info</h4>
               <div className="space-y-3">
                 <rentalFormInstance.Field name="name">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label htmlFor="r-name">Property Name</Label>
                       <Input
@@ -1224,7 +1232,7 @@ export function Properties() {
                   )}
                 </rentalFormInstance.Field>
                 <rentalFormInstance.Field name="streetAddress">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label htmlFor="r-street">Street Address</Label>
                       <Input
@@ -1241,7 +1249,7 @@ export function Properties() {
                 </rentalFormInstance.Field>
                 <div className="grid grid-cols-4 gap-3">
                   <rentalFormInstance.Field name="city">
-                    {(field) => (
+                    {(field: any) => (
                       <div className="space-y-2">
                         <Label htmlFor="r-city">City</Label>
                         <Input
@@ -1257,7 +1265,7 @@ export function Properties() {
                     )}
                   </rentalFormInstance.Field>
                   <rentalFormInstance.Field name="state">
-                    {(field) => (
+                    {(field: any) => (
                       <div className="space-y-2">
                         <Label htmlFor="r-state">State</Label>
                         <Input
@@ -1273,7 +1281,7 @@ export function Properties() {
                     )}
                   </rentalFormInstance.Field>
                   <rentalFormInstance.Field name="zip">
-                    {(field) => (
+                    {(field: any) => (
                       <div className="space-y-2">
                         <Label htmlFor="r-zip">ZIP</Label>
                         <Input
@@ -1289,7 +1297,7 @@ export function Properties() {
                     )}
                   </rentalFormInstance.Field>
                   <rentalFormInstance.Field name="county">
-                    {(field) => (
+                    {(field: any) => (
                       <div className="space-y-2">
                         <Label htmlFor="r-county">County</Label>
                         <Input
@@ -1313,7 +1321,7 @@ export function Properties() {
               <h4 className="mb-3 text-sm font-medium">Property Details</h4>
               <div className="grid grid-cols-4 gap-3">
                 <rentalFormInstance.Field name="propertyType">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label>Property Type</Label>
                       <Select
@@ -1338,7 +1346,7 @@ export function Properties() {
                   )}
                 </rentalFormInstance.Field>
                 <rentalFormInstance.Field name="units">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label htmlFor="r-units">Units</Label>
                       <Input
@@ -1355,7 +1363,7 @@ export function Properties() {
                   )}
                 </rentalFormInstance.Field>
                 <rentalFormInstance.Field name="yearBuilt">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label htmlFor="r-year">Year Built</Label>
                       <Input
@@ -1372,7 +1380,7 @@ export function Properties() {
                   )}
                 </rentalFormInstance.Field>
                 <rentalFormInstance.Field name="squareFeet">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label htmlFor="r-sqft">Square Feet</Label>
                       <Input
@@ -1396,7 +1404,7 @@ export function Properties() {
               <h4 className="mb-3 text-sm font-medium">Rental Info</h4>
               <div className="grid grid-cols-4 gap-3">
                 <rentalFormInstance.Field name="rentalStatus">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label>Rental Status</Label>
                       <Select
@@ -1421,7 +1429,7 @@ export function Properties() {
                   )}
                 </rentalFormInstance.Field>
                 <rentalFormInstance.Field name="monthlyRent">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label htmlFor="r-rent">Monthly Rent</Label>
                       <Input
@@ -1438,7 +1446,7 @@ export function Properties() {
                   )}
                 </rentalFormInstance.Field>
                 <rentalFormInstance.Field name="leaseStart">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label htmlFor="r-lease-start">Lease Start</Label>
                       <Input
@@ -1455,7 +1463,7 @@ export function Properties() {
                   )}
                 </rentalFormInstance.Field>
                 <rentalFormInstance.Field name="leaseEnd">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label htmlFor="r-lease-end">Lease End</Label>
                       <Input
@@ -1474,7 +1482,7 @@ export function Properties() {
               </div>
               <div className="mt-3">
                 <rentalFormInstance.Field name="propertyManager">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label htmlFor="r-manager">Property Manager</Label>
                       <Input
@@ -1497,7 +1505,7 @@ export function Properties() {
               <h4 className="mb-3 text-sm font-medium">Financials</h4>
               <div className="grid grid-cols-3 gap-3">
                 <rentalFormInstance.Field name="acquisitionDate">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label htmlFor="r-acq-date">Acquisition Date</Label>
                       <Input
@@ -1514,7 +1522,7 @@ export function Properties() {
                   )}
                 </rentalFormInstance.Field>
                 <rentalFormInstance.Field name="acquisitionCost">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label htmlFor="r-acq-cost">Acquisition Cost</Label>
                       <Input
@@ -1531,7 +1539,7 @@ export function Properties() {
                   )}
                 </rentalFormInstance.Field>
                 <rentalFormInstance.Field name="mortgageBalance">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label htmlFor="r-mortgage">Mortgage Balance</Label>
                       <Input
@@ -1555,7 +1563,7 @@ export function Properties() {
               <h4 className="mb-3 text-sm font-medium">Date of Death Valuation</h4>
               <div className="grid grid-cols-3 gap-3">
                 <rentalFormInstance.Field name="dodValue">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label htmlFor="r-dod-val">DOD Value</Label>
                       <Input
@@ -1572,7 +1580,7 @@ export function Properties() {
                   )}
                 </rentalFormInstance.Field>
                 <rentalFormInstance.Field name="dodValueDate">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label htmlFor="r-dod-date">DOD Value Date</Label>
                       <Input
@@ -1589,7 +1597,7 @@ export function Properties() {
                   )}
                 </rentalFormInstance.Field>
                 <rentalFormInstance.Field name="dodValueType">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label>Valuation Type</Label>
                       <Select
@@ -1621,7 +1629,7 @@ export function Properties() {
               <h4 className="mb-3 text-sm font-medium">DOD Affidavit (Texas)</h4>
               <div className="grid grid-cols-3 items-end gap-3">
                 <rentalFormInstance.Field name="dodAffidavitFiled">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="flex items-center gap-2">
                       <Checkbox
                         id="r-affidavit"
@@ -1632,11 +1640,11 @@ export function Properties() {
                     </div>
                   )}
                 </rentalFormInstance.Field>
-                <rentalFormInstance.Subscribe selector={(state) => state.values.dodAffidavitFiled}>
-                  {(dodAffidavitFiled) => (
+                <rentalFormInstance.Subscribe selector={(state: any) => state.values.dodAffidavitFiled}>
+                  {(dodAffidavitFiled: any) => (
                     <>
                       <rentalFormInstance.Field name="dodAffidavitDate">
-                        {(field) => (
+                        {(field: any) => (
                           <div className="space-y-2">
                             <Label htmlFor="r-filing-date">Filing Date</Label>
                             <Input
@@ -1654,7 +1662,7 @@ export function Properties() {
                         )}
                       </rentalFormInstance.Field>
                       <rentalFormInstance.Field name="clerkFileNo">
-                        {(field) => (
+                        {(field: any) => (
                           <div className="space-y-2">
                             <Label htmlFor="r-clerk">Clerk File Number</Label>
                             <Input
@@ -1681,7 +1689,7 @@ export function Properties() {
               <h4 className="mb-3 text-sm font-medium">Status</h4>
               <div className="grid grid-cols-2 gap-3">
                 <rentalFormInstance.Field name="status">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label>Asset Status</Label>
                       <Select
@@ -1706,7 +1714,7 @@ export function Properties() {
                   )}
                 </rentalFormInstance.Field>
                 <rentalFormInstance.Field name="transferStatus">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label>Transfer Status</Label>
                       <Select
@@ -1735,7 +1743,7 @@ export function Properties() {
 
             {/* Notes */}
             <rentalFormInstance.Field name="notes">
-              {(field) => (
+              {(field: any) => (
                 <div className="space-y-2">
                   <Label htmlFor="r-notes">Notes</Label>
                   <Textarea
