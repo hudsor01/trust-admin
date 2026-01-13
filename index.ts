@@ -151,6 +151,11 @@ const PORT = parseInt(
 )
 const log = logger.api
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
+
+// Static file serving configuration
+const IS_PRODUCTION = process.env.NODE_ENV === "production"
+const STATIC_DIR = IS_PRODUCTION ? "./dist" : "./src"
+const INDEX_HTML = IS_PRODUCTION ? "./dist/index.html" : "./src/index.html"
 const EMAIL_FROM = process.env.EMAIL_FROM || "Trust Admin <onboarding@resend.dev>"
 
 // =============================================================================
@@ -1162,8 +1167,22 @@ Bun.serve({
         throw ApiError.notFound("Endpoint")
       }
 
-      // For any other route, serve the homepage (SPA fallback)
-      return new Response(Bun.file("./src/index.html"), {
+      // =============================================================================
+      // STATIC FILE SERVING (Production) / SPA FALLBACK
+      // =============================================================================
+
+      // In production, serve static assets from dist/
+      if (IS_PRODUCTION && path.startsWith("/assets/")) {
+        const filePath = `${STATIC_DIR}${path}`
+        const file = Bun.file(filePath)
+
+        if (await file.exists()) {
+          return new Response(file)
+        }
+      }
+
+      // For all other routes, serve the SPA entry point (index.html)
+      return new Response(Bun.file(INDEX_HTML), {
         headers: { "Content-Type": "text/html" },
       })
     } catch (error) {
