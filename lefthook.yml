@@ -5,20 +5,29 @@ pre-commit:
       glob: "*.{js,ts,jsx,tsx}"
       run: bun run lint {staged_files}
       stage_fixed: true
+      fail_text: "Lint check failed. Run 'bun run lint:fix' to auto-fix."
 
     typecheck:
       glob: "*.{ts,tsx}"
       run: bun run typecheck
+      fail_text: "TypeScript errors found. Fix type errors before committing."
 
     test:
       glob: "*.{ts,tsx}"
       run: bun run test:unit
+      fail_text: "Unit tests failed. Fix failing tests before committing."
 
 pre-push:
-  parallel: true
+  parallel: false
   commands:
+    lint:
+      run: bun run lint
+      fail_text: "Lint check failed. Run 'bun run lint:fix' to auto-fix."
+
     typecheck:
       run: bun run typecheck
+      fail_text: "TypeScript errors found. Fix type errors before pushing."
 
     test:
       run: bun run test:unit
+      fail_text: "Unit tests failed. Fix failing tests before pushing."
