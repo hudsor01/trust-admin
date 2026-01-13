@@ -4,10 +4,16 @@ import * as relations from "./relations"
 import * as schema from "./schema"
 
 // Strip ?schema=public suffix if present in DATABASE_URL
-const databaseUrl = process.env.DATABASE_URL!.replace(/\?schema=\w+$/, "")
+const databaseUrl = process.env.DATABASE_URL
+if (!databaseUrl) {
+  throw new Error(
+    "DATABASE_URL environment variable is not set. Please set it in your .env file or environment.",
+  )
+}
+const cleanDatabaseUrl = databaseUrl.replace(/\?schema=\w+$/, "")
 
 // postgres-js optimized for Neon serverless PostgreSQL
-const client = postgres(databaseUrl, {
+const client = postgres(cleanDatabaseUrl, {
   max: 50, // Neon supports 10K via pooler - increased from 10
   idle_timeout: 10, // Faster cleanup for serverless (was 20)
   connect_timeout: 5, // Faster failover (was 10)
