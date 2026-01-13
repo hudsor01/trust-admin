@@ -1,31 +1,30 @@
-import { useState, useEffect } from "react"
-import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar"
-import { Separator } from "@/components/ui/separator"
+import { Download, Loader2, ShieldAlert } from "lucide-react"
+import { useEffect, useState } from "react"
 import { AppSidebar } from "@/components/app-sidebar"
 import { Button } from "@/components/ui/button"
+import { Separator } from "@/components/ui/separator"
+import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { signOut, useSession } from "@/lib/auth-client"
 import { exportTablesInContainer } from "@/lib/csv"
-import { Loader2, ShieldAlert, Download } from "lucide-react"
-
-// Page imports
-import { Dashboard } from "./pages/Dashboard"
-import { PortalLayout } from "./pages/portal"
-import { Beneficiaries } from "./pages/Beneficiaries"
-import { Contacts } from "./pages/Contacts"
-import { Trustees } from "./pages/Trustees"
 import { Accounting } from "./pages/Accounting"
-import { Distributions } from "./pages/Distributions"
-import { Bequests } from "./pages/Bequests"
-import { Properties } from "./pages/Properties"
 import { Accounts } from "./pages/Accounts"
-import { Vehicles } from "./pages/Vehicles"
-import { Liabilities } from "./pages/Liabilities"
-import { Settings } from "./pages/Settings"
-import { HemsQueue } from "./pages/HemsQueue"
-import { DistributionWizard } from "./pages/DistributionWizard"
 import { ActivityLog } from "./pages/ActivityLog"
 import { AdminLogin } from "./pages/AdminLogin"
+import { Beneficiaries } from "./pages/Beneficiaries"
+import { Bequests } from "./pages/Bequests"
+import { Contacts } from "./pages/Contacts"
+// Page imports
+import { Dashboard } from "./pages/Dashboard"
+import { Distributions } from "./pages/Distributions"
+import { DistributionWizard } from "./pages/DistributionWizard"
+import { HemsQueue } from "./pages/HemsQueue"
+import { Liabilities } from "./pages/Liabilities"
+import { Properties } from "./pages/Properties"
 import { PublicDataCollectionForm } from "./pages/PublicDataCollectionForm"
+import { PortalLayout } from "./pages/portal"
+import { Settings } from "./pages/Settings"
+import { Trustees } from "./pages/Trustees"
+import { Vehicles } from "./pages/Vehicles"
 
 type SessionUser = {
   id: string
@@ -208,7 +207,7 @@ export function App() {
 
   return (
     <SidebarProvider>
-      <AppSidebar currentRoute={currentRoute as any} onNavigate={navigate} />
+      <AppSidebar currentRoute={currentRoute} onNavigate={navigate} />
       <SidebarInset>
         <header className="flex h-14 shrink-0 items-center gap-2 border-b bg-background px-4">
           <SidebarTrigger className="-ml-1" />
@@ -234,9 +233,7 @@ export function App() {
             </Button>
           </div>
         </header>
-        <main className="flex-1 overflow-auto p-6">
-          {renderPage()}
-        </main>
+        <main className="flex-1 overflow-auto p-6">{renderPage()}</main>
       </SidebarInset>
     </SidebarProvider>
   )

@@ -22,18 +22,20 @@
  * const handleReset = () => setForm(vehicleDefaults());
  */
 export function createFormDefaults<T extends Record<string, unknown>>(
-  defaults: { [K in keyof T]: T[K] | (() => T[K]) }
+  defaults: { [K in keyof T]: T[K] | (() => T[K]) },
 ): () => T {
   return () => {
-    const result = {} as T;
+    const result = {} as T
     for (const key in defaults) {
-      const value = defaults[key];
+      const value = defaults[key]
       // Type assertion needed here because we're dynamically determining if value is a function
       // The generic type system can't track this at compile time, but we know it's safe
-      result[key] = (typeof value === "function" ? (value as () => T[typeof key])() : value) as T[typeof key];
+      result[key] = (
+        typeof value === "function" ? (value as () => T[typeof key])() : value
+      ) as T[typeof key]
     }
-    return result;
-  };
+    return result
+  }
 }
 
 /**
@@ -52,15 +54,15 @@ export function createFormDefaults<T extends Record<string, unknown>>(
  * };
  */
 export function createEntityMapper<E, F extends Record<string, unknown>>(
-  mappers: { [K in keyof F]: (entity: E) => F[K] }
+  mappers: { [K in keyof F]: (entity: E) => F[K] },
 ): (entity: E) => F {
   return (entity: E) => {
-    const result = {} as F;
+    const result = {} as F
     for (const key in mappers) {
-      result[key] = mappers[key](entity);
+      result[key] = mappers[key](entity)
     }
-    return result;
-  };
+    return result
+  }
 }
 
 /**
@@ -68,25 +70,25 @@ export function createEntityMapper<E, F extends Record<string, unknown>>(
  * Handles ISO dates by extracting just the date portion
  */
 export function toDateInput(date: string | null | undefined): string | null {
-  if (!date) return null;
-  return date.split("T")[0] ?? null;
+  if (!date) return null
+  return date.split("T")[0] ?? null
 }
 
 /**
  * Utility to parse number strings, returning null for empty
  */
 export function toNumberOrNull(value: string | null | undefined): number | null {
-  if (!value || value.trim() === "") return null;
-  const num = parseFloat(value);
-  return isNaN(num) ? null : num;
+  if (!value || value.trim() === "") return null
+  const num = parseFloat(value)
+  return Number.isNaN(num) ? null : num
 }
 
 /**
  * Utility to convert empty strings to null
  */
 export function emptyToNull(value: string | null | undefined): string | null {
-  if (!value || value.trim() === "") return null;
-  return value;
+  if (!value || value.trim() === "") return null
+  return value
 }
 
 // =============================================================================
@@ -110,7 +112,7 @@ export const vehicleFormDefaults = createFormDefaults({
   status: "ACTIVE",
   transferStatus: "PENDING",
   notes: "",
-});
+})
 
 export const bankAccountFormDefaults = createFormDefaults({
   institution: "",
@@ -123,7 +125,7 @@ export const bankAccountFormDefaults = createFormDefaults({
   status: "OPEN",
   transferStatus: "PENDING",
   notes: "",
-});
+})
 
 export const investmentAccountFormDefaults = createFormDefaults({
   institution: "",
@@ -136,7 +138,7 @@ export const investmentAccountFormDefaults = createFormDefaults({
   status: "OPEN",
   transferStatus: "PENDING",
   notes: "",
-});
+})
 
 export const homesteadFormDefaults = createFormDefaults({
   streetAddress: "",
@@ -156,7 +158,7 @@ export const homesteadFormDefaults = createFormDefaults({
   status: "ACTIVE",
   transferStatus: "PENDING",
   notes: "",
-});
+})
 
 export const rentalPropertyFormDefaults = createFormDefaults({
   name: "",
@@ -176,7 +178,7 @@ export const rentalPropertyFormDefaults = createFormDefaults({
   status: "ACTIVE",
   transferStatus: "PENDING",
   notes: "",
-});
+})
 
 export const trusteeFormDefaults = createFormDefaults({
   name: "",
@@ -186,7 +188,7 @@ export const trusteeFormDefaults = createFormDefaults({
   coTrusteeId: null as string | null,
   startDate: null as string | null,
   endDate: null as string | null,
-});
+})
 
 export const contactFormDefaults = createFormDefaults({
   name: "",
@@ -199,7 +201,7 @@ export const contactFormDefaults = createFormDefaults({
   state: "",
   zip: "",
   notes: "",
-});
+})
 
 export const beneficiaryFormDefaults = createFormDefaults({
   firstName: "",
@@ -215,4 +217,4 @@ export const beneficiaryFormDefaults = createFormDefaults({
   zip: "",
   sharePercent: "",
   distributionStandard: "HEMS",
-});
+})

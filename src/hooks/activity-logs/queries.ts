@@ -3,8 +3,8 @@
  * Note: Activity logs are immutable audit records (no updates or deletes)
  */
 
-import { useQuery, useMutation, useQueryClient, queryOptions } from '@tanstack/react-query'
-import { toast } from 'sonner'
+import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { toast } from "sonner"
 
 export interface ActivityLog {
   id: string
@@ -20,8 +20,8 @@ export interface ActivityLog {
 
 // Query Keys
 export const activityLogKeys = {
-  all: ['activity-logs'] as const,
-  detail: (id: string) => ['activity-logs', id] as const,
+  all: ["activity-logs"] as const,
+  detail: (id: string) => ["activity-logs", id] as const,
 }
 
 // Query Options
@@ -29,12 +29,14 @@ export const activityLogsQueryOptions = () =>
   queryOptions({
     queryKey: activityLogKeys.all,
     queryFn: async () => {
-      const res = await fetch('/api/activity-logs')
+      const res = await fetch("/api/activity-logs")
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ error: { message: `HTTP ${res.status}` } }))
+        const errorData = await res
+          .json()
+          .catch(() => ({ error: { message: `HTTP ${res.status}` } }))
         throw new Error(errorData.error?.message || `Failed to fetch: ${res.status}`)
       }
-      const data = await res.json() as ActivityLog[]
+      const data = (await res.json()) as ActivityLog[]
       return data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     },
   })
@@ -45,7 +47,9 @@ export const activityLogQueryOptions = (id: string) =>
     queryFn: async () => {
       const res = await fetch(`/api/activity-logs/${id}`)
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ error: { message: `HTTP ${res.status}` } }))
+        const errorData = await res
+          .json()
+          .catch(() => ({ error: { message: `HTTP ${res.status}` } }))
         throw new Error(errorData.error?.message || `Failed to fetch: ${res.status}`)
       }
       return res.json() as Promise<ActivityLog>
@@ -67,19 +71,23 @@ export function useCreateActivityLog() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (activityLog: Partial<ActivityLog>) => {
-      const res = await fetch('/api/activity-logs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/activity-logs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(activityLog),
       })
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ error: { message: `HTTP ${res.status}` } }))
-        if (errorData.error?.code === 'VALIDATION_ERROR' && errorData.error.details?.fields) {
+        const errorData = await res
+          .json()
+          .catch(() => ({ error: { message: `HTTP ${res.status}` } }))
+        if (errorData.error?.code === "VALIDATION_ERROR" && errorData.error.details?.fields) {
           const fields = errorData.error.details.fields as Record<string, string>
-          const fieldErrors = Object.entries(fields).map(([field, message]) => `${field}: ${message}`).join('\n')
+          const fieldErrors = Object.entries(fields)
+            .map(([field, message]) => `${field}: ${message}`)
+            .join("\n")
           toast.error(errorData.error.message, { description: fieldErrors })
         } else {
-          toast.error(errorData.error?.message || 'Failed to create activity log')
+          toast.error(errorData.error?.message || "Failed to create activity log")
         }
         throw new Error(errorData.error?.message || `Failed to create: ${res.status}`)
       }
@@ -87,7 +95,7 @@ export function useCreateActivityLog() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: activityLogKeys.all })
-      toast.success('Activity log created successfully')
+      toast.success("Activity log created successfully")
     },
   })
 }

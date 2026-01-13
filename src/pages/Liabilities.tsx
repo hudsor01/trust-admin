@@ -1,29 +1,19 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Trash2, Plus, Loader2, DollarSign, CreditCard, History } from "lucide-react"
-import { formatCurrency } from "../utils/formatters"
+import { DollarSign, Loader2, Plus } from "lucide-react"
+import { useEffect, useState } from "react"
+import { type ColumnDef, DataTable } from "@/components/data-table"
+import {
+  EditableCurrencyCell,
+  EditableSelectCell,
+  EditableTextCell,
+} from "@/components/editable-cells"
+import { ResourceDialog } from "@/components/resource-dialog"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
 import {
   Select,
   SelectContent,
@@ -31,31 +21,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
-
+import { Switch } from "@/components/ui/switch"
+import { Textarea } from "@/components/ui/textarea"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { useEntities } from "@/hooks/entities/queries"
 import {
-  useLiabilities,
-  useCreateLiability,
-  useUpdateLiability,
-  useDeleteLiability,
   type Liability,
+  useCreateLiability,
+  useDeleteLiability,
+  useLiabilities,
+  useUpdateLiability,
 } from "@/hooks/liabilities/queries"
-import { toDateInput } from "@/lib/form-factory"
-import {
-  EditableTextCell,
-  EditableCurrencyCell,
-  EditableSelectCell,
-} from "@/components/editable-cells"
-import { STATUS_VARIANTS } from "@/lib/constants"
 import { useResourceForm } from "@/hooks/use-resource-form"
-import { ResourceDialog } from "@/components/resource-dialog"
-import { DataTable, type ColumnDef } from "@/components/data-table"
+import { STATUS_VARIANTS } from "@/lib/constants"
+import { toDateInput } from "@/lib/form-factory"
+import { formatCurrency } from "../utils/formatters"
 
 const LIABILITY_TYPES = [
   { value: "MORTGAGE", label: "Mortgage" },
@@ -153,7 +133,9 @@ export function Liabilities() {
   const { data: entities = [], isLoading: entitiesLoading } = useEntities()
   const [selectedEntity, setSelectedEntity] = useState<string | null>(null)
 
-  const { data: liabilities = [], isLoading: liabilitiesLoading } = useLiabilities(selectedEntity || undefined)
+  const { data: liabilities = [], isLoading: liabilitiesLoading } = useLiabilities(
+    selectedEntity || undefined,
+  )
   const createLiabilityMutation = useCreateLiability()
   const updateLiabilityMutation = useUpdateLiability()
 
@@ -168,8 +150,8 @@ export function Liabilities() {
   const {
     isOpen: isLiabilityOpen,
     close: closeLiability,
-    form: liabilityForm,
-    setForm,
+    form: _liabilityForm,
+    setForm: _setForm,
     handleEdit: handleEditLiabilityForm,
     handleAdd: handleAddLiability,
     handleSave: handleSaveLiability,
@@ -185,21 +167,21 @@ export function Liabilities() {
         liabilityType: data.liabilityType,
         creditor: data.creditor,
         description: data.description || null,
-        originalAmount: parseFloat(data.originalAmount) || 0,
-        currentBalance: parseFloat(data.currentBalance) || 0,
+        originalAmount: data.originalAmount || "0",
+        currentBalance: data.currentBalance || "0",
         currentBalanceDate: data.currentBalanceDate || null,
-        interestRate: parseFloat(data.interestRate) || null,
-        monthlyPayment: parseFloat(data.monthlyPayment) || null,
+        interestRate: data.interestRate || null,
+        monthlyPayment: data.monthlyPayment || null,
         dueDate: data.dueDate || null,
-        paymentDueDay: parseInt(data.paymentDueDay) || null,
+        paymentDueDay: parseInt(data.paymentDueDay, 10) || null,
         allocationClass: data.allocationClass as "PRINCIPAL" | "INCOME",
         status: data.status,
         notes: data.notes || null,
       }
       if (isEditingLiability && editingLiabilityId) {
-        await updateLiabilityMutation.mutateAsync({ id: editingLiabilityId, data: payload as any })
+        await updateLiabilityMutation.mutateAsync({ id: editingLiabilityId, data: payload })
       } else {
-        await createLiabilityMutation.mutateAsync(payload as any)
+        await createLiabilityMutation.mutateAsync(payload)
       }
       setEditingLiabilityId(null)
     },
@@ -210,8 +192,8 @@ export function Liabilities() {
   const {
     isOpen: isPaymentOpen,
     close: closePayment,
-    form: paymentFormData,
-    setForm: setPaymentForm,
+    form: _paymentFormData,
+    setForm: _setPaymentForm,
     handleEdit: handleOpenPayment,
     handleSave: handleRecordPayment,
     isSubmitting: isRecordingPayment,
@@ -227,7 +209,13 @@ export function Liabilities() {
         principalPortion: parseFloat(data.principalPortion) || null,
         interestPortion: parseFloat(data.interestPortion) || null,
         escrowPortion: parseFloat(data.escrowPortion) || null,
-        paymentMethod: data.paymentMethod as "CHECK" | "ACH" | "WIRE" | "CREDIT_CARD" | "CASH" | "OTHER",
+        paymentMethod: data.paymentMethod as
+          | "CHECK"
+          | "ACH"
+          | "WIRE"
+          | "CREDIT_CARD"
+          | "CASH"
+          | "OTHER",
         checkNumber: data.checkNumber || null,
         confirmationNumber: data.confirmationNumber || null,
         notes: data.notes || null,
@@ -244,10 +232,13 @@ export function Liabilities() {
         const result = await res.json()
         // Update local state with new balance
         if (result.liability) {
-          await updateLiabilityMutation.mutateAsync({ id: payingLiabilityId, data: {
-            currentBalance: result.liability.currentBalance,
-            currentBalanceDate: data.paymentDate,
-          } })
+          await updateLiabilityMutation.mutateAsync({
+            id: payingLiabilityId,
+            data: {
+              currentBalance: result.liability.currentBalance,
+              currentBalanceDate: data.paymentDate,
+            },
+          })
         }
       } else {
         const error = await res.json()
@@ -268,7 +259,7 @@ export function Liabilities() {
     }
   }, [entities, selectedEntity])
 
-  const handleEditLiability = (l: Liability) => {
+  const _handleEditLiability = (l: Liability) => {
     setEditingLiabilityId(l.id)
     handleEditLiabilityForm({
       liabilityType: l.liabilityType,
@@ -322,13 +313,13 @@ export function Liabilities() {
 
   const totalLiabilities = liabilities.reduce(
     (sum, l) => sum + (parseFloat(l.currentBalance || "0") || 0),
-    0
+    0,
   )
 
-  const activeLiabilities = liabilities.filter(l => l.status === "ACTIVE")
+  const activeLiabilities = liabilities.filter((l) => l.status === "ACTIVE")
   const totalActive = activeLiabilities.reduce(
     (sum, l) => sum + (parseFloat(l.currentBalance || "0") || 0),
-    0
+    0,
   )
 
   const liabilityColumns: ColumnDef<Liability>[] = [
@@ -336,7 +327,9 @@ export function Liabilities() {
       key: "liabilityType",
       header: "Type",
       render: (liability) => {
-        const typeLabel = LIABILITY_TYPES.find((t) => t.value === liability.liabilityType)?.label || liability.liabilityType
+        const typeLabel =
+          LIABILITY_TYPES.find((t) => t.value === liability.liabilityType)?.label ||
+          liability.liabilityType
         return (
           <Badge variant="outline" className="text-xs">
             {typeLabel}
@@ -350,7 +343,7 @@ export function Liabilities() {
       render: (liability) => (
         <EditableTextCell
           value={liability.creditor}
-          onSave={async (v: any) => updateLiability(liability.id, { creditor: v || "" })}
+          onSave={async (v) => updateLiability(liability.id, { creditor: v || "" })}
         />
       ),
     },
@@ -360,7 +353,7 @@ export function Liabilities() {
       render: (liability) => (
         <EditableCurrencyCell
           value={liability.originalAmount}
-          onSave={async (v: any) => updateLiability(liability.id, { originalAmount: v || "0" })}
+          onSave={async (v) => updateLiability(liability.id, { originalAmount: v || "0" })}
         />
       ),
     },
@@ -370,7 +363,7 @@ export function Liabilities() {
       render: (liability) => (
         <EditableCurrencyCell
           value={liability.currentBalance}
-          onSave={async (v: any) => updateLiability(liability.id, { currentBalance: v || "0" })}
+          onSave={async (v) => updateLiability(liability.id, { currentBalance: v || "0" })}
         />
       ),
     },
@@ -380,7 +373,7 @@ export function Liabilities() {
       render: (liability) => (
         <EditableCurrencyCell
           value={liability.monthlyPayment}
-          onSave={async (v: any) => updateLiability(liability.id, { monthlyPayment: v })}
+          onSave={async (v) => updateLiability(liability.id, { monthlyPayment: v })}
         />
       ),
     },
@@ -392,7 +385,7 @@ export function Liabilities() {
           value={liability.status}
           options={LIABILITY_STATUS}
           variants={STATUS_VARIANTS}
-          onSave={async (v: any) => updateLiability(liability.id, { status: v })}
+          onSave={async (v) => updateLiability(liability.id, { status: v })}
         />
       ),
     },
@@ -403,7 +396,7 @@ export function Liabilities() {
         <EditableSelectCell
           value={liability.allocationClass || "PRINCIPAL"}
           options={ALLOCATION_CLASS}
-          onSave={async (v: any) => updateLiability(liability.id, { allocationClass: v })}
+          onSave={async (v) => updateLiability(liability.id, { allocationClass: v })}
         />
       ),
     },
@@ -442,10 +435,7 @@ export function Liabilities() {
             Texas Property Code 113.152(5) - Track trust debts and obligations
           </p>
         </div>
-        <Select
-          value={selectedEntity || undefined}
-          onValueChange={setSelectedEntity}
-        >
+        <Select value={selectedEntity || undefined} onValueChange={setSelectedEntity}>
           <SelectTrigger className="w-[280px]">
             <SelectValue placeholder="Select entity" />
           </SelectTrigger>
@@ -477,11 +467,10 @@ export function Liabilities() {
             <Card>
               <CardContent className="pt-6">
                 <div className="text-sm text-muted-foreground">Active Debts</div>
-                <div className="text-2xl font-bold">
-                  {formatCurrency(totalActive.toString())}
-                </div>
+                <div className="text-2xl font-bold">{formatCurrency(totalActive.toString())}</div>
                 <div className="text-xs text-muted-foreground">
-                  {activeLiabilities.length} active {activeLiabilities.length === 1 ? "liability" : "liabilities"}
+                  {activeLiabilities.length} active{" "}
+                  {activeLiabilities.length === 1 ? "liability" : "liabilities"}
                 </div>
               </CardContent>
             </Card>
@@ -532,60 +521,39 @@ export function Liabilities() {
         onSubmit={handleSaveLiability}
         isLoading={isLiabilitySaving}
       >
-          <div className="space-y-6 pt-4">
-            <div>
-              <h4 className="text-sm font-medium mb-3">Liability Information</h4>
-              <div className="grid grid-cols-2 gap-4">
-                <liabilityFormInstance.Field name="liabilityType">
-                  {(field: any) => (
-                    <div className="space-y-2">
-                      <Label htmlFor="liability-type">Liability Type *</Label>
-                      <Select
-                        value={field.state.value}
-                        onValueChange={(v) => field.handleChange(v)}
-                      >
-                        <SelectTrigger id="liability-type">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {LIABILITY_TYPES.map((t) => (
-                            <SelectItem key={t.value} value={t.value}>
-                              {t.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {field.state.meta.errors?.[0] && (
-                        <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
-                      )}
-                    </div>
-                  )}
-                </liabilityFormInstance.Field>
-                <liabilityFormInstance.Field name="creditor">
-                  {(field: any) => (
-                    <div className="space-y-2">
-                      <Label htmlFor="creditor">Creditor *</Label>
-                      <Input
-                        id="creditor"
-                        placeholder="e.g., Bank of America"
-                        value={field.state.value}
-                        onBlur={field.handleBlur}
-                        onChange={(e) => field.handleChange(e.target.value)}
-                      />
-                      {field.state.meta.errors?.[0] && (
-                        <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
-                      )}
-                    </div>
-                  )}
-                </liabilityFormInstance.Field>
-              </div>
-              <liabilityFormInstance.Field name="description">
-                {(field: any) => (
-                  <div className="space-y-2 mt-4">
-                    <Label htmlFor="description">Description</Label>
+        <div className="space-y-6 pt-4">
+          <div>
+            <h4 className="text-sm font-medium mb-3">Liability Information</h4>
+            <div className="grid grid-cols-2 gap-4">
+              <liabilityFormInstance.Field name="liabilityType">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="liability-type">Liability Type *</Label>
+                    <Select value={field.state.value} onValueChange={(v) => field.handleChange(v)}>
+                      <SelectTrigger id="liability-type">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {LIABILITY_TYPES.map((t) => (
+                          <SelectItem key={t.value} value={t.value}>
+                            {t.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {field.state.meta.errors?.[0] && (
+                      <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                    )}
+                  </div>
+                )}
+              </liabilityFormInstance.Field>
+              <liabilityFormInstance.Field name="creditor">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="creditor">Creditor *</Label>
                     <Input
-                      id="description"
-                      placeholder="e.g., Primary residence mortgage"
+                      id="creditor"
+                      placeholder="e.g., Bank of America"
                       value={field.state.value}
                       onBlur={field.handleBlur}
                       onChange={(e) => field.handleChange(e.target.value)}
@@ -597,205 +565,16 @@ export function Liabilities() {
                 )}
               </liabilityFormInstance.Field>
             </div>
-
-            <div>
-              <h4 className="text-sm font-medium mb-3">Financial Details</h4>
-              <div className="grid grid-cols-2 gap-4">
-                <liabilityFormInstance.Field name="originalAmount">
-                  {(field: any) => (
-                    <div className="space-y-2">
-                      <Label htmlFor="original-amount">Original Amount *</Label>
-                      <Input
-                        id="original-amount"
-                        placeholder="$"
-                        value={field.state.value}
-                        onBlur={field.handleBlur}
-                        onChange={(e) => field.handleChange(e.target.value)}
-                      />
-                      {field.state.meta.errors?.[0] && (
-                        <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
-                      )}
-                    </div>
-                  )}
-                </liabilityFormInstance.Field>
-                <liabilityFormInstance.Field name="currentBalance">
-                  {(field: any) => (
-                    <div className="space-y-2">
-                      <Label htmlFor="current-balance">Current Balance *</Label>
-                      <Input
-                        id="current-balance"
-                        placeholder="$"
-                        value={field.state.value}
-                        onBlur={field.handleBlur}
-                        onChange={(e) => field.handleChange(e.target.value)}
-                      />
-                      {field.state.meta.errors?.[0] && (
-                        <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
-                      )}
-                    </div>
-                  )}
-                </liabilityFormInstance.Field>
-              </div>
-              <div className="grid grid-cols-3 gap-4 mt-4">
-                <liabilityFormInstance.Field name="interestRate">
-                  {(field: any) => (
-                    <div className="space-y-2">
-                      <Label htmlFor="interest-rate">Interest Rate (%)</Label>
-                      <Input
-                        id="interest-rate"
-                        placeholder="e.g., 4.5"
-                        value={field.state.value}
-                        onBlur={field.handleBlur}
-                        onChange={(e) => field.handleChange(e.target.value)}
-                      />
-                      {field.state.meta.errors?.[0] && (
-                        <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
-                      )}
-                    </div>
-                  )}
-                </liabilityFormInstance.Field>
-                <liabilityFormInstance.Field name="monthlyPayment">
-                  {(field: any) => (
-                    <div className="space-y-2">
-                      <Label htmlFor="monthly-payment">Monthly Payment</Label>
-                      <Input
-                        id="monthly-payment"
-                        placeholder="$"
-                        value={field.state.value}
-                        onBlur={field.handleBlur}
-                        onChange={(e) => field.handleChange(e.target.value)}
-                      />
-                      {field.state.meta.errors?.[0] && (
-                        <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
-                      )}
-                    </div>
-                  )}
-                </liabilityFormInstance.Field>
-                <liabilityFormInstance.Field name="paymentDueDay">
-                  {(field: any) => (
-                    <div className="space-y-2">
-                      <Label htmlFor="payment-due-day">Payment Due Day</Label>
-                      <Input
-                        id="payment-due-day"
-                        type="number"
-                        min="1"
-                        max="31"
-                        placeholder="e.g., 15"
-                        value={field.state.value}
-                        onBlur={field.handleBlur}
-                        onChange={(e) => field.handleChange(e.target.value)}
-                      />
-                      {field.state.meta.errors?.[0] && (
-                        <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
-                      )}
-                    </div>
-                  )}
-                </liabilityFormInstance.Field>
-              </div>
-              <div className="grid grid-cols-2 gap-4 mt-4">
-                <liabilityFormInstance.Field name="dueDate">
-                  {(field: any) => (
-                    <div className="space-y-2">
-                      <Label htmlFor="due-date">Maturity/Due Date</Label>
-                      <Input
-                        id="due-date"
-                        type="date"
-                        value={field.state.value || ""}
-                        onBlur={field.handleBlur}
-                        onChange={(e) => field.handleChange(e.target.value || null)}
-                      />
-                      {field.state.meta.errors?.[0] && (
-                        <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
-                      )}
-                    </div>
-                  )}
-                </liabilityFormInstance.Field>
-                <liabilityFormInstance.Field name="currentBalanceDate">
-                  {(field: any) => (
-                    <div className="space-y-2">
-                      <Label htmlFor="balance-date">Balance As Of</Label>
-                      <Input
-                        id="balance-date"
-                        type="date"
-                        value={field.state.value || ""}
-                        onBlur={field.handleBlur}
-                        onChange={(e) => field.handleChange(e.target.value || null)}
-                      />
-                      {field.state.meta.errors?.[0] && (
-                        <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
-                      )}
-                    </div>
-                  )}
-                </liabilityFormInstance.Field>
-              </div>
-            </div>
-
-            <div>
-              <h4 className="text-sm font-medium mb-3">Status & Classification</h4>
-              <div className="grid grid-cols-2 gap-4">
-                <liabilityFormInstance.Field name="status">
-                  {(field: any) => (
-                    <div className="space-y-2">
-                      <Label htmlFor="status">Status *</Label>
-                      <Select
-                        value={field.state.value}
-                        onValueChange={(v) => field.handleChange(v)}
-                      >
-                        <SelectTrigger id="status">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {LIABILITY_STATUS.map((s) => (
-                            <SelectItem key={s.value} value={s.value}>
-                              {s.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {field.state.meta.errors?.[0] && (
-                        <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
-                      )}
-                    </div>
-                  )}
-                </liabilityFormInstance.Field>
-                <liabilityFormInstance.Field name="allocationClass">
-                  {(field: any) => (
-                    <div className="space-y-2">
-                      <Label htmlFor="allocation">Allocation Class (Texas 116.152)</Label>
-                      <Select
-                        value={field.state.value}
-                        onValueChange={(v) => field.handleChange(v)}
-                      >
-                        <SelectTrigger id="allocation">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {ALLOCATION_CLASS.map((a) => (
-                            <SelectItem key={a.value} value={a.value}>
-                              {a.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {field.state.meta.errors?.[0] && (
-                        <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
-                      )}
-                    </div>
-                  )}
-                </liabilityFormInstance.Field>
-              </div>
-            </div>
-
-            <liabilityFormInstance.Field name="notes">
-              {(field: any) => (
-                <div className="space-y-2">
-                  <Label htmlFor="notes">Notes</Label>
-                  <Textarea
-                    id="notes"
+            <liabilityFormInstance.Field name="description">
+              {(field) => (
+                <div className="space-y-2 mt-4">
+                  <Label htmlFor="description">Description</Label>
+                  <Input
+                    id="description"
+                    placeholder="e.g., Primary residence mortgage"
                     value={field.state.value}
                     onBlur={field.handleBlur}
                     onChange={(e) => field.handleChange(e.target.value)}
-                    rows={3}
                   />
                   {field.state.meta.errors?.[0] && (
                     <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
@@ -804,6 +583,207 @@ export function Liabilities() {
               )}
             </liabilityFormInstance.Field>
           </div>
+
+          <div>
+            <h4 className="text-sm font-medium mb-3">Financial Details</h4>
+            <div className="grid grid-cols-2 gap-4">
+              <liabilityFormInstance.Field name="originalAmount">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="original-amount">Original Amount *</Label>
+                    <Input
+                      id="original-amount"
+                      placeholder="$"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                    />
+                    {field.state.meta.errors?.[0] && (
+                      <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                    )}
+                  </div>
+                )}
+              </liabilityFormInstance.Field>
+              <liabilityFormInstance.Field name="currentBalance">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="current-balance">Current Balance *</Label>
+                    <Input
+                      id="current-balance"
+                      placeholder="$"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                    />
+                    {field.state.meta.errors?.[0] && (
+                      <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                    )}
+                  </div>
+                )}
+              </liabilityFormInstance.Field>
+            </div>
+            <div className="grid grid-cols-3 gap-4 mt-4">
+              <liabilityFormInstance.Field name="interestRate">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="interest-rate">Interest Rate (%)</Label>
+                    <Input
+                      id="interest-rate"
+                      placeholder="e.g., 4.5"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                    />
+                    {field.state.meta.errors?.[0] && (
+                      <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                    )}
+                  </div>
+                )}
+              </liabilityFormInstance.Field>
+              <liabilityFormInstance.Field name="monthlyPayment">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="monthly-payment">Monthly Payment</Label>
+                    <Input
+                      id="monthly-payment"
+                      placeholder="$"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                    />
+                    {field.state.meta.errors?.[0] && (
+                      <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                    )}
+                  </div>
+                )}
+              </liabilityFormInstance.Field>
+              <liabilityFormInstance.Field name="paymentDueDay">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="payment-due-day">Payment Due Day</Label>
+                    <Input
+                      id="payment-due-day"
+                      type="number"
+                      min="1"
+                      max="31"
+                      placeholder="e.g., 15"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                    />
+                    {field.state.meta.errors?.[0] && (
+                      <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                    )}
+                  </div>
+                )}
+              </liabilityFormInstance.Field>
+            </div>
+            <div className="grid grid-cols-2 gap-4 mt-4">
+              <liabilityFormInstance.Field name="dueDate">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="due-date">Maturity/Due Date</Label>
+                    <Input
+                      id="due-date"
+                      type="date"
+                      value={field.state.value || ""}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value || null)}
+                    />
+                    {field.state.meta.errors?.[0] && (
+                      <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                    )}
+                  </div>
+                )}
+              </liabilityFormInstance.Field>
+              <liabilityFormInstance.Field name="currentBalanceDate">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="balance-date">Balance As Of</Label>
+                    <Input
+                      id="balance-date"
+                      type="date"
+                      value={field.state.value || ""}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value || null)}
+                    />
+                    {field.state.meta.errors?.[0] && (
+                      <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                    )}
+                  </div>
+                )}
+              </liabilityFormInstance.Field>
+            </div>
+          </div>
+
+          <div>
+            <h4 className="text-sm font-medium mb-3">Status & Classification</h4>
+            <div className="grid grid-cols-2 gap-4">
+              <liabilityFormInstance.Field name="status">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="status">Status *</Label>
+                    <Select value={field.state.value} onValueChange={(v) => field.handleChange(v)}>
+                      <SelectTrigger id="status">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {LIABILITY_STATUS.map((s) => (
+                          <SelectItem key={s.value} value={s.value}>
+                            {s.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {field.state.meta.errors?.[0] && (
+                      <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                    )}
+                  </div>
+                )}
+              </liabilityFormInstance.Field>
+              <liabilityFormInstance.Field name="allocationClass">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="allocation">Allocation Class (Texas 116.152)</Label>
+                    <Select value={field.state.value} onValueChange={(v) => field.handleChange(v)}>
+                      <SelectTrigger id="allocation">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ALLOCATION_CLASS.map((a) => (
+                          <SelectItem key={a.value} value={a.value}>
+                            {a.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {field.state.meta.errors?.[0] && (
+                      <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                    )}
+                  </div>
+                )}
+              </liabilityFormInstance.Field>
+            </div>
+          </div>
+
+          <liabilityFormInstance.Field name="notes">
+            {(field) => (
+              <div className="space-y-2">
+                <Label htmlFor="notes">Notes</Label>
+                <Textarea
+                  id="notes"
+                  value={field.state.value}
+                  onBlur={field.handleBlur}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  rows={3}
+                />
+                {field.state.meta.errors?.[0] && (
+                  <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                )}
+              </div>
+            )}
+          </liabilityFormInstance.Field>
+        </div>
       </ResourceDialog>
 
       {/* Payment Dialog */}
@@ -814,234 +794,249 @@ export function Liabilities() {
         onSubmit={handleRecordPayment}
         isLoading={isRecordingPayment}
       >
-          {payingLiabilityId && (() => {
-            const payingLiability = liabilities.find(l => l.id === payingLiabilityId)
+        {payingLiabilityId &&
+          (() => {
+            const payingLiability = liabilities.find((l) => l.id === payingLiabilityId)
             if (!payingLiability) return null
             return (
-            <div className="space-y-6 pt-4">
-              {/* Liability Info */}
-              <div className="rounded-lg bg-muted/50 p-4">
-                <div className="text-sm text-muted-foreground">Paying</div>
-                <div className="font-medium">{payingLiability.creditor}</div>
-                <div className="text-sm text-muted-foreground">
-                  {LIABILITY_TYPES.find(t => t.value === payingLiability.liabilityType)?.label}
+              <div className="space-y-6 pt-4">
+                {/* Liability Info */}
+                <div className="rounded-lg bg-muted/50 p-4">
+                  <div className="text-sm text-muted-foreground">Paying</div>
+                  <div className="font-medium">{payingLiability.creditor}</div>
+                  <div className="text-sm text-muted-foreground">
+                    {LIABILITY_TYPES.find((t) => t.value === payingLiability.liabilityType)?.label}
+                  </div>
+                  <div className="mt-2 flex justify-between">
+                    <span className="text-sm text-muted-foreground">Current Balance:</span>
+                    <span className="font-semibold">
+                      {formatCurrency(payingLiability.currentBalance)}
+                    </span>
+                  </div>
                 </div>
-                <div className="mt-2 flex justify-between">
-                  <span className="text-sm text-muted-foreground">Current Balance:</span>
-                  <span className="font-semibold">{formatCurrency(payingLiability.currentBalance)}</span>
-                </div>
-              </div>
 
-              {/* Payment Details */}
-              <div>
-                <h4 className="text-sm font-medium mb-3">Payment Details</h4>
+                {/* Payment Details */}
+                <div>
+                  <h4 className="text-sm font-medium mb-3">Payment Details</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <paymentFormInstance.Field name="paymentDate">
+                      {(field) => (
+                        <div className="space-y-2">
+                          <Label htmlFor="payment-date">Payment Date *</Label>
+                          <Input
+                            id="payment-date"
+                            type="date"
+                            value={field.state.value}
+                            onBlur={field.handleBlur}
+                            onChange={(e) => field.handleChange(e.target.value)}
+                          />
+                          {field.state.meta.errors?.[0] && (
+                            <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                          )}
+                        </div>
+                      )}
+                    </paymentFormInstance.Field>
+                    <paymentFormInstance.Field name="amount">
+                      {(field) => (
+                        <div className="space-y-2">
+                          <Label htmlFor="payment-amount">Amount *</Label>
+                          <Input
+                            id="payment-amount"
+                            placeholder="$0.00"
+                            value={field.state.value}
+                            onBlur={field.handleBlur}
+                            onChange={(e) => field.handleChange(e.target.value)}
+                          />
+                          {field.state.meta.errors?.[0] && (
+                            <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                          )}
+                        </div>
+                      )}
+                    </paymentFormInstance.Field>
+                  </div>
+                </div>
+
+                {/* Breakdown (optional) */}
+                <div>
+                  <h4 className="text-sm font-medium mb-3">Payment Breakdown (optional)</h4>
+                  <div className="grid grid-cols-3 gap-3">
+                    <paymentFormInstance.Field name="principalPortion">
+                      {(field) => (
+                        <div className="space-y-2">
+                          <Label htmlFor="principal-portion" className="text-xs">
+                            Principal
+                          </Label>
+                          <Input
+                            id="principal-portion"
+                            placeholder="$"
+                            value={field.state.value}
+                            onBlur={field.handleBlur}
+                            onChange={(e) => field.handleChange(e.target.value)}
+                          />
+                          {field.state.meta.errors?.[0] && (
+                            <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                          )}
+                        </div>
+                      )}
+                    </paymentFormInstance.Field>
+                    <paymentFormInstance.Field name="interestPortion">
+                      {(field) => (
+                        <div className="space-y-2">
+                          <Label htmlFor="interest-portion" className="text-xs">
+                            Interest
+                          </Label>
+                          <Input
+                            id="interest-portion"
+                            placeholder="$"
+                            value={field.state.value}
+                            onBlur={field.handleBlur}
+                            onChange={(e) => field.handleChange(e.target.value)}
+                          />
+                          {field.state.meta.errors?.[0] && (
+                            <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                          )}
+                        </div>
+                      )}
+                    </paymentFormInstance.Field>
+                    <paymentFormInstance.Field name="escrowPortion">
+                      {(field) => (
+                        <div className="space-y-2">
+                          <Label htmlFor="escrow-portion" className="text-xs">
+                            Escrow
+                          </Label>
+                          <Input
+                            id="escrow-portion"
+                            placeholder="$"
+                            value={field.state.value}
+                            onBlur={field.handleBlur}
+                            onChange={(e) => field.handleChange(e.target.value)}
+                          />
+                          {field.state.meta.errors?.[0] && (
+                            <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                          )}
+                        </div>
+                      )}
+                    </paymentFormInstance.Field>
+                  </div>
+                </div>
+
+                {/* Payment Method */}
                 <div className="grid grid-cols-2 gap-4">
-                  <paymentFormInstance.Field name="paymentDate">
-                    {(field: any) => (
+                  <paymentFormInstance.Field name="paymentMethod">
+                    {(field) => (
                       <div className="space-y-2">
-                        <Label htmlFor="payment-date">Payment Date *</Label>
-                        <Input
-                          id="payment-date"
-                          type="date"
+                        <Label htmlFor="payment-method">Payment Method</Label>
+                        <Select
                           value={field.state.value}
-                          onBlur={field.handleBlur}
-                          onChange={(e) => field.handleChange(e.target.value)}
-                        />
+                          onValueChange={(v) => field.handleChange(v)}
+                        >
+                          <SelectTrigger id="payment-method">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {PAYMENT_METHODS.map((m) => (
+                              <SelectItem key={m.value} value={m.value}>
+                                {m.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         {field.state.meta.errors?.[0] && (
                           <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
                         )}
                       </div>
                     )}
                   </paymentFormInstance.Field>
-                  <paymentFormInstance.Field name="amount">
-                    {(field: any) => (
-                      <div className="space-y-2">
-                        <Label htmlFor="payment-amount">Amount *</Label>
-                        <Input
-                          id="payment-amount"
-                          placeholder="$0.00"
-                          value={field.state.value}
-                          onBlur={field.handleBlur}
-                          onChange={(e) => field.handleChange(e.target.value)}
-                        />
-                        {field.state.meta.errors?.[0] && (
-                          <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
-                        )}
-                      </div>
-                    )}
-                  </paymentFormInstance.Field>
+                  <paymentFormInstance.Subscribe<string>
+                    selector={(state) => state.values.paymentMethod}
+                  >
+                    {(paymentMethod) =>
+                      paymentMethod === "CHECK" ? (
+                        <paymentFormInstance.Field name="checkNumber">
+                          {(field) => (
+                            <div className="space-y-2">
+                              <Label htmlFor="check-number">Check #</Label>
+                              <Input
+                                id="check-number"
+                                placeholder="Check number"
+                                value={field.state.value}
+                                onBlur={field.handleBlur}
+                                onChange={(e) => field.handleChange(e.target.value)}
+                              />
+                              {field.state.meta.errors?.[0] && (
+                                <p className="text-sm text-destructive">
+                                  {field.state.meta.errors[0]}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </paymentFormInstance.Field>
+                      ) : (
+                        <paymentFormInstance.Field name="confirmationNumber">
+                          {(field) => (
+                            <div className="space-y-2">
+                              <Label htmlFor="confirmation-number">Confirmation #</Label>
+                              <Input
+                                id="confirmation-number"
+                                placeholder="Confirmation"
+                                value={field.state.value}
+                                onBlur={field.handleBlur}
+                                onChange={(e) => field.handleChange(e.target.value)}
+                              />
+                              {field.state.meta.errors?.[0] && (
+                                <p className="text-sm text-destructive">
+                                  {field.state.meta.errors[0]}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </paymentFormInstance.Field>
+                      )
+                    }
+                  </paymentFormInstance.Subscribe>
                 </div>
-              </div>
 
-              {/* Breakdown (optional) */}
-              <div>
-                <h4 className="text-sm font-medium mb-3">Payment Breakdown (optional)</h4>
-                <div className="grid grid-cols-3 gap-3">
-                  <paymentFormInstance.Field name="principalPortion">
-                    {(field: any) => (
-                      <div className="space-y-2">
-                        <Label htmlFor="principal-portion" className="text-xs">Principal</Label>
-                        <Input
-                          id="principal-portion"
-                          placeholder="$"
-                          value={field.state.value}
-                          onBlur={field.handleBlur}
-                          onChange={(e) => field.handleChange(e.target.value)}
-                        />
-                        {field.state.meta.errors?.[0] && (
-                          <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
-                        )}
-                      </div>
-                    )}
-                  </paymentFormInstance.Field>
-                  <paymentFormInstance.Field name="interestPortion">
-                    {(field: any) => (
-                      <div className="space-y-2">
-                        <Label htmlFor="interest-portion" className="text-xs">Interest</Label>
-                        <Input
-                          id="interest-portion"
-                          placeholder="$"
-                          value={field.state.value}
-                          onBlur={field.handleBlur}
-                          onChange={(e) => field.handleChange(e.target.value)}
-                        />
-                        {field.state.meta.errors?.[0] && (
-                          <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
-                        )}
-                      </div>
-                    )}
-                  </paymentFormInstance.Field>
-                  <paymentFormInstance.Field name="escrowPortion">
-                    {(field: any) => (
-                      <div className="space-y-2">
-                        <Label htmlFor="escrow-portion" className="text-xs">Escrow</Label>
-                        <Input
-                          id="escrow-portion"
-                          placeholder="$"
-                          value={field.state.value}
-                          onBlur={field.handleBlur}
-                          onChange={(e) => field.handleChange(e.target.value)}
-                        />
-                        {field.state.meta.errors?.[0] && (
-                          <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
-                        )}
-                      </div>
-                    )}
-                  </paymentFormInstance.Field>
-                </div>
-              </div>
-
-              {/* Payment Method */}
-              <div className="grid grid-cols-2 gap-4">
-                <paymentFormInstance.Field name="paymentMethod">
-                  {(field: any) => (
+                {/* Notes */}
+                <paymentFormInstance.Field name="notes">
+                  {(field) => (
                     <div className="space-y-2">
-                      <Label htmlFor="payment-method">Payment Method</Label>
-                      <Select
+                      <Label htmlFor="payment-notes">Notes</Label>
+                      <Textarea
+                        id="payment-notes"
                         value={field.state.value}
-                        onValueChange={(v) => field.handleChange(v)}
-                      >
-                        <SelectTrigger id="payment-method">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {PAYMENT_METHODS.map((m) => (
-                            <SelectItem key={m.value} value={m.value}>
-                              {m.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        onBlur={field.handleBlur}
+                        onChange={(e) => field.handleChange(e.target.value)}
+                        rows={2}
+                        placeholder="Optional notes about this payment"
+                      />
                       {field.state.meta.errors?.[0] && (
                         <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
                       )}
                     </div>
                   )}
                 </paymentFormInstance.Field>
-                <paymentFormInstance.Subscribe selector={(state: any) => state.values.paymentMethod}>
-                  {(paymentMethod: any) =>
-                    paymentMethod === "CHECK" ? (
-                      <paymentFormInstance.Field name="checkNumber">
-                        {(field: any) => (
-                          <div className="space-y-2">
-                            <Label htmlFor="check-number">Check #</Label>
-                            <Input
-                              id="check-number"
-                              placeholder="Check number"
-                              value={field.state.value}
-                              onBlur={field.handleBlur}
-                              onChange={(e) => field.handleChange(e.target.value)}
-                            />
-                            {field.state.meta.errors?.[0] && (
-                              <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
-                            )}
-                          </div>
-                        )}
-                      </paymentFormInstance.Field>
-                    ) : (
-                      <paymentFormInstance.Field name="confirmationNumber">
-                        {(field: any) => (
-                          <div className="space-y-2">
-                            <Label htmlFor="confirmation-number">Confirmation #</Label>
-                            <Input
-                              id="confirmation-number"
-                              placeholder="Confirmation"
-                              value={field.state.value}
-                              onBlur={field.handleBlur}
-                              onChange={(e) => field.handleChange(e.target.value)}
-                            />
-                            {field.state.meta.errors?.[0] && (
-                              <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
-                            )}
-                          </div>
-                        )}
-                      </paymentFormInstance.Field>
-                    )
-                  }
-                </paymentFormInstance.Subscribe>
-              </div>
 
-              {/* Notes */}
-              <paymentFormInstance.Field name="notes">
-                {(field: any) => (
-                  <div className="space-y-2">
-                    <Label htmlFor="payment-notes">Notes</Label>
-                    <Textarea
-                      id="payment-notes"
-                      value={field.state.value}
-                      onBlur={field.handleBlur}
-                      onChange={(e) => field.handleChange(e.target.value)}
-                      rows={2}
-                      placeholder="Optional notes about this payment"
-                    />
-                    {field.state.meta.errors?.[0] && (
-                      <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
-                    )}
-                  </div>
-                )}
-              </paymentFormInstance.Field>
-
-              {/* Auto-create expense toggle */}
-              <paymentFormInstance.Field name="createExpenseEntry">
-                {(field: any) => (
-                  <div className="flex items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="create-expense" className="font-medium">
-                        Record in Trust Accounting
-                      </Label>
-                      <p className="text-xs text-muted-foreground">
-                        Automatically create an expense entry for this payment
-                      </p>
+                {/* Auto-create expense toggle */}
+                <paymentFormInstance.Field name="createExpenseEntry">
+                  {(field) => (
+                    <div className="flex items-center justify-between rounded-lg border p-4">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="create-expense" className="font-medium">
+                          Record in Trust Accounting
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          Automatically create an expense entry for this payment
+                        </p>
+                      </div>
+                      <Switch
+                        id="create-expense"
+                        checked={field.state.value}
+                        onCheckedChange={(checked) => field.handleChange(checked)}
+                      />
                     </div>
-                    <Switch
-                      id="create-expense"
-                      checked={field.state.value}
-                      onCheckedChange={(checked) => field.handleChange(checked)}
-                    />
-                  </div>
-                )}
-              </paymentFormInstance.Field>
-            </div>
+                  )}
+                </paymentFormInstance.Field>
+              </div>
             )
           })()}
       </ResourceDialog>

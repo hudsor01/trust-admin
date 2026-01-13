@@ -6,20 +6,20 @@
  */
 
 import {
+  type ColumnDef,
   flexRender,
   getCoreRowModel,
-  getSortedRowModel,
   getPaginationRowModel,
-  useReactTable,
-  type ColumnDef,
+  getSortedRowModel,
   type OnChangeFn,
   type PaginationState,
   type SortingState,
-} from '@tanstack/react-table'
-import { useState } from 'react'
-import { ArrowUpDown, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/ui/skeleton'
+  useReactTable,
+} from "@tanstack/react-table"
+import { ArrowUpDown, ChevronDown, ChevronLeft, ChevronRight, ChevronUp } from "lucide-react"
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
   TableBody,
@@ -27,7 +27,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table'
+} from "@/components/ui/table"
 
 export interface DataTableProps<TData> {
   columns: ColumnDef<TData>[]
@@ -48,7 +48,7 @@ export function DataTable<TData>({
   columns,
   data,
   isLoading = false,
-  emptyMessage = 'No data available',
+  emptyMessage = "No data available",
   pageCount,
   pagination: controlledPagination,
   onPaginationChange,
@@ -94,9 +94,7 @@ export function DataTable<TData>({
             <TableHeader>
               <TableRow>
                 {columns.map((col, i) => (
-                  <TableHead key={i}>
-                    {typeof col.header === 'string' ? col.header : ''}
-                  </TableHead>
+                  <TableHead key={i}>{typeof col.header === "string" ? col.header : ""}</TableHead>
                 ))}
               </TableRow>
             </TableHeader>
@@ -139,17 +137,23 @@ export function DataTable<TData>({
                       <div
                         className={
                           header.column.getCanSort()
-                            ? 'flex items-center gap-2 cursor-pointer select-none hover:text-foreground transition-colors'
-                            : ''
+                            ? "flex items-center gap-2 cursor-pointer select-none hover:text-foreground transition-colors"
+                            : ""
                         }
                         onClick={header.column.getToggleSortingHandler()}
                       >
                         {flexRender(header.column.columnDef.header, header.getContext())}
                         {header.column.getCanSort() && (
                           <>
-                            {header.column.getIsSorted() === 'asc' && <ChevronUp className="h-4 w-4" />}
-                            {header.column.getIsSorted() === 'desc' && <ChevronDown className="h-4 w-4" />}
-                            {!header.column.getIsSorted() && <ArrowUpDown className="h-4 w-4 opacity-50" />}
+                            {header.column.getIsSorted() === "asc" && (
+                              <ChevronUp className="h-4 w-4" />
+                            )}
+                            {header.column.getIsSorted() === "desc" && (
+                              <ChevronDown className="h-4 w-4" />
+                            )}
+                            {!header.column.getIsSorted() && (
+                              <ArrowUpDown className="h-4 w-4 opacity-50" />
+                            )}
                           </>
                         )}
                       </div>
@@ -179,16 +183,19 @@ export function DataTable<TData>({
           <div className="text-sm text-muted-foreground">
             {manualPagination && pageCount ? (
               <>
-                Page {table.getState().pagination.pageIndex + 1} of{' '}
-                {pageCount === -1 ? '...' : pageCount}
+                Page {table.getState().pagination.pageIndex + 1} of{" "}
+                {pageCount === -1 ? "..." : pageCount}
               </>
             ) : (
               <>
-                Showing {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} to{' '}
+                Showing{" "}
+                {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1}{" "}
+                to{" "}
                 {Math.min(
-                  (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
-                  table.getFilteredRowModel().rows.length
-                )}{' '}
+                  (table.getState().pagination.pageIndex + 1) *
+                    table.getState().pagination.pageSize,
+                  table.getFilteredRowModel().rows.length,
+                )}{" "}
                 of {table.getFilteredRowModel().rows.length} results
               </>
             )}

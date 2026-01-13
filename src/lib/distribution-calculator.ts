@@ -5,7 +5,7 @@
  * based on their share percentages, after deducting expenses and trustee fees.
  */
 
-import { calculateTrusteeFees, DEFAULT_FEE_SCHEDULE, type FeeSchedule } from './fee-calculator'
+import { calculateTrusteeFees, DEFAULT_FEE_SCHEDULE, type FeeSchedule } from "./fee-calculator"
 
 export interface Beneficiary {
   id: string
@@ -104,7 +104,7 @@ export function calculateDistribution(input: DistributionInput): DistributionCal
   const netDistributable = Math.max(0, grossIncome - totalDeductions)
 
   // Calculate each beneficiary's share
-  const beneficiaryShares: BeneficiaryShare[] = beneficiaries.map(b => {
+  const beneficiaryShares: BeneficiaryShare[] = beneficiaries.map((b) => {
     const sharePercent = b.sharePercent || 0
     const amount = netDistributable * (sharePercent / 100)
 
@@ -139,7 +139,7 @@ export function calculateDistribution(input: DistributionInput): DistributionCal
  */
 export function calculateManualDistribution(
   amountToDistribute: number,
-  beneficiaries: Beneficiary[]
+  beneficiaries: Beneficiary[],
 ): {
   beneficiaryShares: BeneficiaryShare[]
   totalSharePercent: number
@@ -148,7 +148,7 @@ export function calculateManualDistribution(
   const totalSharePercent = beneficiaries.reduce((sum, b) => sum + (b.sharePercent || 0), 0)
   const isValid = Math.abs(totalSharePercent - 100) < 0.01
 
-  const beneficiaryShares: BeneficiaryShare[] = beneficiaries.map(b => {
+  const beneficiaryShares: BeneficiaryShare[] = beneficiaries.map((b) => {
     const sharePercent = b.sharePercent || 0
     const amount = amountToDistribute * (sharePercent / 100)
 
@@ -193,7 +193,7 @@ export function formatDistributionSummary(calc: DistributionCalculation): string
     lines.push(`WARNING: ${calc.validationMessage}`)
   }
 
-  return lines.join('\n')
+  return lines.join("\n")
 }
 
 /**
@@ -205,34 +205,30 @@ export function createDistributionRecords(
   entityId: string,
   distributionDate: Date = new Date(),
   options: {
-    paymentMethod?: 'CHECK' | 'ACH' | 'WIRE' | 'CASH' | 'OTHER'
+    paymentMethod?: "CHECK" | "ACH" | "WIRE" | "CASH" | "OTHER"
     isShareDistribution?: boolean
     batchId?: string
-  } = {}
+  } = {},
 ): Array<{
   beneficiaryId: string
   entityId: string
   distributionDate: string
   amount: string
-  distributionType: 'INCOME'
+  distributionType: "INCOME"
   paymentMethod: string
   isShareDistribution: boolean
   notes: string
 }> {
-  const {
-    paymentMethod = 'CHECK',
-    isShareDistribution = true,
-    batchId,
-  } = options
+  const { paymentMethod = "CHECK", isShareDistribution = true, batchId } = options
 
   return calc.beneficiaryShares
-    .filter(share => share.amount > 0) // Only create records for non-zero amounts
-    .map(share => ({
+    .filter((share) => share.amount > 0) // Only create records for non-zero amounts
+    .map((share) => ({
       beneficiaryId: share.beneficiaryId,
       entityId,
       distributionDate: distributionDate.toISOString(),
       amount: share.amount.toFixed(2),
-      distributionType: 'INCOME' as const,
+      distributionType: "INCOME" as const,
       paymentMethod,
       isShareDistribution,
       notes: batchId

@@ -1,24 +1,29 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { Check, Circle, Eye, Mail, MapPin, Phone, Plus } from "lucide-react"
+import { useEffect, useMemo, useState } from "react"
+import { CopyButton } from "@/components/copy-button"
+import { type ColumnDef, DataTable } from "@/components/data-table"
+// Import reusable editable cell components
 import {
-  Check,
-  Circle,
-  Mail,
-  Phone,
-  MapPin,
-  Plus,
-  Eye,
-  Loader2,
-} from "lucide-react"
-import { cn } from "@/lib/utils"
-import { formatDate, formatCurrency, calculateAge } from "../utils/formatters"
+  EditablePercentCell,
+  EditableSelectCell,
+  EditableTextCell,
+} from "@/components/editable-cells"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import {
   Table,
@@ -28,39 +33,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
-
-// Import reusable editable cell components
-import {
-  EditableTextCell,
-  EditableSelectCell,
-  EditableDateCell,
-  EditablePercentCell,
-} from "@/components/editable-cells"
-import { CopyButton } from "@/components/copy-button"
-import { DataTable, type ColumnDef } from "@/components/data-table"
-
+  type Beneficiary,
+  useBeneficiaries,
+  useUpdateBeneficiary,
+} from "@/hooks/beneficiaries/queries"
 // Import types and hooks from TanStack Query hooks
 import { useEntities } from "@/hooks/entities/queries"
-import { useBeneficiaries, useUpdateBeneficiary, type Beneficiary } from "@/hooks/beneficiaries/queries"
+import { cn } from "@/lib/utils"
+import { calculateAge, formatCurrency, formatDate } from "../utils/formatters"
 
 interface Distribution {
   id: string
@@ -113,7 +95,7 @@ function calculateEligibility(dob: string | null): {
       percent: 50,
       status: "partial",
       label: "50% eligible",
-      nextMilestone: { age: WITHDRAWAL_AGE_100_PERCENT, date: fullEligibleDate, percent: 100 }
+      nextMilestone: { age: WITHDRAWAL_AGE_100_PERCENT, date: fullEligibleDate, percent: 100 },
     }
   }
 
@@ -124,7 +106,7 @@ function calculateEligibility(dob: string | null): {
     percent: 0,
     status: "none",
     label: "Not yet eligible",
-    nextMilestone: { age: WITHDRAWAL_AGE_50_PERCENT, date: partialEligibleDate, percent: 50 }
+    nextMilestone: { age: WITHDRAWAL_AGE_50_PERCENT, date: partialEligibleDate, percent: 50 },
   }
 }
 
@@ -147,7 +129,8 @@ export function Beneficiaries() {
 
   // Local state for beneficiaries with distributions loaded
   const [beneficiaries, setBeneficiariesWithDist] = useState<BeneficiaryWithDistributions[]>([])
-  const [selectedBeneficiary, setSelectedBeneficiary] = useState<BeneficiaryWithDistributions | null>(null)
+  const [selectedBeneficiary, setSelectedBeneficiary] =
+    useState<BeneficiaryWithDistributions | null>(null)
   const [showDistributionForm, setShowDistributionForm] = useState(false)
   const [newDistribution, setNewDistribution] = useState({
     amount: "",
@@ -177,7 +160,7 @@ export function Beneficiaries() {
             }
           } catch {}
           return { ...b, distributions: [] }
-        })
+        }),
       )
       setBeneficiariesWithDist(withDistributions)
     }
@@ -224,9 +207,12 @@ export function Beneficiaries() {
         })
         refetchBeneficiaries()
         const updated = await fetch(`/api/beneficiaries/${selectedBeneficiary?.id}`).then((r) =>
-          r.json()
+          r.json(),
         )
-        setSelectedBeneficiary({ ...selectedBeneficiary, distributions: updated.distributions || [] })
+        setSelectedBeneficiary({
+          ...selectedBeneficiary,
+          distributions: updated.distributions || [],
+        })
       }
     } catch (error) {
       console.error("Failed to record distribution:", error)
@@ -240,18 +226,21 @@ export function Beneficiaries() {
         const bTotal = (b.distributions || []).reduce((s, d) => s + parseFloat(d.amount), 0)
         return sum + bTotal
       }, 0),
-    [beneficiaries]
+    [beneficiaries],
   )
 
   const totalShares = useMemo(
     () => beneficiaries.reduce((sum, b) => sum + parseFloat(b.sharePercent || "0"), 0),
-    [beneficiaries]
+    [beneficiaries],
   )
 
-  const informedCount = useMemo(() => beneficiaries.filter((b) => b.informed).length, [beneficiaries])
+  const informedCount = useMemo(
+    () => beneficiaries.filter((b) => b.informed).length,
+    [beneficiaries],
+  )
   const releaseSignedCount = useMemo(
     () => beneficiaries.filter((b) => b.releaseSigned).length,
-    [beneficiaries]
+    [beneficiaries],
   )
 
   // Column definitions for beneficiaries table
@@ -260,7 +249,9 @@ export function Beneficiaries() {
       key: "name",
       header: "Name",
       render: (b) => (
-        <span className="font-medium">{b.firstName} {b.lastName}</span>
+        <span className="font-medium">
+          {b.firstName} {b.lastName}
+        </span>
       ),
       sortable: true,
     },
@@ -296,8 +287,9 @@ export function Beneficiaries() {
                   }
                   className={cn(
                     eligibility.status === "full" && "bg-success hover:bg-success/90",
-                    eligibility.status === "partial" && "bg-amber-500/20 text-amber-700 border-amber-500/30",
-                    eligibility.status === "none" && !b.dob && "text-muted-foreground"
+                    eligibility.status === "partial" &&
+                      "bg-amber-500/20 text-amber-700 border-amber-500/30",
+                    eligibility.status === "none" && !b.dob && "text-muted-foreground",
                   )}
                 >
                   {eligibility.label}
@@ -306,7 +298,8 @@ export function Beneficiaries() {
               <TooltipContent>
                 {eligibility.nextMilestone ? (
                   <p>
-                    {eligibility.nextMilestone.percent}% at age {eligibility.nextMilestone.age} ({formatDate(eligibility.nextMilestone.date.toISOString())})
+                    {eligibility.nextMilestone.percent}% at age {eligibility.nextMilestone.age} (
+                    {formatDate(eligibility.nextMilestone.date.toISOString())})
                   </p>
                 ) : eligibility.status === "full" ? (
                   <p>Fully vested for withdrawal</p>
@@ -340,17 +333,10 @@ export function Beneficiaries() {
         <Button
           variant={b.informed ? "default" : "outline"}
           size="icon"
-          className={cn(
-            "h-7 w-7",
-            b.informed && "bg-success hover:bg-success/90"
-          )}
+          className={cn("h-7 w-7", b.informed && "bg-success hover:bg-success/90")}
           onClick={() => updateBeneficiary(b.id, { informed: !b.informed })}
         >
-          {b.informed ? (
-            <Check className="h-3.5 w-3.5" />
-          ) : (
-            <Circle className="h-3.5 w-3.5" />
-          )}
+          {b.informed ? <Check className="h-3.5 w-3.5" /> : <Circle className="h-3.5 w-3.5" />}
         </Button>
       ),
     },
@@ -361,19 +347,10 @@ export function Beneficiaries() {
         <Button
           variant={b.releaseSigned ? "default" : "outline"}
           size="icon"
-          className={cn(
-            "h-7 w-7",
-            b.releaseSigned && "bg-success hover:bg-success/90"
-          )}
-          onClick={() =>
-            updateBeneficiary(b.id, { releaseSigned: !b.releaseSigned })
-          }
+          className={cn("h-7 w-7", b.releaseSigned && "bg-success hover:bg-success/90")}
+          onClick={() => updateBeneficiary(b.id, { releaseSigned: !b.releaseSigned })}
         >
-          {b.releaseSigned ? (
-            <Check className="h-3.5 w-3.5" />
-          ) : (
-            <Circle className="h-3.5 w-3.5" />
-          )}
+          {b.releaseSigned ? <Check className="h-3.5 w-3.5" /> : <Circle className="h-3.5 w-3.5" />}
         </Button>
       ),
     },
@@ -381,15 +358,8 @@ export function Beneficiaries() {
       key: "totalDistributed",
       header: "Distributed",
       render: (b) => {
-        const totalDist = (b.distributions || []).reduce(
-          (s, d) => s + parseFloat(d.amount),
-          0
-        )
-        return (
-          <span className="text-sm font-medium tabular-nums">
-            {formatCurrency(totalDist)}
-          </span>
-        )
+        const totalDist = (b.distributions || []).reduce((s, d) => s + parseFloat(d.amount), 0)
+        return <span className="text-sm font-medium tabular-nums">{formatCurrency(totalDist)}</span>
       },
       sortable: true,
     },
@@ -444,60 +414,62 @@ export function Beneficiaries() {
 
       {/* Summary Cards */}
       <div className="@container">
-      <div className="grid gap-4 @xs:grid-cols-2 @lg:grid-cols-4">
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Total Shares
-            </p>
-            <p className="mt-2 text-2xl font-bold">{totalShares.toFixed(1)}%</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Notified
-            </p>
-            <div className="mt-2 flex items-center justify-between">
-              <p className="text-2xl font-bold">
-                {informedCount}/{beneficiaries.length}
+        <div className="grid gap-4 @xs:grid-cols-2 @lg:grid-cols-4">
+          <Card>
+            <CardContent className="pt-6">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Total Shares
               </p>
-              <Progress
-                value={beneficiaries.length > 0 ? (informedCount / beneficiaries.length) * 100 : 0}
-                className="w-20"
-              />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Releases Signed
-            </p>
-            <div className="mt-2 flex items-center justify-between">
-              <p className="text-2xl font-bold">
-                {releaseSignedCount}/{beneficiaries.length}
+              <p className="mt-2 text-2xl font-bold">{totalShares.toFixed(1)}%</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Notified
               </p>
-              <Progress
-                value={
-                  beneficiaries.length > 0 ? (releaseSignedCount / beneficiaries.length) * 100 : 0
-                }
-                className="w-20 [&>div]:bg-success"
-              />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Distributed
-            </p>
-            <p className="mt-2 text-2xl font-bold text-success">
-              {formatCurrency(totalDistributed)}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+              <div className="mt-2 flex items-center justify-between">
+                <p className="text-2xl font-bold">
+                  {informedCount}/{beneficiaries.length}
+                </p>
+                <Progress
+                  value={
+                    beneficiaries.length > 0 ? (informedCount / beneficiaries.length) * 100 : 0
+                  }
+                  className="w-20"
+                />
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Releases Signed
+              </p>
+              <div className="mt-2 flex items-center justify-between">
+                <p className="text-2xl font-bold">
+                  {releaseSignedCount}/{beneficiaries.length}
+                </p>
+                <Progress
+                  value={
+                    beneficiaries.length > 0 ? (releaseSignedCount / beneficiaries.length) * 100 : 0
+                  }
+                  className="w-20 [&>div]:bg-success"
+                />
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Distributed
+              </p>
+              <p className="mt-2 text-2xl font-bold text-success">
+                {formatCurrency(totalDistributed)}
+              </p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {/* Beneficiary List */}
@@ -562,310 +534,315 @@ function BeneficiaryDialogContent({
   setSelectedBeneficiary: (b: BeneficiaryWithDistributions | null) => void
   showDistributionForm: boolean
   setShowDistributionForm: (show: boolean) => void
-  newDistribution: { amount: string; paymentMethod: string; hemsCategory: string; hemsJustification: string; notes: string }
-  setNewDistribution: (d: { amount: string; paymentMethod: string; hemsCategory: string; hemsJustification: string; notes: string }) => void
+  newDistribution: {
+    amount: string
+    paymentMethod: string
+    hemsCategory: string
+    hemsJustification: string
+    notes: string
+  }
+  setNewDistribution: (d: {
+    amount: string
+    paymentMethod: string
+    hemsCategory: string
+    hemsJustification: string
+    notes: string
+  }) => void
   recordDistribution: () => Promise<void>
 }) {
   const eligibility = calculateEligibility(beneficiary.dob)
   const age25Date = beneficiary.dob
-    ? new Date(new Date(beneficiary.dob).setFullYear(new Date(beneficiary.dob).getFullYear() + WITHDRAWAL_AGE_50_PERCENT))
+    ? new Date(
+        new Date(beneficiary.dob).setFullYear(
+          new Date(beneficiary.dob).getFullYear() + WITHDRAWAL_AGE_50_PERCENT,
+        ),
+      )
     : null
   const age30Date = beneficiary.dob
-    ? new Date(new Date(beneficiary.dob).setFullYear(new Date(beneficiary.dob).getFullYear() + WITHDRAWAL_AGE_100_PERCENT))
+    ? new Date(
+        new Date(beneficiary.dob).setFullYear(
+          new Date(beneficiary.dob).getFullYear() + WITHDRAWAL_AGE_100_PERCENT,
+        ),
+      )
     : null
 
   return (
     <div className="space-y-4">
-              {/* Key Info */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">Share</p>
-                  <p className="mt-1 text-xl font-bold">
-                    {beneficiary.sharePercent
-                      ? `${beneficiary.sharePercent}%`
-                      : "—"}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Eligibility</p>
-                  <Badge
-                    className={cn(
-                      "mt-1",
-                      eligibility.status === "full" && "bg-success hover:bg-success/90",
-                      eligibility.status === "partial" && "bg-amber-500/20 text-amber-700 border-amber-500/30"
-                    )}
-                    variant={eligibility.status === "none" ? "outline" : "default"}
-                  >
-                    {eligibility.label}
-                  </Badge>
-                </div>
-              </div>
+      {/* Key Info */}
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <p className="text-sm text-muted-foreground">Share</p>
+          <p className="mt-1 text-xl font-bold">
+            {beneficiary.sharePercent ? `${beneficiary.sharePercent}%` : "—"}
+          </p>
+        </div>
+        <div>
+          <p className="text-sm text-muted-foreground">Eligibility</p>
+          <Badge
+            className={cn(
+              "mt-1",
+              eligibility.status === "full" && "bg-success hover:bg-success/90",
+              eligibility.status === "partial" &&
+                "bg-amber-500/20 text-amber-700 border-amber-500/30",
+            )}
+            variant={eligibility.status === "none" ? "outline" : "default"}
+          >
+            {eligibility.label}
+          </Badge>
+        </div>
+      </div>
 
-              {/* Withdrawal Rights */}
-              <Separator />
-              <div>
-                <p className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                  Withdrawal Rights
+      {/* Withdrawal Rights */}
+      <Separator />
+      <div>
+        <p className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          Withdrawal Rights
+        </p>
+        <div className="grid grid-cols-2 gap-4">
+          <Card className={cn(eligibility.percent >= 50 && "border-success bg-success/5")}>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">Age {WITHDRAWAL_AGE_50_PERCENT}</p>
+                {eligibility.percent >= 50 && <Check className="h-4 w-4 text-success" />}
+              </div>
+              <p className="font-medium">50% of share</p>
+              {age25Date ? (
+                <p
+                  className={cn(
+                    "mt-1 text-xs",
+                    eligibility.percent >= 50 ? "text-success" : "text-muted-foreground",
+                  )}
+                >
+                  {eligibility.percent >= 50 ? "Eligible since" : "Eligible"}:{" "}
+                  {formatDate(age25Date.toISOString())}
                 </p>
-                <div className="grid grid-cols-2 gap-4">
-                  <Card className={cn(eligibility.percent >= 50 && "border-success bg-success/5")}>
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm text-muted-foreground">Age {WITHDRAWAL_AGE_50_PERCENT}</p>
-                        {eligibility.percent >= 50 && (
-                          <Check className="h-4 w-4 text-success" />
-                        )}
-                      </div>
-                      <p className="font-medium">50% of share</p>
-                      {age25Date ? (
-                        <p className={cn(
-                          "mt-1 text-xs",
-                          eligibility.percent >= 50 ? "text-success" : "text-muted-foreground"
-                        )}>
-                          {eligibility.percent >= 50 ? "Eligible since" : "Eligible"}: {formatDate(age25Date.toISOString())}
-                        </p>
-                      ) : (
-                        <p className="mt-1 text-xs text-muted-foreground">Set birthday to calculate</p>
-                      )}
-                    </CardContent>
-                  </Card>
-                  <Card className={cn(eligibility.percent >= 100 && "border-success bg-success/5")}>
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm text-muted-foreground">Age {WITHDRAWAL_AGE_100_PERCENT}</p>
-                        {eligibility.percent >= 100 && (
-                          <Check className="h-4 w-4 text-success" />
-                        )}
-                      </div>
-                      <p className="font-medium">Remaining 50%</p>
-                      {age30Date ? (
-                        <p className={cn(
-                          "mt-1 text-xs",
-                          eligibility.percent >= 100 ? "text-success" : "text-muted-foreground"
-                        )}>
-                          {eligibility.percent >= 100 ? "Eligible since" : "Eligible"}: {formatDate(age30Date.toISOString())}
-                        </p>
-                      ) : (
-                        <p className="mt-1 text-xs text-muted-foreground">Set birthday to calculate</p>
-                      )}
-                    </CardContent>
-                  </Card>
-                </div>
+              ) : (
+                <p className="mt-1 text-xs text-muted-foreground">Set birthday to calculate</p>
+              )}
+            </CardContent>
+          </Card>
+          <Card className={cn(eligibility.percent >= 100 && "border-success bg-success/5")}>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">Age {WITHDRAWAL_AGE_100_PERCENT}</p>
+                {eligibility.percent >= 100 && <Check className="h-4 w-4 text-success" />}
               </div>
-
-              <Separator />
-              <div>
-                <p className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                  Contact Information
+              <p className="font-medium">Remaining 50%</p>
+              {age30Date ? (
+                <p
+                  className={cn(
+                    "mt-1 text-xs",
+                    eligibility.percent >= 100 ? "text-success" : "text-muted-foreground",
+                  )}
+                >
+                  {eligibility.percent >= 100 ? "Eligible since" : "Eligible"}:{" "}
+                  {formatDate(age30Date.toISOString())}
                 </p>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <EditableTextCell
-                      value={beneficiary.email}
-                      onSave={async (val) => {
-                        await updateBeneficiary(beneficiary.id, { email: val })
-                        setSelectedBeneficiary({ ...beneficiary, email: val })
-                      }}
-                    />
-                    {beneficiary.email && <CopyButton value={beneficiary.email} />}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <EditableTextCell
-                      value={beneficiary.phone}
-                      onSave={async (val) => {
-                        await updateBeneficiary(beneficiary.id, { phone: val })
-                        setSelectedBeneficiary({ ...beneficiary, phone: val })
-                      }}
-                    />
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <MapPin className="h-4 w-4 text-muted-foreground shrink-0 mt-1" />
-                    <div className="flex-1 space-y-1">
-                      <EditableTextCell
-                        value={beneficiary.streetAddress}
-                        onSave={async (val) => {
-                          await updateBeneficiary(beneficiary.id, { streetAddress: val })
-                          setSelectedBeneficiary({ ...beneficiary, streetAddress: val })
-                        }}
-                      />
-                      <div className="flex gap-1">
-                        <EditableTextCell
-                          value={beneficiary.city}
-                          onSave={async (val) => {
-                            await updateBeneficiary(beneficiary.id, { city: val })
-                            setSelectedBeneficiary({ ...beneficiary, city: val })
-                          }}
-                        />
-                        <EditableTextCell
-                          value={beneficiary.state}
-                          onSave={async (val) => {
-                            await updateBeneficiary(beneficiary.id, { state: val })
-                            setSelectedBeneficiary({ ...beneficiary, state: val })
-                          }}
-                        />
-                        <EditableTextCell
-                          value={beneficiary.zip}
-                          onSave={async (val) => {
-                            await updateBeneficiary(beneficiary.id, { zip: val })
-                            setSelectedBeneficiary({ ...beneficiary, zip: val })
-                          }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              ) : (
+                <p className="mt-1 text-xs text-muted-foreground">Set birthday to calculate</p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
 
-              <Separator />
-              <div>
-                <p className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                  Distribution History
-                </p>
-                {(beneficiary.distributions || []).length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No distributions recorded</p>
-                ) : (
-                  <div className="rounded-md border">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Date</TableHead>
-                          <TableHead>Amount</TableHead>
-                          <TableHead>Type</TableHead>
-                          <TableHead>Method</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {(beneficiary.distributions || []).map((d) => (
-                          <TableRow key={d.id}>
-                            <TableCell className="text-sm">
-                              {formatDate(d.distributionDate)}
-                            </TableCell>
-                            <TableCell className="font-medium">
-                              {formatCurrency(d.amount)}
-                            </TableCell>
-                            <TableCell>
-                              <Badge
-                                variant={
-                                  d.isWithdrawal
-                                    ? "outline"
-                                    : d.hemsCategory
-                                      ? "default"
-                                      : "secondary"
-                                }
-                              >
-                                {d.isWithdrawal
-                                  ? "Withdrawal"
-                                  : d.hemsCategory || "Distribution"}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-sm">{d.paymentMethod}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
+      <Separator />
+      <div>
+        <p className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          Contact Information
+        </p>
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
+            <EditableTextCell
+              value={beneficiary.email}
+              onSave={async (val) => {
+                await updateBeneficiary(beneficiary.id, { email: val })
+                setSelectedBeneficiary({ ...beneficiary, email: val })
+              }}
+            />
+            {beneficiary.email && <CopyButton value={beneficiary.email} />}
+          </div>
+          <div className="flex items-center gap-2">
+            <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
+            <EditableTextCell
+              value={beneficiary.phone}
+              onSave={async (val) => {
+                await updateBeneficiary(beneficiary.id, { phone: val })
+                setSelectedBeneficiary({ ...beneficiary, phone: val })
+              }}
+            />
+          </div>
+          <div className="flex items-start gap-2">
+            <MapPin className="h-4 w-4 text-muted-foreground shrink-0 mt-1" />
+            <div className="flex-1 space-y-1">
+              <EditableTextCell
+                value={beneficiary.streetAddress}
+                onSave={async (val) => {
+                  await updateBeneficiary(beneficiary.id, { streetAddress: val })
+                  setSelectedBeneficiary({ ...beneficiary, streetAddress: val })
+                }}
+              />
+              <div className="flex gap-1">
+                <EditableTextCell
+                  value={beneficiary.city}
+                  onSave={async (val) => {
+                    await updateBeneficiary(beneficiary.id, { city: val })
+                    setSelectedBeneficiary({ ...beneficiary, city: val })
+                  }}
+                />
+                <EditableTextCell
+                  value={beneficiary.state}
+                  onSave={async (val) => {
+                    await updateBeneficiary(beneficiary.id, { state: val })
+                    setSelectedBeneficiary({ ...beneficiary, state: val })
+                  }}
+                />
+                <EditableTextCell
+                  value={beneficiary.zip}
+                  onSave={async (val) => {
+                    await updateBeneficiary(beneficiary.id, { zip: val })
+                    setSelectedBeneficiary({ ...beneficiary, zip: val })
+                  }}
+                />
               </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
-              {/* Record Distribution Form */}
-              {showDistributionForm ? (
-                <Card>
-                  <CardContent className="space-y-4 pt-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="amount">Amount</Label>
-                      <Input
-                        id="amount"
-                        type="number"
-                        value={newDistribution.amount}
-                        onChange={(e) =>
-                          setNewDistribution({ ...newDistribution, amount: e.target.value })
-                        }
-                        placeholder="$0.00"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="paymentMethod">Payment Method</Label>
-                      <Select
-                        value={newDistribution.paymentMethod}
-                        onValueChange={(v) =>
-                          setNewDistribution({ ...newDistribution, paymentMethod: v })
+      <Separator />
+      <div>
+        <p className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          Distribution History
+        </p>
+        {(beneficiary.distributions || []).length === 0 ? (
+          <p className="text-sm text-muted-foreground">No distributions recorded</p>
+        ) : (
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Method</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(beneficiary.distributions || []).map((d) => (
+                  <TableRow key={d.id}>
+                    <TableCell className="text-sm">{formatDate(d.distributionDate)}</TableCell>
+                    <TableCell className="font-medium">{formatCurrency(d.amount)}</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          d.isWithdrawal ? "outline" : d.hemsCategory ? "default" : "secondary"
                         }
                       >
-                        <SelectTrigger id="paymentMethod">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="CHECK">Check</SelectItem>
-                          <SelectItem value="ACH">ACH</SelectItem>
-                          <SelectItem value="WIRE">Wire</SelectItem>
-                          <SelectItem value="CASH">Cash</SelectItem>
-                          <SelectItem value="OTHER">Other</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    {beneficiary.distributionStandard === "HEMS" && (
-                      <>
-                        <div className="space-y-2">
-                          <Label htmlFor="hemsCategory">HEMS Category</Label>
-                          <Select
-                            value={newDistribution.hemsCategory}
-                            onValueChange={(v) =>
-                              setNewDistribution({ ...newDistribution, hemsCategory: v })
-                            }
-                          >
-                            <SelectTrigger id="hemsCategory">
-                              <SelectValue placeholder="Select category..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="HEALTH">Health</SelectItem>
-                              <SelectItem value="EDUCATION">Education</SelectItem>
-                              <SelectItem value="MAINTENANCE">Maintenance</SelectItem>
-                              <SelectItem value="SUPPORT">Support</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="justification">Justification</Label>
-                          <Input
-                            id="justification"
-                            value={newDistribution.hemsJustification}
-                            onChange={(e) =>
-                              setNewDistribution({
-                                ...newDistribution,
-                                hemsJustification: e.target.value,
-                              })
-                            }
-                            placeholder="Explain why this qualifies under HEMS..."
-                          />
-                        </div>
-                      </>
-                    )}
-                    <div className="space-y-2">
-                      <Label htmlFor="notes">Notes</Label>
-                      <Input
-                        id="notes"
-                        value={newDistribution.notes}
-                        onChange={(e) =>
-                          setNewDistribution({ ...newDistribution, notes: e.target.value })
-                        }
-                      />
-                    </div>
-                    <div className="flex gap-2">
-                      <Button onClick={recordDistribution}>Save</Button>
-                      <Button variant="ghost" onClick={() => setShowDistributionForm(false)}>
-                        Cancel
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ) : (
-                <Button className="w-full" onClick={() => setShowDistributionForm(true)}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Record Distribution
-                </Button>
-              )}
+                        {d.isWithdrawal ? "Withdrawal" : d.hemsCategory || "Distribution"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-sm">{d.paymentMethod}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </div>
+
+      {/* Record Distribution Form */}
+      {showDistributionForm ? (
+        <Card>
+          <CardContent className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <Label htmlFor="amount">Amount</Label>
+              <Input
+                id="amount"
+                type="number"
+                value={newDistribution.amount}
+                onChange={(e) => setNewDistribution({ ...newDistribution, amount: e.target.value })}
+                placeholder="$0.00"
+              />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="paymentMethod">Payment Method</Label>
+              <Select
+                value={newDistribution.paymentMethod}
+                onValueChange={(v) => setNewDistribution({ ...newDistribution, paymentMethod: v })}
+              >
+                <SelectTrigger id="paymentMethod">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="CHECK">Check</SelectItem>
+                  <SelectItem value="ACH">ACH</SelectItem>
+                  <SelectItem value="WIRE">Wire</SelectItem>
+                  <SelectItem value="CASH">Cash</SelectItem>
+                  <SelectItem value="OTHER">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {beneficiary.distributionStandard === "HEMS" && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="hemsCategory">HEMS Category</Label>
+                  <Select
+                    value={newDistribution.hemsCategory}
+                    onValueChange={(v) =>
+                      setNewDistribution({ ...newDistribution, hemsCategory: v })
+                    }
+                  >
+                    <SelectTrigger id="hemsCategory">
+                      <SelectValue placeholder="Select category..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="HEALTH">Health</SelectItem>
+                      <SelectItem value="EDUCATION">Education</SelectItem>
+                      <SelectItem value="MAINTENANCE">Maintenance</SelectItem>
+                      <SelectItem value="SUPPORT">Support</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="justification">Justification</Label>
+                  <Input
+                    id="justification"
+                    value={newDistribution.hemsJustification}
+                    onChange={(e) =>
+                      setNewDistribution({
+                        ...newDistribution,
+                        hemsJustification: e.target.value,
+                      })
+                    }
+                    placeholder="Explain why this qualifies under HEMS..."
+                  />
+                </div>
+              </>
+            )}
+            <div className="space-y-2">
+              <Label htmlFor="notes">Notes</Label>
+              <Input
+                id="notes"
+                value={newDistribution.notes}
+                onChange={(e) => setNewDistribution({ ...newDistribution, notes: e.target.value })}
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={recordDistribution}>Save</Button>
+              <Button variant="ghost" onClick={() => setShowDistributionForm(false)}>
+                Cancel
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <Button className="w-full" onClick={() => setShowDistributionForm(true)}>
+          <Plus className="mr-2 h-4 w-4" />
+          Record Distribution
+        </Button>
+      )}
+    </div>
   )
 }

@@ -1,8 +1,8 @@
 "use client"
 
-import { useState } from "react"
 import { ChevronRight } from "lucide-react"
-
+import { useState } from "react"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import {
   Sidebar,
   SidebarContent,
@@ -17,11 +17,6 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar"
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible"
 
 type Route =
   | "/"
@@ -39,6 +34,7 @@ type Route =
   | "/liabilities"
   | "/activity-log"
   | "/settings"
+  | "/forms"
 
 interface AppSidebarProps {
   currentRoute: Route
@@ -49,7 +45,9 @@ export function AppSidebar({ currentRoute, onNavigate }: AppSidebarProps) {
   const [distributionsOpen, setDistributionsOpen] = useState(true)
   const [assetsOpen, setAssetsOpen] = useState(true)
 
-  const isInDistributions = ["/hems", "/hems-queue", "/distribution-wizard", "/bequests"].includes(currentRoute)
+  const isInDistributions = ["/hems", "/hems-queue", "/distribution-wizard", "/bequests"].includes(
+    currentRoute,
+  )
   const isInAssets = ["/properties", "/accounts", "/vehicles"].includes(currentRoute)
 
   return (
@@ -204,10 +202,7 @@ export function AppSidebar({ currentRoute, onNavigate }: AppSidebarProps) {
             >
               <SidebarMenuItem>
                 <CollapsibleTrigger asChild>
-                  <SidebarMenuButton
-                    tooltip="Assets"
-                    isActive={isInAssets && !assetsOpen}
-                  >
+                  <SidebarMenuButton tooltip="Assets" isActive={isInAssets && !assetsOpen}>
                     <span>Assets</span>
                     <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                   </SidebarMenuButton>

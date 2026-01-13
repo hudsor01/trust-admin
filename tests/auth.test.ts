@@ -1,38 +1,38 @@
 /**
  * Authentication Integration Tests
- * 
+ *
  * Tests authentication flows including:
  * - Unauthenticated access restrictions
  * - Session validation
  * - Role-based access control
  * - Magic link generation
  */
-import { describe, test, expect, beforeAll, afterAll } from "bun:test"
+import { afterAll, beforeAll, describe, expect, test } from "bun:test"
+import { eq } from "drizzle-orm"
+import { db } from "../db"
+import { generateId } from "../db/helpers"
+import { entity } from "../db/schema"
 import {
-  createTestUser,
-  createTestSession,
-  createTestBeneficiary,
-  getAuthHeaders,
   cleanupTestAuth,
   cleanupTestBeneficiaries,
+  createTestBeneficiary,
+  createTestSession,
+  createTestUser,
+  getAuthHeaders,
   isServerAvailable,
 } from "./helpers/auth"
-import { db } from "../db"
-import { entity } from "../db/schema"
-import { generateId } from "../db/helpers"
-import { eq } from "drizzle-orm"
 
 const BASE_URL = "http://localhost:5050"
 
 describe("Authentication", () => {
   let serverAvailable = false
   let testEntityId: string
-  let testUserIds: string[] = []
-  let testBeneficiaryIds: string[] = []
+  const testUserIds: string[] = []
+  const testBeneficiaryIds: string[] = []
 
   beforeAll(async () => {
     serverAvailable = await isServerAvailable()
-    
+
     if (!serverAvailable) {
       console.warn("⚠️  Server not running - skipping auth tests")
       return
@@ -58,7 +58,7 @@ describe("Authentication", () => {
     // Cleanup test data
     await cleanupTestAuth(testUserIds)
     await cleanupTestBeneficiaries(testBeneficiaryIds)
-    
+
     // Delete test entity
     if (testEntityId) {
       await db.delete(entity).where(eq(entity.id, testEntityId))

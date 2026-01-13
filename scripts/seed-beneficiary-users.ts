@@ -7,21 +7,19 @@
  * Usage: bun scripts/seed-beneficiary-users.ts
  */
 
-import { db } from "../db"
-import { beneficiary, user, account } from "../db/schema"
-import { generateId } from "../db/helpers"
 import { eq } from "drizzle-orm"
+import { db } from "../db"
+import { generateId } from "../db/helpers"
+import { account, beneficiary, user } from "../db/schema"
 
 async function seedBeneficiaryUsers() {
   console.log("Seeding beneficiary users for magic link authentication...")
   console.log("")
 
   // Get all beneficiaries with email addresses
-  const beneficiaries = await db
-    .select()
-    .from(beneficiary)
+  const beneficiaries = await db.select().from(beneficiary)
 
-  const beneficiariesWithEmail = beneficiaries.filter(b => b.email)
+  const beneficiariesWithEmail = beneficiaries.filter((b) => b.email)
 
   console.log(`Found ${beneficiariesWithEmail.length} beneficiaries with email addresses`)
   console.log("")
@@ -34,11 +32,7 @@ async function seedBeneficiaryUsers() {
     if (!ben.email) continue
 
     // Check if user already exists with this email
-    const existingUser = await db
-      .select()
-      .from(user)
-      .where(eq(user.email, ben.email))
-      .limit(1)
+    const existingUser = await db.select().from(user).where(eq(user.email, ben.email)).limit(1)
 
     if (existingUser.length > 0) {
       console.log(`  [SKIP] ${ben.firstName} ${ben.lastName} - user already exists`)
@@ -75,7 +69,9 @@ async function seedBeneficiaryUsers() {
       console.log(`  [CREATE] ${ben.firstName} ${ben.lastName} (${ben.email})`)
       created++
     } catch (err) {
-      console.log(`  [ERROR] ${ben.firstName} ${ben.lastName} - ${err instanceof Error ? err.message : "Unknown error"}`)
+      console.log(
+        `  [ERROR] ${ben.firstName} ${ben.lastName} - ${err instanceof Error ? err.message : "Unknown error"}`,
+      )
       errors++
     }
   }

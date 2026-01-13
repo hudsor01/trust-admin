@@ -4,15 +4,13 @@ import { magicLink } from "better-auth/plugins"
 import { Resend } from "resend"
 import { db } from "../../db"
 import * as schema from "../../db/schema"
-import { logger } from "./logger"
 import { recordSignIn } from "./auth-events"
+import { logger } from "./logger"
 
 const log = logger.auth
 
 // Resend is optional - server can run without it, but magic links won't work
-const resend = process.env.RESEND_API_KEY
-  ? new Resend(process.env.RESEND_API_KEY)
-  : null
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 
 if (!resend) {
   log.warn("RESEND_API_KEY not set - magic link emails will not be sent")
@@ -30,16 +28,19 @@ interface RateLimitEntry {
 const magicLinkRateLimits = new Map<string, RateLimitEntry>()
 
 // Cleanup old entries every 5 minutes
-setInterval(() => {
-  const now = Date.now()
-  const hourAgo = now - 60 * 60 * 1000
+setInterval(
+  () => {
+    const now = Date.now()
+    const hourAgo = now - 60 * 60 * 1000
 
-  for (const [email, entry] of magicLinkRateLimits.entries()) {
-    if (entry.lastAttempt < hourAgo) {
-      magicLinkRateLimits.delete(email)
+    for (const [email, entry] of magicLinkRateLimits.entries()) {
+      if (entry.lastAttempt < hourAgo) {
+        magicLinkRateLimits.delete(email)
+      }
     }
-  }
-}, 5 * 60 * 1000)
+  },
+  5 * 60 * 1000,
+)
 
 /**
  * Check rate limit: 5 attempts per hour per email
@@ -52,7 +53,7 @@ function checkMagicLinkRateLimit(email: string): void {
   const entry = magicLinkRateLimits.get(email) || { attempts: [], lastAttempt: 0 }
 
   // Filter recent attempts (last hour)
-  entry.attempts = entry.attempts.filter(t => t > hourAgo)
+  entry.attempts = entry.attempts.filter((t) => t > hourAgo)
 
   if (entry.attempts.length >= 5) {
     const oldestAttempt = Math.min(...entry.attempts)
@@ -60,7 +61,7 @@ function checkMagicLinkRateLimit(email: string): void {
 
     log.warn("Magic link rate limit exceeded", { email, attempts: entry.attempts.length })
     throw new Error(
-      `Too many magic link requests. Please try again in ${minutesUntilReset} minute(s).`
+      `Too many magic link requests. Please try again in ${minutesUntilReset} minute(s).`,
     )
   }
 
@@ -106,7 +107,7 @@ export const auth = betterAuth({
   },
   plugins: [
     magicLink({
-      sendMagicLink: async ({ email, url, token }, request) => {
+      sendMagicLink: async ({ email, url, token: _token }, _request) => {
         log.info("Sending magic link", { email })
 
         // Check rate limit BEFORE sending email
@@ -115,11 +116,11 @@ export const auth = betterAuth({
         // Development mode: log link to console instead of sending email
         // This works even if RESEND_API_KEY is set, to avoid domain verification issues
         if (process.env.NODE_ENV === "development") {
-          console.log("\n" + "=".repeat(80))
+          console.log(`\n${"=".repeat(80)}`)
           console.log("🔐 MAGIC LINK FOR:", email)
           console.log("📧 Click this link to sign in:")
           console.log(url)
-          console.log("=".repeat(80) + "\n")
+          console.log(`${"=".repeat(80)}\n`)
           log.info("Development mode - magic link logged to console (not sent via email)")
           return // Success - link logged to console
         }
@@ -172,11 +173,21 @@ export const auth = betterAuth({
        * Called after successful sign-in
        * Record to audit log
        */
-      async created({ session, user, request }: { session: any; user: any; request?: any }) {
+      async created({
+        session,
+        user,
+        request,
+      }: {
+        session: unknown
+        user: { id: string }
+        request?: Request
+      }) {
         if (request) {
           const url = new URL(request.url)
-          const ip = request.headers.get("x-forwarded-for")?.split(",")[0] ||
-                     request.headers.get("x-real-ip") || "unknown"
+          const ip =
+            request.headers.get("x-forwarded-for")?.split(",")[0] ||
+            request.headers.get("x-real-ip") ||
+            "unknown"
           const userAgent = request.headers.get("user-agent") || "unknown"
 
           await recordSignIn(user.id, {
@@ -205,8 +216,6 @@ export function isAdmin(user: AppUser): boolean {
   return user.role === "admin"
 }
 
-export function isBeneficiary(
-  user: AppUser
-): user is AppUser & { beneficiaryId: string } {
+export function isBeneficiary(user: AppUser): user is AppUser & { beneficiaryId: string } {
   return user.role === "beneficiary" && !!user.beneficiaryId
 }

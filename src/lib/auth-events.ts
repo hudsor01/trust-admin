@@ -1,6 +1,6 @@
 import { db } from "../../db"
-import { activityLog } from "../../db/schema"
 import { generateId } from "../../db/helpers"
+import { activityLog } from "../../db/schema"
 import { logger } from "./logger"
 
 /**
@@ -14,7 +14,7 @@ export async function recordAuthEvent(
     ip: string
     userAgent?: string
     reason?: string
-  }
+  },
 ): Promise<void> {
   try {
     await db.insert(activityLog).values({
@@ -49,7 +49,7 @@ export async function recordSignIn(
     path: string
     ip: string
     userAgent: string
-  }
+  },
 ): Promise<void> {
   await recordAuthEvent("SIGN_IN", userId, details)
   logger.auth.info("User signed in", { userId, ip: details.ip })

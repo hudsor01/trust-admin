@@ -1,12 +1,13 @@
 /**
  * Authentication Test Utilities
- * 
+ *
  * Helper functions for creating test users, sessions, and authentication headers
  */
-import { db } from "../../db"
-import { user, session, beneficiary } from "../../db/schema"
-import { generateId } from "../../db/helpers"
+
 import { eq } from "drizzle-orm"
+import { db } from "../../db"
+import { generateId } from "../../db/helpers"
+import { beneficiary, session, user } from "../../db/schema"
 
 const BASE_URL = "http://localhost:5050"
 
@@ -85,7 +86,7 @@ export async function createTestBeneficiary(options: {
  */
 export function getAuthHeaders(sessionToken: string) {
   return {
-    "Cookie": `better-auth.session_token=${sessionToken}`,
+    Cookie: `better-auth.session_token=${sessionToken}`,
   }
 }
 
@@ -94,12 +95,10 @@ export function getAuthHeaders(sessionToken: string) {
  */
 export async function cleanupTestAuth(userIds: string[]) {
   if (userIds.length === 0) return
-  
+
   // Delete sessions first (FK constraint)
-  await db.delete(session).where(
-    eq(session.userId, userIds[0])
-  )
-  
+  await db.delete(session).where(eq(session.userId, userIds[0]))
+
   // Delete users
   for (const userId of userIds) {
     await db.delete(user).where(eq(user.id, userId))
@@ -111,7 +110,7 @@ export async function cleanupTestAuth(userIds: string[]) {
  */
 export async function cleanupTestBeneficiaries(beneficiaryIds: string[]) {
   if (beneficiaryIds.length === 0) return
-  
+
   for (const beneficiaryId of beneficiaryIds) {
     await db.delete(beneficiary).where(eq(beneficiary.id, beneficiaryId))
   }
@@ -123,7 +122,7 @@ export async function cleanupTestBeneficiaries(beneficiaryIds: string[]) {
 export async function isServerAvailable(): Promise<boolean> {
   try {
     const res = await fetch(`${BASE_URL}/health`, {
-      signal: AbortSignal.timeout(2000)
+      signal: AbortSignal.timeout(2000),
     })
     return res.ok
   } catch {

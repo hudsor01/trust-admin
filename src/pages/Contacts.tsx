@@ -1,13 +1,36 @@
 "use client"
 
-import { useState, useMemo } from "react"
-import { Mail, Phone, MapPin, Eye, Loader2, Calendar, Plus, Pencil, Trash2, Download } from "lucide-react"
-import { Card, CardContent } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
+import {
+  Calendar,
+  Download,
+  Eye,
+  Loader2,
+  Mail,
+  MapPin,
+  Pencil,
+  Phone,
+  Plus,
+  Trash2,
+} from "lucide-react"
+import { useMemo, useState } from "react"
+import { CopyButton } from "@/components/copy-button"
+// Import reusable editable cell components
+import { EditableDateCell, EditableSelectCell, EditableTextCell } from "@/components/editable-cells"
+import { ResourceDialog } from "@/components/resource-dialog"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Separator } from "@/components/ui/separator"
 import {
   Table,
   TableBody,
@@ -16,41 +39,31 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import { ResourceDialog } from "@/components/resource-dialog"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
-import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-
-// Import reusable editable cell components
-import { EditableTextCell, EditableSelectCell, EditableDateCell } from "@/components/editable-cells"
-import { CopyButton } from "@/components/copy-button"
+import { Textarea } from "@/components/ui/textarea"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 // Import types and hooks from TanStack Query hooks
-import { useContacts, useCreateContact, useUpdateContact, useDeleteContact, type Contact } from "@/hooks/contacts/queries"
-import { contactFormDefaults } from "@/lib/form-factory"
-import { exportTablesInContainer } from "@/lib/csv"
+import {
+  type Contact,
+  useContacts,
+  useCreateContact,
+  useDeleteContact,
+  useUpdateContact,
+} from "@/hooks/contacts/queries"
 import { useResourceForm } from "@/hooks/use-resource-form"
-import { insertContactSchema } from "../../db/validation"
+import { exportTablesInContainer } from "@/lib/csv"
+import { contactFormDefaults } from "@/lib/form-factory"
+import { getFieldError } from "@/lib/form-helpers"
 
-type RoleFilter = "all" | "ATTORNEY" | "ACCOUNTANT" | "FINANCIAL_ADVISOR" | "INSURANCE_AGENT" | "BANKER" | "OTHER"
+type RoleFilter =
+  | "all"
+  | "ATTORNEY"
+  | "ACCOUNTANT"
+  | "FINANCIAL_ADVISOR"
+  | "INSURANCE_AGENT"
+  | "BANKER"
+  | "OTHER"
 
 const ROLE_FILTERS: { value: RoleFilter; label: string }[] = [
   { value: "all", label: "All" },
@@ -80,7 +93,7 @@ export function Contacts() {
   // Use TanStack Query hooks for data fetching
   const { data: contacts = [], isLoading } = useContacts()
   const createContactMutation = useCreateContact()
-  const updateContactMutation = useUpdateContact()
+  const _updateContactMutation = useUpdateContact()
   const deleteContactMutation = useDeleteContact()
 
   const [filter, setFilter] = useState<RoleFilter>("all")
@@ -88,8 +101,8 @@ export function Contacts() {
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null)
 
   // Use useResourceForm hook with TanStack Form validation
-  const contactForm = useResourceForm({
-    initialData: contactFormDefaults(),
+  const contactForm = useResourceForm<Contact>({
+    initialData: { ...contactFormDefaults(), id: "", dob: null } as Contact,
     onSubmit: async (data) => {
       const payload = {
         name: data.name,
@@ -97,6 +110,7 @@ export function Contacts() {
         role: data.role,
         email: data.email || null,
         phone: data.phone || null,
+        dob: data.dob || null,
         streetAddress: data.streetAddress || null,
         city: data.city || null,
         state: data.state || null,
@@ -105,19 +119,17 @@ export function Contacts() {
       }
 
       if (contactForm.isEditing && contactForm.editing) {
-        // Get the editing contact id
-        const editingId = (contactForm.editing as any).id
+        await _updateContactMutation.mutateAsync({ id: contactForm.editing.id, data: payload })
       } else {
-        await createContactMutation.mutateAsync(payload as any)
+        await createContactMutation.mutateAsync(payload)
       }
     },
-    schema: insertContactSchema as any,
   })
 
   const openEditForm = (contact: Contact) => {
     contactForm.handleEdit({
       ...contact,
-    } as any)
+    })
   }
 
   const filteredContacts = useMemo(() => {
@@ -130,7 +142,7 @@ export function Contacts() {
       data = data.filter(
         (c) =>
           c.name.toLowerCase().includes(searchLower) ||
-          (c.company && c.company.toLowerCase().includes(searchLower))
+          c.company?.toLowerCase().includes(searchLower),
       )
     }
     return data
@@ -142,9 +154,7 @@ export function Contacts() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-semibold tracking-tight text-balance">Contacts</h2>
-          <p className="text-sm text-muted-foreground">
-            {contacts.length} professional contacts
-          </p>
+          <p className="text-sm text-muted-foreground">{contacts.length} professional contacts</p>
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -194,9 +204,7 @@ export function Contacts() {
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           ) : filteredContacts.length === 0 ? (
-            <p className="text-center py-12 text-muted-foreground">
-              No contacts found
-            </p>
+            <p className="text-center py-12 text-muted-foreground">No contacts found</p>
           ) : (
             <div className="rounded-md border">
               <Table>
@@ -215,11 +223,7 @@ export function Contacts() {
                   {filteredContacts.map((contact) => (
                     <TableRow key={contact.id}>
                       <TableCell>
-                        <EditableTextCell
-                          value={contact.name}
-                          onSave={async (val) => {
-                          }}
-                        />
+                        <EditableTextCell value={contact.name} onSave={async (_val) => {}} />
                       </TableCell>
                       <TableCell>
                         <EditableSelectCell
@@ -228,37 +232,20 @@ export function Contacts() {
                             value,
                             label,
                           }))}
-                          onSave={async (val) => {
-                          }}
+                          onSave={async (_val) => {}}
                         />
                       </TableCell>
                       <TableCell>
-                        <EditableTextCell
-                          value={contact.company}
-                          onSave={async (val) => {
-                          }}
-                        />
+                        <EditableTextCell value={contact.company} onSave={async (_val) => {}} />
                       </TableCell>
                       <TableCell>
-                        <EditableTextCell
-                          value={contact.email}
-                          onSave={async (val) => {
-                          }}
-                        />
+                        <EditableTextCell value={contact.email} onSave={async (_val) => {}} />
                       </TableCell>
                       <TableCell>
-                        <EditableTextCell
-                          value={contact.phone}
-                          onSave={async (val) => {
-                          }}
-                        />
+                        <EditableTextCell value={contact.phone} onSave={async (_val) => {}} />
                       </TableCell>
                       <TableCell>
-                        <EditableDateCell
-                          value={contact.dob}
-                          onSave={async (val) => {
-                          }}
-                        />
+                        <EditableDateCell value={contact.dob} onSave={async (_val) => {}} />
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-1">
@@ -305,7 +292,7 @@ export function Contacts() {
                                   className="h-8 w-8 text-destructive hover:text-destructive"
                                   onClick={async () => {
                                     if (confirm("Are you sure you want to delete this contact?")) {
-                                      await deleteContactMutation.mutateAsync(contact.id);
+                                      await deleteContactMutation.mutateAsync(contact.id)
                                     }
                                   }}
                                 >
@@ -356,11 +343,7 @@ export function Contacts() {
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
                   <span className="text-sm font-medium w-16">Birthday:</span>
-                  <EditableDateCell
-                    value={selectedContact.dob}
-                    onSave={async (val) => {
-                    }}
-                  />
+                  <EditableDateCell value={selectedContact.dob} onSave={async (_val) => {}} />
                 </div>
                 <div className="flex items-center gap-2">
                   <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -406,9 +389,7 @@ export function Contacts() {
                     <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
                       Notes
                     </p>
-                    <p className="text-sm text-muted-foreground">
-                      {selectedContact.notes}
-                    </p>
+                    <p className="text-sm text-muted-foreground">{selectedContact.notes}</p>
                   </div>
                 </>
               )}
@@ -428,7 +409,7 @@ export function Contacts() {
         <div className="space-y-4">
           {/* Name */}
           <contactForm.formInstance.Field name="name">
-            {(field: any) => (
+            {(field) => (
               <div className="space-y-2">
                 <Label htmlFor="name">Name *</Label>
                 <Input
@@ -439,7 +420,7 @@ export function Contacts() {
                   onBlur={field.handleBlur}
                 />
                 {field.state.meta.errors && field.state.meta.errors.length > 0 && (
-                  <p className="text-sm text-red-500">{field.state.meta.errors[0]?.message || field.state.meta.errors[0]}</p>
+                  <p className="text-sm text-red-500">{getFieldError(field)}</p>
                 )}
               </div>
             )}
@@ -447,7 +428,7 @@ export function Contacts() {
 
           {/* Company */}
           <contactForm.formInstance.Field name="company">
-            {(field: any) => (
+            {(field) => (
               <div className="space-y-2">
                 <Label htmlFor="company">Company</Label>
                 <Input
@@ -463,7 +444,7 @@ export function Contacts() {
 
           {/* Role */}
           <contactForm.formInstance.Field name="role">
-            {(field: any) => (
+            {(field) => (
               <div className="space-y-2">
                 <Label htmlFor="role">Role</Label>
                 <Select
@@ -487,7 +468,7 @@ export function Contacts() {
 
           {/* Email */}
           <contactForm.formInstance.Field name="email">
-            {(field: any) => (
+            {(field) => (
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
@@ -499,7 +480,7 @@ export function Contacts() {
                   onBlur={field.handleBlur}
                 />
                 {field.state.meta.errors && field.state.meta.errors.length > 0 && (
-                  <p className="text-sm text-red-500">{field.state.meta.errors[0]?.message || field.state.meta.errors[0]}</p>
+                  <p className="text-sm text-red-500">{getFieldError(field)}</p>
                 )}
               </div>
             )}
@@ -507,7 +488,7 @@ export function Contacts() {
 
           {/* Phone */}
           <contactForm.formInstance.Field name="phone">
-            {(field: any) => (
+            {(field) => (
               <div className="space-y-2">
                 <Label htmlFor="phone">Phone</Label>
                 <Input
@@ -518,7 +499,7 @@ export function Contacts() {
                   onBlur={field.handleBlur}
                 />
                 {field.state.meta.errors && field.state.meta.errors.length > 0 && (
-                  <p className="text-sm text-red-500">{field.state.meta.errors[0]?.message || field.state.meta.errors[0]}</p>
+                  <p className="text-sm text-red-500">{getFieldError(field)}</p>
                 )}
               </div>
             )}
@@ -526,7 +507,7 @@ export function Contacts() {
 
           {/* Birthday */}
           <contactForm.formInstance.Field name="dob">
-            {(field: any) => (
+            {(field) => (
               <div className="space-y-2">
                 <Label htmlFor="dob">Birthday</Label>
                 <Input
@@ -542,7 +523,7 @@ export function Contacts() {
 
           {/* Street Address */}
           <contactForm.formInstance.Field name="streetAddress">
-            {(field: any) => (
+            {(field) => (
               <div className="space-y-2">
                 <Label htmlFor="streetAddress">Street Address</Label>
                 <Input
@@ -559,7 +540,7 @@ export function Contacts() {
           {/* City, State, ZIP */}
           <div className="grid grid-cols-3 gap-3">
             <contactForm.formInstance.Field name="city">
-              {(field: any) => (
+              {(field) => (
                 <div className="space-y-2">
                   <Label htmlFor="city">City</Label>
                   <Input
@@ -574,7 +555,7 @@ export function Contacts() {
             </contactForm.formInstance.Field>
 
             <contactForm.formInstance.Field name="state">
-              {(field: any) => (
+              {(field) => (
                 <div className="space-y-2">
                   <Label htmlFor="state">State</Label>
                   <Input
@@ -589,7 +570,7 @@ export function Contacts() {
             </contactForm.formInstance.Field>
 
             <contactForm.formInstance.Field name="zip">
-              {(field: any) => (
+              {(field) => (
                 <div className="space-y-2">
                   <Label htmlFor="zip">ZIP</Label>
                   <Input
@@ -600,7 +581,7 @@ export function Contacts() {
                     onBlur={field.handleBlur}
                   />
                   {field.state.meta.errors && field.state.meta.errors.length > 0 && (
-                    <p className="text-sm text-red-500">{field.state.meta.errors[0]?.message || field.state.meta.errors[0]}</p>
+                    <p className="text-sm text-red-500">{getFieldError(field)}</p>
                   )}
                 </div>
               )}
@@ -609,7 +590,7 @@ export function Contacts() {
 
           {/* Notes */}
           <contactForm.formInstance.Field name="notes">
-            {(field: any) => (
+            {(field) => (
               <div className="space-y-2">
                 <Label htmlFor="notes">Notes</Label>
                 <Textarea

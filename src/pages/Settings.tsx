@@ -1,22 +1,15 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Calendar, Mail, Phone, User, Users, Loader2, Check, ChevronRight, Plus, Building } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { formatDate, calculateAge } from "../utils/formatters"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
+import { Building, Loader2, Plus } from "lucide-react"
+import { useEffect, useState } from "react"
+import { EditableDateCell, EditableTextCell } from "@/components/editable-cells"
+import { ResourceDialog } from "@/components/resource-dialog"
+import { ThemeToggle } from "@/components/theme-toggle"
 import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import {
   Select,
   SelectContent,
@@ -25,17 +18,17 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible"
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import { ResourceDialog } from "@/components/resource-dialog"
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useResourceForm } from "@/hooks/use-resource-form"
 import { insertContactSchema } from "../../db/validation"
-import { Label } from "@/components/ui/label"
-import { ThemeToggle } from "@/components/theme-toggle"
-import { EditableTextCell, EditableDateCell } from "@/components/editable-cells"
+import { calculateAge } from "../utils/formatters"
 
 const CONTACT_ROLES = [
   { value: "ATTORNEY", label: "Attorney" },
@@ -48,11 +41,11 @@ const CONTACT_ROLES = [
   { value: "OTHER", label: "Other" },
 ]
 
+import { useBeneficiaries, useUpdateBeneficiary } from "@/hooks/beneficiaries/queries"
+import { useContacts, useCreateContact, useUpdateContact } from "@/hooks/contacts/queries"
 // Import hooks
 import { useEntities } from "@/hooks/entities/queries"
-import { useBeneficiaries, useUpdateBeneficiary } from "@/hooks/beneficiaries/queries"
 import { useTrustees, useUpdateTrustee } from "@/hooks/trustees/queries"
-import { useContacts, useCreateContact, useUpdateContact } from "@/hooks/contacts/queries"
 
 // Person row component for beneficiaries/trustees
 function PersonRow({
@@ -82,9 +75,7 @@ function PersonRow({
       <TableCell>
         <div className="flex items-center gap-2">
           <EditableDateCell value={dob} onSave={onUpdateDob} placeholder="Set birthday" />
-          {age !== null && (
-            <span className="text-xs text-muted-foreground">(Age {age})</span>
-          )}
+          {age !== null && <span className="text-xs text-muted-foreground">(Age {age})</span>}
         </div>
       </TableCell>
       <TableCell>
@@ -115,16 +106,14 @@ function ContactRow({
   onUpdateEmail: (val: string | null) => Promise<void>
   onUpdatePhone: (val: string | null) => Promise<void>
 }) {
-  const roleLabel = CONTACT_ROLES.find(r => r.value === role)?.label || role
+  const roleLabel = CONTACT_ROLES.find((r) => r.value === role)?.label || role
 
   return (
     <TableRow>
       <TableCell>
         <div>
           <span className="font-medium">{name}</span>
-          {company && (
-            <span className="text-xs text-muted-foreground ml-2">({company})</span>
-          )}
+          {company && <span className="text-xs text-muted-foreground ml-2">({company})</span>}
         </div>
       </TableCell>
       <TableCell>
@@ -152,10 +141,14 @@ export function Settings() {
     }
   }, [entities, selectedEntity])
 
-  const { data: beneficiaries = [], isLoading: beneficiariesLoading } = useBeneficiaries(selectedEntity || undefined)
+  const { data: beneficiaries = [], isLoading: beneficiariesLoading } = useBeneficiaries(
+    selectedEntity || undefined,
+  )
   const updateBeneficiaryMutation = useUpdateBeneficiary()
 
-  const { data: trustees = [], isLoading: trusteesLoading } = useTrustees(selectedEntity || undefined)
+  const { data: trustees = [], isLoading: trusteesLoading } = useTrustees(
+    selectedEntity || undefined,
+  )
   const updateTrusteeMutation = useUpdateTrustee()
 
   const { data: contacts = [], isLoading: contactsLoading } = useContacts()
@@ -171,7 +164,7 @@ export function Settings() {
       email: "",
       phone: "",
     },
-    schema: insertContactSchema as any,
+    schema: insertContactSchema,
     onSubmit: async (data) => {
       await createContactMutation.mutateAsync({
         name: data.name.trim(),
@@ -188,8 +181,8 @@ export function Settings() {
   const loading = entitiesLoading || beneficiariesLoading || trusteesLoading || contactsLoading
 
   // Count how many people have birthdays set (for beneficiaries/trustees)
-  const beneficiariesWithDob = beneficiaries.filter(b => b.dob).length
-  const trusteesWithDob = trustees.filter(t => t.dob).length
+  const beneficiariesWithDob = beneficiaries.filter((b) => b.dob).length
+  const trusteesWithDob = trustees.filter((t) => t.dob).length
 
   return (
     <div className="space-y-6">
@@ -296,13 +289,22 @@ export function Settings() {
                           email={b.email}
                           phone={b.phone}
                           onUpdateDob={async (val) => {
-                            await updateBeneficiaryMutation.mutateAsync({ id: b.id, data: { dob: val } })
+                            await updateBeneficiaryMutation.mutateAsync({
+                              id: b.id,
+                              data: { dob: val },
+                            })
                           }}
                           onUpdateEmail={async (val) => {
-                            await updateBeneficiaryMutation.mutateAsync({ id: b.id, data: { email: val } })
+                            await updateBeneficiaryMutation.mutateAsync({
+                              id: b.id,
+                              data: { email: val },
+                            })
                           }}
                           onUpdatePhone={async (val) => {
-                            await updateBeneficiaryMutation.mutateAsync({ id: b.id, data: { phone: val } })
+                            await updateBeneficiaryMutation.mutateAsync({
+                              id: b.id,
+                              data: { phone: val },
+                            })
                           }}
                         />
                       ))}
@@ -341,13 +343,22 @@ export function Settings() {
                           email={t.email}
                           phone={t.phone}
                           onUpdateDob={async (val) => {
-                            await updateTrusteeMutation.mutateAsync({ id: t.id, data: { dob: val } })
+                            await updateTrusteeMutation.mutateAsync({
+                              id: t.id,
+                              data: { dob: val },
+                            })
                           }}
                           onUpdateEmail={async (val) => {
-                            await updateTrusteeMutation.mutateAsync({ id: t.id, data: { email: val } })
+                            await updateTrusteeMutation.mutateAsync({
+                              id: t.id,
+                              data: { email: val },
+                            })
                           }}
                           onUpdatePhone={async (val) => {
-                            await updateTrusteeMutation.mutateAsync({ id: t.id, data: { phone: val } })
+                            await updateTrusteeMutation.mutateAsync({
+                              id: t.id,
+                              data: { phone: val },
+                            })
                           }}
                         />
                       ))}
@@ -378,7 +389,7 @@ export function Settings() {
                   <div className="space-y-4">
                     {/* Name - Required */}
                     <formInstance.Field name="name">
-                      {(field: any) => (
+                      {(field) => (
                         <div className="space-y-2">
                           <Label htmlFor="contact-name">Name *</Label>
                           <Input
@@ -397,7 +408,7 @@ export function Settings() {
 
                     {/* Company */}
                     <formInstance.Field name="company">
-                      {(field: any) => (
+                      {(field) => (
                         <div className="space-y-2">
                           <Label htmlFor="contact-company">Company</Label>
                           <Input
@@ -413,7 +424,7 @@ export function Settings() {
 
                     {/* Role */}
                     <formInstance.Field name="role">
-                      {(field: any) => (
+                      {(field) => (
                         <div className="space-y-2">
                           <Label htmlFor="contact-role">Role</Label>
                           <Select
@@ -437,7 +448,7 @@ export function Settings() {
 
                     {/* Email */}
                     <formInstance.Field name="email">
-                      {(field: any) => (
+                      {(field) => (
                         <div className="space-y-2">
                           <Label htmlFor="contact-email">Email</Label>
                           <Input
@@ -454,7 +465,7 @@ export function Settings() {
 
                     {/* Phone */}
                     <formInstance.Field name="phone">
-                      {(field: any) => (
+                      {(field) => (
                         <div className="space-y-2">
                           <Label htmlFor="contact-phone">Phone</Label>
                           <Input
@@ -479,7 +490,9 @@ export function Settings() {
                   <div className="py-12 text-center">
                     <Building className="mx-auto h-12 w-12 text-muted-foreground/50" />
                     <p className="mt-4 text-muted-foreground">No contacts yet</p>
-                    <p className="text-sm text-muted-foreground">Add attorneys, CPAs, and other professionals</p>
+                    <p className="text-sm text-muted-foreground">
+                      Add attorneys, CPAs, and other professionals
+                    </p>
                   </div>
                 ) : (
                   <div className="rounded-md border">
@@ -502,10 +515,16 @@ export function Settings() {
                             email={c.email}
                             phone={c.phone}
                             onUpdateEmail={async (val) => {
-                              await updateContactMutation.mutateAsync({ id: c.id, data: { email: val } })
+                              await updateContactMutation.mutateAsync({
+                                id: c.id,
+                                data: { email: val },
+                              })
                             }}
                             onUpdatePhone={async (val) => {
-                              await updateContactMutation.mutateAsync({ id: c.id, data: { phone: val } })
+                              await updateContactMutation.mutateAsync({
+                                id: c.id,
+                                data: { phone: val },
+                              })
                             }}
                           />
                         ))}

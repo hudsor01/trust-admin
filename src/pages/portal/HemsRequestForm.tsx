@@ -7,13 +7,13 @@
  * Health, Education, Maintenance, Support standard.
  */
 
+import { ArrowLeft, Loader2, Send } from "lucide-react"
 import { useState } from "react"
-import { Loader2, Send, ArrowLeft } from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import {
   Select,
   SelectContent,
@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Textarea } from "@/components/ui/textarea"
 
 interface HemsRequestFormProps {
   beneficiaryId: string
@@ -33,7 +33,11 @@ interface HemsRequestFormProps {
 const CATEGORIES = [
   { value: "HEALTH", label: "Health", description: "Medical expenses, healthcare, insurance" },
   { value: "EDUCATION", label: "Education", description: "Tuition, books, educational expenses" },
-  { value: "MAINTENANCE", label: "Maintenance", description: "Housing, utilities, basic living expenses" },
+  {
+    value: "MAINTENANCE",
+    label: "Maintenance",
+    description: "Housing, utilities, basic living expenses",
+  },
   { value: "SUPPORT", label: "Support", description: "General support and living needs" },
 ]
 
@@ -60,7 +64,7 @@ export function HemsRequestForm({
     }
 
     const amountNum = parseFloat(amount)
-    if (isNaN(amountNum) || amountNum <= 0) {
+    if (Number.isNaN(amountNum) || amountNum <= 0) {
       setError("Please enter a valid amount")
       return
     }
@@ -107,8 +111,8 @@ export function HemsRequestForm({
             </div>
             <h3 className="text-lg font-semibold">Request Submitted</h3>
             <p className="text-muted-foreground">
-              Your request has been submitted for review. You'll be notified when
-              the trustee makes a decision.
+              Your request has been submitted for review. You'll be notified when the trustee makes
+              a decision.
             </p>
           </div>
         </CardContent>
@@ -151,9 +155,7 @@ export function HemsRequestForm({
                   <SelectItem key={cat.value} value={cat.value}>
                     <div>
                       <span className="font-medium">{cat.label}</span>
-                      <span className="text-muted-foreground ml-2 text-xs">
-                        {cat.description}
-                      </span>
+                      <span className="text-muted-foreground ml-2 text-xs">{cat.description}</span>
                     </div>
                   </SelectItem>
                 ))}

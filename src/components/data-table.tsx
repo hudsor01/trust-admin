@@ -1,13 +1,16 @@
-import { useState } from "react"
-import { Pencil, Trash2, ArrowUpDown, ChevronUp, ChevronDown } from "lucide-react"
 import {
-  useReactTable,
+  type CellContext,
+  flexRender,
   getCoreRowModel,
   getSortedRowModel,
-  flexRender,
+  type Row,
   type SortingState,
   type ColumnDef as TanStackColumnDef,
+  useReactTable,
 } from "@tanstack/react-table"
+import { ArrowUpDown, ChevronDown, ChevronUp, Pencil, Trash2 } from "lucide-react"
+import { useState } from "react"
+import { Pagination } from "@/components/pagination"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
@@ -18,7 +21,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Pagination } from "@/components/pagination"
 
 export interface ColumnDef<T> {
   key: string
@@ -93,7 +95,15 @@ export interface DataTableProps<T> {
  * />
  * ```
  */
-export function DataTable<T extends Record<string, any>>({
+// Extend TableMeta to include our custom handlers
+declare module "@tanstack/react-table" {
+  interface TableMeta<TData> {
+    onEdit?: (item: TData) => void
+    onDelete?: (item: TData) => void
+  }
+}
+
+export function DataTable<T>({
   data,
   columns,
   onEdit,
@@ -112,11 +122,11 @@ export function DataTable<T extends Record<string, any>>({
       accessorKey: col.key,
       header: col.header,
       cell: col.render
-        ? ({ row }: { row: any }) => col.render!(row.original)
-        : ({ getValue }: { getValue: () => any }) => getValue(),
+        ? ({ row }: CellContext<T, unknown>) => col.render!(row.original)
+        : ({ getValue }: CellContext<T, unknown>) => getValue(),
       enableSorting: col.sortable ?? false,
       // Type-aware sorting for better number comparison
-      sortingFn: (rowA: any, rowB: any, columnId: string) => {
+      sortingFn: (rowA: Row<T>, rowB: Row<T>, columnId: string) => {
         const aVal = rowA.getValue(columnId)
         const bVal = rowB.getValue(columnId)
 
@@ -142,14 +152,14 @@ export function DataTable<T extends Record<string, any>>({
           {
             id: "actions",
             header: "Actions",
-            cell: ({ row, table }: { row: any; table: any }) => (
+            cell: ({ row, table }: CellContext<T, unknown>) => (
               <div className="flex gap-1">
                 {table.options.meta?.onEdit && (
                   <Button
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8"
-                    onClick={() => table.options.meta.onEdit(row.original)}
+                    onClick={() => table.options.meta?.onEdit?.(row.original)}
                   >
                     <Pencil className="h-4 w-4" />
                   </Button>
@@ -159,7 +169,7 @@ export function DataTable<T extends Record<string, any>>({
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 text-destructive hover:text-destructive"
-                    onClick={() => table.options.meta.onDelete(row.original)}
+                    onClick={() => table.options.meta?.onDelete?.(row.original)}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>

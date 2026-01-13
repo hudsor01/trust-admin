@@ -1,13 +1,21 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Trash2, Plus, Loader2, Mail, Phone, Calendar } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { Calendar, Loader2, Mail, Phone, Plus, Trash2 } from "lucide-react"
+import { useEffect, useState } from "react"
+import { EditableDateCell, EditableNumberCell, EditableTextCell } from "@/components/editable-cells"
+import { ResourceDialog } from "@/components/resource-dialog"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import {
   Table,
@@ -17,34 +25,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { ResourceDialog } from "@/components/resource-dialog"
-import { useResourceForm } from "@/hooks/use-resource-form"
-import { insertTrusteeSchema } from "../../db/validation"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
-
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 // Import types and hooks from centralized location
 import { useEntities } from "@/hooks/entities/queries"
-import { useTrustees, useCreateTrustee, useUpdateTrustee, useDeleteTrustee, type Trustee } from "@/hooks/trustees/queries"
-import { trusteeFormDefaults, toDateInput } from "@/lib/form-factory"
-import { STATUS_VARIANTS } from "@/lib/constants"
 import {
-  EditableTextCell,
-  EditableSelectCell,
-  EditableDateCell,
-  EditableNumberCell,
-} from "@/components/editable-cells"
+  type Trustee,
+  useCreateTrustee,
+  useDeleteTrustee,
+  useTrustees,
+  useUpdateTrustee,
+} from "@/hooks/trustees/queries"
+import { useResourceForm } from "@/hooks/use-resource-form"
+import { trusteeFormDefaults } from "@/lib/form-factory"
 
 const STATUS_OPTIONS = [
   { value: "CURRENT", label: "Current" },
@@ -60,18 +52,16 @@ export function Trustees() {
   const { data: entities = [], isLoading: entitiesLoading } = useEntities()
   const [selectedEntity, setSelectedEntity] = useState<string | null>(null)
 
-  const {
-    data: trustees = [],
-    isLoading: trusteesLoading,
-  } = useTrustees(selectedEntity || undefined)
+  const { data: trustees = [], isLoading: trusteesLoading } = useTrustees(
+    selectedEntity || undefined,
+  )
   const createTrusteeMutation = useCreateTrustee()
   const updateTrusteeMutation = useUpdateTrustee()
   const deleteTrusteeMutation = useDeleteTrustee()
 
   // Form state using useResourceForm hook
-  const trusteeForm = useResourceForm({
-    initialData: trusteeFormDefaults(),
-    schema: insertTrusteeSchema as any,
+  const trusteeForm = useResourceForm<Trustee>({
+    initialData: { ...trusteeFormDefaults(), id: "" } as Trustee,
     onSubmit: async (data) => {
       if (!selectedEntity) return
       const payload = {
@@ -84,8 +74,11 @@ export function Trustees() {
         startDate: data.startDate || null,
         endDate: data.endDate || null,
       }
-      if (trusteeForm.isEditing && (trusteeForm.editing as any)?.id) {
-        await updateTrusteeMutation.mutateAsync({ id: (trusteeForm.editing as any)?.id, data: payload })
+      if (trusteeForm.isEditing && trusteeForm.editing && "id" in trusteeForm.editing) {
+        await updateTrusteeMutation.mutateAsync({
+          id: (trusteeForm.editing as Trustee).id,
+          data: payload,
+        })
       } else {
         await createTrusteeMutation.mutateAsync(payload)
       }
@@ -110,17 +103,8 @@ export function Trustees() {
     }
   }
 
-  const openEditForm = (trustee: Trustee) => {
-    trusteeForm.handleEdit({
-      id: trustee.id,
-      name: trustee.name,
-      status: trustee.status ?? "",
-      order: trustee.order,
-      isCo: trustee.isCo || false,
-      coTrusteeId: trustee.coTrusteeId || null,
-      startDate: trustee.startDate,
-      endDate: trustee.endDate,
-    } as any)
+  const _openEditForm = (trustee: Trustee) => {
+    trusteeForm.handleEdit(trustee)
   }
 
   const loading = entitiesLoading || trusteesLoading
@@ -136,14 +120,12 @@ export function Trustees() {
         <div>
           <h2 className="text-2xl font-semibold tracking-tight text-balance">Trustees</h2>
           <p className="text-sm text-muted-foreground">
-            {currentTrustees.length} current trustees, {successorTrustees.length + arbitorTrustees.length} successor trustees / arbitors
+            {currentTrustees.length} current trustees,{" "}
+            {successorTrustees.length + arbitorTrustees.length} successor trustees / arbitors
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Select
-            value={selectedEntity || undefined}
-            onValueChange={setSelectedEntity}
-          >
+          <Select value={selectedEntity || undefined} onValueChange={setSelectedEntity}>
             <SelectTrigger className="w-[250px]">
               <SelectValue placeholder="Select Trust" />
             </SelectTrigger>
@@ -173,9 +155,7 @@ export function Trustees() {
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           ) : currentTrustees.length === 0 ? (
-            <p className="text-center py-8 text-muted-foreground">
-              No current trustees
-            </p>
+            <p className="text-center py-8 text-muted-foreground">No current trustees</p>
           ) : (
             <div className="rounded-md border">
               <Table>
@@ -201,7 +181,10 @@ export function Trustees() {
                           <EditableNumberCell
                             value={t.order}
                             onSave={async (val) => {
-                              await updateTrusteeMutation.mutateAsync({ id: t.id, data: { order: val ?? undefined } })
+                              await updateTrusteeMutation.mutateAsync({
+                                id: t.id,
+                                data: { order: val ?? undefined },
+                              })
                             }}
                           />
                         </TableCell>
@@ -209,7 +192,10 @@ export function Trustees() {
                           <EditableTextCell
                             value={t.name}
                             onSave={async (val) => {
-                              await updateTrusteeMutation.mutateAsync({ id: t.id, data: { name: val as string } })
+                              await updateTrusteeMutation.mutateAsync({
+                                id: t.id,
+                                data: { name: val as string },
+                              })
                             }}
                           />
                         </TableCell>
@@ -220,7 +206,10 @@ export function Trustees() {
                               value={t.email}
                               placeholder="Add email"
                               onSave={async (val) => {
-                                await updateTrusteeMutation.mutateAsync({ id: t.id, data: { email: val } })
+                                await updateTrusteeMutation.mutateAsync({
+                                  id: t.id,
+                                  data: { email: val },
+                                })
                               }}
                             />
                           </div>
@@ -232,7 +221,10 @@ export function Trustees() {
                               value={t.phone}
                               placeholder="Add phone"
                               onSave={async (val) => {
-                                await updateTrusteeMutation.mutateAsync({ id: t.id, data: { phone: val } })
+                                await updateTrusteeMutation.mutateAsync({
+                                  id: t.id,
+                                  data: { phone: val },
+                                })
                               }}
                             />
                           </div>
@@ -243,7 +235,10 @@ export function Trustees() {
                             <EditableDateCell
                               value={t.dob}
                               onSave={async (val) => {
-                                await updateTrusteeMutation.mutateAsync({ id: t.id, data: { dob: val } })
+                                await updateTrusteeMutation.mutateAsync({
+                                  id: t.id,
+                                  data: { dob: val },
+                                })
                               }}
                             />
                           </div>
@@ -260,7 +255,10 @@ export function Trustees() {
                           <EditableDateCell
                             value={t.startDate}
                             onSave={async (val) => {
-                              await updateTrusteeMutation.mutateAsync({ id: t.id, data: { startDate: val } })
+                              await updateTrusteeMutation.mutateAsync({
+                                id: t.id,
+                                data: { startDate: val },
+                              })
                             }}
                           />
                         </TableCell>
@@ -299,7 +297,7 @@ export function Trustees() {
           <CardTitle className="text-lg">Successor Trustees / Arbitors</CardTitle>
         </CardHeader>
         <CardContent>
-          {(successorTrustees.length + arbitorTrustees.length) === 0 ? (
+          {successorTrustees.length + arbitorTrustees.length === 0 ? (
             <p className="text-center py-8 text-muted-foreground">
               No successor trustees or arbitors designated
             </p>
@@ -320,99 +318,122 @@ export function Trustees() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {[...successorTrustees, ...arbitorTrustees].sort((a, b) => a.order - b.order).map((t) => {
-                    const coTrustee = trustees.find((ct) => ct.id === t.coTrusteeId)
-                    return (
-                      <TableRow key={t.id}>
-                        <TableCell>
-                          <EditableNumberCell
-                            value={t.order}
-                            onSave={async (val) => {
-                              await updateTrusteeMutation.mutateAsync({ id: t.id, data: { order: val ?? undefined } })
-                            }}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <EditableTextCell
-                            value={t.name}
-                            onSave={async (val) => {
-                              await updateTrusteeMutation.mutateAsync({ id: t.id, data: { name: val as string } })
-                            }}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1">
-                            <Mail className="h-3 w-3 text-muted-foreground shrink-0" />
-                            <EditableTextCell
-                              value={t.email}
-                              placeholder="Add email"
+                  {[...successorTrustees, ...arbitorTrustees]
+                    .sort((a, b) => a.order - b.order)
+                    .map((t) => {
+                      const coTrustee = trustees.find((ct) => ct.id === t.coTrusteeId)
+                      return (
+                        <TableRow key={t.id}>
+                          <TableCell>
+                            <EditableNumberCell
+                              value={t.order}
                               onSave={async (val) => {
-                                await updateTrusteeMutation.mutateAsync({ id: t.id, data: { email: val } })
+                                await updateTrusteeMutation.mutateAsync({
+                                  id: t.id,
+                                  data: { order: val ?? undefined },
+                                })
                               }}
                             />
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1">
-                            <Phone className="h-3 w-3 text-muted-foreground shrink-0" />
+                          </TableCell>
+                          <TableCell>
                             <EditableTextCell
-                              value={t.phone}
-                              placeholder="Add phone"
+                              value={t.name}
                               onSave={async (val) => {
-                                await updateTrusteeMutation.mutateAsync({ id: t.id, data: { phone: val } })
+                                await updateTrusteeMutation.mutateAsync({
+                                  id: t.id,
+                                  data: { name: val as string },
+                                })
                               }}
                             />
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1">
-                            <Calendar className="h-3 w-3 text-muted-foreground shrink-0" />
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              <Mail className="h-3 w-3 text-muted-foreground shrink-0" />
+                              <EditableTextCell
+                                value={t.email}
+                                placeholder="Add email"
+                                onSave={async (val) => {
+                                  await updateTrusteeMutation.mutateAsync({
+                                    id: t.id,
+                                    data: { email: val },
+                                  })
+                                }}
+                              />
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              <Phone className="h-3 w-3 text-muted-foreground shrink-0" />
+                              <EditableTextCell
+                                value={t.phone}
+                                placeholder="Add phone"
+                                onSave={async (val) => {
+                                  await updateTrusteeMutation.mutateAsync({
+                                    id: t.id,
+                                    data: { phone: val },
+                                  })
+                                }}
+                              />
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              <Calendar className="h-3 w-3 text-muted-foreground shrink-0" />
+                              <EditableDateCell
+                                value={t.dob}
+                                onSave={async (val) => {
+                                  await updateTrusteeMutation.mutateAsync({
+                                    id: t.id,
+                                    data: { dob: val },
+                                  })
+                                }}
+                              />
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={t.isCo ? "outline" : "secondary"}
+                              className="font-normal"
+                            >
+                              {t.isCo ? "Co-Trustee" : "Sole Trustee"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {coTrustee?.name || "—"}
+                          </TableCell>
+                          <TableCell>
                             <EditableDateCell
-                              value={t.dob}
+                              value={t.startDate}
                               onSave={async (val) => {
-                                await updateTrusteeMutation.mutateAsync({ id: t.id, data: { dob: val } })
+                                await updateTrusteeMutation.mutateAsync({
+                                  id: t.id,
+                                  data: { startDate: val },
+                                })
                               }}
                             />
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={t.isCo ? "outline" : "secondary"} className="font-normal">
-                            {t.isCo ? "Co-Trustee" : "Sole Trustee"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {coTrustee?.name || "—"}
-                        </TableCell>
-                        <TableCell>
-                          <EditableDateCell
-                            value={t.startDate}
-                            onSave={async (val) => {
-                              await updateTrusteeMutation.mutateAsync({ id: t.id, data: { startDate: val } })
-                            }}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-destructive hover:text-destructive"
-                                  onClick={() => deleteTrustee(t.id)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Delete</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })}
+                          </TableCell>
+                          <TableCell>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-destructive hover:text-destructive"
+                                    onClick={() => deleteTrustee(t.id)}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Delete</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
                 </TableBody>
               </Table>
             </div>
@@ -431,7 +452,7 @@ export function Trustees() {
         <div className="space-y-4">
           {/* Name - Required */}
           <formInstance.Field name="name">
-            {(field: any) => (
+            {(field) => (
               <div className="space-y-2">
                 <Label htmlFor="name">Name *</Label>
                 <Input
@@ -450,11 +471,11 @@ export function Trustees() {
 
           {/* Status */}
           <formInstance.Field name="status">
-            {(field: any) => (
+            {(field) => (
               <div className="space-y-2">
                 <Label htmlFor="status">Status</Label>
                 <Select
-                  value={field.state.value}
+                  value={field.state.value ?? undefined}
                   onValueChange={(v) => field.handleChange(v)}
                 >
                   <SelectTrigger id="status" onBlur={field.handleBlur}>
@@ -474,7 +495,7 @@ export function Trustees() {
 
           {/* Order */}
           <formInstance.Field name="order">
-            {(field: any) => (
+            {(field) => (
               <div className="space-y-2">
                 <Label htmlFor="order">Order</Label>
                 <Input
@@ -483,7 +504,7 @@ export function Trustees() {
                   min={1}
                   max={10}
                   value={field.state.value}
-                  onChange={(e) => field.handleChange(parseInt(e.target.value) || 1)}
+                  onChange={(e) => field.handleChange(parseInt(e.target.value, 10) || 1)}
                   onBlur={field.handleBlur}
                 />
                 <p className="text-xs text-muted-foreground">
@@ -498,12 +519,12 @@ export function Trustees() {
 
           {/* Is Co-Trustee */}
           <formInstance.Field name="isCo">
-            {(field: any) => (
+            {(field) => (
               <div className="flex items-center justify-between">
                 <Label htmlFor="isCo">Is Co-Trustee?</Label>
                 <Switch
                   id="isCo"
-                  checked={field.state.value}
+                  checked={field.state.value ?? false}
                   onCheckedChange={(checked) => field.handleChange(checked)}
                 />
               </div>
@@ -511,11 +532,11 @@ export function Trustees() {
           </formInstance.Field>
 
           {/* Co-Trustee Selector - Conditional */}
-          <formInstance.Subscribe selector={(state: any) => state.values.isCo}>
-            {(isCo: any) =>
+          <formInstance.Subscribe<boolean> selector={(state) => state.values.isCo ?? false}>
+            {(isCo) =>
               isCo ? (
                 <formInstance.Field name="coTrusteeId">
-                  {(field: any) => (
+                  {(field) => (
                     <div className="space-y-2">
                       <Label htmlFor="coTrustee">Co-Trustee</Label>
                       <Select
@@ -527,7 +548,12 @@ export function Trustees() {
                         </SelectTrigger>
                         <SelectContent>
                           {trustees
-                            .filter((t) => t.id !== (trusteeForm.editing as any)?.id)
+                            .filter(
+                              (t) =>
+                                !trusteeForm.editing ||
+                                !("id" in trusteeForm.editing) ||
+                                t.id !== (trusteeForm.editing as Trustee).id,
+                            )
                             .map((t) => (
                               <SelectItem key={t.id} value={t.id}>
                                 {t.name}
@@ -544,7 +570,7 @@ export function Trustees() {
 
           {/* Start Date */}
           <formInstance.Field name="startDate">
-            {(field: any) => (
+            {(field) => (
               <div className="space-y-2">
                 <Label htmlFor="startDate">Start Date</Label>
                 <Input
@@ -560,7 +586,7 @@ export function Trustees() {
 
           {/* End Date */}
           <formInstance.Field name="endDate">
-            {(field: any) => (
+            {(field) => (
               <div className="space-y-2">
                 <Label htmlFor="endDate">End Date</Label>
                 <Input
@@ -570,9 +596,7 @@ export function Trustees() {
                   onChange={(e) => field.handleChange(e.target.value || null)}
                   onBlur={field.handleBlur}
                 />
-                <p className="text-xs text-muted-foreground">
-                  Leave blank if currently serving
-                </p>
+                <p className="text-xs text-muted-foreground">Leave blank if currently serving</p>
               </div>
             )}
           </formInstance.Field>

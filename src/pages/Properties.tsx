@@ -1,22 +1,21 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Trash2, Plus, Pencil, Loader2 } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { formatCurrency, formatDate } from "../utils/formatters"
+import { Loader2, Pencil, Plus, Trash2 } from "lucide-react"
+import { useEffect, useState } from "react"
+import { type ColumnDef, DataTable } from "@/components/data-table"
+import {
+  EditableCurrencyCell,
+  EditableNumberCell,
+  EditableSelectCell,
+  EditableTextCell,
+} from "@/components/editable-cells"
+import { ResourceDialog } from "@/components/resource-dialog"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Textarea } from "@/components/ui/textarea"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
 import {
   Select,
   SelectContent,
@@ -24,45 +23,29 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Textarea } from "@/components/ui/textarea"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 // Import types and hooks from TanStack Query hooks
 import { useEntities } from "@/hooks/entities/queries"
 import {
-  useHomesteads,
-  useCreateHomestead,
-  useUpdateHomestead,
-  useDeleteHomestead,
   type Homestead,
+  useCreateHomestead,
+  useDeleteHomestead,
+  useHomesteads,
+  useUpdateHomestead,
 } from "@/hooks/homesteads/queries"
 import {
-  useRentalProperties,
-  useCreateRentalProperty,
-  useUpdateRentalProperty,
-  useDeleteRentalProperty,
   type RentalProperty,
+  useCreateRentalProperty,
+  useDeleteRentalProperty,
+  useRentalProperties,
+  useUpdateRentalProperty,
 } from "@/hooks/rental-properties/queries"
 import { useResourceForm } from "@/hooks/use-resource-form"
-import { ResourceDialog } from "@/components/resource-dialog"
-import {
-  homesteadFormDefaults,
-  rentalPropertyFormDefaults,
-  toDateInput,
-} from "@/lib/form-factory"
-import {
-  EditableTextCell,
-  EditableNumberCell,
-  EditableCurrencyCell,
-  EditableSelectCell,
-} from "@/components/editable-cells"
-import { TRANSFER_STATUS, DOD_VALUE_TYPES, RENTAL_STATUS, STATUS_VARIANTS } from "@/lib/constants"
-import { DataTable, type ColumnDef } from "@/components/data-table"
+import { DOD_VALUE_TYPES, RENTAL_STATUS, STATUS_VARIANTS, TRANSFER_STATUS } from "@/lib/constants"
+import { toDateInput } from "@/lib/form-factory"
+import { formatCurrency, formatDate } from "../utils/formatters"
 
 const PROPERTY_TYPES = [
   { value: "SINGLE_FAMILY", label: "Single Family" },
@@ -80,7 +63,6 @@ const ASSET_STATUS = [
   { value: "TRANSFERRED", label: "Transferred" },
   { value: "DISPOSED", label: "Disposed" },
 ]
-
 
 interface HomesteadFormData {
   streetAddress: string
@@ -207,12 +189,14 @@ export function Properties() {
   const [activeTab, setActiveTab] = useState("homestead")
 
   // Homestead hooks
-  const { data: homesteads = [], isLoading: homesteadsLoading } = useHomesteads(selectedEntity || undefined)
+  const { data: homesteads = [], isLoading: homesteadsLoading } = useHomesteads(
+    selectedEntity || undefined,
+  )
   const createHomesteadMutation = useCreateHomestead()
   const updateHomesteadMutation = useUpdateHomestead()
 
   // Wrapper functions to match inline cell API
-  const updateHomestead = async (id: string, data: Partial<Homestead>) => {
+  const _updateHomestead = async (id: string, data: Partial<Homestead>) => {
     return await updateHomesteadMutation.mutateAsync({ id, data })
   }
   const updateRental = async (id: string, data: Partial<RentalProperty>) => {
@@ -227,8 +211,8 @@ export function Properties() {
   const {
     isOpen: isHomesteadOpen,
     close: closeHomestead,
-    form: homesteadForm,
-    setForm: setHomesteadForm,
+    form: _homesteadForm,
+    setForm: _setHomesteadForm,
     handleEdit: handleEditHomesteadForm,
     handleAdd: handleAddHomestead,
     handleSave: handleSaveHomestead,
@@ -250,10 +234,10 @@ export function Properties() {
         parcelNumber: data.parcelNumber || null,
         legalDescription: data.legalDescription || null,
         propertyType: data.propertyType,
-        yearBuilt: data.yearBuilt ? parseInt(data.yearBuilt) : null,
-        squareFeet: data.squareFeet ? parseInt(data.squareFeet) : null,
-        lotSizeAcres: data.lotSizeAcres ? parseFloat(data.lotSizeAcres) : null,
-        bedrooms: data.bedrooms ? parseInt(data.bedrooms) : null,
+        yearBuilt: data.yearBuilt ? parseInt(data.yearBuilt, 10) : null,
+        squareFeet: data.squareFeet ? parseInt(data.squareFeet, 10) : null,
+        lotSizeAcres: data.lotSizeAcres || null,
+        bedrooms: data.bedrooms ? parseInt(data.bedrooms, 10) : null,
         bathrooms: data.bathrooms || null,
         acquisitionDate: data.acquisitionDate || null,
         acquisitionCost: data.acquisitionCost || null,
@@ -269,9 +253,9 @@ export function Properties() {
       }
 
       if (isEditingHomestead && editingHomesteadId) {
-        await updateHomesteadMutation.mutateAsync({ id: editingHomesteadId, data: payload as any })
+        await updateHomesteadMutation.mutateAsync({ id: editingHomesteadId, data: payload })
       } else {
-        await createHomesteadMutation.mutateAsync(payload as any)
+        await createHomesteadMutation.mutateAsync(payload)
       }
     },
   })
@@ -308,7 +292,9 @@ export function Properties() {
   }
 
   // Rental hooks
-  const { data: rentals = [], isLoading: rentalsLoading } = useRentalProperties(selectedEntity || undefined)
+  const { data: rentals = [], isLoading: rentalsLoading } = useRentalProperties(
+    selectedEntity || undefined,
+  )
   const createRentalMutation = useCreateRentalProperty()
   const updateRentalMutation = useUpdateRentalProperty()
   const deleteRentalMutation = useDeleteRentalProperty()
@@ -320,8 +306,8 @@ export function Properties() {
   const {
     isOpen: isRentalOpen,
     close: closeRental,
-    form: rentalForm,
-    setForm: setRentalForm,
+    form: _rentalForm,
+    setForm: _setRentalForm,
     handleEdit: handleEditRentalForm,
     handleAdd: handleAddRental,
     handleSave: handleSaveRental,
@@ -343,10 +329,10 @@ export function Properties() {
         county: data.county || null,
         parcelNumber: data.parcelNumber || null,
         propertyType: data.propertyType,
-        units: parseInt(data.units) || 1,
-        squareFeet: data.squareFeet ? parseInt(data.squareFeet) : null,
-        lotSizeAcres: data.lotSizeAcres ? parseFloat(data.lotSizeAcres) : null,
-        yearBuilt: data.yearBuilt ? parseInt(data.yearBuilt) : null,
+        units: parseInt(data.units, 10) || 1,
+        squareFeet: data.squareFeet ? parseInt(data.squareFeet, 10) : null,
+        lotSizeAcres: data.lotSizeAcres || null,
+        yearBuilt: data.yearBuilt ? parseInt(data.yearBuilt, 10) : null,
         rentalStatus: data.rentalStatus,
         monthlyRent: data.monthlyRent || null,
         leaseStart: data.leaseStart || null,
@@ -367,9 +353,9 @@ export function Properties() {
       }
 
       if (isEditingRental && editingRentalId) {
-        await updateRentalMutation.mutateAsync({ id: editingRentalId, data: payload as any })
+        await updateRentalMutation.mutateAsync({ id: editingRentalId, data: payload })
       } else {
-        await createRentalMutation.mutateAsync(payload as any)
+        await createRentalMutation.mutateAsync(payload)
       }
     },
   })
@@ -446,7 +432,7 @@ export function Properties() {
       render: (item) => (
         <EditableTextCell
           value={item.name}
-          onSave={async (v: any) => updateRental(item.id, { name: v })}
+          onSave={async (v) => updateRental(item.id, { name: v as string })}
         />
       ),
     },
@@ -469,7 +455,7 @@ export function Properties() {
       render: (item) => (
         <EditableNumberCell
           value={item.units}
-          onSave={async (v: any) => updateRental(item.id, { units: v })}
+          onSave={async (v) => updateRental(item.id, { units: v as number })}
         />
       ),
     },
@@ -480,7 +466,7 @@ export function Properties() {
       render: (item) => (
         <EditableCurrencyCell
           value={item.monthlyRent}
-          onSave={async (v: any) => updateRental(item.id, { monthlyRent: v })}
+          onSave={async (v) => updateRental(item.id, { monthlyRent: v })}
         />
       ),
     },
@@ -491,7 +477,7 @@ export function Properties() {
       render: (item) => (
         <EditableCurrencyCell
           value={item.dodValue}
-          onSave={async (v: any) => updateRental(item.id, { dodValue: v })}
+          onSave={async (v) => updateRental(item.id, { dodValue: v })}
         />
       ),
     },
@@ -502,7 +488,7 @@ export function Properties() {
         <EditableSelectCell
           value={item.rentalStatus}
           options={RENTAL_STATUS}
-          onSave={async (v: any) => updateRental(item.id, { rentalStatus: v })}
+          onSave={async (v) => updateRental(item.id, { rentalStatus: v })}
           variants={STATUS_VARIANTS}
         />
       ),
@@ -514,7 +500,7 @@ export function Properties() {
         <EditableSelectCell
           value={item.transferStatus}
           options={TRANSFER_STATUS}
-          onSave={async (v: any) => updateRental(item.id, { transferStatus: v })}
+          onSave={async (v) => updateRental(item.id, { transferStatus: v })}
           variants={STATUS_VARIANTS}
         />
       ),
@@ -635,7 +621,9 @@ export function Properties() {
                       {homestead.squareFeet && (
                         <p className="text-sm">{homestead.squareFeet.toLocaleString()} sq ft</p>
                       )}
-                      {homestead.yearBuilt && <p className="text-sm">Built {homestead.yearBuilt}</p>}
+                      {homestead.yearBuilt && (
+                        <p className="text-sm">Built {homestead.yearBuilt}</p>
+                      )}
                     </div>
                     <div>
                       <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
@@ -740,130 +728,33 @@ export function Properties() {
         onSubmit={handleSaveHomestead}
         isLoading={isHomesteadSubmitting}
       >
-          <div className="space-y-6">
-            <div>
-              <h4 className="mb-3 text-sm font-medium">Address</h4>
-              <div className="space-y-3">
-                <homesteadFormInstance.Field name="streetAddress">
-                  {(field: any) => (
-                    <div className="space-y-2">
-                      <Label htmlFor="h-street">Street Address</Label>
-                      <Input
-                        id="h-street"
-                        value={field.state.value}
-                        onBlur={field.handleBlur}
-                        onChange={(e) => field.handleChange(e.target.value)}
-                      />
-                      {field.state.meta.errors?.[0] && (
-                        <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
-                      )}
-                    </div>
-                  )}
-                </homesteadFormInstance.Field>
-                <div className="grid grid-cols-4 gap-3">
-                  <homesteadFormInstance.Field name="city">
-                    {(field: any) => (
-                      <div className="space-y-2">
-                        <Label htmlFor="h-city">City</Label>
-                        <Input
-                          id="h-city"
-                          value={field.state.value}
-                          onBlur={field.handleBlur}
-                          onChange={(e) => field.handleChange(e.target.value)}
-                        />
-                        {field.state.meta.errors?.[0] && (
-                          <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
-                        )}
-                      </div>
+        <div className="space-y-6">
+          <div>
+            <h4 className="mb-3 text-sm font-medium">Address</h4>
+            <div className="space-y-3">
+              <homesteadFormInstance.Field name="streetAddress">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="h-street">Street Address</Label>
+                    <Input
+                      id="h-street"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                    />
+                    {field.state.meta.errors?.[0] && (
+                      <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
                     )}
-                  </homesteadFormInstance.Field>
-                  <homesteadFormInstance.Field name="state">
-                    {(field: any) => (
-                      <div className="space-y-2">
-                        <Label htmlFor="h-state">State</Label>
-                        <Input
-                          id="h-state"
-                          value={field.state.value}
-                          onBlur={field.handleBlur}
-                          onChange={(e) => field.handleChange(e.target.value)}
-                        />
-                        {field.state.meta.errors?.[0] && (
-                          <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
-                        )}
-                      </div>
-                    )}
-                  </homesteadFormInstance.Field>
-                  <homesteadFormInstance.Field name="zip">
-                    {(field: any) => (
-                      <div className="space-y-2">
-                        <Label htmlFor="h-zip">ZIP</Label>
-                        <Input
-                          id="h-zip"
-                          value={field.state.value}
-                          onBlur={field.handleBlur}
-                          onChange={(e) => field.handleChange(e.target.value)}
-                        />
-                        {field.state.meta.errors?.[0] && (
-                          <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
-                        )}
-                      </div>
-                    )}
-                  </homesteadFormInstance.Field>
-                  <homesteadFormInstance.Field name="county">
-                    {(field: any) => (
-                      <div className="space-y-2">
-                        <Label htmlFor="h-county">County</Label>
-                        <Input
-                          id="h-county"
-                          value={field.state.value}
-                          onBlur={field.handleBlur}
-                          onChange={(e) => field.handleChange(e.target.value)}
-                        />
-                        {field.state.meta.errors?.[0] && (
-                          <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
-                        )}
-                      </div>
-                    )}
-                  </homesteadFormInstance.Field>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <h4 className="mb-3 text-sm font-medium">Property Details</h4>
-              <div className="grid grid-cols-3 gap-3">
-                <homesteadFormInstance.Field name="propertyType">
-                  {(field: any) => (
+                  </div>
+                )}
+              </homesteadFormInstance.Field>
+              <div className="grid grid-cols-4 gap-3">
+                <homesteadFormInstance.Field name="city">
+                  {(field) => (
                     <div className="space-y-2">
-                      <Label>Property Type</Label>
-                      <Select
-                        value={field.state.value}
-                        onValueChange={(v) => field.handleChange(v)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {PROPERTY_TYPES.map((t) => (
-                            <SelectItem key={t.value} value={t.value}>
-                              {t.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {field.state.meta.errors?.[0] && (
-                        <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
-                      )}
-                    </div>
-                  )}
-                </homesteadFormInstance.Field>
-                <homesteadFormInstance.Field name="yearBuilt">
-                  {(field: any) => (
-                    <div className="space-y-2">
-                      <Label htmlFor="h-year">Year Built</Label>
+                      <Label htmlFor="h-city">City</Label>
                       <Input
-                        id="h-year"
-                        type="number"
+                        id="h-city"
                         value={field.state.value}
                         onBlur={field.handleBlur}
                         onChange={(e) => field.handleChange(e.target.value)}
@@ -874,13 +765,12 @@ export function Properties() {
                     </div>
                   )}
                 </homesteadFormInstance.Field>
-                <homesteadFormInstance.Field name="squareFeet">
-                  {(field: any) => (
+                <homesteadFormInstance.Field name="state">
+                  {(field) => (
                     <div className="space-y-2">
-                      <Label htmlFor="h-sqft">Square Feet</Label>
+                      <Label htmlFor="h-state">State</Label>
                       <Input
-                        id="h-sqft"
-                        type="number"
+                        id="h-state"
                         value={field.state.value}
                         onBlur={field.handleBlur}
                         onChange={(e) => field.handleChange(e.target.value)}
@@ -891,15 +781,12 @@ export function Properties() {
                     </div>
                   )}
                 </homesteadFormInstance.Field>
-              </div>
-              <div className="mt-3 grid grid-cols-4 gap-3">
-                <homesteadFormInstance.Field name="bedrooms">
-                  {(field: any) => (
+                <homesteadFormInstance.Field name="zip">
+                  {(field) => (
                     <div className="space-y-2">
-                      <Label htmlFor="h-beds">Bedrooms</Label>
+                      <Label htmlFor="h-zip">ZIP</Label>
                       <Input
-                        id="h-beds"
-                        type="number"
+                        id="h-zip"
                         value={field.state.value}
                         onBlur={field.handleBlur}
                         onChange={(e) => field.handleChange(e.target.value)}
@@ -910,44 +797,12 @@ export function Properties() {
                     </div>
                   )}
                 </homesteadFormInstance.Field>
-                <homesteadFormInstance.Field name="bathrooms">
-                  {(field: any) => (
+                <homesteadFormInstance.Field name="county">
+                  {(field) => (
                     <div className="space-y-2">
-                      <Label htmlFor="h-baths">Bathrooms</Label>
+                      <Label htmlFor="h-county">County</Label>
                       <Input
-                        id="h-baths"
-                        value={field.state.value}
-                        onBlur={field.handleBlur}
-                        onChange={(e) => field.handleChange(e.target.value)}
-                      />
-                      {field.state.meta.errors?.[0] && (
-                        <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
-                      )}
-                    </div>
-                  )}
-                </homesteadFormInstance.Field>
-                <homesteadFormInstance.Field name="lotSizeAcres">
-                  {(field: any) => (
-                    <div className="space-y-2">
-                      <Label htmlFor="h-lot">Lot Size (acres)</Label>
-                      <Input
-                        id="h-lot"
-                        value={field.state.value}
-                        onBlur={field.handleBlur}
-                        onChange={(e) => field.handleChange(e.target.value)}
-                      />
-                      {field.state.meta.errors?.[0] && (
-                        <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
-                      )}
-                    </div>
-                  )}
-                </homesteadFormInstance.Field>
-                <homesteadFormInstance.Field name="parcelNumber">
-                  {(field: any) => (
-                    <div className="space-y-2">
-                      <Label htmlFor="h-parcel">Parcel Number</Label>
-                      <Input
-                        id="h-parcel"
+                        id="h-county"
                         value={field.state.value}
                         onBlur={field.handleBlur}
                         onChange={(e) => field.handleChange(e.target.value)}
@@ -960,245 +815,367 @@ export function Properties() {
                 </homesteadFormInstance.Field>
               </div>
             </div>
-
-            <div>
-              <h4 className="mb-3 text-sm font-medium">Acquisition</h4>
-              <div className="grid grid-cols-2 gap-3">
-                <homesteadFormInstance.Field name="acquisitionDate">
-                  {(field: any) => (
-                    <div className="space-y-2">
-                      <Label htmlFor="h-acq-date">Acquisition Date</Label>
-                      <Input
-                        id="h-acq-date"
-                        type="date"
-                        value={field.state.value}
-                        onBlur={field.handleBlur}
-                        onChange={(e) => field.handleChange(e.target.value)}
-                      />
-                      {field.state.meta.errors?.[0] && (
-                        <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
-                      )}
-                    </div>
-                  )}
-                </homesteadFormInstance.Field>
-                <homesteadFormInstance.Field name="acquisitionCost">
-                  {(field: any) => (
-                    <div className="space-y-2">
-                      <Label htmlFor="h-acq-cost">Acquisition Cost</Label>
-                      <Input
-                        id="h-acq-cost"
-                        value={field.state.value}
-                        onBlur={field.handleBlur}
-                        onChange={(e) => field.handleChange(e.target.value)}
-                        placeholder="$"
-                      />
-                      {field.state.meta.errors?.[0] && (
-                        <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
-                      )}
-                    </div>
-                  )}
-                </homesteadFormInstance.Field>
-              </div>
-            </div>
-
-            <div>
-              <h4 className="mb-3 text-sm font-medium">Date of Death Valuation</h4>
-              <div className="grid grid-cols-3 gap-3">
-                <homesteadFormInstance.Field name="dodValue">
-                  {(field: any) => (
-                    <div className="space-y-2">
-                      <Label htmlFor="h-dod-val">DOD Value</Label>
-                      <Input
-                        id="h-dod-val"
-                        value={field.state.value}
-                        onBlur={field.handleBlur}
-                        onChange={(e) => field.handleChange(e.target.value)}
-                        placeholder="$"
-                      />
-                      {field.state.meta.errors?.[0] && (
-                        <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
-                      )}
-                    </div>
-                  )}
-                </homesteadFormInstance.Field>
-                <homesteadFormInstance.Field name="dodValueDate">
-                  {(field: any) => (
-                    <div className="space-y-2">
-                      <Label htmlFor="h-dod-date">DOD Value Date</Label>
-                      <Input
-                        id="h-dod-date"
-                        type="date"
-                        value={field.state.value}
-                        onBlur={field.handleBlur}
-                        onChange={(e) => field.handleChange(e.target.value)}
-                      />
-                      {field.state.meta.errors?.[0] && (
-                        <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
-                      )}
-                    </div>
-                  )}
-                </homesteadFormInstance.Field>
-                <homesteadFormInstance.Field name="dodValueType">
-                  {(field: any) => (
-                    <div className="space-y-2">
-                      <Label>Valuation Type</Label>
-                      <Select
-                        value={field.state.value}
-                        onValueChange={(v) => field.handleChange(v)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {DOD_VALUE_TYPES.map((t) => (
-                            <SelectItem key={t.value} value={t.value}>
-                              {t.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {field.state.meta.errors?.[0] && (
-                        <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
-                      )}
-                    </div>
-                  )}
-                </homesteadFormInstance.Field>
-              </div>
-            </div>
-
-            <div>
-              <h4 className="mb-3 text-sm font-medium">DOD Affidavit (Texas)</h4>
-              <div className="grid grid-cols-3 items-end gap-3">
-                <homesteadFormInstance.Field name="dodAffidavitFiled">
-                  {(field: any) => (
-                    <div className="flex items-center gap-2">
-                      <Checkbox
-                        id="h-affidavit"
-                        checked={field.state.value}
-                        onCheckedChange={(checked) => field.handleChange(!!checked)}
-                      />
-                      <Label htmlFor="h-affidavit">Affidavit Filed</Label>
-                    </div>
-                  )}
-                </homesteadFormInstance.Field>
-                <homesteadFormInstance.Subscribe selector={(state: any) => state.values.dodAffidavitFiled}>
-                  {(dodAffidavitFiled: any) => (
-                    <>
-                      <homesteadFormInstance.Field name="dodAffidavitDate">
-                        {(field: any) => (
-                          <div className="space-y-2">
-                            <Label htmlFor="h-filing-date">Filing Date</Label>
-                            <Input
-                              id="h-filing-date"
-                              type="date"
-                              value={field.state.value}
-                              onBlur={field.handleBlur}
-                              onChange={(e) => field.handleChange(e.target.value)}
-                              disabled={!dodAffidavitFiled}
-                            />
-                            {field.state.meta.errors?.[0] && (
-                              <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
-                            )}
-                          </div>
-                        )}
-                      </homesteadFormInstance.Field>
-                      <homesteadFormInstance.Field name="clerkFileNo">
-                        {(field: any) => (
-                          <div className="space-y-2">
-                            <Label htmlFor="h-clerk">Clerk File Number</Label>
-                            <Input
-                              id="h-clerk"
-                              value={field.state.value}
-                              onBlur={field.handleBlur}
-                              onChange={(e) => field.handleChange(e.target.value)}
-                              disabled={!dodAffidavitFiled}
-                            />
-                            {field.state.meta.errors?.[0] && (
-                              <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
-                            )}
-                          </div>
-                        )}
-                      </homesteadFormInstance.Field>
-                    </>
-                  )}
-                </homesteadFormInstance.Subscribe>
-              </div>
-            </div>
-
-            <div>
-              <h4 className="mb-3 text-sm font-medium">Status</h4>
-              <div className="grid grid-cols-2 gap-3">
-                <homesteadFormInstance.Field name="status">
-                  {(field: any) => (
-                    <div className="space-y-2">
-                      <Label>Asset Status</Label>
-                      <Select
-                        value={field.state.value}
-                        onValueChange={(v) => field.handleChange(v)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {ASSET_STATUS.map((s) => (
-                            <SelectItem key={s.value} value={s.value}>
-                              {s.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {field.state.meta.errors?.[0] && (
-                        <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
-                      )}
-                    </div>
-                  )}
-                </homesteadFormInstance.Field>
-                <homesteadFormInstance.Field name="transferStatus">
-                  {(field: any) => (
-                    <div className="space-y-2">
-                      <Label>Transfer Status</Label>
-                      <Select
-                        value={field.state.value}
-                        onValueChange={(v) => field.handleChange(v)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {TRANSFER_STATUS.map((s) => (
-                            <SelectItem key={s.value} value={s.value}>
-                              {s.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {field.state.meta.errors?.[0] && (
-                        <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
-                      )}
-                    </div>
-                  )}
-                </homesteadFormInstance.Field>
-              </div>
-            </div>
-
-            <homesteadFormInstance.Field name="notes">
-              {(field: any) => (
-                <div className="space-y-2">
-                  <Label htmlFor="h-notes">Notes</Label>
-                  <Textarea
-                    id="h-notes"
-                    value={field.state.value}
-                    onBlur={field.handleBlur}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                  />
-                  {field.state.meta.errors?.[0] && (
-                    <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
-                  )}
-                </div>
-              )}
-            </homesteadFormInstance.Field>
-
           </div>
+
+          <div>
+            <h4 className="mb-3 text-sm font-medium">Property Details</h4>
+            <div className="grid grid-cols-3 gap-3">
+              <homesteadFormInstance.Field name="propertyType">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label>Property Type</Label>
+                    <Select value={field.state.value} onValueChange={(v) => field.handleChange(v)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PROPERTY_TYPES.map((t) => (
+                          <SelectItem key={t.value} value={t.value}>
+                            {t.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {field.state.meta.errors?.[0] && (
+                      <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                    )}
+                  </div>
+                )}
+              </homesteadFormInstance.Field>
+              <homesteadFormInstance.Field name="yearBuilt">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="h-year">Year Built</Label>
+                    <Input
+                      id="h-year"
+                      type="number"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                    />
+                    {field.state.meta.errors?.[0] && (
+                      <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                    )}
+                  </div>
+                )}
+              </homesteadFormInstance.Field>
+              <homesteadFormInstance.Field name="squareFeet">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="h-sqft">Square Feet</Label>
+                    <Input
+                      id="h-sqft"
+                      type="number"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                    />
+                    {field.state.meta.errors?.[0] && (
+                      <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                    )}
+                  </div>
+                )}
+              </homesteadFormInstance.Field>
+            </div>
+            <div className="mt-3 grid grid-cols-4 gap-3">
+              <homesteadFormInstance.Field name="bedrooms">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="h-beds">Bedrooms</Label>
+                    <Input
+                      id="h-beds"
+                      type="number"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                    />
+                    {field.state.meta.errors?.[0] && (
+                      <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                    )}
+                  </div>
+                )}
+              </homesteadFormInstance.Field>
+              <homesteadFormInstance.Field name="bathrooms">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="h-baths">Bathrooms</Label>
+                    <Input
+                      id="h-baths"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                    />
+                    {field.state.meta.errors?.[0] && (
+                      <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                    )}
+                  </div>
+                )}
+              </homesteadFormInstance.Field>
+              <homesteadFormInstance.Field name="lotSizeAcres">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="h-lot">Lot Size (acres)</Label>
+                    <Input
+                      id="h-lot"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                    />
+                    {field.state.meta.errors?.[0] && (
+                      <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                    )}
+                  </div>
+                )}
+              </homesteadFormInstance.Field>
+              <homesteadFormInstance.Field name="parcelNumber">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="h-parcel">Parcel Number</Label>
+                    <Input
+                      id="h-parcel"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                    />
+                    {field.state.meta.errors?.[0] && (
+                      <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                    )}
+                  </div>
+                )}
+              </homesteadFormInstance.Field>
+            </div>
+          </div>
+
+          <div>
+            <h4 className="mb-3 text-sm font-medium">Acquisition</h4>
+            <div className="grid grid-cols-2 gap-3">
+              <homesteadFormInstance.Field name="acquisitionDate">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="h-acq-date">Acquisition Date</Label>
+                    <Input
+                      id="h-acq-date"
+                      type="date"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                    />
+                    {field.state.meta.errors?.[0] && (
+                      <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                    )}
+                  </div>
+                )}
+              </homesteadFormInstance.Field>
+              <homesteadFormInstance.Field name="acquisitionCost">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="h-acq-cost">Acquisition Cost</Label>
+                    <Input
+                      id="h-acq-cost"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      placeholder="$"
+                    />
+                    {field.state.meta.errors?.[0] && (
+                      <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                    )}
+                  </div>
+                )}
+              </homesteadFormInstance.Field>
+            </div>
+          </div>
+
+          <div>
+            <h4 className="mb-3 text-sm font-medium">Date of Death Valuation</h4>
+            <div className="grid grid-cols-3 gap-3">
+              <homesteadFormInstance.Field name="dodValue">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="h-dod-val">DOD Value</Label>
+                    <Input
+                      id="h-dod-val"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      placeholder="$"
+                    />
+                    {field.state.meta.errors?.[0] && (
+                      <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                    )}
+                  </div>
+                )}
+              </homesteadFormInstance.Field>
+              <homesteadFormInstance.Field name="dodValueDate">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="h-dod-date">DOD Value Date</Label>
+                    <Input
+                      id="h-dod-date"
+                      type="date"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                    />
+                    {field.state.meta.errors?.[0] && (
+                      <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                    )}
+                  </div>
+                )}
+              </homesteadFormInstance.Field>
+              <homesteadFormInstance.Field name="dodValueType">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label>Valuation Type</Label>
+                    <Select value={field.state.value} onValueChange={(v) => field.handleChange(v)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {DOD_VALUE_TYPES.map((t) => (
+                          <SelectItem key={t.value} value={t.value}>
+                            {t.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {field.state.meta.errors?.[0] && (
+                      <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                    )}
+                  </div>
+                )}
+              </homesteadFormInstance.Field>
+            </div>
+          </div>
+
+          <div>
+            <h4 className="mb-3 text-sm font-medium">DOD Affidavit (Texas)</h4>
+            <div className="grid grid-cols-3 items-end gap-3">
+              <homesteadFormInstance.Field name="dodAffidavitFiled">
+                {(field) => (
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="h-affidavit"
+                      checked={field.state.value}
+                      onCheckedChange={(checked) => field.handleChange(!!checked)}
+                    />
+                    <Label htmlFor="h-affidavit">Affidavit Filed</Label>
+                  </div>
+                )}
+              </homesteadFormInstance.Field>
+              <homesteadFormInstance.Subscribe<boolean>
+                selector={(state) => state.values.dodAffidavitFiled}
+              >
+                {(dodAffidavitFiled) => (
+                  <>
+                    <homesteadFormInstance.Field name="dodAffidavitDate">
+                      {(field) => (
+                        <div className="space-y-2">
+                          <Label htmlFor="h-filing-date">Filing Date</Label>
+                          <Input
+                            id="h-filing-date"
+                            type="date"
+                            value={field.state.value}
+                            onBlur={field.handleBlur}
+                            onChange={(e) => field.handleChange(e.target.value)}
+                            disabled={!dodAffidavitFiled}
+                          />
+                          {field.state.meta.errors?.[0] && (
+                            <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                          )}
+                        </div>
+                      )}
+                    </homesteadFormInstance.Field>
+                    <homesteadFormInstance.Field name="clerkFileNo">
+                      {(field) => (
+                        <div className="space-y-2">
+                          <Label htmlFor="h-clerk">Clerk File Number</Label>
+                          <Input
+                            id="h-clerk"
+                            value={field.state.value}
+                            onBlur={field.handleBlur}
+                            onChange={(e) => field.handleChange(e.target.value)}
+                            disabled={!dodAffidavitFiled}
+                          />
+                          {field.state.meta.errors?.[0] && (
+                            <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                          )}
+                        </div>
+                      )}
+                    </homesteadFormInstance.Field>
+                  </>
+                )}
+              </homesteadFormInstance.Subscribe>
+            </div>
+          </div>
+
+          <div>
+            <h4 className="mb-3 text-sm font-medium">Status</h4>
+            <div className="grid grid-cols-2 gap-3">
+              <homesteadFormInstance.Field name="status">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label>Asset Status</Label>
+                    <Select value={field.state.value} onValueChange={(v) => field.handleChange(v)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ASSET_STATUS.map((s) => (
+                          <SelectItem key={s.value} value={s.value}>
+                            {s.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {field.state.meta.errors?.[0] && (
+                      <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                    )}
+                  </div>
+                )}
+              </homesteadFormInstance.Field>
+              <homesteadFormInstance.Field name="transferStatus">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label>Transfer Status</Label>
+                    <Select value={field.state.value} onValueChange={(v) => field.handleChange(v)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {TRANSFER_STATUS.map((s) => (
+                          <SelectItem key={s.value} value={s.value}>
+                            {s.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {field.state.meta.errors?.[0] && (
+                      <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                    )}
+                  </div>
+                )}
+              </homesteadFormInstance.Field>
+            </div>
+          </div>
+
+          <homesteadFormInstance.Field name="notes">
+            {(field) => (
+              <div className="space-y-2">
+                <Label htmlFor="h-notes">Notes</Label>
+                <Textarea
+                  id="h-notes"
+                  value={field.state.value}
+                  onBlur={field.handleBlur}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                />
+                {field.state.meta.errors?.[0] && (
+                  <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                )}
+              </div>
+            )}
+          </homesteadFormInstance.Field>
+        </div>
       </ResourceDialog>
 
       {/* Rental Property Form Dialog */}
@@ -1209,149 +1186,51 @@ export function Properties() {
         onSubmit={handleSaveRental}
         isLoading={isRentalSubmitting}
       >
-          <div className="space-y-6">
-            {/* Property Info */}
-            <div>
-              <h4 className="mb-3 text-sm font-medium">Property Info</h4>
-              <div className="space-y-3">
-                <rentalFormInstance.Field name="name">
-                  {(field: any) => (
-                    <div className="space-y-2">
-                      <Label htmlFor="r-name">Property Name</Label>
-                      <Input
-                        id="r-name"
-                        value={field.state.value}
-                        onBlur={field.handleBlur}
-                        onChange={(e) => field.handleChange(e.target.value)}
-                        placeholder="e.g., Oak Street Duplex"
-                      />
-                      {field.state.meta.errors?.[0] && (
-                        <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
-                      )}
-                    </div>
-                  )}
-                </rentalFormInstance.Field>
-                <rentalFormInstance.Field name="streetAddress">
-                  {(field: any) => (
-                    <div className="space-y-2">
-                      <Label htmlFor="r-street">Street Address</Label>
-                      <Input
-                        id="r-street"
-                        value={field.state.value}
-                        onBlur={field.handleBlur}
-                        onChange={(e) => field.handleChange(e.target.value)}
-                      />
-                      {field.state.meta.errors?.[0] && (
-                        <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
-                      )}
-                    </div>
-                  )}
-                </rentalFormInstance.Field>
-                <div className="grid grid-cols-4 gap-3">
-                  <rentalFormInstance.Field name="city">
-                    {(field: any) => (
-                      <div className="space-y-2">
-                        <Label htmlFor="r-city">City</Label>
-                        <Input
-                          id="r-city"
-                          value={field.state.value}
-                          onBlur={field.handleBlur}
-                          onChange={(e) => field.handleChange(e.target.value)}
-                        />
-                        {field.state.meta.errors?.[0] && (
-                          <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
-                        )}
-                      </div>
+        <div className="space-y-6">
+          {/* Property Info */}
+          <div>
+            <h4 className="mb-3 text-sm font-medium">Property Info</h4>
+            <div className="space-y-3">
+              <rentalFormInstance.Field name="name">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="r-name">Property Name</Label>
+                    <Input
+                      id="r-name"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      placeholder="e.g., Oak Street Duplex"
+                    />
+                    {field.state.meta.errors?.[0] && (
+                      <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
                     )}
-                  </rentalFormInstance.Field>
-                  <rentalFormInstance.Field name="state">
-                    {(field: any) => (
-                      <div className="space-y-2">
-                        <Label htmlFor="r-state">State</Label>
-                        <Input
-                          id="r-state"
-                          value={field.state.value}
-                          onBlur={field.handleBlur}
-                          onChange={(e) => field.handleChange(e.target.value)}
-                        />
-                        {field.state.meta.errors?.[0] && (
-                          <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
-                        )}
-                      </div>
+                  </div>
+                )}
+              </rentalFormInstance.Field>
+              <rentalFormInstance.Field name="streetAddress">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="r-street">Street Address</Label>
+                    <Input
+                      id="r-street"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                    />
+                    {field.state.meta.errors?.[0] && (
+                      <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
                     )}
-                  </rentalFormInstance.Field>
-                  <rentalFormInstance.Field name="zip">
-                    {(field: any) => (
-                      <div className="space-y-2">
-                        <Label htmlFor="r-zip">ZIP</Label>
-                        <Input
-                          id="r-zip"
-                          value={field.state.value}
-                          onBlur={field.handleBlur}
-                          onChange={(e) => field.handleChange(e.target.value)}
-                        />
-                        {field.state.meta.errors?.[0] && (
-                          <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
-                        )}
-                      </div>
-                    )}
-                  </rentalFormInstance.Field>
-                  <rentalFormInstance.Field name="county">
-                    {(field: any) => (
-                      <div className="space-y-2">
-                        <Label htmlFor="r-county">County</Label>
-                        <Input
-                          id="r-county"
-                          value={field.state.value}
-                          onBlur={field.handleBlur}
-                          onChange={(e) => field.handleChange(e.target.value)}
-                        />
-                        {field.state.meta.errors?.[0] && (
-                          <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
-                        )}
-                      </div>
-                    )}
-                  </rentalFormInstance.Field>
-                </div>
-              </div>
-            </div>
-
-            {/* Property Details */}
-            <div>
-              <h4 className="mb-3 text-sm font-medium">Property Details</h4>
+                  </div>
+                )}
+              </rentalFormInstance.Field>
               <div className="grid grid-cols-4 gap-3">
-                <rentalFormInstance.Field name="propertyType">
-                  {(field: any) => (
+                <rentalFormInstance.Field name="city">
+                  {(field) => (
                     <div className="space-y-2">
-                      <Label>Property Type</Label>
-                      <Select
-                        value={field.state.value}
-                        onValueChange={(v) => field.handleChange(v)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {PROPERTY_TYPES.map((t) => (
-                            <SelectItem key={t.value} value={t.value}>
-                              {t.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {field.state.meta.errors?.[0] && (
-                        <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
-                      )}
-                    </div>
-                  )}
-                </rentalFormInstance.Field>
-                <rentalFormInstance.Field name="units">
-                  {(field: any) => (
-                    <div className="space-y-2">
-                      <Label htmlFor="r-units">Units</Label>
+                      <Label htmlFor="r-city">City</Label>
                       <Input
-                        id="r-units"
-                        type="number"
+                        id="r-city"
                         value={field.state.value}
                         onBlur={field.handleBlur}
                         onChange={(e) => field.handleChange(e.target.value)}
@@ -1362,13 +1241,12 @@ export function Properties() {
                     </div>
                   )}
                 </rentalFormInstance.Field>
-                <rentalFormInstance.Field name="yearBuilt">
-                  {(field: any) => (
+                <rentalFormInstance.Field name="state">
+                  {(field) => (
                     <div className="space-y-2">
-                      <Label htmlFor="r-year">Year Built</Label>
+                      <Label htmlFor="r-state">State</Label>
                       <Input
-                        id="r-year"
-                        type="number"
+                        id="r-state"
                         value={field.state.value}
                         onBlur={field.handleBlur}
                         onChange={(e) => field.handleChange(e.target.value)}
@@ -1379,13 +1257,28 @@ export function Properties() {
                     </div>
                   )}
                 </rentalFormInstance.Field>
-                <rentalFormInstance.Field name="squareFeet">
-                  {(field: any) => (
+                <rentalFormInstance.Field name="zip">
+                  {(field) => (
                     <div className="space-y-2">
-                      <Label htmlFor="r-sqft">Square Feet</Label>
+                      <Label htmlFor="r-zip">ZIP</Label>
                       <Input
-                        id="r-sqft"
-                        type="number"
+                        id="r-zip"
+                        value={field.state.value}
+                        onBlur={field.handleBlur}
+                        onChange={(e) => field.handleChange(e.target.value)}
+                      />
+                      {field.state.meta.errors?.[0] && (
+                        <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                      )}
+                    </div>
+                  )}
+                </rentalFormInstance.Field>
+                <rentalFormInstance.Field name="county">
+                  {(field) => (
+                    <div className="space-y-2">
+                      <Label htmlFor="r-county">County</Label>
+                      <Input
+                        id="r-county"
                         value={field.state.value}
                         onBlur={field.handleBlur}
                         onChange={(e) => field.handleChange(e.target.value)}
@@ -1398,367 +1291,438 @@ export function Properties() {
                 </rentalFormInstance.Field>
               </div>
             </div>
-
-            {/* Rental Info */}
-            <div>
-              <h4 className="mb-3 text-sm font-medium">Rental Info</h4>
-              <div className="grid grid-cols-4 gap-3">
-                <rentalFormInstance.Field name="rentalStatus">
-                  {(field: any) => (
-                    <div className="space-y-2">
-                      <Label>Rental Status</Label>
-                      <Select
-                        value={field.state.value}
-                        onValueChange={(v) => field.handleChange(v)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {RENTAL_STATUS.map((s) => (
-                            <SelectItem key={s.value} value={s.value}>
-                              {s.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {field.state.meta.errors?.[0] && (
-                        <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
-                      )}
-                    </div>
-                  )}
-                </rentalFormInstance.Field>
-                <rentalFormInstance.Field name="monthlyRent">
-                  {(field: any) => (
-                    <div className="space-y-2">
-                      <Label htmlFor="r-rent">Monthly Rent</Label>
-                      <Input
-                        id="r-rent"
-                        value={field.state.value}
-                        onBlur={field.handleBlur}
-                        onChange={(e) => field.handleChange(e.target.value)}
-                        placeholder="$"
-                      />
-                      {field.state.meta.errors?.[0] && (
-                        <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
-                      )}
-                    </div>
-                  )}
-                </rentalFormInstance.Field>
-                <rentalFormInstance.Field name="leaseStart">
-                  {(field: any) => (
-                    <div className="space-y-2">
-                      <Label htmlFor="r-lease-start">Lease Start</Label>
-                      <Input
-                        id="r-lease-start"
-                        type="date"
-                        value={field.state.value}
-                        onBlur={field.handleBlur}
-                        onChange={(e) => field.handleChange(e.target.value)}
-                      />
-                      {field.state.meta.errors?.[0] && (
-                        <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
-                      )}
-                    </div>
-                  )}
-                </rentalFormInstance.Field>
-                <rentalFormInstance.Field name="leaseEnd">
-                  {(field: any) => (
-                    <div className="space-y-2">
-                      <Label htmlFor="r-lease-end">Lease End</Label>
-                      <Input
-                        id="r-lease-end"
-                        type="date"
-                        value={field.state.value}
-                        onBlur={field.handleBlur}
-                        onChange={(e) => field.handleChange(e.target.value)}
-                      />
-                      {field.state.meta.errors?.[0] && (
-                        <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
-                      )}
-                    </div>
-                  )}
-                </rentalFormInstance.Field>
-              </div>
-              <div className="mt-3">
-                <rentalFormInstance.Field name="propertyManager">
-                  {(field: any) => (
-                    <div className="space-y-2">
-                      <Label htmlFor="r-manager">Property Manager</Label>
-                      <Input
-                        id="r-manager"
-                        value={field.state.value}
-                        onBlur={field.handleBlur}
-                        onChange={(e) => field.handleChange(e.target.value)}
-                      />
-                      {field.state.meta.errors?.[0] && (
-                        <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
-                      )}
-                    </div>
-                  )}
-                </rentalFormInstance.Field>
-              </div>
-            </div>
-
-            {/* Financials */}
-            <div>
-              <h4 className="mb-3 text-sm font-medium">Financials</h4>
-              <div className="grid grid-cols-3 gap-3">
-                <rentalFormInstance.Field name="acquisitionDate">
-                  {(field: any) => (
-                    <div className="space-y-2">
-                      <Label htmlFor="r-acq-date">Acquisition Date</Label>
-                      <Input
-                        id="r-acq-date"
-                        type="date"
-                        value={field.state.value}
-                        onBlur={field.handleBlur}
-                        onChange={(e) => field.handleChange(e.target.value)}
-                      />
-                      {field.state.meta.errors?.[0] && (
-                        <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
-                      )}
-                    </div>
-                  )}
-                </rentalFormInstance.Field>
-                <rentalFormInstance.Field name="acquisitionCost">
-                  {(field: any) => (
-                    <div className="space-y-2">
-                      <Label htmlFor="r-acq-cost">Acquisition Cost</Label>
-                      <Input
-                        id="r-acq-cost"
-                        value={field.state.value}
-                        onBlur={field.handleBlur}
-                        onChange={(e) => field.handleChange(e.target.value)}
-                        placeholder="$"
-                      />
-                      {field.state.meta.errors?.[0] && (
-                        <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
-                      )}
-                    </div>
-                  )}
-                </rentalFormInstance.Field>
-                <rentalFormInstance.Field name="mortgageBalance">
-                  {(field: any) => (
-                    <div className="space-y-2">
-                      <Label htmlFor="r-mortgage">Mortgage Balance</Label>
-                      <Input
-                        id="r-mortgage"
-                        value={field.state.value}
-                        onBlur={field.handleBlur}
-                        onChange={(e) => field.handleChange(e.target.value)}
-                        placeholder="$"
-                      />
-                      {field.state.meta.errors?.[0] && (
-                        <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
-                      )}
-                    </div>
-                  )}
-                </rentalFormInstance.Field>
-              </div>
-            </div>
-
-            {/* DOD Valuation */}
-            <div>
-              <h4 className="mb-3 text-sm font-medium">Date of Death Valuation</h4>
-              <div className="grid grid-cols-3 gap-3">
-                <rentalFormInstance.Field name="dodValue">
-                  {(field: any) => (
-                    <div className="space-y-2">
-                      <Label htmlFor="r-dod-val">DOD Value</Label>
-                      <Input
-                        id="r-dod-val"
-                        value={field.state.value}
-                        onBlur={field.handleBlur}
-                        onChange={(e) => field.handleChange(e.target.value)}
-                        placeholder="$"
-                      />
-                      {field.state.meta.errors?.[0] && (
-                        <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
-                      )}
-                    </div>
-                  )}
-                </rentalFormInstance.Field>
-                <rentalFormInstance.Field name="dodValueDate">
-                  {(field: any) => (
-                    <div className="space-y-2">
-                      <Label htmlFor="r-dod-date">DOD Value Date</Label>
-                      <Input
-                        id="r-dod-date"
-                        type="date"
-                        value={field.state.value}
-                        onBlur={field.handleBlur}
-                        onChange={(e) => field.handleChange(e.target.value)}
-                      />
-                      {field.state.meta.errors?.[0] && (
-                        <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
-                      )}
-                    </div>
-                  )}
-                </rentalFormInstance.Field>
-                <rentalFormInstance.Field name="dodValueType">
-                  {(field: any) => (
-                    <div className="space-y-2">
-                      <Label>Valuation Type</Label>
-                      <Select
-                        value={field.state.value}
-                        onValueChange={(v) => field.handleChange(v)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {DOD_VALUE_TYPES.map((t) => (
-                            <SelectItem key={t.value} value={t.value}>
-                              {t.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {field.state.meta.errors?.[0] && (
-                        <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
-                      )}
-                    </div>
-                  )}
-                </rentalFormInstance.Field>
-              </div>
-            </div>
-
-            {/* DOD Affidavit */}
-            <div>
-              <h4 className="mb-3 text-sm font-medium">DOD Affidavit (Texas)</h4>
-              <div className="grid grid-cols-3 items-end gap-3">
-                <rentalFormInstance.Field name="dodAffidavitFiled">
-                  {(field: any) => (
-                    <div className="flex items-center gap-2">
-                      <Checkbox
-                        id="r-affidavit"
-                        checked={field.state.value}
-                        onCheckedChange={(checked) => field.handleChange(!!checked)}
-                      />
-                      <Label htmlFor="r-affidavit">Affidavit Filed</Label>
-                    </div>
-                  )}
-                </rentalFormInstance.Field>
-                <rentalFormInstance.Subscribe selector={(state: any) => state.values.dodAffidavitFiled}>
-                  {(dodAffidavitFiled: any) => (
-                    <>
-                      <rentalFormInstance.Field name="dodAffidavitDate">
-                        {(field: any) => (
-                          <div className="space-y-2">
-                            <Label htmlFor="r-filing-date">Filing Date</Label>
-                            <Input
-                              id="r-filing-date"
-                              type="date"
-                              value={field.state.value}
-                              onBlur={field.handleBlur}
-                              onChange={(e) => field.handleChange(e.target.value)}
-                              disabled={!dodAffidavitFiled}
-                            />
-                            {field.state.meta.errors?.[0] && (
-                              <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
-                            )}
-                          </div>
-                        )}
-                      </rentalFormInstance.Field>
-                      <rentalFormInstance.Field name="clerkFileNo">
-                        {(field: any) => (
-                          <div className="space-y-2">
-                            <Label htmlFor="r-clerk">Clerk File Number</Label>
-                            <Input
-                              id="r-clerk"
-                              value={field.state.value}
-                              onBlur={field.handleBlur}
-                              onChange={(e) => field.handleChange(e.target.value)}
-                              disabled={!dodAffidavitFiled}
-                            />
-                            {field.state.meta.errors?.[0] && (
-                              <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
-                            )}
-                          </div>
-                        )}
-                      </rentalFormInstance.Field>
-                    </>
-                  )}
-                </rentalFormInstance.Subscribe>
-              </div>
-            </div>
-
-            {/* Status */}
-            <div>
-              <h4 className="mb-3 text-sm font-medium">Status</h4>
-              <div className="grid grid-cols-2 gap-3">
-                <rentalFormInstance.Field name="status">
-                  {(field: any) => (
-                    <div className="space-y-2">
-                      <Label>Asset Status</Label>
-                      <Select
-                        value={field.state.value}
-                        onValueChange={(v) => field.handleChange(v)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {ASSET_STATUS.map((s) => (
-                            <SelectItem key={s.value} value={s.value}>
-                              {s.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {field.state.meta.errors?.[0] && (
-                        <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
-                      )}
-                    </div>
-                  )}
-                </rentalFormInstance.Field>
-                <rentalFormInstance.Field name="transferStatus">
-                  {(field: any) => (
-                    <div className="space-y-2">
-                      <Label>Transfer Status</Label>
-                      <Select
-                        value={field.state.value}
-                        onValueChange={(v) => field.handleChange(v)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {TRANSFER_STATUS.map((s) => (
-                            <SelectItem key={s.value} value={s.value}>
-                              {s.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {field.state.meta.errors?.[0] && (
-                        <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
-                      )}
-                    </div>
-                  )}
-                </rentalFormInstance.Field>
-              </div>
-            </div>
-
-            {/* Notes */}
-            <rentalFormInstance.Field name="notes">
-              {(field: any) => (
-                <div className="space-y-2">
-                  <Label htmlFor="r-notes">Notes</Label>
-                  <Textarea
-                    id="r-notes"
-                    value={field.state.value}
-                    onBlur={field.handleBlur}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                  />
-                  {field.state.meta.errors?.[0] && (
-                    <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
-                  )}
-                </div>
-              )}
-            </rentalFormInstance.Field>
           </div>
+
+          {/* Property Details */}
+          <div>
+            <h4 className="mb-3 text-sm font-medium">Property Details</h4>
+            <div className="grid grid-cols-4 gap-3">
+              <rentalFormInstance.Field name="propertyType">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label>Property Type</Label>
+                    <Select value={field.state.value} onValueChange={(v) => field.handleChange(v)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PROPERTY_TYPES.map((t) => (
+                          <SelectItem key={t.value} value={t.value}>
+                            {t.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {field.state.meta.errors?.[0] && (
+                      <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                    )}
+                  </div>
+                )}
+              </rentalFormInstance.Field>
+              <rentalFormInstance.Field name="units">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="r-units">Units</Label>
+                    <Input
+                      id="r-units"
+                      type="number"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                    />
+                    {field.state.meta.errors?.[0] && (
+                      <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                    )}
+                  </div>
+                )}
+              </rentalFormInstance.Field>
+              <rentalFormInstance.Field name="yearBuilt">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="r-year">Year Built</Label>
+                    <Input
+                      id="r-year"
+                      type="number"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                    />
+                    {field.state.meta.errors?.[0] && (
+                      <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                    )}
+                  </div>
+                )}
+              </rentalFormInstance.Field>
+              <rentalFormInstance.Field name="squareFeet">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="r-sqft">Square Feet</Label>
+                    <Input
+                      id="r-sqft"
+                      type="number"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                    />
+                    {field.state.meta.errors?.[0] && (
+                      <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                    )}
+                  </div>
+                )}
+              </rentalFormInstance.Field>
+            </div>
+          </div>
+
+          {/* Rental Info */}
+          <div>
+            <h4 className="mb-3 text-sm font-medium">Rental Info</h4>
+            <div className="grid grid-cols-4 gap-3">
+              <rentalFormInstance.Field name="rentalStatus">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label>Rental Status</Label>
+                    <Select value={field.state.value} onValueChange={(v) => field.handleChange(v)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {RENTAL_STATUS.map((s) => (
+                          <SelectItem key={s.value} value={s.value}>
+                            {s.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {field.state.meta.errors?.[0] && (
+                      <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                    )}
+                  </div>
+                )}
+              </rentalFormInstance.Field>
+              <rentalFormInstance.Field name="monthlyRent">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="r-rent">Monthly Rent</Label>
+                    <Input
+                      id="r-rent"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      placeholder="$"
+                    />
+                    {field.state.meta.errors?.[0] && (
+                      <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                    )}
+                  </div>
+                )}
+              </rentalFormInstance.Field>
+              <rentalFormInstance.Field name="leaseStart">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="r-lease-start">Lease Start</Label>
+                    <Input
+                      id="r-lease-start"
+                      type="date"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                    />
+                    {field.state.meta.errors?.[0] && (
+                      <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                    )}
+                  </div>
+                )}
+              </rentalFormInstance.Field>
+              <rentalFormInstance.Field name="leaseEnd">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="r-lease-end">Lease End</Label>
+                    <Input
+                      id="r-lease-end"
+                      type="date"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                    />
+                    {field.state.meta.errors?.[0] && (
+                      <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                    )}
+                  </div>
+                )}
+              </rentalFormInstance.Field>
+            </div>
+            <div className="mt-3">
+              <rentalFormInstance.Field name="propertyManager">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="r-manager">Property Manager</Label>
+                    <Input
+                      id="r-manager"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                    />
+                    {field.state.meta.errors?.[0] && (
+                      <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                    )}
+                  </div>
+                )}
+              </rentalFormInstance.Field>
+            </div>
+          </div>
+
+          {/* Financials */}
+          <div>
+            <h4 className="mb-3 text-sm font-medium">Financials</h4>
+            <div className="grid grid-cols-3 gap-3">
+              <rentalFormInstance.Field name="acquisitionDate">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="r-acq-date">Acquisition Date</Label>
+                    <Input
+                      id="r-acq-date"
+                      type="date"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                    />
+                    {field.state.meta.errors?.[0] && (
+                      <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                    )}
+                  </div>
+                )}
+              </rentalFormInstance.Field>
+              <rentalFormInstance.Field name="acquisitionCost">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="r-acq-cost">Acquisition Cost</Label>
+                    <Input
+                      id="r-acq-cost"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      placeholder="$"
+                    />
+                    {field.state.meta.errors?.[0] && (
+                      <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                    )}
+                  </div>
+                )}
+              </rentalFormInstance.Field>
+              <rentalFormInstance.Field name="mortgageBalance">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="r-mortgage">Mortgage Balance</Label>
+                    <Input
+                      id="r-mortgage"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      placeholder="$"
+                    />
+                    {field.state.meta.errors?.[0] && (
+                      <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                    )}
+                  </div>
+                )}
+              </rentalFormInstance.Field>
+            </div>
+          </div>
+
+          {/* DOD Valuation */}
+          <div>
+            <h4 className="mb-3 text-sm font-medium">Date of Death Valuation</h4>
+            <div className="grid grid-cols-3 gap-3">
+              <rentalFormInstance.Field name="dodValue">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="r-dod-val">DOD Value</Label>
+                    <Input
+                      id="r-dod-val"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      placeholder="$"
+                    />
+                    {field.state.meta.errors?.[0] && (
+                      <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                    )}
+                  </div>
+                )}
+              </rentalFormInstance.Field>
+              <rentalFormInstance.Field name="dodValueDate">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="r-dod-date">DOD Value Date</Label>
+                    <Input
+                      id="r-dod-date"
+                      type="date"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                    />
+                    {field.state.meta.errors?.[0] && (
+                      <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                    )}
+                  </div>
+                )}
+              </rentalFormInstance.Field>
+              <rentalFormInstance.Field name="dodValueType">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label>Valuation Type</Label>
+                    <Select value={field.state.value} onValueChange={(v) => field.handleChange(v)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {DOD_VALUE_TYPES.map((t) => (
+                          <SelectItem key={t.value} value={t.value}>
+                            {t.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {field.state.meta.errors?.[0] && (
+                      <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                    )}
+                  </div>
+                )}
+              </rentalFormInstance.Field>
+            </div>
+          </div>
+
+          {/* DOD Affidavit */}
+          <div>
+            <h4 className="mb-3 text-sm font-medium">DOD Affidavit (Texas)</h4>
+            <div className="grid grid-cols-3 items-end gap-3">
+              <rentalFormInstance.Field name="dodAffidavitFiled">
+                {(field) => (
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="r-affidavit"
+                      checked={field.state.value}
+                      onCheckedChange={(checked) => field.handleChange(!!checked)}
+                    />
+                    <Label htmlFor="r-affidavit">Affidavit Filed</Label>
+                  </div>
+                )}
+              </rentalFormInstance.Field>
+              <rentalFormInstance.Subscribe<boolean>
+                selector={(state) => state.values.dodAffidavitFiled}
+              >
+                {(dodAffidavitFiled) => (
+                  <>
+                    <rentalFormInstance.Field name="dodAffidavitDate">
+                      {(field) => (
+                        <div className="space-y-2">
+                          <Label htmlFor="r-filing-date">Filing Date</Label>
+                          <Input
+                            id="r-filing-date"
+                            type="date"
+                            value={field.state.value}
+                            onBlur={field.handleBlur}
+                            onChange={(e) => field.handleChange(e.target.value)}
+                            disabled={!dodAffidavitFiled}
+                          />
+                          {field.state.meta.errors?.[0] && (
+                            <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                          )}
+                        </div>
+                      )}
+                    </rentalFormInstance.Field>
+                    <rentalFormInstance.Field name="clerkFileNo">
+                      {(field) => (
+                        <div className="space-y-2">
+                          <Label htmlFor="r-clerk">Clerk File Number</Label>
+                          <Input
+                            id="r-clerk"
+                            value={field.state.value}
+                            onBlur={field.handleBlur}
+                            onChange={(e) => field.handleChange(e.target.value)}
+                            disabled={!dodAffidavitFiled}
+                          />
+                          {field.state.meta.errors?.[0] && (
+                            <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                          )}
+                        </div>
+                      )}
+                    </rentalFormInstance.Field>
+                  </>
+                )}
+              </rentalFormInstance.Subscribe>
+            </div>
+          </div>
+
+          {/* Status */}
+          <div>
+            <h4 className="mb-3 text-sm font-medium">Status</h4>
+            <div className="grid grid-cols-2 gap-3">
+              <rentalFormInstance.Field name="status">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label>Asset Status</Label>
+                    <Select value={field.state.value} onValueChange={(v) => field.handleChange(v)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ASSET_STATUS.map((s) => (
+                          <SelectItem key={s.value} value={s.value}>
+                            {s.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {field.state.meta.errors?.[0] && (
+                      <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                    )}
+                  </div>
+                )}
+              </rentalFormInstance.Field>
+              <rentalFormInstance.Field name="transferStatus">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label>Transfer Status</Label>
+                    <Select value={field.state.value} onValueChange={(v) => field.handleChange(v)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {TRANSFER_STATUS.map((s) => (
+                          <SelectItem key={s.value} value={s.value}>
+                            {s.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {field.state.meta.errors?.[0] && (
+                      <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                    )}
+                  </div>
+                )}
+              </rentalFormInstance.Field>
+            </div>
+          </div>
+
+          {/* Notes */}
+          <rentalFormInstance.Field name="notes">
+            {(field) => (
+              <div className="space-y-2">
+                <Label htmlFor="r-notes">Notes</Label>
+                <Textarea
+                  id="r-notes"
+                  value={field.state.value}
+                  onBlur={field.handleBlur}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                />
+                {field.state.meta.errors?.[0] && (
+                  <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+                )}
+              </div>
+            )}
+          </rentalFormInstance.Field>
+        </div>
       </ResourceDialog>
     </div>
   )

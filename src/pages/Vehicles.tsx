@@ -1,28 +1,17 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Trash2, Plus, Pencil, Loader2 } from "lucide-react"
-import { formatCurrency } from "../utils/formatters"
+import { Loader2, Pencil, Plus, Trash2 } from "lucide-react"
+import { useEffect, useState } from "react"
+import {
+  EditableCurrencyCell,
+  EditableSelectCell,
+  EditableTextCell,
+} from "@/components/editable-cells"
+import { ResourceDialog } from "@/components/resource-dialog"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import { ResourceDialog } from "@/components/resource-dialog"
 import {
   Select,
   SelectContent,
@@ -31,30 +20,29 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
-import {
-  EditableTextCell,
-  EditableCurrencyCell,
-  EditableSelectCell,
-} from "@/components/editable-cells"
-
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { Textarea } from "@/components/ui/textarea"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 // Import TanStack Query hooks
-import { useEntities, useCreateEntity, useUpdateEntity, useDeleteEntity } from "@/hooks/entities/queries"
-import {
-  useVehicles,
-  useCreateVehicle,
-  useUpdateVehicle,
-  useDeleteVehicle,
-  type Vehicle
-} from "@/hooks/vehicles/queries"
-import { vehicleFormDefaults, toDateInput } from "@/lib/form-factory"
-import { TRANSFER_STATUS, DOD_VALUE_TYPES, STATUS_VARIANTS } from "@/lib/constants"
+import { useEntities } from "@/hooks/entities/queries"
 import { useResourceForm } from "@/hooks/use-resource-form"
-import { insertVehicleSchema } from "../../db/validation"
+import {
+  useCreateVehicle,
+  useDeleteVehicle,
+  useUpdateVehicle,
+  useVehicles,
+  type Vehicle,
+} from "@/hooks/vehicles/queries"
+import { DOD_VALUE_TYPES, STATUS_VARIANTS, TRANSFER_STATUS } from "@/lib/constants"
+import { toDateInput, vehicleFormDefaults } from "@/lib/form-factory"
+import { getFieldError } from "@/lib/form-helpers"
+import { formatCurrency } from "../utils/formatters"
 
 // =============================================================================
 // CONSTANTS
@@ -81,14 +69,16 @@ export function Vehicles() {
   // Use TanStack Query hooks
   const { data: entities = [], isLoading: entitiesLoading } = useEntities()
   const [selectedEntity, setSelectedEntity] = useState<string | null>(null)
-  const { data: vehicles = [], isLoading: vehiclesLoading } = useVehicles(selectedEntity || undefined)
+  const { data: vehicles = [], isLoading: vehiclesLoading } = useVehicles(
+    selectedEntity || undefined,
+  )
 
   // Mutation hooks
   const createVehicleMutation = useCreateVehicle()
   const updateVehicleMutation = useUpdateVehicle()
 
   // Wrapper function to match inline cell API
-  const updateVehicle = async (id: string, data: Partial<Vehicle>) => {
+  const _updateVehicle = async (id: string, data: Partial<Vehicle>) => {
     return await updateVehicleMutation.mutateAsync({ id, data })
   }
 
@@ -122,14 +112,13 @@ export function Vehicles() {
         notes: data.notes || null,
       }
 
-      if (vehicleForm.isEditing && vehicleForm.editing) {
-        const editingId = (vehicleForm.editing as any).id
-        await updateVehicleMutation.mutateAsync({ id: editingId, data: payload as any })
+      if (vehicleForm.isEditing && vehicleForm.editing && "id" in vehicleForm.editing) {
+        const editingId = (vehicleForm.editing as Vehicle).id
+        await updateVehicleMutation.mutateAsync({ id: editingId, data: payload })
       } else {
-        await createVehicleMutation.mutateAsync(payload as any)
+        await createVehicleMutation.mutateAsync(payload)
       }
     },
-    schema: insertVehicleSchema as any,
   })
 
   // Auto-select first entity
@@ -191,10 +180,7 @@ export function Vehicles() {
     )
   })
 
-  const totalValue = vehicles.reduce(
-    (sum, v) => sum + (parseFloat(v.dodValue || "0") || 0),
-    0
-  )
+  const totalValue = vehicles.reduce((sum, v) => sum + (parseFloat(v.dodValue || "0") || 0), 0)
 
   return (
     <div className="space-y-6">
@@ -204,10 +190,7 @@ export function Vehicles() {
           Manage vehicle assets
           {vehicles.length > 0 && ` - Total DOD Value: ${formatCurrency(totalValue.toString())}`}
         </p>
-        <Select
-          value={selectedEntity || undefined}
-          onValueChange={setSelectedEntity}
-        >
+        <Select value={selectedEntity || undefined} onValueChange={setSelectedEntity}>
           <SelectTrigger className="w-70">
             <SelectValue placeholder="Select entity" />
           </SelectTrigger>
@@ -232,27 +215,41 @@ export function Vehicles() {
               className="max-w-sm"
             />
             <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={() => {
-                const csv = [
-                  ["Year", "Make", "Model", "VIN", "Color", "DOD Value", "Title Status", "Status"].join(","),
-                  ...vehicles.map(v => [
-                    v.year,
-                    v.make,
-                    v.model,
-                    v.vin,
-                    v.color || "",
-                    v.dodValue || "",
-                    v.titleStatus,
-                    v.status
-                  ].join(","))
-                ].join("\n")
-                const blob = new Blob([csv], { type: "text/csv" })
-                const url = URL.createObjectURL(blob)
-                const a = document.createElement("a")
-                a.href = url
-                a.download = `vehicles-${new Date().toISOString().split("T")[0]}.csv`
-                a.click()
-              }}>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  const csv = [
+                    [
+                      "Year",
+                      "Make",
+                      "Model",
+                      "VIN",
+                      "Color",
+                      "DOD Value",
+                      "Title Status",
+                      "Status",
+                    ].join(","),
+                    ...vehicles.map((v) =>
+                      [
+                        v.year,
+                        v.make,
+                        v.model,
+                        v.vin,
+                        v.color || "",
+                        v.dodValue || "",
+                        v.titleStatus,
+                        v.status,
+                      ].join(","),
+                    ),
+                  ].join("\n")
+                  const blob = new Blob([csv], { type: "text/csv" })
+                  const url = URL.createObjectURL(blob)
+                  const a = document.createElement("a")
+                  a.href = url
+                  a.download = `vehicles-${new Date().toISOString().split("T")[0]}.csv`
+                  a.click()
+                }}
+              >
                 Export CSV
               </Button>
               <Button onClick={vehicleForm.handleAdd}>
@@ -407,344 +404,347 @@ export function Vehicles() {
         isLoading={vehicleForm.isSubmitting}
       >
         <div className="space-y-6">
-            {/* Vehicle Information */}
-            <div>
-              <h4 className="text-sm font-medium mb-3">Vehicle Information</h4>
-              <div className="grid grid-cols-3 gap-4">
-                <vehicleForm.formInstance.Field name="year">
-                  {(field: any) => (
-                    <div className="space-y-2">
-                      <Label htmlFor="year">Year *</Label>
-                      <Input
-                        id="year"
-                        type="number"
-                        min={1900}
-                        max={new Date().getFullYear() + 1}
-                        value={field.state.value || ""}
-                        onChange={(e) => field.handleChange(parseInt(e.target.value) || new Date().getFullYear())}
-                        onBlur={field.handleBlur}
-                      />
-                      {field.state.meta.errors && field.state.meta.errors.length > 0 && (
-                        <p className="text-sm text-red-500">{field.state.meta.errors[0]?.message || field.state.meta.errors[0]}</p>
-                      )}
-                    </div>
-                  )}
-                </vehicleForm.formInstance.Field>
-                <vehicleForm.formInstance.Field name="make">
-                  {(field: any) => (
-                    <div className="space-y-2">
-                      <Label htmlFor="make">Make *</Label>
-                      <Input
-                        id="make"
-                        placeholder="e.g., Ford, Toyota"
-                        value={field.state.value || ""}
-                        onChange={(e) => field.handleChange(e.target.value)}
-                        onBlur={field.handleBlur}
-                      />
-                      {field.state.meta.errors && field.state.meta.errors.length > 0 && (
-                        <p className="text-sm text-red-500">{field.state.meta.errors[0]?.message || field.state.meta.errors[0]}</p>
-                      )}
-                    </div>
-                  )}
-                </vehicleForm.formInstance.Field>
-                <vehicleForm.formInstance.Field name="model">
-                  {(field: any) => (
-                    <div className="space-y-2">
-                      <Label htmlFor="model">Model *</Label>
-                      <Input
-                        id="model"
-                        placeholder="e.g., F-150, Camry"
-                        value={field.state.value || ""}
-                        onChange={(e) => field.handleChange(e.target.value)}
-                        onBlur={field.handleBlur}
-                      />
-                      {field.state.meta.errors && field.state.meta.errors.length > 0 && (
-                        <p className="text-sm text-red-500">{field.state.meta.errors[0]?.message || field.state.meta.errors[0]}</p>
-                      )}
-                    </div>
-                  )}
-                </vehicleForm.formInstance.Field>
-              </div>
-              <div className="grid grid-cols-2 gap-4 mt-4">
-                <vehicleForm.formInstance.Field name="vin">
-                  {(field: any) => (
-                    <div className="space-y-2">
-                      <Label htmlFor="vin">VIN *</Label>
-                      <Input
-                        id="vin"
-                        placeholder="17 characters"
-                        value={field.state.value || ""}
-                        onChange={(e) => field.handleChange(e.target.value.toUpperCase())}
-                        onBlur={field.handleBlur}
-                      />
-                      {field.state.meta.errors && field.state.meta.errors.length > 0 && (
-                        <p className="text-sm text-red-500">{field.state.meta.errors[0]?.message || field.state.meta.errors[0]}</p>
-                      )}
-                    </div>
-                  )}
-                </vehicleForm.formInstance.Field>
-                <vehicleForm.formInstance.Field name="color">
-                  {(field: any) => (
-                    <div className="space-y-2">
-                      <Label htmlFor="color">Color</Label>
-                      <Input
-                        id="color"
-                        value={field.state.value || ""}
-                        onChange={(e) => field.handleChange(e.target.value)}
-                        onBlur={field.handleBlur}
-                      />
-                      {field.state.meta.errors && field.state.meta.errors.length > 0 && (
-                        <p className="text-sm text-red-500">{field.state.meta.errors[0]?.message || field.state.meta.errors[0]}</p>
-                      )}
-                    </div>
-                  )}
-                </vehicleForm.formInstance.Field>
-              </div>
-              <div className="grid grid-cols-3 gap-4 mt-4">
-                <vehicleForm.formInstance.Field name="licensePlate">
-                  {(field: any) => (
-                    <div className="space-y-2">
-                      <Label htmlFor="licensePlate">License Plate</Label>
-                      <Input
-                        id="licensePlate"
-                        value={field.state.value || ""}
-                        onChange={(e) => field.handleChange(e.target.value)}
-                        onBlur={field.handleBlur}
-                      />
-                      {field.state.meta.errors && field.state.meta.errors.length > 0 && (
-                        <p className="text-sm text-red-500">{field.state.meta.errors[0]?.message || field.state.meta.errors[0]}</p>
-                      )}
-                    </div>
-                  )}
-                </vehicleForm.formInstance.Field>
-                <vehicleForm.formInstance.Field name="mileage">
-                  {(field: any) => (
-                    <div className="space-y-2">
-                      <Label htmlFor="mileage">Mileage</Label>
-                      <Input
-                        id="mileage"
-                        type="number"
-                        value={field.state.value || ""}
-                        onChange={(e) => field.handleChange(e.target.value ? parseInt(e.target.value) : null)}
-                        onBlur={field.handleBlur}
-                      />
-                      {field.state.meta.errors && field.state.meta.errors.length > 0 && (
-                        <p className="text-sm text-red-500">{field.state.meta.errors[0]?.message || field.state.meta.errors[0]}</p>
-                      )}
-                    </div>
-                  )}
-                </vehicleForm.formInstance.Field>
-                <vehicleForm.formInstance.Field name="titleStatus">
-                  {(field: any) => (
-                    <div className="space-y-2">
-                      <Label htmlFor="titleStatus">Title Status *</Label>
-                      <Select
-                        value={field.state.value || ""}
-                        onValueChange={(v) => field.handleChange(v)}
-                      >
-                        <SelectTrigger id="titleStatus" onBlur={field.handleBlur}>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {TITLE_STATUS.map((s) => (
-                            <SelectItem key={s.value} value={s.value}>
-                              {s.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {field.state.meta.errors && field.state.meta.errors.length > 0 && (
-                        <p className="text-sm text-red-500">{field.state.meta.errors[0]?.message || field.state.meta.errors[0]}</p>
-                      )}
-                    </div>
-                  )}
-                </vehicleForm.formInstance.Field>
-              </div>
+          {/* Vehicle Information */}
+          <div>
+            <h4 className="text-sm font-medium mb-3">Vehicle Information</h4>
+            <div className="grid grid-cols-3 gap-4">
+              <vehicleForm.formInstance.Field name="year">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="year">Year *</Label>
+                    <Input
+                      id="year"
+                      type="number"
+                      min={1900}
+                      max={new Date().getFullYear() + 1}
+                      value={field.state.value || ""}
+                      onChange={(e) =>
+                        field.handleChange(parseInt(e.target.value, 10) || new Date().getFullYear())
+                      }
+                      onBlur={field.handleBlur}
+                    />
+                    {field.state.meta.errors && field.state.meta.errors.length > 0 && (
+                      <p className="text-sm text-red-500">{getFieldError(field)}</p>
+                    )}
+                  </div>
+                )}
+              </vehicleForm.formInstance.Field>
+              <vehicleForm.formInstance.Field name="make">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="make">Make *</Label>
+                    <Input
+                      id="make"
+                      placeholder="e.g., Ford, Toyota"
+                      value={field.state.value || ""}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      onBlur={field.handleBlur}
+                    />
+                    {field.state.meta.errors && field.state.meta.errors.length > 0 && (
+                      <p className="text-sm text-red-500">{getFieldError(field)}</p>
+                    )}
+                  </div>
+                )}
+              </vehicleForm.formInstance.Field>
+              <vehicleForm.formInstance.Field name="model">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="model">Model *</Label>
+                    <Input
+                      id="model"
+                      placeholder="e.g., F-150, Camry"
+                      value={field.state.value || ""}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      onBlur={field.handleBlur}
+                    />
+                    {field.state.meta.errors && field.state.meta.errors.length > 0 && (
+                      <p className="text-sm text-red-500">{getFieldError(field)}</p>
+                    )}
+                  </div>
+                )}
+              </vehicleForm.formInstance.Field>
             </div>
-
-            {/* Acquisition */}
-            <div>
-              <h4 className="text-sm font-medium mb-3">Acquisition</h4>
-              <div className="grid grid-cols-2 gap-4">
-                <vehicleForm.formInstance.Field name="acquisitionDate">
-                  {(field: any) => (
-                    <div className="space-y-2">
-                      <Label htmlFor="acquisitionDate">Acquisition Date</Label>
-                      <Input
-                        id="acquisitionDate"
-                        type="date"
-                        value={field.state.value || ""}
-                        onChange={(e) => field.handleChange(e.target.value || null)}
-                        onBlur={field.handleBlur}
-                      />
-                      {field.state.meta.errors && field.state.meta.errors.length > 0 && (
-                        <p className="text-sm text-red-500">{field.state.meta.errors[0]?.message || field.state.meta.errors[0]}</p>
-                      )}
-                    </div>
-                  )}
-                </vehicleForm.formInstance.Field>
-                <vehicleForm.formInstance.Field name="acquisitionCost">
-                  {(field: any) => (
-                    <div className="space-y-2">
-                      <Label htmlFor="acquisitionCost">Acquisition Cost</Label>
-                      <Input
-                        id="acquisitionCost"
-                        placeholder="$"
-                        value={field.state.value || ""}
-                        onChange={(e) => field.handleChange(e.target.value)}
-                        onBlur={field.handleBlur}
-                      />
-                      {field.state.meta.errors && field.state.meta.errors.length > 0 && (
-                        <p className="text-sm text-red-500">{field.state.meta.errors[0]?.message || field.state.meta.errors[0]}</p>
-                      )}
-                    </div>
-                  )}
-                </vehicleForm.formInstance.Field>
-              </div>
+            <div className="grid grid-cols-2 gap-4 mt-4">
+              <vehicleForm.formInstance.Field name="vin">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="vin">VIN *</Label>
+                    <Input
+                      id="vin"
+                      placeholder="17 characters"
+                      value={field.state.value || ""}
+                      onChange={(e) => field.handleChange(e.target.value.toUpperCase())}
+                      onBlur={field.handleBlur}
+                    />
+                    {field.state.meta.errors && field.state.meta.errors.length > 0 && (
+                      <p className="text-sm text-red-500">{getFieldError(field)}</p>
+                    )}
+                  </div>
+                )}
+              </vehicleForm.formInstance.Field>
+              <vehicleForm.formInstance.Field name="color">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="color">Color</Label>
+                    <Input
+                      id="color"
+                      value={field.state.value || ""}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      onBlur={field.handleBlur}
+                    />
+                    {field.state.meta.errors && field.state.meta.errors.length > 0 && (
+                      <p className="text-sm text-red-500">{getFieldError(field)}</p>
+                    )}
+                  </div>
+                )}
+              </vehicleForm.formInstance.Field>
             </div>
-
-            {/* DOD Valuation */}
-            <div>
-              <h4 className="text-sm font-medium mb-3">Date of Death Valuation</h4>
-              <div className="grid grid-cols-3 gap-4">
-                <vehicleForm.formInstance.Field name="dodValue">
-                  {(field: any) => (
-                    <div className="space-y-2">
-                      <Label htmlFor="dodValue">DOD Value</Label>
-                      <Input
-                        id="dodValue"
-                        placeholder="$ (KBB/NADA)"
-                        value={field.state.value || ""}
-                        onChange={(e) => field.handleChange(e.target.value)}
-                        onBlur={field.handleBlur}
-                      />
-                      {field.state.meta.errors && field.state.meta.errors.length > 0 && (
-                        <p className="text-sm text-red-500">{field.state.meta.errors[0]?.message || field.state.meta.errors[0]}</p>
-                      )}
-                    </div>
-                  )}
-                </vehicleForm.formInstance.Field>
-                <vehicleForm.formInstance.Field name="dodValueDate">
-                  {(field: any) => (
-                    <div className="space-y-2">
-                      <Label htmlFor="dodValueDate">DOD Value Date</Label>
-                      <Input
-                        id="dodValueDate"
-                        type="date"
-                        value={field.state.value || ""}
-                        onChange={(e) => field.handleChange(e.target.value || null)}
-                        onBlur={field.handleBlur}
-                      />
-                      {field.state.meta.errors && field.state.meta.errors.length > 0 && (
-                        <p className="text-sm text-red-500">{field.state.meta.errors[0]?.message || field.state.meta.errors[0]}</p>
-                      )}
-                    </div>
-                  )}
-                </vehicleForm.formInstance.Field>
-                <vehicleForm.formInstance.Field name="dodValueType">
-                  {(field: any) => (
-                    <div className="space-y-2">
-                      <Label htmlFor="dodValueType">Valuation Type</Label>
-                      <Select
-                        value={field.state.value || ""}
-                        onValueChange={(v) => field.handleChange(v)}
-                      >
-                        <SelectTrigger id="dodValueType" onBlur={field.handleBlur}>
-                          <SelectValue placeholder="Select type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {DOD_VALUE_TYPES.map((t) => (
-                            <SelectItem key={t.value} value={t.value}>
-                              {t.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {field.state.meta.errors && field.state.meta.errors.length > 0 && (
-                        <p className="text-sm text-red-500">{field.state.meta.errors[0]?.message || field.state.meta.errors[0]}</p>
-                      )}
-                    </div>
-                  )}
-                </vehicleForm.formInstance.Field>
-              </div>
+            <div className="grid grid-cols-3 gap-4 mt-4">
+              <vehicleForm.formInstance.Field name="licensePlate">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="licensePlate">License Plate</Label>
+                    <Input
+                      id="licensePlate"
+                      value={field.state.value || ""}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      onBlur={field.handleBlur}
+                    />
+                    {field.state.meta.errors && field.state.meta.errors.length > 0 && (
+                      <p className="text-sm text-red-500">{getFieldError(field)}</p>
+                    )}
+                  </div>
+                )}
+              </vehicleForm.formInstance.Field>
+              <vehicleForm.formInstance.Field name="mileage">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="mileage">Mileage</Label>
+                    <Input
+                      id="mileage"
+                      type="number"
+                      value={field.state.value || ""}
+                      onChange={(e) =>
+                        field.handleChange(e.target.value ? parseInt(e.target.value, 10) : null)
+                      }
+                      onBlur={field.handleBlur}
+                    />
+                    {field.state.meta.errors && field.state.meta.errors.length > 0 && (
+                      <p className="text-sm text-red-500">{getFieldError(field)}</p>
+                    )}
+                  </div>
+                )}
+              </vehicleForm.formInstance.Field>
+              <vehicleForm.formInstance.Field name="titleStatus">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="titleStatus">Title Status *</Label>
+                    <Select
+                      value={field.state.value || ""}
+                      onValueChange={(v) => field.handleChange(v)}
+                    >
+                      <SelectTrigger id="titleStatus" onBlur={field.handleBlur}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {TITLE_STATUS.map((s) => (
+                          <SelectItem key={s.value} value={s.value}>
+                            {s.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {field.state.meta.errors && field.state.meta.errors.length > 0 && (
+                      <p className="text-sm text-red-500">{getFieldError(field)}</p>
+                    )}
+                  </div>
+                )}
+              </vehicleForm.formInstance.Field>
             </div>
+          </div>
 
-            {/* Status */}
-            <div>
-              <h4 className="text-sm font-medium mb-3">Status</h4>
-              <div className="grid grid-cols-2 gap-4">
-                <vehicleForm.formInstance.Field name="status">
-                  {(field: any) => (
-                    <div className="space-y-2">
-                      <Label htmlFor="status">Asset Status *</Label>
-                      <Select
-                        value={field.state.value || ""}
-                        onValueChange={(v) => field.handleChange(v)}
-                      >
-                        <SelectTrigger id="status" onBlur={field.handleBlur}>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {ASSET_STATUS.map((s) => (
-                            <SelectItem key={s.value} value={s.value}>
-                              {s.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {field.state.meta.errors && field.state.meta.errors.length > 0 && (
-                        <p className="text-sm text-red-500">{field.state.meta.errors[0]?.message || field.state.meta.errors[0]}</p>
-                      )}
-                    </div>
-                  )}
-                </vehicleForm.formInstance.Field>
-                <vehicleForm.formInstance.Field name="transferStatus">
-                  {(field: any) => (
-                    <div className="space-y-2">
-                      <Label htmlFor="transferStatus">Transfer Status *</Label>
-                      <Select
-                        value={field.state.value || ""}
-                        onValueChange={(v) => field.handleChange(v)}
-                      >
-                        <SelectTrigger id="transferStatus" onBlur={field.handleBlur}>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {TRANSFER_STATUS.map((s) => (
-                            <SelectItem key={s.value} value={s.value}>
-                              {s.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {field.state.meta.errors && field.state.meta.errors.length > 0 && (
-                        <p className="text-sm text-red-500">{field.state.meta.errors[0]?.message || field.state.meta.errors[0]}</p>
-                      )}
-                    </div>
-                  )}
-                </vehicleForm.formInstance.Field>
-              </div>
+          {/* Acquisition */}
+          <div>
+            <h4 className="text-sm font-medium mb-3">Acquisition</h4>
+            <div className="grid grid-cols-2 gap-4">
+              <vehicleForm.formInstance.Field name="acquisitionDate">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="acquisitionDate">Acquisition Date</Label>
+                    <Input
+                      id="acquisitionDate"
+                      type="date"
+                      value={field.state.value || ""}
+                      onChange={(e) => field.handleChange(e.target.value || null)}
+                      onBlur={field.handleBlur}
+                    />
+                    {field.state.meta.errors && field.state.meta.errors.length > 0 && (
+                      <p className="text-sm text-red-500">{getFieldError(field)}</p>
+                    )}
+                  </div>
+                )}
+              </vehicleForm.formInstance.Field>
+              <vehicleForm.formInstance.Field name="acquisitionCost">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="acquisitionCost">Acquisition Cost</Label>
+                    <Input
+                      id="acquisitionCost"
+                      placeholder="$"
+                      value={field.state.value || ""}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      onBlur={field.handleBlur}
+                    />
+                    {field.state.meta.errors && field.state.meta.errors.length > 0 && (
+                      <p className="text-sm text-red-500">{getFieldError(field)}</p>
+                    )}
+                  </div>
+                )}
+              </vehicleForm.formInstance.Field>
             </div>
+          </div>
 
-            {/* Notes */}
-            <vehicleForm.formInstance.Field name="notes">
-              {(field: any) => (
-                <div className="space-y-2">
-                  <Label htmlFor="notes">Notes</Label>
-                  <Textarea
-                    id="notes"
-                    value={field.state.value || ""}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    onBlur={field.handleBlur}
-                    rows={3}
-                  />
-                  {field.state.meta.errors && field.state.meta.errors.length > 0 && (
-                    <p className="text-sm text-red-500">{field.state.meta.errors[0]?.message || field.state.meta.errors[0]}</p>
-                  )}
-                </div>
-              )}
-            </vehicleForm.formInstance.Field>
+          {/* DOD Valuation */}
+          <div>
+            <h4 className="text-sm font-medium mb-3">Date of Death Valuation</h4>
+            <div className="grid grid-cols-3 gap-4">
+              <vehicleForm.formInstance.Field name="dodValue">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="dodValue">DOD Value</Label>
+                    <Input
+                      id="dodValue"
+                      placeholder="$ (KBB/NADA)"
+                      value={field.state.value || ""}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      onBlur={field.handleBlur}
+                    />
+                    {field.state.meta.errors && field.state.meta.errors.length > 0 && (
+                      <p className="text-sm text-red-500">{getFieldError(field)}</p>
+                    )}
+                  </div>
+                )}
+              </vehicleForm.formInstance.Field>
+              <vehicleForm.formInstance.Field name="dodValueDate">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="dodValueDate">DOD Value Date</Label>
+                    <Input
+                      id="dodValueDate"
+                      type="date"
+                      value={field.state.value || ""}
+                      onChange={(e) => field.handleChange(e.target.value || null)}
+                      onBlur={field.handleBlur}
+                    />
+                    {field.state.meta.errors && field.state.meta.errors.length > 0 && (
+                      <p className="text-sm text-red-500">{getFieldError(field)}</p>
+                    )}
+                  </div>
+                )}
+              </vehicleForm.formInstance.Field>
+              <vehicleForm.formInstance.Field name="dodValueType">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="dodValueType">Valuation Type</Label>
+                    <Select
+                      value={field.state.value || ""}
+                      onValueChange={(v) => field.handleChange(v)}
+                    >
+                      <SelectTrigger id="dodValueType" onBlur={field.handleBlur}>
+                        <SelectValue placeholder="Select type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {DOD_VALUE_TYPES.map((t) => (
+                          <SelectItem key={t.value} value={t.value}>
+                            {t.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {field.state.meta.errors && field.state.meta.errors.length > 0 && (
+                      <p className="text-sm text-red-500">{getFieldError(field)}</p>
+                    )}
+                  </div>
+                )}
+              </vehicleForm.formInstance.Field>
+            </div>
+          </div>
 
+          {/* Status */}
+          <div>
+            <h4 className="text-sm font-medium mb-3">Status</h4>
+            <div className="grid grid-cols-2 gap-4">
+              <vehicleForm.formInstance.Field name="status">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="status">Asset Status *</Label>
+                    <Select
+                      value={field.state.value || ""}
+                      onValueChange={(v) => field.handleChange(v)}
+                    >
+                      <SelectTrigger id="status" onBlur={field.handleBlur}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ASSET_STATUS.map((s) => (
+                          <SelectItem key={s.value} value={s.value}>
+                            {s.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {field.state.meta.errors && field.state.meta.errors.length > 0 && (
+                      <p className="text-sm text-red-500">{getFieldError(field)}</p>
+                    )}
+                  </div>
+                )}
+              </vehicleForm.formInstance.Field>
+              <vehicleForm.formInstance.Field name="transferStatus">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="transferStatus">Transfer Status *</Label>
+                    <Select
+                      value={field.state.value || ""}
+                      onValueChange={(v) => field.handleChange(v)}
+                    >
+                      <SelectTrigger id="transferStatus" onBlur={field.handleBlur}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {TRANSFER_STATUS.map((s) => (
+                          <SelectItem key={s.value} value={s.value}>
+                            {s.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {field.state.meta.errors && field.state.meta.errors.length > 0 && (
+                      <p className="text-sm text-red-500">{getFieldError(field)}</p>
+                    )}
+                  </div>
+                )}
+              </vehicleForm.formInstance.Field>
+            </div>
+          </div>
+
+          {/* Notes */}
+          <vehicleForm.formInstance.Field name="notes">
+            {(field) => (
+              <div className="space-y-2">
+                <Label htmlFor="notes">Notes</Label>
+                <Textarea
+                  id="notes"
+                  value={field.state.value || ""}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  onBlur={field.handleBlur}
+                  rows={3}
+                />
+                {field.state.meta.errors && field.state.meta.errors.length > 0 && (
+                  <p className="text-sm text-red-500">{getFieldError(field)}</p>
+                )}
+              </div>
+            )}
+          </vehicleForm.formInstance.Field>
         </div>
       </ResourceDialog>
     </div>

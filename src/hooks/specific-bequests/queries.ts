@@ -2,8 +2,8 @@
  * TanStack Query hooks for SpecificBequest resource
  */
 
-import { useQuery, useMutation, useQueryClient, queryOptions } from '@tanstack/react-query'
-import { toast } from 'sonner'
+import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { toast } from "sonner"
 
 export interface SpecificBequest {
   id: string
@@ -20,9 +20,9 @@ export interface SpecificBequest {
 
 // Query Keys
 export const specificBequestKeys = {
-  all: ['specific-bequests'] as const,
-  byEntity: (entityId: string) => ['specific-bequests', 'entity', entityId] as const,
-  detail: (id: string) => ['specific-bequests', id] as const,
+  all: ["specific-bequests"] as const,
+  byEntity: (entityId: string) => ["specific-bequests", "entity", entityId] as const,
+  detail: (id: string) => ["specific-bequests", id] as const,
 }
 
 // Query Options
@@ -30,10 +30,14 @@ export const specificBequestsQueryOptions = (entityId?: string) =>
   queryOptions({
     queryKey: entityId ? specificBequestKeys.byEntity(entityId) : specificBequestKeys.all,
     queryFn: async () => {
-      const url = entityId ? `/api/specific-bequests?entityId=${entityId}` : '/api/specific-bequests'
+      const url = entityId
+        ? `/api/specific-bequests?entityId=${entityId}`
+        : "/api/specific-bequests"
       const res = await fetch(url)
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ error: { message: `HTTP ${res.status}` } }))
+        const errorData = await res
+          .json()
+          .catch(() => ({ error: { message: `HTTP ${res.status}` } }))
         throw new Error(errorData.error?.message || `Failed to fetch: ${res.status}`)
       }
       return res.json() as Promise<SpecificBequest[]>
@@ -47,7 +51,9 @@ export const specificBequestQueryOptions = (id: string) =>
     queryFn: async () => {
       const res = await fetch(`/api/specific-bequests/${id}`)
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ error: { message: `HTTP ${res.status}` } }))
+        const errorData = await res
+          .json()
+          .catch(() => ({ error: { message: `HTTP ${res.status}` } }))
         throw new Error(errorData.error?.message || `Failed to fetch: ${res.status}`)
       }
       return res.json() as Promise<SpecificBequest>
@@ -69,19 +75,23 @@ export function useCreateSpecificBequest() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (specificBequest: Partial<SpecificBequest>) => {
-      const res = await fetch('/api/specific-bequests', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/specific-bequests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(specificBequest),
       })
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ error: { message: `HTTP ${res.status}` } }))
-        if (errorData.error?.code === 'VALIDATION_ERROR' && errorData.error.details?.fields) {
+        const errorData = await res
+          .json()
+          .catch(() => ({ error: { message: `HTTP ${res.status}` } }))
+        if (errorData.error?.code === "VALIDATION_ERROR" && errorData.error.details?.fields) {
           const fields = errorData.error.details.fields as Record<string, string>
-          const fieldErrors = Object.entries(fields).map(([field, message]) => `${field}: ${message}`).join('\n')
+          const fieldErrors = Object.entries(fields)
+            .map(([field, message]) => `${field}: ${message}`)
+            .join("\n")
           toast.error(errorData.error.message, { description: fieldErrors })
         } else {
-          toast.error(errorData.error?.message || 'Failed to create bequest')
+          toast.error(errorData.error?.message || "Failed to create bequest")
         }
         throw new Error(errorData.error?.message || `Failed to create: ${res.status}`)
       }
@@ -90,7 +100,7 @@ export function useCreateSpecificBequest() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: specificBequestKeys.all })
       queryClient.invalidateQueries({ queryKey: specificBequestKeys.byEntity(data.entityId) })
-      toast.success('Bequest created successfully')
+      toast.success("Bequest created successfully")
     },
   })
 }
@@ -100,18 +110,22 @@ export function useUpdateSpecificBequest() {
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<SpecificBequest> }) => {
       const res = await fetch(`/api/specific-bequests/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       })
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ error: { message: `HTTP ${res.status}` } }))
-        if (errorData.error?.code === 'VALIDATION_ERROR' && errorData.error.details?.fields) {
+        const errorData = await res
+          .json()
+          .catch(() => ({ error: { message: `HTTP ${res.status}` } }))
+        if (errorData.error?.code === "VALIDATION_ERROR" && errorData.error.details?.fields) {
           const fields = errorData.error.details.fields as Record<string, string>
-          const fieldErrors = Object.entries(fields).map(([field, message]) => `${field}: ${message}`).join('\n')
+          const fieldErrors = Object.entries(fields)
+            .map(([field, message]) => `${field}: ${message}`)
+            .join("\n")
           toast.error(errorData.error.message, { description: fieldErrors })
         } else {
-          toast.error(errorData.error?.message || 'Failed to update bequest')
+          toast.error(errorData.error?.message || "Failed to update bequest")
         }
         throw new Error(errorData.error?.message || `Failed to update: ${res.status}`)
       }
@@ -121,7 +135,7 @@ export function useUpdateSpecificBequest() {
       queryClient.invalidateQueries({ queryKey: specificBequestKeys.all })
       queryClient.invalidateQueries({ queryKey: specificBequestKeys.byEntity(data.entityId) })
       queryClient.invalidateQueries({ queryKey: specificBequestKeys.detail(data.id) })
-      toast.success('Bequest updated successfully')
+      toast.success("Bequest updated successfully")
     },
   })
 }
@@ -130,16 +144,18 @@ export function useDeleteSpecificBequest() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/specific-bequests/${id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/specific-bequests/${id}`, { method: "DELETE" })
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ error: { message: `HTTP ${res.status}` } }))
-        toast.error(errorData.error?.message || 'Failed to delete bequest')
+        const errorData = await res
+          .json()
+          .catch(() => ({ error: { message: `HTTP ${res.status}` } }))
+        toast.error(errorData.error?.message || "Failed to delete bequest")
         throw new Error(errorData.error?.message || `Failed to delete: ${res.status}`)
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: specificBequestKeys.all })
-      toast.success('Bequest deleted successfully')
+      toast.success("Bequest deleted successfully")
     },
   })
 }

@@ -2,8 +2,8 @@
  * TanStack Query hooks for Artwork resource
  */
 
-import { useQuery, useMutation, useQueryClient, queryOptions } from '@tanstack/react-query'
-import { toast } from 'sonner'
+import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { toast } from "sonner"
 
 export interface Artwork {
   id: string
@@ -27,9 +27,9 @@ export interface Artwork {
 
 // Query Keys
 export const artworkKeys = {
-  all: ['artwork'] as const,
-  byEntity: (entityId: string) => ['artwork', 'entity', entityId] as const,
-  detail: (id: string) => ['artwork', id] as const,
+  all: ["artwork"] as const,
+  byEntity: (entityId: string) => ["artwork", "entity", entityId] as const,
+  detail: (id: string) => ["artwork", id] as const,
 }
 
 // Query Options
@@ -37,10 +37,12 @@ export const artworkQueryOptions = (entityId?: string) =>
   queryOptions({
     queryKey: entityId ? artworkKeys.byEntity(entityId) : artworkKeys.all,
     queryFn: async () => {
-      const url = entityId ? `/api/artwork?entityId=${entityId}` : '/api/artwork'
+      const url = entityId ? `/api/artwork?entityId=${entityId}` : "/api/artwork"
       const res = await fetch(url)
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ error: { message: `HTTP ${res.status}` } }))
+        const errorData = await res
+          .json()
+          .catch(() => ({ error: { message: `HTTP ${res.status}` } }))
         throw new Error(errorData.error?.message || `Failed to fetch: ${res.status}`)
       }
       return res.json() as Promise<Artwork[]>
@@ -54,7 +56,9 @@ export const artworkItemQueryOptions = (id: string) =>
     queryFn: async () => {
       const res = await fetch(`/api/artwork/${id}`)
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ error: { message: `HTTP ${res.status}` } }))
+        const errorData = await res
+          .json()
+          .catch(() => ({ error: { message: `HTTP ${res.status}` } }))
         throw new Error(errorData.error?.message || `Failed to fetch: ${res.status}`)
       }
       return res.json() as Promise<Artwork>
@@ -76,19 +80,23 @@ export function useCreateArtwork() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (artwork: Partial<Artwork>) => {
-      const res = await fetch('/api/artwork', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/artwork", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(artwork),
       })
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ error: { message: `HTTP ${res.status}` } }))
-        if (errorData.error?.code === 'VALIDATION_ERROR' && errorData.error.details?.fields) {
+        const errorData = await res
+          .json()
+          .catch(() => ({ error: { message: `HTTP ${res.status}` } }))
+        if (errorData.error?.code === "VALIDATION_ERROR" && errorData.error.details?.fields) {
           const fields = errorData.error.details.fields as Record<string, string>
-          const fieldErrors = Object.entries(fields).map(([field, message]) => `${field}: ${message}`).join('\n')
+          const fieldErrors = Object.entries(fields)
+            .map(([field, message]) => `${field}: ${message}`)
+            .join("\n")
           toast.error(errorData.error.message, { description: fieldErrors })
         } else {
-          toast.error(errorData.error?.message || 'Failed to create artwork')
+          toast.error(errorData.error?.message || "Failed to create artwork")
         }
         throw new Error(errorData.error?.message || `Failed to create: ${res.status}`)
       }
@@ -97,7 +105,7 @@ export function useCreateArtwork() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: artworkKeys.all })
       queryClient.invalidateQueries({ queryKey: artworkKeys.byEntity(data.entityId) })
-      toast.success('Artwork created successfully')
+      toast.success("Artwork created successfully")
     },
   })
 }
@@ -107,18 +115,22 @@ export function useUpdateArtwork() {
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<Artwork> }) => {
       const res = await fetch(`/api/artwork/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       })
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ error: { message: `HTTP ${res.status}` } }))
-        if (errorData.error?.code === 'VALIDATION_ERROR' && errorData.error.details?.fields) {
+        const errorData = await res
+          .json()
+          .catch(() => ({ error: { message: `HTTP ${res.status}` } }))
+        if (errorData.error?.code === "VALIDATION_ERROR" && errorData.error.details?.fields) {
           const fields = errorData.error.details.fields as Record<string, string>
-          const fieldErrors = Object.entries(fields).map(([field, message]) => `${field}: ${message}`).join('\n')
+          const fieldErrors = Object.entries(fields)
+            .map(([field, message]) => `${field}: ${message}`)
+            .join("\n")
           toast.error(errorData.error.message, { description: fieldErrors })
         } else {
-          toast.error(errorData.error?.message || 'Failed to update artwork')
+          toast.error(errorData.error?.message || "Failed to update artwork")
         }
         throw new Error(errorData.error?.message || `Failed to update: ${res.status}`)
       }
@@ -128,7 +140,7 @@ export function useUpdateArtwork() {
       queryClient.invalidateQueries({ queryKey: artworkKeys.all })
       queryClient.invalidateQueries({ queryKey: artworkKeys.byEntity(data.entityId) })
       queryClient.invalidateQueries({ queryKey: artworkKeys.detail(data.id) })
-      toast.success('Artwork updated successfully')
+      toast.success("Artwork updated successfully")
     },
   })
 }
@@ -137,16 +149,18 @@ export function useDeleteArtwork() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/artwork/${id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/artwork/${id}`, { method: "DELETE" })
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ error: { message: `HTTP ${res.status}` } }))
-        toast.error(errorData.error?.message || 'Failed to delete artwork')
+        const errorData = await res
+          .json()
+          .catch(() => ({ error: { message: `HTTP ${res.status}` } }))
+        toast.error(errorData.error?.message || "Failed to delete artwork")
         throw new Error(errorData.error?.message || `Failed to delete: ${res.status}`)
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: artworkKeys.all })
-      toast.success('Artwork deleted successfully')
+      toast.success("Artwork deleted successfully")
     },
   })
 }

@@ -1,7 +1,41 @@
-import { db } from "./db"
 import { sql } from "drizzle-orm"
+import { db } from "./db"
 
-console.log("=" .repeat(80))
+interface BrinIndexRow {
+  schemaname: string
+  tablename: string
+  indexname: string
+  index_size: string
+  table_size: string
+  size_percent: number
+}
+
+interface GinIndexRow {
+  schemaname: string
+  tablename: string
+  indexname: string
+  index_size: string
+  scans: number
+  tuples_read: number
+  tuples_fetched: number
+}
+
+interface CountRow {
+  total_count: number
+  total_size: string
+}
+
+interface TypeRow {
+  index_type: string
+  count: number
+  total_size: string
+}
+
+interface QueryResult<T> {
+  rows: T[]
+}
+
+console.log("=".repeat(80))
 console.log("INDEX VERIFICATION - BRIN & GIN INDEXES")
 console.log("=".repeat(80))
 
@@ -23,10 +57,11 @@ const brinIndexes = await db.execute(sql`
   ORDER BY pg_relation_size(indexrelid) DESC;
 `)
 
-const brinRows = Array.isArray(brinIndexes) ? brinIndexes : (brinIndexes as any).rows || []
+const brinResult = brinIndexes as unknown as QueryResult<BrinIndexRow>
+const brinRows = Array.isArray(brinIndexes) ? brinIndexes : brinResult.rows || []
 
 if (brinRows.length > 0) {
-  brinRows.forEach((row: any) => {
+  brinRows.forEach((row) => {
     console.log(`✅ ${row.indexname}`)
     console.log(`   Table: ${row.tablename}`)
     console.log(`   Index Size: ${row.index_size}`)
@@ -57,10 +92,11 @@ const ginIndexes = await db.execute(sql`
   ORDER BY pg_relation_size(indexrelid) DESC;
 `)
 
-const ginRows = Array.isArray(ginIndexes) ? ginIndexes : (ginIndexes as any).rows || []
+const ginResult = ginIndexes as unknown as QueryResult<GinIndexRow>
+const ginRows = Array.isArray(ginIndexes) ? ginIndexes : ginResult.rows || []
 
 if (ginRows.length > 0) {
-  ginRows.forEach((row: any) => {
+  ginRows.forEach((row) => {
     console.log(`✅ ${row.indexname}`)
     console.log(`   Table: ${row.tablename}`)
     console.log(`   Index Size: ${row.index_size}`)
@@ -83,10 +119,13 @@ const totalIndexes = await db.execute(sql`
   WHERE schemaname = 'public';
 `)
 
-const summary = Array.isArray(totalIndexes) ? totalIndexes[0] : (totalIndexes as any).rows?.[0] || totalIndexes[0]
+const totalResult = totalIndexes as unknown as QueryResult<CountRow>
+const summary = Array.isArray(totalIndexes)
+  ? (totalIndexes[0] as unknown as CountRow)
+  : totalResult.rows?.[0] || (totalIndexes[0] as unknown as CountRow)
 
-console.log(`Total indexes: ${(summary as any)?.total_count || 'unknown'}`)
-console.log(`Total index size: ${(summary as any)?.total_size || 'unknown'}`)
+console.log(`Total indexes: ${summary?.total_count || "unknown"}`)
+console.log(`Total index size: ${summary?.total_size || "unknown"}`)
 
 // Count by index type
 const byType = await db.execute(sql`
@@ -102,10 +141,11 @@ const byType = await db.execute(sql`
   ORDER BY COUNT(*) DESC;
 `)
 
-const typeRows = Array.isArray(byType) ? byType : (byType as any).rows || []
+const typeResult = byType as unknown as QueryResult<TypeRow>
+const typeRows = Array.isArray(byType) ? byType : typeResult.rows || []
 
 console.log("\nBy type:")
-typeRows.forEach((row: any) => {
+typeRows.forEach((row) => {
   console.log(`  ${row.index_type}: ${row.count} indexes (${row.total_size})`)
 })
 

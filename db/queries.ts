@@ -4,92 +4,99 @@
  * Consolidated query functions using the CRUD factory for standard operations.
  * Custom queries are kept for complex operations that need specific logic.
  */
-import { eq } from "drizzle-orm";
-import { db } from "./index";
-import { createCrud } from "./crud-factory";
-import { generateId } from "./helpers";
-import { isPrincipalTransaction, type IncomeType, type ExpenseType } from "../src/lib/classification-rules";
+import { eq } from "drizzle-orm"
 import {
-  entity,
-  vehicle,
-  homestead,
-  rentalProperty,
-  bankAccount,
-  investmentAccount,
-  insurancePolicy,
-  personalProperty,
-  beneficiary,
-  distribution,
-  valuation,
-  document,
-  transaction,
-  contact,
-  task,
+  type ExpenseType,
+  type IncomeType,
+  isPrincipalTransaction,
+} from "../src/lib/classification-rules"
+import { createCrud } from "./crud-factory"
+import { generateId } from "./helpers"
+import { db } from "./index"
+import {
+  activityLog,
   artwork,
-  trustee,
-  specificBequest,
-  trustAccounting,
-  withdrawalRecord,
+  bankAccount,
+  beneficiary,
+  contact,
+  distribution,
+  entity,
+  hemsRequest,
+  homestead,
+  investmentAccount,
   liability,
   liabilityPayment,
-  hemsRequest,
-  trusteeFeeSchedule,
+  personalProperty,
+  rentalProperty,
+  specificBequest,
+  task,
+  trustAccounting,
+  trustee,
   trusteeFeeEntry,
-  activityLog,
-} from "./schema";
+  trusteeFeeSchedule,
+  valuation,
+  vehicle,
+  withdrawalRecord,
+} from "./schema"
 
-export { generateId };
+export { generateId }
 
-// Import enum types from schema
-import type { PaymentMethodType } from "./schema";
+// Re-export all Drizzle-inferred types for use in components
+export type * from "./schema"
 
 // =============================================================================
 // CRUD FACTORIES
 // =============================================================================
 
 // Core entities
-export const entityCrud = createCrud(entity);
-export const beneficiaryCrud = createCrud(beneficiary);
-export const contactCrud = createCrud(contact);
-export const taskCrud = createCrud(task);
-export const distributionCrud = createCrud(distribution);
-export const valuationCrud = createCrud(valuation, { hasUpdatedAt: false });
+export const entityCrud = createCrud(entity)
+export const beneficiaryCrud = createCrud(beneficiary)
+export const contactCrud = createCrud(contact)
+export const taskCrud = createCrud(task)
+export const distributionCrud = createCrud(distribution)
+export const valuationCrud = createCrud(valuation, { hasUpdatedAt: false })
 
 // Assets with entityId filter
-export const vehicleCrud = createCrud(vehicle, { filterColumn: "entityId" });
-export const homesteadCrud = createCrud(homestead, { filterColumn: "entityId" });
-export const rentalPropertyCrud = createCrud(rentalProperty, { filterColumn: "entityId" });
-export const bankAccountCrud = createCrud(bankAccount, { filterColumn: "entityId" });
-export const investmentAccountCrud = createCrud(investmentAccount, { filterColumn: "entityId" });
-export const personalPropertyCrud = createCrud(personalProperty, { filterColumn: "entityId" });
-export const artworkCrud = createCrud(artwork, { filterColumn: "entityId" });
-export const trusteeCrud = createCrud(trustee, { filterColumn: "entityId" });
-export const specificBequestCrud = createCrud(specificBequest, { filterColumn: "entityId" });
-export const trustAccountingCrud = createCrud(trustAccounting, { filterColumn: "entityId" });
-export const withdrawalRecordCrud = createCrud(withdrawalRecord, { filterColumn: "beneficiaryId" });
+export const vehicleCrud = createCrud(vehicle, { filterColumn: "entityId" })
+export const homesteadCrud = createCrud(homestead, { filterColumn: "entityId" })
+export const rentalPropertyCrud = createCrud(rentalProperty, { filterColumn: "entityId" })
+export const bankAccountCrud = createCrud(bankAccount, { filterColumn: "entityId" })
+export const investmentAccountCrud = createCrud(investmentAccount, { filterColumn: "entityId" })
+export const personalPropertyCrud = createCrud(personalProperty, { filterColumn: "entityId" })
+export const artworkCrud = createCrud(artwork, { filterColumn: "entityId" })
+export const trusteeCrud = createCrud(trustee, { filterColumn: "entityId" })
+export const specificBequestCrud = createCrud(specificBequest, { filterColumn: "entityId" })
+export const trustAccountingCrud = createCrud(trustAccounting, { filterColumn: "entityId" })
+export const withdrawalRecordCrud = createCrud(withdrawalRecord, { filterColumn: "beneficiaryId" })
 
 // Texas 113.152(5) - Liabilities
-export const liabilityCrud = createCrud(liability, { filterColumn: "entityId" });
-export const liabilityPaymentCrud = createCrud(liabilityPayment, { filterColumn: "liabilityId", hasUpdatedAt: false });
+export const liabilityCrud = createCrud(liability, { filterColumn: "entityId" })
+export const liabilityPaymentCrud = createCrud(liabilityPayment, {
+  filterColumn: "liabilityId",
+  hasUpdatedAt: false,
+})
 
 // HEMS Request Workflow
-export const hemsRequestCrud = createCrud(hemsRequest, { filterColumn: "beneficiaryId" });
+export const hemsRequestCrud = createCrud(hemsRequest, { filterColumn: "beneficiaryId" })
 
 // Trustee Fee Tracking
-export const trusteeFeeScheduleCrud = createCrud(trusteeFeeSchedule, { filterColumn: "entityId", hasUpdatedAt: false });
-export const trusteeFeeEntryCrud = createCrud(trusteeFeeEntry, { filterColumn: "entityId" });
+export const trusteeFeeScheduleCrud = createCrud(trusteeFeeSchedule, {
+  filterColumn: "entityId",
+  hasUpdatedAt: false,
+})
+export const trusteeFeeEntryCrud = createCrud(trusteeFeeEntry, { filterColumn: "entityId" })
 
 // Activity Log (read-only audit trail)
-export const activityLogCrud = createCrud(activityLog, { hasUpdatedAt: false });
+export const activityLogCrud = createCrud(activityLog, { hasUpdatedAt: false })
 
 // =============================================================================
 // ENTITY QUERIES (with custom getById for relations)
 // =============================================================================
 
-export const getEntities = () => entityCrud.getAll();
-export const createEntity = entityCrud.create;
-export const updateEntity = entityCrud.update;
-export const deleteEntity = entityCrud.delete;
+export const getEntities = () => entityCrud.getAll()
+export const createEntity = entityCrud.create
+export const updateEntity = entityCrud.update
+export const deleteEntity = entityCrud.delete
 
 export async function getEntityById(id: string) {
   return db.query.entity.findFirst({
@@ -104,17 +111,17 @@ export async function getEntityById(id: string) {
       personalProperties: true,
       documents: true,
     },
-  });
+  })
 }
 
 // =============================================================================
 // BENEFICIARY QUERIES (with custom getById for distributions)
 // =============================================================================
 
-export const getBeneficiaries = () => beneficiaryCrud.getAll();
-export const createBeneficiary = beneficiaryCrud.create;
-export const updateBeneficiary = beneficiaryCrud.update;
-export const deleteBeneficiary = beneficiaryCrud.delete;
+export const getBeneficiaries = () => beneficiaryCrud.getAll()
+export const createBeneficiary = beneficiaryCrud.create
+export const updateBeneficiary = beneficiaryCrud.update
+export const deleteBeneficiary = beneficiaryCrud.delete
 
 export async function getBeneficiaryById(id: string) {
   return db.query.beneficiary.findFirst({
@@ -124,7 +131,7 @@ export async function getBeneficiaryById(id: string) {
         orderBy: (d, { desc }) => [desc(d.distributionDate)],
       },
     },
-  });
+  })
 }
 
 // =============================================================================
@@ -135,99 +142,99 @@ export async function getDistributions() {
   return db.query.distribution.findMany({
     with: { beneficiary: true },
     orderBy: (d, { desc }) => [desc(d.distributionDate)],
-  });
+  })
 }
 
-export const createDistribution = distributionCrud.create;
+export const createDistribution = distributionCrud.create
 
 // =============================================================================
 // VEHICLE QUERIES (with custom getById for relations)
 // =============================================================================
 
-export const getVehicles = vehicleCrud.getAll;
-export const createVehicle = vehicleCrud.create;
-export const updateVehicle = vehicleCrud.update;
-export const deleteVehicle = vehicleCrud.delete;
+export const getVehicles = vehicleCrud.getAll
+export const createVehicle = vehicleCrud.create
+export const updateVehicle = vehicleCrud.update
+export const deleteVehicle = vehicleCrud.delete
 
 export async function getVehicleById(id: string) {
   return db.query.vehicle.findFirst({
     where: eq(vehicle.id, id),
     with: { entity: true, valuations: true, documents: true, transactions: true },
-  });
+  })
 }
 
 // =============================================================================
 // HOMESTEAD QUERIES (with custom getById for relations)
 // =============================================================================
 
-export const getHomesteads = homesteadCrud.getAll;
-export const createHomestead = homesteadCrud.create;
-export const updateHomestead = homesteadCrud.update;
-export const deleteHomestead = homesteadCrud.delete;
+export const getHomesteads = homesteadCrud.getAll
+export const createHomestead = homesteadCrud.create
+export const updateHomestead = homesteadCrud.update
+export const deleteHomestead = homesteadCrud.delete
 
 export async function getHomesteadById(id: string) {
   return db.query.homestead.findFirst({
     where: eq(homestead.id, id),
     with: { entity: true, valuations: true, documents: true },
-  });
+  })
 }
 
 // =============================================================================
 // RENTAL PROPERTY QUERIES (with custom getById for relations)
 // =============================================================================
 
-export const getRentalProperties = rentalPropertyCrud.getAll;
-export const createRentalProperty = rentalPropertyCrud.create;
-export const updateRentalProperty = rentalPropertyCrud.update;
-export const deleteRentalProperty = rentalPropertyCrud.delete;
+export const getRentalProperties = rentalPropertyCrud.getAll
+export const createRentalProperty = rentalPropertyCrud.create
+export const updateRentalProperty = rentalPropertyCrud.update
+export const deleteRentalProperty = rentalPropertyCrud.delete
 
 export async function getRentalPropertyById(id: string) {
   return db.query.rentalProperty.findFirst({
     where: eq(rentalProperty.id, id),
     with: { entity: true, valuations: true, documents: true, transactions: true },
-  });
+  })
 }
 
 // =============================================================================
 // BANK ACCOUNT QUERIES (with custom getById for relations)
 // =============================================================================
 
-export const getBankAccounts = bankAccountCrud.getAll;
-export const createBankAccount = bankAccountCrud.create;
-export const updateBankAccount = bankAccountCrud.update;
-export const deleteBankAccount = bankAccountCrud.delete;
+export const getBankAccounts = bankAccountCrud.getAll
+export const createBankAccount = bankAccountCrud.create
+export const updateBankAccount = bankAccountCrud.update
+export const deleteBankAccount = bankAccountCrud.delete
 
 export async function getBankAccountById(id: string) {
   return db.query.bankAccount.findFirst({
     where: eq(bankAccount.id, id),
     with: { entity: true, valuations: true, documents: true, transactions: true },
-  });
+  })
 }
 
 // =============================================================================
 // INVESTMENT ACCOUNT QUERIES
 // =============================================================================
 
-export const getInvestmentAccounts = investmentAccountCrud.getAll;
-export const getInvestmentAccountById = investmentAccountCrud.getById;
-export const createInvestmentAccount = investmentAccountCrud.create;
-export const updateInvestmentAccount = investmentAccountCrud.update;
-export const deleteInvestmentAccount = investmentAccountCrud.delete;
+export const getInvestmentAccounts = investmentAccountCrud.getAll
+export const getInvestmentAccountById = investmentAccountCrud.getById
+export const createInvestmentAccount = investmentAccountCrud.create
+export const updateInvestmentAccount = investmentAccountCrud.update
+export const deleteInvestmentAccount = investmentAccountCrud.delete
 
 // =============================================================================
 // PERSONAL PROPERTY QUERIES
 // =============================================================================
 
-export const getPersonalProperties = personalPropertyCrud.getAll;
-export const createPersonalProperty = personalPropertyCrud.create;
-export const updatePersonalProperty = personalPropertyCrud.update;
-export const deletePersonalProperty = personalPropertyCrud.delete;
+export const getPersonalProperties = personalPropertyCrud.getAll
+export const createPersonalProperty = personalPropertyCrud.create
+export const updatePersonalProperty = personalPropertyCrud.update
+export const deletePersonalProperty = personalPropertyCrud.delete
 
 // =============================================================================
 // VALUATION QUERIES
 // =============================================================================
 
-export const createValuation = valuationCrud.create;
+export const createValuation = valuationCrud.create
 
 export async function getValuationsForAsset(assetType: string, assetId: string) {
   const columnMap = {
@@ -237,71 +244,71 @@ export async function getValuationsForAsset(assetType: string, assetId: string) 
     bankAccount: valuation.bankAccountId,
     investmentAccount: valuation.investmentAccountId,
     personalProperty: valuation.personalPropertyId,
-  } as const;
+  } as const
 
-  const column = columnMap[assetType as keyof typeof columnMap];
-  if (!column) throw new Error(`Unknown asset type: ${assetType}`);
+  const column = columnMap[assetType as keyof typeof columnMap]
+  if (!column) throw new Error(`Unknown asset type: ${assetType}`)
 
   return db.query.valuation.findMany({
     where: eq(column, assetId),
     orderBy: (v, { desc }) => [desc(v.valuationDate)],
-  });
+  })
 }
 
 // =============================================================================
 // CONTACT QUERIES
 // =============================================================================
 
-export const getContacts = () => contactCrud.getAll();
-export const createContact = contactCrud.create;
-export const updateContact = contactCrud.update;
-export const deleteContact = contactCrud.delete;
+export const getContacts = () => contactCrud.getAll()
+export const createContact = contactCrud.create
+export const updateContact = contactCrud.update
+export const deleteContact = contactCrud.delete
 
 // =============================================================================
 // TASK QUERIES
 // =============================================================================
 
-export const getTasks = () => taskCrud.getAll();
-export const createTask = taskCrud.create;
-export const updateTask = taskCrud.update;
-export const deleteTask = taskCrud.delete;
+export const getTasks = () => taskCrud.getAll()
+export const createTask = taskCrud.create
+export const updateTask = taskCrud.update
+export const deleteTask = taskCrud.delete
 
 // =============================================================================
 // ARTWORK QUERIES
 // =============================================================================
 
-export const getArtworks = artworkCrud.getAll;
-export const createArtwork = artworkCrud.create;
-export const updateArtwork = artworkCrud.update;
-export const deleteArtwork = artworkCrud.delete;
+export const getArtworks = artworkCrud.getAll
+export const createArtwork = artworkCrud.create
+export const updateArtwork = artworkCrud.update
+export const deleteArtwork = artworkCrud.delete
 
 // =============================================================================
 // TRUSTEE QUERIES
 // =============================================================================
 
-export const getTrustees = trusteeCrud.getAll;
-export const getTrusteeById = trusteeCrud.getById;
-export const createTrustee = trusteeCrud.create;
-export const updateTrustee = trusteeCrud.update;
-export const deleteTrustee = trusteeCrud.delete;
+export const getTrustees = trusteeCrud.getAll
+export const getTrusteeById = trusteeCrud.getById
+export const createTrustee = trusteeCrud.create
+export const updateTrustee = trusteeCrud.update
+export const deleteTrustee = trusteeCrud.delete
 
 // =============================================================================
 // SPECIFIC BEQUEST QUERIES
 // =============================================================================
 
-export const getSpecificBequests = specificBequestCrud.getAll;
-export const getSpecificBequestById = specificBequestCrud.getById;
-export const createSpecificBequest = specificBequestCrud.create;
-export const updateSpecificBequest = specificBequestCrud.update;
-export const deleteSpecificBequest = specificBequestCrud.delete;
+export const getSpecificBequests = specificBequestCrud.getAll
+export const getSpecificBequestById = specificBequestCrud.getById
+export const createSpecificBequest = specificBequestCrud.create
+export const updateSpecificBequest = specificBequestCrud.update
+export const deleteSpecificBequest = specificBequestCrud.delete
 
 // =============================================================================
 // TRUST ACCOUNTING QUERIES
 // =============================================================================
 
-export const getTrustAccountingEntries = trustAccountingCrud.getAll;
-export const updateTrustAccountingEntry = trustAccountingCrud.update;
-export const deleteTrustAccountingEntry = trustAccountingCrud.delete;
+export const getTrustAccountingEntries = trustAccountingCrud.getAll
+export const updateTrustAccountingEntry = trustAccountingCrud.update
+export const deleteTrustAccountingEntry = trustAccountingCrud.delete
 
 /**
  * Create a trust accounting entry with auto-classification
@@ -310,77 +317,81 @@ export const deleteTrustAccountingEntry = trustAccountingCrud.delete;
  * - Income types (rent, dividends, interest) → isPrincipal: false
  * - Principal types (capital gains, sale proceeds) → isPrincipal: true
  */
-export async function createTrustAccountingEntry(data: Parameters<typeof trustAccountingCrud.create>[0]) {
+export async function createTrustAccountingEntry(
+  data: Parameters<typeof trustAccountingCrud.create>[0],
+) {
   // Auto-classify if isPrincipal not explicitly provided
-  const isPrincipal = data.isPrincipal ?? isPrincipalTransaction(
-    data.incomeType as IncomeType | undefined,
-    data.expenseType as ExpenseType | undefined,
-    undefined // category for special rules
-  );
+  const isPrincipal =
+    data.isPrincipal ??
+    isPrincipalTransaction(
+      data.incomeType as IncomeType | undefined,
+      data.expenseType as ExpenseType | undefined,
+      undefined, // category for special rules
+    )
 
   return trustAccountingCrud.create({
     ...data,
     isPrincipal,
-  });
+  })
 }
 
 // =============================================================================
 // WITHDRAWAL RECORD QUERIES
 // =============================================================================
 
-export const getWithdrawalRecords = withdrawalRecordCrud.getAll;
-export const createWithdrawalRecord = withdrawalRecordCrud.create;
-export const updateWithdrawalRecord = withdrawalRecordCrud.update;
-export const deleteWithdrawalRecord = withdrawalRecordCrud.delete;
+export const getWithdrawalRecords = withdrawalRecordCrud.getAll
+export const createWithdrawalRecord = withdrawalRecordCrud.create
+export const updateWithdrawalRecord = withdrawalRecordCrud.update
+export const deleteWithdrawalRecord = withdrawalRecordCrud.delete
 
 // =============================================================================
 // HEMS REQUEST QUERIES
 // =============================================================================
 
-export const getHemsRequests = hemsRequestCrud.getAll;
-export const getHemsRequestById = hemsRequestCrud.getById;
-export const createHemsRequest = hemsRequestCrud.create;
-export const updateHemsRequest = hemsRequestCrud.update;
-export const deleteHemsRequest = hemsRequestCrud.delete;
+export const getHemsRequests = hemsRequestCrud.getAll
+export const getHemsRequestById = hemsRequestCrud.getById
+export const createHemsRequest = hemsRequestCrud.create
+export const updateHemsRequest = hemsRequestCrud.update
+export const deleteHemsRequest = hemsRequestCrud.delete
 
 export async function getHemsRequestsWithBeneficiary(filterValue?: string) {
   return db.query.hemsRequest.findMany({
     where: filterValue ? eq(hemsRequest.beneficiaryId, filterValue) : undefined,
     with: { beneficiary: true },
     orderBy: (r, { desc }) => [desc(r.createdAt)],
-  });
+  })
 }
 
 export async function getPendingHemsRequests() {
   return db.query.hemsRequest.findMany({
-    where: eq(hemsRequest.status, 'PENDING'),
+    where: eq(hemsRequest.status, "PENDING"),
     with: { beneficiary: true },
     orderBy: (r, { asc }) => [asc(r.createdAt)],
-  });
+  })
 }
 
 // =============================================================================
 // TRUSTEE FEE QUERIES
 // =============================================================================
 
-export const getTrusteeFeeSchedules = trusteeFeeScheduleCrud.getAll;
-export const getTrusteeFeeScheduleById = trusteeFeeScheduleCrud.getById;
-export const createTrusteeFeeSchedule = trusteeFeeScheduleCrud.create;
-export const updateTrusteeFeeSchedule = trusteeFeeScheduleCrud.update;
-export const deleteTrusteeFeeSchedule = trusteeFeeScheduleCrud.delete;
+export const getTrusteeFeeSchedules = trusteeFeeScheduleCrud.getAll
+export const getTrusteeFeeScheduleById = trusteeFeeScheduleCrud.getById
+export const createTrusteeFeeSchedule = trusteeFeeScheduleCrud.create
+export const updateTrusteeFeeSchedule = trusteeFeeScheduleCrud.update
+export const deleteTrusteeFeeSchedule = trusteeFeeScheduleCrud.delete
 
-export const getTrusteeFeeEntries = trusteeFeeEntryCrud.getAll;
-export const getTrusteeFeeEntryById = trusteeFeeEntryCrud.getById;
-export const createTrusteeFeeEntry = trusteeFeeEntryCrud.create;
-export const updateTrusteeFeeEntry = trusteeFeeEntryCrud.update;
-export const deleteTrusteeFeeEntry = trusteeFeeEntryCrud.delete;
+export const getTrusteeFeeEntries = trusteeFeeEntryCrud.getAll
+export const getTrusteeFeeEntryById = trusteeFeeEntryCrud.getById
+export const createTrusteeFeeEntry = trusteeFeeEntryCrud.create
+export const updateTrusteeFeeEntry = trusteeFeeEntryCrud.update
+export const deleteTrusteeFeeEntry = trusteeFeeEntryCrud.delete
 
 export async function getTrusteeFeeEntriesWithSchedule(entityId?: string) {
   return db.query.trusteeFeeEntry.findMany({
     where: entityId ? eq(trusteeFeeEntry.entityId, entityId) : undefined,
     with: { schedule: true, trustee: true },
     orderBy: (e, { desc }) => [desc(e.periodEnd)],
-  });
+  })
 }
 
 // =============================================================================
@@ -388,33 +399,33 @@ export async function getTrusteeFeeEntriesWithSchedule(entityId?: string) {
 // =============================================================================
 
 interface RecordPaymentData {
-  liabilityId: string;
-  paymentDate: string;
-  amount: string;
-  principalPortion?: string | null;
-  interestPortion?: string | null;
-  escrowPortion?: string | null;
-  paymentMethod?: PaymentMethodType | null;
-  checkNumber?: string | null;
-  confirmationNumber?: string | null;
-  notes?: string | null;
-  createExpenseEntry?: boolean; // Whether to auto-create trust accounting entry
+  liabilityId: string
+  paymentDate: string
+  amount: string
+  principalPortion?: string | null
+  interestPortion?: string | null
+  escrowPortion?: string | null
+  paymentMethod?: "CHECK" | "ACH" | "WIRE" | "CASH" | "OTHER" | null
+  checkNumber?: string | null
+  confirmationNumber?: string | null
+  notes?: string | null
+  createExpenseEntry?: boolean // Whether to auto-create trust accounting entry
 }
 
 export async function recordLiabilityPayment(data: RecordPaymentData) {
   // 1. Get the liability to update and get entityId
   const liabilityRecord = await db.query.liability.findFirst({
     where: eq(liability.id, data.liabilityId),
-  });
+  })
 
   if (!liabilityRecord) {
-    throw new Error("Liability not found");
+    throw new Error("Liability not found")
   }
 
-  const paymentId = generateId();
-  const paymentAmount = parseFloat(data.amount) || 0;
-  const currentBalance = parseFloat(liabilityRecord.currentBalance || "0") || 0;
-  const newBalance = Math.max(0, currentBalance - paymentAmount);
+  const paymentId = generateId()
+  const paymentAmount = parseFloat(data.amount) || 0
+  const currentBalance = parseFloat(liabilityRecord.currentBalance || "0") || 0
+  const newBalance = Math.max(0, currentBalance - paymentAmount)
 
   // 2. Create the payment record
   await db.insert(liabilityPayment).values({
@@ -429,7 +440,7 @@ export async function recordLiabilityPayment(data: RecordPaymentData) {
     checkNumber: data.checkNumber || null,
     confirmationNumber: data.confirmationNumber || null,
     notes: data.notes || null,
-  });
+  })
 
   // 3. Update the liability's current balance
   await db
@@ -438,19 +449,19 @@ export async function recordLiabilityPayment(data: RecordPaymentData) {
       currentBalance: newBalance.toFixed(2),
       currentBalanceDate: data.paymentDate,
     })
-    .where(eq(liability.id, data.liabilityId));
+    .where(eq(liability.id, data.liabilityId))
 
   // 4. Optionally create a trust accounting expense entry
-  let accountingEntry = null;
+  let accountingEntry = null
   if (data.createExpenseEntry !== false) {
-    const accountingId = generateId();
-    const expenseDescription = `${liabilityRecord.liabilityType.replace(/_/g, " ")} payment to ${liabilityRecord.creditor}`;
+    const accountingId = generateId()
+    const expenseDescription = `${liabilityRecord.liabilityType.replace(/_/g, " ")} payment to ${liabilityRecord.creditor}`
 
     // Determine if principal based on liability's allocation class
-    const isPrincipal = liabilityRecord.allocationClass === "PRINCIPAL";
+    const isPrincipal = liabilityRecord.allocationClass === "PRINCIPAL"
 
     // Determine expense type based on liability type
-    const expenseType = liabilityRecord.liabilityType === "TAX_OWED" ? "TAX" : "OTHER";
+    const expenseType = liabilityRecord.liabilityType === "TAX_OWED" ? "TAX" : "OTHER"
 
     await db.insert(trustAccounting).values({
       id: accountingId,
@@ -461,15 +472,17 @@ export async function recordLiabilityPayment(data: RecordPaymentData) {
       amount: data.amount,
       description: expenseDescription,
       isPrincipal,
-      taxDeductible: liabilityRecord.liabilityType === "MORTGAGE" || liabilityRecord.liabilityType === "TAX_OWED",
+      taxDeductible:
+        liabilityRecord.liabilityType === "MORTGAGE" ||
+        liabilityRecord.liabilityType === "TAX_OWED",
       checkNumber: data.checkNumber || data.confirmationNumber || null,
       fiscalYear: new Date(data.paymentDate).getFullYear(),
       sourceAssetType: "LIABILITY",
       sourceAssetId: data.liabilityId,
       updatedAt: new Date().toISOString(),
-    });
+    })
 
-    accountingEntry = { id: accountingId };
+    accountingEntry = { id: accountingId }
   }
 
   // Return the payment with updated liability info
@@ -480,21 +493,21 @@ export async function recordLiabilityPayment(data: RecordPaymentData) {
       currentBalance: newBalance.toFixed(2),
     },
     accountingEntry,
-  };
+  }
 }
 
 export async function getLiabilityPayments(liabilityId: string) {
   return db.query.liabilityPayment.findMany({
     where: eq(liabilityPayment.liabilityId, liabilityId),
     orderBy: (p, { desc }) => [desc(p.paymentDate)],
-  });
+  })
 }
 
 // =============================================================================
 // PostgreSQL 17 ADVANCED FEATURES
 // =============================================================================
 
-import { sql } from "drizzle-orm";
+import { sql } from "drizzle-orm"
 
 /**
  * PostgreSQL 17 JSON_TABLE - Extract structured data from ActivityLog JSONB columns
@@ -538,7 +551,7 @@ export async function getActivityLogWithChanges(recordId: string) {
     ) AS new_data ON true
     WHERE al.record_id = ${recordId}
     ORDER BY al.created_at DESC
-  `);
+  `)
 }
 
 /**
@@ -550,10 +563,7 @@ export async function getActivityLogWithChanges(recordId: string) {
  * @param fieldValue - The value to match
  * @returns Matching activity log entries with extracted field values
  */
-export async function searchActivityLogByField(
-  fieldName: string,
-  fieldValue: string
-) {
+export async function searchActivityLogByField(fieldName: string, fieldValue: string) {
   // Use parameterized query for field value, but field name must be static
   // This is safe because fieldName is controlled by application code
   const query = sql.raw(`
@@ -575,7 +585,7 @@ export async function searchActivityLogByField(
     WHERE field_data.value = '${fieldValue}'
     ORDER BY al.created_at DESC
     LIMIT 100
-  `);
+  `)
 
-  return db.execute(query);
+  return db.execute(query)
 }

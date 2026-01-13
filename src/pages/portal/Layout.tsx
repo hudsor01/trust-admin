@@ -1,14 +1,8 @@
-import { signOut, useSession } from "@/lib/auth-client"
-import { Button } from "@/components/ui/button"
 import { Loader2, LogOut, User } from "lucide-react"
-import { PortalLogin } from "./Login"
+import { Button } from "@/components/ui/button"
+import { signOut, useSession } from "@/lib/auth-client"
 import { PortalDashboard } from "./Dashboard"
-
-type SessionUser = {
-  id: string
-  name: string
-  email: string
-} | null
+import { PortalLogin } from "./Login"
 
 export function PortalLayout() {
   const { data: session, isPending } = useSession()

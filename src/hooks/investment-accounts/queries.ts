@@ -2,8 +2,8 @@
  * TanStack Query hooks for InvestmentAccount resource
  */
 
-import { useQuery, useMutation, useQueryClient, queryOptions } from '@tanstack/react-query'
-import { toast } from 'sonner'
+import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { toast } from "sonner"
 
 export interface InvestmentAccount {
   id: string
@@ -26,9 +26,9 @@ export interface InvestmentAccount {
 
 // Query Keys
 export const investmentAccountKeys = {
-  all: ['investment-accounts'] as const,
-  byEntity: (entityId: string) => ['investment-accounts', 'entity', entityId] as const,
-  detail: (id: string) => ['investment-accounts', id] as const,
+  all: ["investment-accounts"] as const,
+  byEntity: (entityId: string) => ["investment-accounts", "entity", entityId] as const,
+  detail: (id: string) => ["investment-accounts", id] as const,
 }
 
 // Query Options
@@ -36,10 +36,14 @@ export const investmentAccountsQueryOptions = (entityId?: string) =>
   queryOptions({
     queryKey: entityId ? investmentAccountKeys.byEntity(entityId) : investmentAccountKeys.all,
     queryFn: async () => {
-      const url = entityId ? `/api/investment-accounts?entityId=${entityId}` : '/api/investment-accounts'
+      const url = entityId
+        ? `/api/investment-accounts?entityId=${entityId}`
+        : "/api/investment-accounts"
       const res = await fetch(url)
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ error: { message: `HTTP ${res.status}` } }))
+        const errorData = await res
+          .json()
+          .catch(() => ({ error: { message: `HTTP ${res.status}` } }))
         throw new Error(errorData.error?.message || `Failed to fetch: ${res.status}`)
       }
       return res.json() as Promise<InvestmentAccount[]>
@@ -53,7 +57,9 @@ export const investmentAccountQueryOptions = (id: string) =>
     queryFn: async () => {
       const res = await fetch(`/api/investment-accounts/${id}`)
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ error: { message: `HTTP ${res.status}` } }))
+        const errorData = await res
+          .json()
+          .catch(() => ({ error: { message: `HTTP ${res.status}` } }))
         throw new Error(errorData.error?.message || `Failed to fetch: ${res.status}`)
       }
       return res.json() as Promise<InvestmentAccount>
@@ -75,19 +81,23 @@ export function useCreateInvestmentAccount() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (investmentAccount: Partial<InvestmentAccount>) => {
-      const res = await fetch('/api/investment-accounts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/investment-accounts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(investmentAccount),
       })
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ error: { message: `HTTP ${res.status}` } }))
-        if (errorData.error?.code === 'VALIDATION_ERROR' && errorData.error.details?.fields) {
+        const errorData = await res
+          .json()
+          .catch(() => ({ error: { message: `HTTP ${res.status}` } }))
+        if (errorData.error?.code === "VALIDATION_ERROR" && errorData.error.details?.fields) {
           const fields = errorData.error.details.fields as Record<string, string>
-          const fieldErrors = Object.entries(fields).map(([field, message]) => `${field}: ${message}`).join('\n')
+          const fieldErrors = Object.entries(fields)
+            .map(([field, message]) => `${field}: ${message}`)
+            .join("\n")
           toast.error(errorData.error.message, { description: fieldErrors })
         } else {
-          toast.error(errorData.error?.message || 'Failed to create investment account')
+          toast.error(errorData.error?.message || "Failed to create investment account")
         }
         throw new Error(errorData.error?.message || `Failed to create: ${res.status}`)
       }
@@ -96,7 +106,7 @@ export function useCreateInvestmentAccount() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: investmentAccountKeys.all })
       queryClient.invalidateQueries({ queryKey: investmentAccountKeys.byEntity(data.entityId) })
-      toast.success('Investment account created successfully')
+      toast.success("Investment account created successfully")
     },
   })
 }
@@ -106,18 +116,22 @@ export function useUpdateInvestmentAccount() {
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<InvestmentAccount> }) => {
       const res = await fetch(`/api/investment-accounts/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       })
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ error: { message: `HTTP ${res.status}` } }))
-        if (errorData.error?.code === 'VALIDATION_ERROR' && errorData.error.details?.fields) {
+        const errorData = await res
+          .json()
+          .catch(() => ({ error: { message: `HTTP ${res.status}` } }))
+        if (errorData.error?.code === "VALIDATION_ERROR" && errorData.error.details?.fields) {
           const fields = errorData.error.details.fields as Record<string, string>
-          const fieldErrors = Object.entries(fields).map(([field, message]) => `${field}: ${message}`).join('\n')
+          const fieldErrors = Object.entries(fields)
+            .map(([field, message]) => `${field}: ${message}`)
+            .join("\n")
           toast.error(errorData.error.message, { description: fieldErrors })
         } else {
-          toast.error(errorData.error?.message || 'Failed to update investment account')
+          toast.error(errorData.error?.message || "Failed to update investment account")
         }
         throw new Error(errorData.error?.message || `Failed to update: ${res.status}`)
       }
@@ -127,7 +141,7 @@ export function useUpdateInvestmentAccount() {
       queryClient.invalidateQueries({ queryKey: investmentAccountKeys.all })
       queryClient.invalidateQueries({ queryKey: investmentAccountKeys.byEntity(data.entityId) })
       queryClient.invalidateQueries({ queryKey: investmentAccountKeys.detail(data.id) })
-      toast.success('Investment account updated successfully')
+      toast.success("Investment account updated successfully")
     },
   })
 }
@@ -136,16 +150,18 @@ export function useDeleteInvestmentAccount() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/investment-accounts/${id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/investment-accounts/${id}`, { method: "DELETE" })
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ error: { message: `HTTP ${res.status}` } }))
-        toast.error(errorData.error?.message || 'Failed to delete investment account')
+        const errorData = await res
+          .json()
+          .catch(() => ({ error: { message: `HTTP ${res.status}` } }))
+        toast.error(errorData.error?.message || "Failed to delete investment account")
         throw new Error(errorData.error?.message || `Failed to delete: ${res.status}`)
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: investmentAccountKeys.all })
-      toast.success('Investment account deleted successfully')
+      toast.success("Investment account deleted successfully")
     },
   })
 }

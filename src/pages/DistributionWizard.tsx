@@ -7,17 +7,19 @@
  * based on their share percentages after deducting expenses and fees.
  */
 
-import { useState, useEffect, useMemo } from "react"
 import {
-  Loader2,
-  Calculator,
-  Users,
-  CheckCircle,
-  ArrowRight,
   ArrowLeft,
+  ArrowRight,
+  Calculator,
+  CheckCircle,
   DollarSign,
+  Loader2,
   RefreshCw,
+  Users,
 } from "lucide-react"
+import { useCallback, useEffect, useMemo, useState } from "react"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -29,6 +31,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Separator } from "@/components/ui/separator"
 import {
   Table,
   TableBody,
@@ -37,34 +40,25 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { useEntities } from "@/hooks/entities/queries"
-import { useBeneficiaries } from "@/hooks/beneficiaries/queries"
-import { useTrustAccounting } from "@/hooks/trust-accounting/queries"
-import { useCreateDistribution } from "@/hooks/distributions/queries"
-import { useBankAccounts } from "@/hooks/bank-accounts/queries"
-import { useInvestmentAccounts } from "@/hooks/investment-accounts/queries"
-import { useHomesteads } from "@/hooks/homesteads/queries"
-import { useRentalProperties } from "@/hooks/rental-properties/queries"
-import { useVehicles } from "@/hooks/vehicles/queries"
 import { useArtwork } from "@/hooks/artwork/queries"
+import { useBankAccounts } from "@/hooks/bank-accounts/queries"
+import { useBeneficiaries } from "@/hooks/beneficiaries/queries"
+import { useCreateDistribution } from "@/hooks/distributions/queries"
+import { useEntities } from "@/hooks/entities/queries"
+import { useHomesteads } from "@/hooks/homesteads/queries"
+import { useInvestmentAccounts } from "@/hooks/investment-accounts/queries"
 import { usePersonalProperty } from "@/hooks/personal-property/queries"
-import { formatCurrency, formatPercent } from "@/utils/formatters"
+import { useRentalProperties } from "@/hooks/rental-properties/queries"
+import { useTrustAccounting } from "@/hooks/trust-accounting/queries"
+import { useVehicles } from "@/hooks/vehicles/queries"
 import {
+  type Beneficiary,
   calculateDistribution,
   type DistributionCalculation,
-  type Beneficiary,
 } from "@/lib/distribution-calculator"
+import { formatCurrency } from "@/utils/formatters"
 
 type Step = "setup" | "review" | "confirm" | "complete"
-
-interface PeriodData {
-  grossIncome: number
-  totalExpenses: number
-  trustAssetValue: number
-}
 
 export function DistributionWizard() {
   const { data: entities = [], isLoading: entitiesLoading } = useEntities()
@@ -114,7 +108,7 @@ export function DistributionWizard() {
   const [calculation, setCalculation] = useState<DistributionCalculation | null>(null)
 
   // Function to calculate auto-values from accounting records
-  const calculateAutoValues = () => {
+  const calculateAutoValues = useCallback(() => {
     if (!selectedEntity) return
 
     setLoadingAutoValues(true)
@@ -137,7 +131,10 @@ export function DistributionWizard() {
       totalAssets += bankAccounts.reduce((sum, a) => sum + parseFloat(a.currentBalance || "0"), 0)
 
       // Sum investment accounts
-      totalAssets += investmentAccounts.reduce((sum, a) => sum + parseFloat(a.currentBalance || "0"), 0)
+      totalAssets += investmentAccounts.reduce(
+        (sum, a) => sum + parseFloat(a.currentBalance || "0"),
+        0,
+      )
 
       // Sum homesteads
       totalAssets += homesteads.reduce((sum, a) => sum + parseFloat(a.dodValue || "0"), 0)
@@ -173,7 +170,20 @@ export function DistributionWizard() {
     } finally {
       setLoadingAutoValues(false)
     }
-  }
+  }, [
+    selectedEntity,
+    trustAccounting,
+    bankAccounts,
+    investmentAccounts,
+    homesteads,
+    rentalProperties,
+    vehicles,
+    artwork,
+    personalProperty,
+    grossIncome,
+    totalExpenses,
+    trustAssetValue,
+  ])
 
   // Calculate when inputs change in review step
   useEffect(() => {
@@ -181,7 +191,7 @@ export function DistributionWizard() {
       const gross = parseFloat(grossIncome) || 0
       const expenses = parseFloat(totalExpenses) || 0
       const assets = parseFloat(trustAssetValue) || 0
-      const months = parseInt(periodMonths) || 12
+      const months = parseInt(periodMonths, 10) || 12
 
       const result = calculateDistribution({
         grossIncome: gross,
@@ -200,7 +210,7 @@ export function DistributionWizard() {
     if (selectedEntity) {
       calculateAutoValues()
     }
-  }, [selectedEntity])
+  }, [selectedEntity, calculateAutoValues])
 
   const handleNext = () => {
     if (step === "setup") {
@@ -295,8 +305,8 @@ export function DistributionWizard() {
                 step === s
                   ? "bg-primary text-primary-foreground"
                   : s === "complete" && step === "complete"
-                  ? "bg-green-500 text-white"
-                  : "bg-muted text-muted-foreground"
+                    ? "bg-green-500 text-white"
+                    : "bg-muted text-muted-foreground"
               }`}
             >
               {s === "complete" && step === "complete" ? (
@@ -305,9 +315,7 @@ export function DistributionWizard() {
                 i + 1
               )}
             </div>
-            {i < 3 && (
-              <div className="w-12 h-0.5 bg-muted mx-1" />
-            )}
+            {i < 3 && <div className="w-12 h-0.5 bg-muted mx-1" />}
           </div>
         ))}
       </div>
@@ -408,13 +416,13 @@ export function DistributionWizard() {
                     value={grossIncome}
                     onChange={(e) => {
                       // Allow only numbers and decimal point
-                      const value = e.target.value;
-                      if (value === '' || /^\d*\.?\d*$/.test(value)) {
-                        setGrossIncome(value);
+                      const value = e.target.value
+                      if (value === "" || /^\d*\.?\d*$/.test(value)) {
+                        setGrossIncome(value)
                       }
                     }}
                     placeholder="0.00"
-                    className={`pl-7 ${autoGrossIncome !== null ? 'bg-blue-50' : ''}`} // Visual indicator when auto-value exists
+                    className={`pl-7 ${autoGrossIncome !== null ? "bg-blue-50" : ""}`} // Visual indicator when auto-value exists
                     onWheel={(e) => e.currentTarget.blur()} // Prevents value change when scrolling
                     readOnly // Make the field readonly to prevent direct editing
                   />
@@ -458,20 +466,18 @@ export function DistributionWizard() {
                     value={totalExpenses}
                     onChange={(e) => {
                       // Allow only numbers and decimal point
-                      const value = e.target.value;
-                      if (value === '' || /^\d*\.?\d*$/.test(value)) {
-                        setTotalExpenses(value);
+                      const value = e.target.value
+                      if (value === "" || /^\d*\.?\d*$/.test(value)) {
+                        setTotalExpenses(value)
                       }
                     }}
                     placeholder="0.00"
-                    className={`pl-7 ${autoTotalExpenses !== null ? 'bg-blue-50' : ''}`} // Visual indicator when auto-value exists
+                    className={`pl-7 ${autoTotalExpenses !== null ? "bg-blue-50" : ""}`} // Visual indicator when auto-value exists
                     onWheel={(e) => e.currentTarget.blur()} // Prevents value change when scrolling
                     readOnly // Make the field readonly to prevent direct editing
                   />
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Operating expenses for the period
-                </p>
+                <p className="text-xs text-muted-foreground">Operating expenses for the period</p>
                 {autoTotalExpenses !== null && (
                   <p className="text-xs text-muted-foreground">
                     Auto-calculated: {formatCurrency(autoTotalExpenses.toString())}
@@ -508,20 +514,18 @@ export function DistributionWizard() {
                     value={trustAssetValue}
                     onChange={(e) => {
                       // Allow only numbers and decimal point
-                      const value = e.target.value;
-                      if (value === '' || /^\d*\.?\d*$/.test(value)) {
-                        setTrustAssetValue(value);
+                      const value = e.target.value
+                      if (value === "" || /^\d*\.?\d*$/.test(value)) {
+                        setTrustAssetValue(value)
                       }
                     }}
                     placeholder="0.00"
-                    className={`pl-7 ${autoTrustAssetValue !== null ? 'bg-blue-50' : ''}`} // Visual indicator when auto-value exists
+                    className={`pl-7 ${autoTrustAssetValue !== null ? "bg-blue-50" : ""}`} // Visual indicator when auto-value exists
                     onWheel={(e) => e.currentTarget.blur()} // Prevents value change when scrolling
                     readOnly // Make the field readonly to prevent direct editing
                   />
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  For trustee fee calculation
-                </p>
+                <p className="text-xs text-muted-foreground">For trustee fee calculation</p>
                 {autoTrustAssetValue !== null && (
                   <p className="text-xs text-muted-foreground">
                     Auto-calculated: {formatCurrency(autoTrustAssetValue.toString())}
@@ -540,9 +544,7 @@ export function DistributionWizard() {
               <Users className="h-5 w-5" />
               Review Distribution
             </CardTitle>
-            <CardDescription>
-              Review the calculated distribution before confirming
-            </CardDescription>
+            <CardDescription>Review the calculated distribution before confirming</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Summary */}

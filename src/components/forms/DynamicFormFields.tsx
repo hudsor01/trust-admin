@@ -1,7 +1,14 @@
+import type { ChangeEvent } from "react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { AssetTypeConfig, FormField } from "@/lib/public-form-config"
 
 interface DynamicFormFieldsProps {
@@ -17,7 +24,8 @@ export function DynamicFormFields({ config, values, onChange }: DynamicFormField
     const commonProps = {
       id: field.name,
       value,
-      onChange: (e: any) => onChange(field.name, e.target.value),
+      onChange: (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+        onChange(field.name, e.target.value),
       placeholder: field.placeholder,
     }
 
@@ -50,16 +58,10 @@ export function DynamicFormFields({ config, values, onChange }: DynamicFormField
           </Select>
         )}
 
-        {field.description && (
-          <p className="text-xs text-muted-foreground">{field.description}</p>
-        )}
+        {field.description && <p className="text-xs text-muted-foreground">{field.description}</p>}
       </div>
     )
   }
 
-  return (
-    <div className="space-y-4">
-      {config.fields.map(renderField)}
-    </div>
-  )
+  return <div className="space-y-4">{config.fields.map(renderField)}</div>
 }

@@ -1,9 +1,7 @@
-import { db } from "./db"
 import { sql } from "drizzle-orm"
-import { activityLog, trustAccounting } from "./db/schema"
-import { gte } from "drizzle-orm"
+import { db } from "./db"
 
-console.log("=" .repeat(80))
+console.log("=".repeat(80))
 console.log("INDEX USAGE VERIFICATION WITH EXPLAIN ANALYZE")
 console.log("=".repeat(80))
 
@@ -21,7 +19,7 @@ const test1 = await db.execute(sql`
 
 const test1Rows = Array.isArray(test1) ? test1 : test1.rows || []
 console.log("\nQuery Plan:")
-test1Rows.forEach((row: any) => {
+test1Rows.forEach((row: Record<string, unknown>) => {
   const plan = row["QUERY PLAN"] || row.query_plan
   if (plan) {
     console.log(plan)
@@ -31,7 +29,7 @@ test1Rows.forEach((row: any) => {
 // Test 2: GIN index on ActivityLog JSONB columns
 console.log("\n\n📊 Test 2: GIN Index on ActivityLog.oldValues JSONB")
 console.log("-".repeat(80))
-console.log("Query: SELECT * FROM ActivityLog WHERE oldValues @> '{\"status\": \"ACTIVE\"}'")
+console.log('Query: SELECT * FROM ActivityLog WHERE oldValues @> \'{"status": "ACTIVE"}\'')
 
 const test2 = await db.execute(sql`
   EXPLAIN ANALYZE
@@ -42,7 +40,7 @@ const test2 = await db.execute(sql`
 
 const test2Rows = Array.isArray(test2) ? test2 : test2.rows || []
 console.log("\nQuery Plan:")
-test2Rows.forEach((row: any) => {
+test2Rows.forEach((row: Record<string, unknown>) => {
   const plan = row["QUERY PLAN"] || row.query_plan
   if (plan) {
     console.log(plan)
@@ -63,7 +61,7 @@ const test3 = await db.execute(sql`
 
 const test3Rows = Array.isArray(test3) ? test3 : test3.rows || []
 console.log("\nQuery Plan:")
-test3Rows.forEach((row: any) => {
+test3Rows.forEach((row: Record<string, unknown>) => {
   const plan = row["QUERY PLAN"] || row.query_plan
   if (plan) {
     console.log(plan)
@@ -84,14 +82,14 @@ const test4 = await db.execute(sql`
 
 const test4Rows = Array.isArray(test4) ? test4 : test4.rows || []
 console.log("\nQuery Plan:")
-test4Rows.forEach((row: any) => {
+test4Rows.forEach((row: Record<string, unknown>) => {
   const plan = row["QUERY PLAN"] || row.query_plan
   if (plan) {
     console.log(plan)
   }
 })
 
-console.log("\n\n" + "=".repeat(80))
+console.log(`\n\n${"=".repeat(80)}`)
 console.log("INTERPRETATION GUIDE")
 console.log("=".repeat(80))
 console.log(`

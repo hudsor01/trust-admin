@@ -1,17 +1,17 @@
+import { Loader2, Mail, ShieldCheck } from "lucide-react"
 import { useState } from "react"
-import { authClient } from "@/lib/auth-client"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Loader2, Mail, ShieldCheck } from "lucide-react"
+import { authClient } from "@/lib/auth-client"
 
 interface AdminLoginProps {
   onLoginSuccess: () => void
 }
 
-export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
+export function AdminLogin({ onLoginSuccess: _onLoginSuccess }: AdminLoginProps) {
   const [email, setEmail] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -23,9 +23,7 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
     setLoading(true)
 
     try {
-      const frontendURL = import.meta.env.DEV
-        ? "http://localhost:5173"
-        : window.location.origin
+      const frontendURL = import.meta.env.DEV ? "http://localhost:5173" : window.location.origin
 
       const { error: magicLinkError } = await authClient.signIn.magicLink({
         email,
@@ -86,9 +84,7 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
             <Mail className="h-6 w-6 text-primary" />
           </div>
           <CardTitle className="text-2xl">Admin Login</CardTitle>
-          <CardDescription>
-            Enter your email to receive a secure admin login link
-          </CardDescription>
+          <CardDescription>Enter your email to receive a secure admin login link</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">

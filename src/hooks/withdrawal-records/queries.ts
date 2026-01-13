@@ -2,8 +2,8 @@
  * TanStack Query hooks for WithdrawalRecord resource
  */
 
-import { useQuery, useMutation, useQueryClient, queryOptions } from '@tanstack/react-query'
-import { toast } from 'sonner'
+import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { toast } from "sonner"
 
 export interface WithdrawalRecord {
   id: string
@@ -24,24 +24,33 @@ export interface WithdrawalRecord {
 
 // Query Keys
 export const withdrawalRecordKeys = {
-  all: ['withdrawal-records'] as const,
-  byBeneficiary: (beneficiaryId: string) => ['withdrawal-records', 'beneficiary', beneficiaryId] as const,
-  detail: (id: string) => ['withdrawal-records', id] as const,
+  all: ["withdrawal-records"] as const,
+  byBeneficiary: (beneficiaryId: string) =>
+    ["withdrawal-records", "beneficiary", beneficiaryId] as const,
+  detail: (id: string) => ["withdrawal-records", id] as const,
 }
 
 // Query Options
 export const withdrawalRecordsQueryOptions = (beneficiaryId?: string) =>
   queryOptions({
-    queryKey: beneficiaryId ? withdrawalRecordKeys.byBeneficiary(beneficiaryId) : withdrawalRecordKeys.all,
+    queryKey: beneficiaryId
+      ? withdrawalRecordKeys.byBeneficiary(beneficiaryId)
+      : withdrawalRecordKeys.all,
     queryFn: async () => {
-      const url = beneficiaryId ? `/api/withdrawal-records?beneficiaryId=${beneficiaryId}` : '/api/withdrawal-records'
+      const url = beneficiaryId
+        ? `/api/withdrawal-records?beneficiaryId=${beneficiaryId}`
+        : "/api/withdrawal-records"
       const res = await fetch(url)
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ error: { message: `HTTP ${res.status}` } }))
+        const errorData = await res
+          .json()
+          .catch(() => ({ error: { message: `HTTP ${res.status}` } }))
         throw new Error(errorData.error?.message || `Failed to fetch: ${res.status}`)
       }
-      const data = await res.json() as WithdrawalRecord[]
-      return data.sort((a, b) => new Date(a.eligibleDate).getTime() - new Date(b.eligibleDate).getTime())
+      const data = (await res.json()) as WithdrawalRecord[]
+      return data.sort(
+        (a, b) => new Date(a.eligibleDate).getTime() - new Date(b.eligibleDate).getTime(),
+      )
     },
     enabled: beneficiaryId ? !!beneficiaryId : true,
   })
@@ -52,7 +61,9 @@ export const withdrawalRecordQueryOptions = (id: string) =>
     queryFn: async () => {
       const res = await fetch(`/api/withdrawal-records/${id}`)
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ error: { message: `HTTP ${res.status}` } }))
+        const errorData = await res
+          .json()
+          .catch(() => ({ error: { message: `HTTP ${res.status}` } }))
         throw new Error(errorData.error?.message || `Failed to fetch: ${res.status}`)
       }
       return res.json() as Promise<WithdrawalRecord>
@@ -74,19 +85,23 @@ export function useCreateWithdrawalRecord() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (withdrawalRecord: Partial<WithdrawalRecord>) => {
-      const res = await fetch('/api/withdrawal-records', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/withdrawal-records", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(withdrawalRecord),
       })
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ error: { message: `HTTP ${res.status}` } }))
-        if (errorData.error?.code === 'VALIDATION_ERROR' && errorData.error.details?.fields) {
+        const errorData = await res
+          .json()
+          .catch(() => ({ error: { message: `HTTP ${res.status}` } }))
+        if (errorData.error?.code === "VALIDATION_ERROR" && errorData.error.details?.fields) {
           const fields = errorData.error.details.fields as Record<string, string>
-          const fieldErrors = Object.entries(fields).map(([field, message]) => `${field}: ${message}`).join('\n')
+          const fieldErrors = Object.entries(fields)
+            .map(([field, message]) => `${field}: ${message}`)
+            .join("\n")
           toast.error(errorData.error.message, { description: fieldErrors })
         } else {
-          toast.error(errorData.error?.message || 'Failed to create record')
+          toast.error(errorData.error?.message || "Failed to create record")
         }
         throw new Error(errorData.error?.message || `Failed to create: ${res.status}`)
       }
@@ -94,8 +109,10 @@ export function useCreateWithdrawalRecord() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: withdrawalRecordKeys.all })
-      queryClient.invalidateQueries({ queryKey: withdrawalRecordKeys.byBeneficiary(data.beneficiaryId) })
-      toast.success('Record created successfully')
+      queryClient.invalidateQueries({
+        queryKey: withdrawalRecordKeys.byBeneficiary(data.beneficiaryId),
+      })
+      toast.success("Record created successfully")
     },
   })
 }
@@ -105,18 +122,22 @@ export function useUpdateWithdrawalRecord() {
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<WithdrawalRecord> }) => {
       const res = await fetch(`/api/withdrawal-records/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       })
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ error: { message: `HTTP ${res.status}` } }))
-        if (errorData.error?.code === 'VALIDATION_ERROR' && errorData.error.details?.fields) {
+        const errorData = await res
+          .json()
+          .catch(() => ({ error: { message: `HTTP ${res.status}` } }))
+        if (errorData.error?.code === "VALIDATION_ERROR" && errorData.error.details?.fields) {
           const fields = errorData.error.details.fields as Record<string, string>
-          const fieldErrors = Object.entries(fields).map(([field, message]) => `${field}: ${message}`).join('\n')
+          const fieldErrors = Object.entries(fields)
+            .map(([field, message]) => `${field}: ${message}`)
+            .join("\n")
           toast.error(errorData.error.message, { description: fieldErrors })
         } else {
-          toast.error(errorData.error?.message || 'Failed to update record')
+          toast.error(errorData.error?.message || "Failed to update record")
         }
         throw new Error(errorData.error?.message || `Failed to update: ${res.status}`)
       }
@@ -124,9 +145,11 @@ export function useUpdateWithdrawalRecord() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: withdrawalRecordKeys.all })
-      queryClient.invalidateQueries({ queryKey: withdrawalRecordKeys.byBeneficiary(data.beneficiaryId) })
+      queryClient.invalidateQueries({
+        queryKey: withdrawalRecordKeys.byBeneficiary(data.beneficiaryId),
+      })
       queryClient.invalidateQueries({ queryKey: withdrawalRecordKeys.detail(data.id) })
-      toast.success('Record updated successfully')
+      toast.success("Record updated successfully")
     },
   })
 }
@@ -135,16 +158,18 @@ export function useDeleteWithdrawalRecord() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/withdrawal-records/${id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/withdrawal-records/${id}`, { method: "DELETE" })
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ error: { message: `HTTP ${res.status}` } }))
-        toast.error(errorData.error?.message || 'Failed to delete record')
+        const errorData = await res
+          .json()
+          .catch(() => ({ error: { message: `HTTP ${res.status}` } }))
+        toast.error(errorData.error?.message || "Failed to delete record")
         throw new Error(errorData.error?.message || `Failed to delete: ${res.status}`)
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: withdrawalRecordKeys.all })
-      toast.success('Record deleted successfully')
+      toast.success("Record deleted successfully")
     },
   })
 }

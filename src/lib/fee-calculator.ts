@@ -11,10 +11,10 @@
  */
 
 export interface FeeSchedule {
-  executorFeePercent: number    // Default: 5.0%
-  annualAssetPercent: number    // Default: 1.5%
-  incomePercent: number         // Default: 8.0%
-  hourlyRate: number            // Default: $125/hr
+  executorFeePercent: number // Default: 5.0%
+  annualAssetPercent: number // Default: 1.5%
+  incomePercent: number // Default: 8.0%
+  hourlyRate: number // Default: $125/hr
 }
 
 export interface FeeCalculationInput {
@@ -25,7 +25,7 @@ export interface FeeCalculationInput {
 
   // For annual asset fee
   trustAssetValue?: number
-  periodMonths?: number         // How many months (for pro-rating annual fee)
+  periodMonths?: number // How many months (for pro-rating annual fee)
 
   // For income fee
   grossIncome?: number
@@ -76,10 +76,10 @@ export interface FeeCalculationResult {
  * Default fee schedule based on Texas standards
  */
 export const DEFAULT_FEE_SCHEDULE: FeeSchedule = {
-  executorFeePercent: 5.0,      // 5% executor fee
-  annualAssetPercent: 1.5,      // 1.5% of assets annually
-  incomePercent: 8.0,           // 8% of income (property management)
-  hourlyRate: 125.00,           // $125/hr for extraordinary work
+  executorFeePercent: 5.0, // 5% executor fee
+  annualAssetPercent: 1.5, // 1.5% of assets annually
+  incomePercent: 8.0, // 8% of income (property management)
+  hourlyRate: 125.0, // $125/hr for extraordinary work
 }
 
 /**
@@ -170,7 +170,7 @@ export function calculateYear1Compensation(
   trustAssetValue: number,
   annualRentalIncome: number,
   probateHours: number,
-  schedule: FeeSchedule = DEFAULT_FEE_SCHEDULE
+  schedule: FeeSchedule = DEFAULT_FEE_SCHEDULE,
 ): FeeCalculationResult {
   return calculateTrusteeFees({
     schedule,
@@ -190,7 +190,7 @@ export function calculateAnnualCompensation(
   trustAssetValue: number,
   annualRentalIncome: number,
   hoursWorked: number = 0,
-  schedule: FeeSchedule = DEFAULT_FEE_SCHEDULE
+  schedule: FeeSchedule = DEFAULT_FEE_SCHEDULE,
 ): FeeCalculationResult {
   return calculateTrusteeFees({
     schedule,
@@ -205,9 +205,9 @@ export function calculateAnnualCompensation(
  * Format fee amount as currency
  */
 export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
   }).format(amount)
 }
 
@@ -240,5 +240,5 @@ export function generateFeeSummary(result: FeeCalculationResult): string {
   lines.push(``)
   lines.push(`TOTAL: ${formatCurrency(result.totalFee)}`)
 
-  return lines.join('\n')
+  return lines.join("\n")
 }

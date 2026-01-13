@@ -1,24 +1,23 @@
 "use client"
 
-import { useState } from "react"
 import {
   AlertTriangle,
   Check,
-  Plus,
-  FileText,
   ChevronDown,
   ChevronUp,
   Circle,
+  FileText,
   Loader2,
+  Plus,
 } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
+import { useState } from "react"
+import { type ColumnDef, DataTable } from "@/components/data-table"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Textarea } from "@/components/ui/textarea"
+import { Input } from "@/components/ui/input"
 import { Progress } from "@/components/ui/progress"
-import { DataTable, type ColumnDef } from "@/components/data-table"
 import {
   Select,
   SelectContent,
@@ -26,16 +25,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Separator } from "@/components/ui/separator"
-import { formatDate, formatCurrency, calculateAge, getWithdrawalStatus } from "../utils/formatters"
-import { useEntities } from "@/hooks/entities/queries"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Textarea } from "@/components/ui/textarea"
 import { useBeneficiaries } from "@/hooks/beneficiaries/queries"
-import { useWithdrawalRecords } from "@/hooks/withdrawal-records/queries"
-import { useTrustAccounting } from "@/hooks/trust-accounting/queries"
+import { useEntities } from "@/hooks/entities/queries"
 import { useHemsRequests } from "@/hooks/hems-requests/queries"
-import { useTasks, useCreateTask, useUpdateTask, type Task } from "@/hooks/tasks/queries"
+import { type Task, useCreateTask, useTasks, useUpdateTask } from "@/hooks/tasks/queries"
+import { useTrustAccounting } from "@/hooks/trust-accounting/queries"
+import { useWithdrawalRecords } from "@/hooks/withdrawal-records/queries"
+import { cn } from "@/lib/utils"
+import { calculateAge, formatCurrency, formatDate, getWithdrawalStatus } from "../utils/formatters"
 
 const CATEGORIES = [
   { value: "INVENTORY", label: "Inventory & Documentation" },
@@ -51,15 +51,22 @@ export function Dashboard() {
   const { data: allEntities = [], isLoading: entitiesLoading } = useEntities()
   const { data: tasks = [], isLoading: tasksLoading } = useTasks()
   const { data: beneficiaries = [], isLoading: beneficiariesLoading } = useBeneficiaries()
-  const { data: withdrawalRecords = [], isLoading: withdrawalRecordsLoading } = useWithdrawalRecords()
+  const { data: withdrawalRecords = [], isLoading: withdrawalRecordsLoading } =
+    useWithdrawalRecords()
   const { data: accountingEntries = [], isLoading: accountingLoading } = useTrustAccounting()
   const { data: hemsRequests = [], isLoading: hemsLoading } = useHemsRequests()
 
   const createTaskMutation = useCreateTask()
   const updateTaskMutation = useUpdateTask()
 
-  const loading = entitiesLoading || tasksLoading || beneficiariesLoading || withdrawalRecordsLoading || accountingLoading || hemsLoading
-  
+  const loading =
+    entitiesLoading ||
+    tasksLoading ||
+    beneficiariesLoading ||
+    withdrawalRecordsLoading ||
+    accountingLoading ||
+    hemsLoading
+
   // Get primary entity
   const entity = allEntities.length > 0 ? allEntities[0] : null
 
@@ -106,83 +113,100 @@ export function Dashboard() {
   }
 
   // Calculate task stats
-  const completedCount = tasks.filter(t => t.completed).length
+  const completedCount = tasks.filter((t) => t.completed).length
   const totalCount = tasks.length
   const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0
 
   // Calculate overdue tasks
   const today = new Date()
-  const overdueTasks = tasks.filter(t => {
+  const overdueTasks = tasks.filter((t) => {
     if (t.completed || !t.dueDate) return false
     return new Date(t.dueDate) < today
   })
 
   // Group tasks by category
-  const groupedTasks = CATEGORIES.map(cat => ({
+  const groupedTasks = CATEGORIES.map((cat) => ({
     ...cat,
-    tasks: tasks.filter(t => t.category === cat.value).sort((a, b) => {
-      if (a.dueDate && b.dueDate) {
-        return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
-      }
-      if (a.dueDate && !b.dueDate) return -1
-      if (!a.dueDate && b.dueDate) return 1
-      return a.sortOrder - b.sortOrder
-    }),
-  })).filter(cat => cat.tasks.length > 0)
+    tasks: tasks
+      .filter((t) => t.category === cat.value)
+      .sort((a, b) => {
+        if (a.dueDate && b.dueDate) {
+          return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
+        }
+        if (a.dueDate && !b.dueDate) return -1
+        if (!a.dueDate && b.dueDate) return 1
+        return a.sortOrder - b.sortOrder
+      }),
+  })).filter((cat) => cat.tasks.length > 0)
 
   // Calculate accounting totals
   const incomeTotal = accountingEntries
-    .filter(e => e.entryType === "INCOME")
+    .filter((e) => e.entryType === "INCOME")
     .reduce((sum, e) => sum + parseFloat(e.amount || "0"), 0)
   const expenseTotal = accountingEntries
-    .filter(e => e.entryType === "EXPENSE")
+    .filter((e) => e.entryType === "EXPENSE")
     .reduce((sum, e) => sum + parseFloat(e.amount || "0"), 0)
   const netIncome = incomeTotal - expenseTotal
 
   // Get grandchildren with withdrawal info
-  const grandchildren = beneficiaries.filter(b => b.relationshipType === "GRANDCHILD")
+  const grandchildren = beneficiaries.filter((b) => b.relationshipType === "GRANDCHILD")
 
   // Build withdrawal eligibility data
-  const withdrawalData = grandchildren.map(gc => {
-    const records = withdrawalRecords.filter(wr => wr.beneficiaryId === gc.id)
-    const age25Record = records.find(r => r.withdrawalType === "AGE_25")
-    const age30Record = records.find(r => r.withdrawalType === "AGE_30")
+  const withdrawalData = grandchildren
+    .map((gc) => {
+      const records = withdrawalRecords.filter((wr) => wr.beneficiaryId === gc.id)
+      const age25Record = records.find((r) => r.withdrawalType === "AGE_25")
+      const age30Record = records.find((r) => r.withdrawalType === "AGE_30")
 
-    return {
-      beneficiary: gc,
-      currentAge: gc.dob ? calculateAge(gc.dob) : null,
-      age25: age25Record ? {
-        eligibleDate: age25Record.eligibleDate,
-        status: getWithdrawalStatus(age25Record.eligibleDate),
-        withdrawn: age25Record.status === "COMPLETE",
-      } : null,
-      age30: age30Record ? {
-        eligibleDate: age30Record.eligibleDate,
-        status: getWithdrawalStatus(age30Record.eligibleDate),
-        withdrawn: age30Record.status === "COMPLETE",
-      } : null,
-    }
-  }).sort((a, b) => {
-    const aNext = a.age25?.status.daysUntil ?? a.age30?.status.daysUntil ?? 9999
-    const bNext = b.age25?.status.daysUntil ?? b.age30?.status.daysUntil ?? 9999
-    return aNext - bNext
-  })
+      return {
+        beneficiary: gc,
+        currentAge: gc.dob ? calculateAge(gc.dob) : null,
+        age25: age25Record
+          ? {
+              eligibleDate: age25Record.eligibleDate,
+              status: getWithdrawalStatus(age25Record.eligibleDate),
+              withdrawn: age25Record.status === "COMPLETE",
+            }
+          : null,
+        age30: age30Record
+          ? {
+              eligibleDate: age30Record.eligibleDate,
+              status: getWithdrawalStatus(age30Record.eligibleDate),
+              withdrawn: age30Record.status === "COMPLETE",
+            }
+          : null,
+      }
+    })
+    .sort((a, b) => {
+      const aNext = a.age25?.status.daysUntil ?? a.age30?.status.daysUntil ?? 9999
+      const bNext = b.age25?.status.daysUntil ?? b.age30?.status.daysUntil ?? 9999
+      return aNext - bNext
+    })
 
   // Count upcoming eligibilities
-  const eligibleNow = withdrawalData.filter(w =>
-    (w.age25 && w.age25.status.daysUntil === 0 && !w.age25.withdrawn) ||
-    (w.age30 && w.age30.status.daysUntil === 0 && !w.age30.withdrawn)
+  const eligibleNow = withdrawalData.filter(
+    (w) =>
+      (w.age25 && w.age25.status.daysUntil === 0 && !w.age25.withdrawn) ||
+      (w.age30 && w.age30.status.daysUntil === 0 && !w.age30.withdrawn),
   ).length
 
   // Count upcoming milestones (within 90 days)
-  const upcomingMilestones = withdrawalData.filter(w => {
-    const age25Soon = w.age25 && !w.age25.withdrawn && w.age25.status.daysUntil > 0 && w.age25.status.daysUntil <= 90
-    const age30Soon = w.age30 && !w.age30.withdrawn && w.age30.status.daysUntil > 0 && w.age30.status.daysUntil <= 90
+  const upcomingMilestones = withdrawalData.filter((w) => {
+    const age25Soon =
+      w.age25 &&
+      !w.age25.withdrawn &&
+      w.age25.status.daysUntil > 0 &&
+      w.age25.status.daysUntil <= 90
+    const age30Soon =
+      w.age30 &&
+      !w.age30.withdrawn &&
+      w.age30.status.daysUntil > 0 &&
+      w.age30.status.daysUntil <= 90
     return age25Soon || age30Soon
   })
 
   // Withdrawal schedule table columns
-  type WithdrawalRow = typeof withdrawalData[number]
+  type WithdrawalRow = (typeof withdrawalData)[number]
   const withdrawalColumns: ColumnDef<WithdrawalRow>[] = [
     {
       key: "beneficiary",
@@ -216,14 +240,12 @@ export function Dashboard() {
                   ? "text-muted-foreground"
                   : row.age25.status.daysUntil === 0
                     ? "text-green-600 dark:text-green-400 font-medium"
-                    : ""
+                    : "",
               )}
             >
               {row.age25.withdrawn ? "Withdrawn" : row.age25.status.status}
             </p>
-            <p className="text-xs text-muted-foreground">
-              {formatDate(row.age25.eligibleDate)}
-            </p>
+            <p className="text-xs text-muted-foreground">{formatDate(row.age25.eligibleDate)}</p>
           </div>
         ) : (
           <span className="text-muted-foreground">—</span>
@@ -242,14 +264,12 @@ export function Dashboard() {
                   ? "text-muted-foreground"
                   : row.age30.status.daysUntil === 0
                     ? "text-green-600 dark:text-green-400 font-medium"
-                    : ""
+                    : "",
               )}
             >
               {row.age30.withdrawn ? "Withdrawn" : row.age30.status.status}
             </p>
-            <p className="text-xs text-muted-foreground">
-              {formatDate(row.age30.eligibleDate)}
-            </p>
+            <p className="text-xs text-muted-foreground">{formatDate(row.age30.eligibleDate)}</p>
           </div>
         ) : (
           <span className="text-muted-foreground">—</span>
@@ -258,10 +278,10 @@ export function Dashboard() {
   ]
 
   // Pending HEMS requests
-  const pendingHems = hemsRequests.filter(r => r.status === "PENDING")
+  const pendingHems = hemsRequests.filter((r) => r.status === "PENDING")
   const pendingHemsTotal = pendingHems.reduce(
     (sum, r) => sum + parseFloat(r.amountRequested || "0"),
-    0
+    0,
   )
 
   if (loading) {
@@ -277,11 +297,10 @@ export function Dashboard() {
       {/* Trust Overview Header */}
       {entity && (
         <div className="mb-8">
-          <h1 className="text-2xl font-semibold text-foreground mb-1">
-            {entity.name}
-          </h1>
+          <h1 className="text-2xl font-semibold text-foreground mb-1">{entity.name}</h1>
           <p className="text-sm text-muted-foreground mb-4">
-            {entity.trustType === "IRREVOCABLE" ? "Irrevocable" : "Revocable"} · Texas · Established Sep 18, 2024
+            {entity.trustType === "IRREVOCABLE" ? "Irrevocable" : "Revocable"} · Texas · Established
+            Sep 18, 2024
           </p>
           <div className="flex gap-8">
             <div>
@@ -325,7 +344,8 @@ export function Dashboard() {
         <Alert className="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950">
           <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
           <AlertDescription className="text-green-700 dark:text-green-300 font-medium">
-            {eligibleNow} grandchild{eligibleNow > 1 ? "ren are" : " is"} now eligible for withdrawal
+            {eligibleNow} grandchild{eligibleNow > 1 ? "ren are" : " is"} now eligible for
+            withdrawal
           </AlertDescription>
         </Alert>
       )}
@@ -334,8 +354,8 @@ export function Dashboard() {
         <Alert className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950">
           <FileText className="h-4 w-4 text-blue-600 dark:text-blue-400" />
           <AlertDescription className="text-blue-700 dark:text-blue-300 font-medium">
-            {pendingHems.length} HEMS request{pendingHems.length > 1 ? "s" : ""} pending review ({formatCurrency(pendingHemsTotal)})
-            {" — "}
+            {pendingHems.length} HEMS request{pendingHems.length > 1 ? "s" : ""} pending review (
+            {formatCurrency(pendingHemsTotal)}){" — "}
             <a href="#/hems-queue" className="underline hover:no-underline">
               Review now
             </a>
@@ -347,7 +367,8 @@ export function Dashboard() {
         <Alert className="border-purple-200 bg-purple-50 dark:border-purple-800 dark:bg-purple-950">
           <Circle className="h-4 w-4 text-purple-600 dark:text-purple-400" />
           <AlertDescription className="text-purple-700 dark:text-purple-300 font-medium">
-            {upcomingMilestones.length} beneficiar{upcomingMilestones.length > 1 ? "ies" : "y"} approaching withdrawal eligibility in the next 90 days
+            {upcomingMilestones.length} beneficiar{upcomingMilestones.length > 1 ? "ies" : "y"}{" "}
+            approaching withdrawal eligibility in the next 90 days
           </AlertDescription>
         </Alert>
       )}
@@ -355,63 +376,64 @@ export function Dashboard() {
       {/* Summary Cards */}
       <div className="@container">
         <div className="grid gap-4 @sm:grid-cols-2 @lg:grid-cols-4">
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-xs text-muted-foreground uppercase tracking-wide font-semibold mb-2">
-              Task Progress
-            </p>
-            <p className="text-2xl font-semibold mb-2">
-              {completedCount} of {totalCount}
-            </p>
-            <Progress value={progressPercent} className="h-2 mb-2" />
-            <p className="text-xs text-muted-foreground">{progressPercent}% complete</p>
-          </CardContent>
-        </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <p className="text-xs text-muted-foreground uppercase tracking-wide font-semibold mb-2">
+                Task Progress
+              </p>
+              <p className="text-2xl font-semibold mb-2">
+                {completedCount} of {totalCount}
+              </p>
+              <Progress value={progressPercent} className="h-2 mb-2" />
+              <p className="text-xs text-muted-foreground">{progressPercent}% complete</p>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-xs text-muted-foreground uppercase tracking-wide font-semibold mb-2">
-              Total Income
-            </p>
-            <p className="text-2xl font-semibold mb-2">
-              {formatCurrency(incomeTotal)}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {accountingEntries.filter(e => e.entryType === "INCOME").length} transactions
-            </p>
-          </CardContent>
-        </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <p className="text-xs text-muted-foreground uppercase tracking-wide font-semibold mb-2">
+                Total Income
+              </p>
+              <p className="text-2xl font-semibold mb-2">{formatCurrency(incomeTotal)}</p>
+              <p className="text-xs text-muted-foreground">
+                {accountingEntries.filter((e) => e.entryType === "INCOME").length} transactions
+              </p>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-xs text-muted-foreground uppercase tracking-wide font-semibold mb-2">
-              Total Expenses
-            </p>
-            <p className="text-2xl font-semibold mb-2">
-              {formatCurrency(expenseTotal)}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {accountingEntries.filter(e => e.entryType === "EXPENSE").length} transactions
-            </p>
-          </CardContent>
-        </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <p className="text-xs text-muted-foreground uppercase tracking-wide font-semibold mb-2">
+                Total Expenses
+              </p>
+              <p className="text-2xl font-semibold mb-2">{formatCurrency(expenseTotal)}</p>
+              <p className="text-xs text-muted-foreground">
+                {accountingEntries.filter((e) => e.entryType === "EXPENSE").length} transactions
+              </p>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-xs text-muted-foreground uppercase tracking-wide font-semibold mb-2">
-              Net Position
-            </p>
-            <p className={cn(
-              "text-2xl font-semibold mb-2",
-              netIncome >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
-            )}>
-              {formatCurrency(netIncome)}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {netIncome >= 0 ? "+" : ""}{incomeTotal > 0 ? Math.round((netIncome / incomeTotal) * 100) : 0}% margin
-            </p>
-          </CardContent>
-        </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <p className="text-xs text-muted-foreground uppercase tracking-wide font-semibold mb-2">
+                Net Position
+              </p>
+              <p
+                className={cn(
+                  "text-2xl font-semibold mb-2",
+                  netIncome >= 0
+                    ? "text-green-600 dark:text-green-400"
+                    : "text-red-600 dark:text-red-400",
+                )}
+              >
+                {formatCurrency(netIncome)}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {netIncome >= 0 ? "+" : ""}
+                {incomeTotal > 0 ? Math.round((netIncome / incomeTotal) * 100) : 0}% margin
+              </p>
+            </CardContent>
+          </Card>
         </div>
       </div>
 
@@ -441,7 +463,7 @@ export function Dashboard() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {CATEGORIES.map(c => (
+                    {CATEGORIES.map((c) => (
                       <SelectItem key={c.value} value={c.value}>
                         {c.label}
                       </SelectItem>
@@ -472,7 +494,8 @@ export function Dashboard() {
                     {category.label}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {category.tasks.filter(t => t.completed).length} of {category.tasks.length} tasks
+                    {category.tasks.filter((t) => t.completed).length} of {category.tasks.length}{" "}
+                    tasks
                   </p>
                 </div>
 
@@ -480,16 +503,19 @@ export function Dashboard() {
                 <Card>
                   <div className="divide-y">
                     {category.tasks.map((task) => {
-                      const isOverdue = task.dueDate && new Date(task.dueDate) < today && !task.completed
+                      const isOverdue =
+                        task.dueDate && new Date(task.dueDate) < today && !task.completed
 
                       return (
                         <div key={task.id}>
                           <div
                             className={cn(
                               "flex items-center gap-3 p-4 cursor-pointer hover:bg-muted/50",
-                              expandedTask === task.id && "bg-muted/50"
+                              expandedTask === task.id && "bg-muted/50",
                             )}
-                            onClick={() => setExpandedTask(expandedTask === task.id ? null : task.id)}
+                            onClick={() =>
+                              setExpandedTask(expandedTask === task.id ? null : task.id)
+                            }
                           >
                             <Checkbox
                               checked={task.completed}
@@ -497,17 +523,23 @@ export function Dashboard() {
                               onClick={(e) => e.stopPropagation()}
                             />
                             <div className="flex-1">
-                              <p className={cn(
-                                "text-sm",
-                                task.completed && "line-through text-muted-foreground"
-                              )}>
+                              <p
+                                className={cn(
+                                  "text-sm",
+                                  task.completed && "line-through text-muted-foreground",
+                                )}
+                              >
                                 {task.title}
                               </p>
                               {task.dueDate && (
-                                <p className={cn(
-                                  "text-xs mt-0.5",
-                                  isOverdue ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"
-                                )}>
+                                <p
+                                  className={cn(
+                                    "text-xs mt-0.5",
+                                    isOverdue
+                                      ? "text-amber-600 dark:text-amber-400"
+                                      : "text-muted-foreground",
+                                  )}
+                                >
                                   Due {formatDate(task.dueDate)}
                                   {isOverdue && " · Overdue"}
                                 </p>
@@ -568,76 +600,80 @@ export function Dashboard() {
         <TabsContent value="accounting" className="space-y-6 pt-4">
           <div className="@container">
             <div className="grid gap-6 @md:grid-cols-2">
-            {/* Income Summary */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                  Income
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {accountingEntries.filter(e => e.entryType === "INCOME").length === 0 ? (
-                  <p className="text-muted-foreground text-sm">No income entries recorded yet.</p>
-                ) : (
-                  <div className="space-y-4">
-                    {accountingEntries
-                      .filter(e => e.entryType === "INCOME")
-                      .map(entry => (
-                        <div key={entry.id} className="flex items-center justify-between">
-                          <div>
-                            <p className="text-sm">{entry.description || entry.incomeType}</p>
-                            <p className="text-xs text-muted-foreground">{formatDate(entry.accountingDate)}</p>
+              {/* Income Summary */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                    Income
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {accountingEntries.filter((e) => e.entryType === "INCOME").length === 0 ? (
+                    <p className="text-muted-foreground text-sm">No income entries recorded yet.</p>
+                  ) : (
+                    <div className="space-y-4">
+                      {accountingEntries
+                        .filter((e) => e.entryType === "INCOME")
+                        .map((entry) => (
+                          <div key={entry.id} className="flex items-center justify-between">
+                            <div>
+                              <p className="text-sm">{entry.description || entry.incomeType}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {formatDate(entry.accountingDate)}
+                              </p>
+                            </div>
+                            <p className="text-sm font-medium">{formatCurrency(entry.amount)}</p>
                           </div>
-                          <p className="text-sm font-medium">{formatCurrency(entry.amount)}</p>
-                        </div>
-                      ))}
-                    <Separator />
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium">Total</p>
-                      <p className="text-sm font-semibold text-green-600 dark:text-green-400">
-                        {formatCurrency(incomeTotal)}
-                      </p>
+                        ))}
+                      <Separator />
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium">Total</p>
+                        <p className="text-sm font-semibold text-green-600 dark:text-green-400">
+                          {formatCurrency(incomeTotal)}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                  )}
+                </CardContent>
+              </Card>
 
-            {/* Expense Summary */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                  Expenses
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {accountingEntries.filter(e => e.entryType === "EXPENSE").length === 0 ? (
-                  <p className="text-muted-foreground text-sm">No expense entries recorded yet.</p>
-                ) : (
-                  <div className="space-y-4">
-                    {accountingEntries
-                      .filter(e => e.entryType === "EXPENSE")
-                      .map(entry => (
-                        <div key={entry.id} className="flex items-center justify-between">
-                          <div>
-                            <p className="text-sm">{entry.description || entry.expenseType}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {formatDate(entry.accountingDate)}
-                              {entry.taxDeductible && " · Tax deductible"}
-                            </p>
+              {/* Expense Summary */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                    Expenses
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {accountingEntries.filter((e) => e.entryType === "EXPENSE").length === 0 ? (
+                    <p className="text-muted-foreground text-sm">
+                      No expense entries recorded yet.
+                    </p>
+                  ) : (
+                    <div className="space-y-4">
+                      {accountingEntries
+                        .filter((e) => e.entryType === "EXPENSE")
+                        .map((entry) => (
+                          <div key={entry.id} className="flex items-center justify-between">
+                            <div>
+                              <p className="text-sm">{entry.description || entry.expenseType}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {formatDate(entry.accountingDate)}
+                                {entry.taxDeductible && " · Tax deductible"}
+                              </p>
+                            </div>
+                            <p className="text-sm font-medium">{formatCurrency(entry.amount)}</p>
                           </div>
-                          <p className="text-sm font-medium">{formatCurrency(entry.amount)}</p>
-                        </div>
-                      ))}
-                    <Separator />
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium">Total</p>
-                      <p className="text-sm font-semibold">{formatCurrency(expenseTotal)}</p>
+                        ))}
+                      <Separator />
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium">Total</p>
+                        <p className="text-sm font-semibold">{formatCurrency(expenseTotal)}</p>
+                      </div>
                     </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                  )}
+                </CardContent>
+              </Card>
             </div>
           </div>
 
@@ -651,35 +687,39 @@ export function Dashboard() {
             </p>
             <div className="@container">
               <div className="grid gap-4 @sm:grid-cols-3">
-              <Card>
-                <CardContent className="pt-6">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wide font-semibold mb-2">
-                    Gross Income
-                  </p>
-                  <p className="text-2xl font-semibold">{formatCurrency(incomeTotal)}</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-6">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wide font-semibold mb-2">
-                    Deductions
-                  </p>
-                  <p className="text-2xl font-semibold">{formatCurrency(expenseTotal)}</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-6">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wide font-semibold mb-2">
-                    Distributable Net Income
-                  </p>
-                  <p className={cn(
-                    "text-2xl font-semibold",
-                    netIncome >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
-                  )}>
-                    {formatCurrency(netIncome)}
-                  </p>
-                </CardContent>
-              </Card>
+                <Card>
+                  <CardContent className="pt-6">
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide font-semibold mb-2">
+                      Gross Income
+                    </p>
+                    <p className="text-2xl font-semibold">{formatCurrency(incomeTotal)}</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-6">
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide font-semibold mb-2">
+                      Deductions
+                    </p>
+                    <p className="text-2xl font-semibold">{formatCurrency(expenseTotal)}</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-6">
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide font-semibold mb-2">
+                      Distributable Net Income
+                    </p>
+                    <p
+                      className={cn(
+                        "text-2xl font-semibold",
+                        netIncome >= 0
+                          ? "text-green-600 dark:text-green-400"
+                          : "text-red-600 dark:text-red-400",
+                      )}
+                    >
+                      {formatCurrency(netIncome)}
+                    </p>
+                  </CardContent>
+                </Card>
               </div>
             </div>
           </div>

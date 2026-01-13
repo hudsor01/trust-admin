@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 
-export interface ResourceDialogProps<T> {
+export interface ResourceDialogProps<_T> {
   open: boolean
   onOpenChange: (open: boolean) => void
   title: string
