@@ -192,9 +192,10 @@ export function Accounting() {
   }, [entities, selectedEntity])
 
   // Reset to page 1 when entity changes
+  // biome-ignore lint/correctness/useExhaustiveDependencies: We intentionally depend on selectedEntity to reset pagination
   useEffect(() => {
     setCurrentPage(1)
-  }, [])
+  }, [selectedEntity])
 
   const deleteEntry = async (id: string) => {
     if (!confirm("Are you sure you want to delete this entry?")) return
