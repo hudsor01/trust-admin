@@ -5,6 +5,7 @@ import { Resend } from "resend"
 import { db } from "../../db"
 import * as schema from "../../db/schema"
 import { logger } from "./logger"
+import { recordSignIn } from "./auth-events"
 
 const log = logger.auth
 
@@ -19,6 +20,55 @@ if (!resend) {
 
 // Email sender - use Resend's test domain or your verified domain
 const EMAIL_FROM = process.env.EMAIL_FROM || "Trust Admin <onboarding@resend.dev>"
+
+// In-memory rate limiter (upgrade to Redis for multi-instance)
+interface RateLimitEntry {
+  attempts: number[]
+  lastAttempt: number
+}
+
+const magicLinkRateLimits = new Map<string, RateLimitEntry>()
+
+// Cleanup old entries every 5 minutes
+setInterval(() => {
+  const now = Date.now()
+  const hourAgo = now - 60 * 60 * 1000
+
+  for (const [email, entry] of magicLinkRateLimits.entries()) {
+    if (entry.lastAttempt < hourAgo) {
+      magicLinkRateLimits.delete(email)
+    }
+  }
+}, 5 * 60 * 1000)
+
+/**
+ * Check rate limit: 5 attempts per hour per email
+ * @throws Error if rate limit exceeded
+ */
+function checkMagicLinkRateLimit(email: string): void {
+  const now = Date.now()
+  const hourAgo = now - 60 * 60 * 1000
+
+  const entry = magicLinkRateLimits.get(email) || { attempts: [], lastAttempt: 0 }
+
+  // Filter recent attempts (last hour)
+  entry.attempts = entry.attempts.filter(t => t > hourAgo)
+
+  if (entry.attempts.length >= 5) {
+    const oldestAttempt = Math.min(...entry.attempts)
+    const minutesUntilReset = Math.ceil((oldestAttempt + 60 * 60 * 1000 - now) / 60000)
+
+    log.warn("Magic link rate limit exceeded", { email, attempts: entry.attempts.length })
+    throw new Error(
+      `Too many magic link requests. Please try again in ${minutesUntilReset} minute(s).`
+    )
+  }
+
+  // Record attempt
+  entry.attempts.push(now)
+  entry.lastAttempt = now
+  magicLinkRateLimits.set(email, entry)
+}
 
 export const auth = betterAuth({
   trustedOrigins: process.env.TRUSTED_ORIGINS?.split(",") || [
@@ -59,17 +109,23 @@ export const auth = betterAuth({
       sendMagicLink: async ({ email, url, token }, request) => {
         log.info("Sending magic link", { email })
 
-        // Development mode: log link to console instead of failing
+        // Check rate limit BEFORE sending email
+        checkMagicLinkRateLimit(email)
+
+        // Development mode: log link to console instead of sending email
+        // This works even if RESEND_API_KEY is set, to avoid domain verification issues
+        if (process.env.NODE_ENV === "development") {
+          console.log("\n" + "=".repeat(80))
+          console.log("🔐 MAGIC LINK FOR:", email)
+          console.log("📧 Click this link to sign in:")
+          console.log(url)
+          console.log("=".repeat(80) + "\n")
+          log.info("Development mode - magic link logged to console (not sent via email)")
+          return // Success - link logged to console
+        }
+
+        // Production mode: require Resend
         if (!resend) {
-          if (process.env.NODE_ENV === "development") {
-            console.log("\n" + "=".repeat(80))
-            console.log("🔐 MAGIC LINK FOR:", email)
-            console.log("📧 Click this link to sign in:")
-            console.log(url)
-            console.log("=".repeat(80) + "\n")
-            log.warn("RESEND_API_KEY not set - magic link logged to console (development mode)")
-            return // Success - link logged to console
-          }
           log.error("Cannot send magic link - RESEND_API_KEY not configured")
           throw new Error("Email service not configured. Please set RESEND_API_KEY.")
         }
@@ -110,7 +166,47 @@ export const auth = betterAuth({
       expiresIn: 60 * 10, // 10 minutes
     }),
   ],
+  callbacks: {
+    session: {
+      /**
+       * Called after successful sign-in
+       * Record to audit log
+       */
+      async created({ session, user, request }: { session: any; user: any; request?: any }) {
+        if (request) {
+          const url = new URL(request.url)
+          const ip = request.headers.get("x-forwarded-for")?.split(",")[0] ||
+                     request.headers.get("x-real-ip") || "unknown"
+          const userAgent = request.headers.get("user-agent") || "unknown"
+
+          await recordSignIn(user.id, {
+            path: url.pathname,
+            ip,
+            userAgent,
+          })
+        }
+        return session
+      },
+    },
+  },
 })
 
 export type Session = typeof auth.$Infer.Session
 export type User = typeof auth.$Infer.Session.user
+
+// Export proper user type with custom fields
+export type AppUser = typeof auth.$Infer.Session.user & {
+  role: "admin" | "beneficiary"
+  beneficiaryId?: string
+}
+
+// Type guards
+export function isAdmin(user: AppUser): boolean {
+  return user.role === "admin"
+}
+
+export function isBeneficiary(
+  user: AppUser
+): user is AppUser & { beneficiaryId: string } {
+  return user.role === "beneficiary" && !!user.beneficiaryId
+}

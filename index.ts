@@ -22,13 +22,14 @@ if (process.env.SENTRY_DSN) {
 
 import homepage from "./src/index.html";
 import { auth } from "./src/lib/auth";
+import { requireAdmin, requireBeneficiary, isPublicRoute } from "./src/lib/middleware";
 import { logger } from "./src/lib/logger";
 import { ApiError, errorResponse, validateWithSchema, validateReference } from "./src/lib/api-error";
 import { Resend } from "resend";
-import { and, eq, isNotNull, lte, asc } from "drizzle-orm";
+import { and, eq, isNotNull, lte, asc, sql } from "drizzle-orm";
 import type { PgTable, TableConfig } from "drizzle-orm/pg-core";
 import type { ZodSchema } from "zod";
-import { db } from "./db";
+import { db, client } from "./db";
 import { generateId } from "./db/helpers";
 import {
   entity,
@@ -43,6 +44,7 @@ import {
   bankAccount,
   investmentAccount,
   personalProperty,
+  insurancePolicy,
   artwork,
   specificBequest,
   trustAccounting,
@@ -116,6 +118,7 @@ import {
   insertBankAccountSchema,
   insertInvestmentAccountSchema,
   insertPersonalPropertySchema,
+  insertInsurancePolicySchema,
   insertArtworkSchema,
   insertTrusteeSchema,
   insertSpecificBequestSchema,
@@ -285,14 +288,16 @@ function createRouteHandler(config: RouteConfig) {
         const data = await req.json();
 
         // Validate with Zod schema
-        const validated = validateWithSchema(updateSchema, data);
+        const validated = validateWithSchema(updateSchema, data) as Record<string, unknown>;
 
         // Validate references exist
         if (references) {
-          await validateReferences(validated as Record<string, unknown>, references);
+          await validateReferences(validated, references);
         }
 
-        const item = await crud.update(id, validated as any);
+        // Type assertion: validated is Zod-validated data matching table's Insert shape
+        // This is safe because updateSchema validates the data structure
+        const item = await crud.update(id, validated as Parameters<typeof crud.update>[1]);
         if (!item) throw ApiError.notFound(name, id);
         return json(item);
       } catch (error) {
@@ -513,6 +518,41 @@ const handlers = Object.fromEntries(
 );
 
 // =============================================================================
+// DATABASE HEALTH CHECK
+// =============================================================================
+
+/**
+ * Check database connection health and return pool statistics
+ */
+async function checkDbConnection() {
+  try {
+    // Simple query to verify connection
+    await db.execute(sql`SELECT 1`);
+
+    // Get connection pool stats (postgres-js doesn't expose pool size directly)
+    // But we can return configured values
+    return {
+      ok: true,
+      poolSize: client.options.max,
+      configured: {
+        maxConnections: client.options.max,
+        idleTimeout: client.options.idle_timeout,
+        connectTimeout: client.options.connect_timeout,
+        maxLifetime: client.options.max_lifetime,
+        preparedStatements: client.options.prepare,
+      },
+    };
+  } catch (error) {
+    logger.db.error("Database health check failed", { error });
+    return {
+      ok: false,
+      poolSize: 0,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
+
+// =============================================================================
 // SERVER
 // =============================================================================
 
@@ -573,6 +613,14 @@ Bun.serve({
           statusText: response.statusText,
           headers: newHeaders,
         });
+      }
+
+      // =============================================================================
+      // AUTHENTICATION MIDDLEWARE
+      // =============================================================================
+      // Protect all API routes except auth endpoints, portal routes, and public routes
+      if (path.startsWith("/api/") && !isPublicRoute(path) && !path.startsWith("/api/portal/")) {
+        await requireAdmin(req);
       }
 
       // =============================================================================
@@ -794,10 +842,10 @@ Bun.serve({
             .limit(1);
 
           if (!hudsonEntity.length) {
-            throw new ApiError("CONFIGURATION_ERROR", "Hudson Living Trust entity not found", 500);
+            throw new ApiError("INTERNAL_ERROR", "Hudson Living Trust entity not found", 500);
           }
 
-          const entityId = hudsonEntity[0].id;
+          const entityId = hudsonEntity[0]!.id;
           const itemType = body.itemType as string;
           const data = body.data as Record<string, unknown>;
 
@@ -906,7 +954,7 @@ Bun.serve({
           for (let i = 0; i < quantity; i++) {
             const id = generateId();
             const record = {
-              ...validated,
+              ...(validated as any),
               id,
               createdAt: now,
               updatedAt: now,
@@ -1062,18 +1110,9 @@ Bun.serve({
       // PORTAL API ROUTES (for beneficiary portal)
       // =============================================================================
       if (path === "/api/portal/me" && method === "GET") {
-        const session = await auth.api.getSession({ headers: req.headers });
-        if (!session?.user) {
-          return json({ error: "Unauthorized" }, 401);
-        }
-
-        // Get user with beneficiary data
-        const userId = session.user.id;
-        const beneficiaryId = (session.user as any).beneficiaryId;
-
-        if (!beneficiaryId) {
-          return json({ error: "Not a beneficiary account" }, 403);
-        }
+        // Use middleware for type-safe authentication
+        const user = await requireBeneficiary(req);
+        const beneficiaryId = user.beneficiaryId;
 
         // Fetch beneficiary with distributions
         const beneficiary = await getBeneficiaryById(beneficiaryId);
@@ -1082,7 +1121,7 @@ Bun.serve({
         }
 
         return json({
-          user: session.user,
+          user,
           beneficiary,
         });
       }
@@ -1091,10 +1130,17 @@ Bun.serve({
       // HEALTH CHECK
       // =============================================================================
       if (path === "/health") {
+        const dbHealth = await checkDbConnection();
         return json({
-          status: "ok",
+          status: dbHealth.ok ? "ok" : "degraded",
           service: "trust-admin",
           timestamp: new Date().toISOString(),
+          database: {
+            connected: dbHealth.ok,
+            poolSize: dbHealth.poolSize,
+            configured: dbHealth.configured || null,
+            error: dbHealth.error || null,
+          },
         });
       }
 

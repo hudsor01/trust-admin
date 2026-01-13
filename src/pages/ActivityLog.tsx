@@ -252,10 +252,10 @@ export function ActivityLog() {
             <DialogTitle className="flex items-center gap-2">
               {selectedLog && (
                 <>
-                  <Badge variant={ACTION_VARIANTS[selectedLog.action]}>
-                    {ACTION_LABELS[selectedLog.action]}
+                  <Badge variant={ACTION_VARIANTS[selectedLog?.action]}>
+                    {ACTION_LABELS[selectedLog?.action]}
                   </Badge>
-                  {selectedLog.tableName}
+                  {selectedLog?.tableName}
                 </>
               )}
             </DialogTitle>
@@ -267,40 +267,40 @@ export function ActivityLog() {
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <p className="text-muted-foreground">Timestamp</p>
-                  <p>{formatDate(selectedLog.createdAt)}</p>
+                  <p>{formatDate(selectedLog?.createdAt)}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Record ID</p>
-                  <p className="font-mono">{selectedLog.recordId}</p>
+                  <p className="font-mono">{selectedLog?.recordId}</p>
                 </div>
-                {selectedLog.changedBy && (
+                {selectedLog?.changedBy && (
                   <div>
                     <p className="text-muted-foreground">Changed By</p>
-                    <p>{selectedLog.changedBy}</p>
+                    <p>{selectedLog?.changedBy}</p>
                   </div>
                 )}
               </div>
 
               {/* Old Values */}
-              {selectedLog.oldValues && (
+              {selectedLog?.oldValues && (
                 <div>
                   <p className="text-sm font-medium mb-2 text-muted-foreground">
                     Previous Values
                   </p>
                   <pre className="bg-muted/50 rounded-lg p-4 text-xs overflow-x-auto">
-                    {formatJson(selectedLog.oldValues)}
+                    {formatJson(selectedLog?.oldValues)}
                   </pre>
                 </div>
               )}
 
               {/* New Values */}
-              {selectedLog.newValues && (
+              {selectedLog?.newValues && (
                 <div>
                   <p className="text-sm font-medium mb-2 text-muted-foreground">
                     New Values
                   </p>
                   <pre className="bg-muted/50 rounded-lg p-4 text-xs overflow-x-auto">
-                    {formatJson(selectedLog.newValues)}
+                    {formatJson(selectedLog?.newValues)}
                   </pre>
                 </div>
               )}

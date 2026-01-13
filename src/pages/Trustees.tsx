@@ -71,7 +71,7 @@ export function Trustees() {
   // Form state using useResourceForm hook
   const trusteeForm = useResourceForm({
     initialData: trusteeFormDefaults(),
-    validationSchema: insertTrusteeSchema,
+    schema: insertTrusteeSchema as any,
     onSubmit: async (data) => {
       if (!selectedEntity) return
       const payload = {
@@ -84,8 +84,8 @@ export function Trustees() {
         startDate: data.startDate || null,
         endDate: data.endDate || null,
       }
-      if (trusteeForm.isEditing && trusteeForm.editingId) {
-        await updateTrusteeMutation.mutateAsync({ id: trusteeForm.editingId, data: payload })
+      if (trusteeForm.isEditing && (trusteeForm.editing as any)?.id) {
+        await updateTrusteeMutation.mutateAsync({ id: (trusteeForm.editing as any)?.id, data: payload })
       } else {
         await createTrusteeMutation.mutateAsync(payload)
       }
@@ -111,15 +111,16 @@ export function Trustees() {
   }
 
   const openEditForm = (trustee: Trustee) => {
-    trusteeForm.edit(trustee.id, {
+    trusteeForm.handleEdit({
+      id: trustee.id,
       name: trustee.name,
-      status: trustee.status,
+      status: trustee.status ?? "",
       order: trustee.order,
-      isCo: trustee.isCo,
-      coTrusteeId: trustee.coTrusteeId,
+      isCo: trustee.isCo || false,
+      coTrusteeId: trustee.coTrusteeId || null,
       startDate: trustee.startDate,
       endDate: trustee.endDate,
-    })
+    } as any)
   }
 
   const loading = entitiesLoading || trusteesLoading
@@ -430,7 +431,7 @@ export function Trustees() {
         <div className="space-y-4">
           {/* Name - Required */}
           <formInstance.Field name="name">
-            {(field) => (
+            {(field: any) => (
               <div className="space-y-2">
                 <Label htmlFor="name">Name *</Label>
                 <Input
@@ -449,7 +450,7 @@ export function Trustees() {
 
           {/* Status */}
           <formInstance.Field name="status">
-            {(field) => (
+            {(field: any) => (
               <div className="space-y-2">
                 <Label htmlFor="status">Status</Label>
                 <Select
@@ -473,7 +474,7 @@ export function Trustees() {
 
           {/* Order */}
           <formInstance.Field name="order">
-            {(field) => (
+            {(field: any) => (
               <div className="space-y-2">
                 <Label htmlFor="order">Order</Label>
                 <Input
@@ -497,7 +498,7 @@ export function Trustees() {
 
           {/* Is Co-Trustee */}
           <formInstance.Field name="isCo">
-            {(field) => (
+            {(field: any) => (
               <div className="flex items-center justify-between">
                 <Label htmlFor="isCo">Is Co-Trustee?</Label>
                 <Switch
@@ -510,11 +511,11 @@ export function Trustees() {
           </formInstance.Field>
 
           {/* Co-Trustee Selector - Conditional */}
-          <formInstance.Subscribe selector={(state) => state.values.isCo}>
-            {(isCo) =>
+          <formInstance.Subscribe selector={(state: any) => state.values.isCo}>
+            {(isCo: any) =>
               isCo ? (
                 <formInstance.Field name="coTrusteeId">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label htmlFor="coTrustee">Co-Trustee</Label>
                       <Select
@@ -526,7 +527,7 @@ export function Trustees() {
                         </SelectTrigger>
                         <SelectContent>
                           {trustees
-                            .filter((t) => t.id !== trusteeForm.editingId)
+                            .filter((t) => t.id !== (trusteeForm.editing as any)?.id)
                             .map((t) => (
                               <SelectItem key={t.id} value={t.id}>
                                 {t.name}
@@ -543,7 +544,7 @@ export function Trustees() {
 
           {/* Start Date */}
           <formInstance.Field name="startDate">
-            {(field) => (
+            {(field: any) => (
               <div className="space-y-2">
                 <Label htmlFor="startDate">Start Date</Label>
                 <Input
@@ -559,7 +560,7 @@ export function Trustees() {
 
           {/* End Date */}
           <formInstance.Field name="endDate">
-            {(field) => (
+            {(field: any) => (
               <div className="space-y-2">
                 <Label htmlFor="endDate">End Date</Label>
                 <Input

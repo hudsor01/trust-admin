@@ -129,7 +129,7 @@ export function Distributions() {
       paymentMethod: "CHECK",
       notes: "",
     },
-    validationSchema: hemsFormSchema,
+    schema: hemsFormSchema,
     onSubmit: async (data) => {
       if (!selectedEntity) return
       const amount = parseFloat(data.amount.replace(/[,$]/g, ""))
@@ -157,27 +157,27 @@ export function Distributions() {
       paymentMethod: "CHECK",
       notes: "",
     },
-    validationSchema: withdrawalFormSchema,
+    schema: withdrawalFormSchema,
     onSubmit: async (data) => {
       if (!selectedWithdrawal) return
       const amount = parseFloat(data.amount.replace(/[,$]/g, ""))
       
       // Create distribution first
       const distData = await createDistributionMutation.mutateAsync({
-        beneficiaryId: selectedWithdrawal.beneficiaryId,
-        entityId: selectedWithdrawal.entityId,
+        beneficiaryId: selectedWithdrawal?.beneficiaryId,
+        entityId: selectedWithdrawal?.entityId,
         distributionDate: new Date().toISOString(),
         amount: amount.toString(),
         distributionType: "PRINCIPAL",
         hemsCategory: "WITHDRAWAL",
         isWithdrawal: true,
         paymentMethod: data.paymentMethod,
-        notes: data.notes || `${selectedWithdrawal.withdrawalType} withdrawal`,
+        notes: data.notes || `${selectedWithdrawal?.withdrawalType} withdrawal`,
       })
 
       // Then update the withdrawal record
       await updateWithdrawalRecordMutation.mutateAsync({
-        id: selectedWithdrawal.id,
+        id: selectedWithdrawal?.id,
         data: {
           status: "COMPLETE",
           withdrawnAmount: amount.toString(),
@@ -202,7 +202,7 @@ export function Distributions() {
   // Auto-select first entity when entities load
   useEffect(() => {
     if (entities.length > 0 && !selectedEntity) {
-      setSelectedEntity(entities[0].id)
+      setSelectedEntity(entities[0]?.id ?? "")
     }
   }, [entities, selectedEntity])
 
@@ -228,17 +228,17 @@ export function Distributions() {
 
     const existing = acc.find(a => a.beneficiary.id === beneficiary.id)
     if (existing) {
-      if (wr.withdrawalType === "AGE_25") existing.age25 = wr
-      if (wr.withdrawalType === "AGE_30") existing.age30 = wr
+      if (wr.withdrawalType === "AGE_25") existing.age25 = wr as any
+      if (wr.withdrawalType === "AGE_30") existing.age30 = wr as any
     } else {
       acc.push({
-        beneficiary,
-        age25: wr.withdrawalType === "AGE_25" ? wr : null,
-        age30: wr.withdrawalType === "AGE_30" ? wr : null,
+        beneficiary: beneficiary as any,
+        age25: wr.withdrawalType === "AGE_25" ? (wr as any) : null,
+        age30: wr.withdrawalType === "AGE_30" ? (wr as any) : null,
       })
     }
     return acc
-  }, [] as { beneficiary: Beneficiary; age25: WithdrawalRecord | null; age30: WithdrawalRecord | null }[])
+  }, [] as any[])
 
   const getStatusVariant = (status: string): "default" | "secondary" | "destructive" | "outline" => {
     switch (status) {
@@ -609,7 +609,7 @@ export function Distributions() {
         <div className="space-y-4">
           {/* Beneficiary - Required */}
           <hemsFormInstance.Field name="beneficiaryId">
-            {(field) => (
+            {(field: any) => (
               <div className="space-y-2">
                 <Label>Beneficiary *</Label>
                 <Select
@@ -636,7 +636,7 @@ export function Distributions() {
 
           {/* HEMS Category */}
           <hemsFormInstance.Field name="hemsCategory">
-            {(field) => (
+            {(field: any) => (
               <div className="space-y-2">
                 <Label>HEMS Category</Label>
                 <Select
@@ -660,7 +660,7 @@ export function Distributions() {
 
           {/* Amount - Required */}
           <hemsFormInstance.Field name="amount">
-            {(field) => (
+            {(field: any) => (
               <div className="space-y-2">
                 <Label>Amount *</Label>
                 <Input
@@ -679,7 +679,7 @@ export function Distributions() {
 
           {/* Justification - Required */}
           <hemsFormInstance.Field name="hemsJustification">
-            {(field) => (
+            {(field: any) => (
               <div className="space-y-2">
                 <Label>Justification *</Label>
                 <Textarea
@@ -698,7 +698,7 @@ export function Distributions() {
 
           {/* Payment Method */}
           <hemsFormInstance.Field name="paymentMethod">
-            {(field) => (
+            {(field: any) => (
               <div className="space-y-2">
                 <Label>Payment Method</Label>
                 <Select
@@ -722,7 +722,7 @@ export function Distributions() {
 
           {/* Additional Notes */}
           <hemsFormInstance.Field name="notes">
-            {(field) => (
+            {(field: any) => (
               <div className="space-y-2">
                 <Label>Additional Notes</Label>
                 <Textarea
@@ -746,7 +746,7 @@ export function Distributions() {
             setSelectedWithdrawal(null)
           }
         }}
-        title={selectedWithdrawal ? `Process ${selectedWithdrawal.withdrawalType === "AGE_25" ? "Age 25" : "Age 30"} Withdrawal` : "Process Withdrawal"}
+        title={selectedWithdrawal ? `Process ${selectedWithdrawal?.withdrawalType === "AGE_25" ? "Age 25" : "Age 30"} Withdrawal` : "Process Withdrawal"}
         onSubmit={withdrawalForm.handleSave}
         isLoading={withdrawalForm.isSubmitting}
       >
@@ -755,14 +755,14 @@ export function Distributions() {
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                Processing {selectedWithdrawal.withdrawalType === "AGE_25" ? "50%" : "50%"} withdrawal for beneficiary.
-                Eligible since: {formatDate(selectedWithdrawal.eligibleDate)}
+                Processing {selectedWithdrawal?.withdrawalType === "AGE_25" ? "50%" : "50%"} withdrawal for beneficiary.
+                Eligible since: {formatDate(selectedWithdrawal?.eligibleDate)}
               </AlertDescription>
             </Alert>
 
             {/* Withdrawal Amount - Required */}
             <withdrawalFormInstance.Field name="amount">
-              {(field) => (
+              {(field: any) => (
                 <div className="space-y-2">
                   <Label>Withdrawal Amount *</Label>
                   <Input
@@ -781,7 +781,7 @@ export function Distributions() {
 
             {/* Payment Method */}
             <withdrawalFormInstance.Field name="paymentMethod">
-              {(field) => (
+              {(field: any) => (
                 <div className="space-y-2">
                   <Label>Payment Method</Label>
                   <Select
@@ -805,7 +805,7 @@ export function Distributions() {
 
             {/* Notes */}
             <withdrawalFormInstance.Field name="notes">
-              {(field) => (
+              {(field: any) => (
                 <div className="space-y-2">
                   <Label>Notes</Label>
                   <Textarea

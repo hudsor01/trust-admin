@@ -200,8 +200,8 @@ export function Beneficiaries() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          beneficiaryId: selectedBeneficiary.id,
-          entityId: selectedBeneficiary.entityId,
+          beneficiaryId: selectedBeneficiary?.id,
+          entityId: selectedBeneficiary?.entityId,
           distributionDate: new Date().toISOString(),
           amount: newDistribution.amount,
           distributionType: "PRINCIPAL",
@@ -223,7 +223,7 @@ export function Beneficiaries() {
           notes: "",
         })
         refetchBeneficiaries()
-        const updated = await fetch(`/api/beneficiaries/${selectedBeneficiary.id}`).then((r) =>
+        const updated = await fetch(`/api/beneficiaries/${selectedBeneficiary?.id}`).then((r) =>
           r.json()
         )
         setSelectedBeneficiary({ ...selectedBeneficiary, distributions: updated.distributions || [] })
@@ -271,7 +271,7 @@ export function Beneficiaries() {
         <EditablePercentCell
           value={b.sharePercent}
           onSave={async (val) => {
-            await updateBeneficiaryMutation.mutateAsync({ id: b.id, data: { sharePercent: val } })
+            await updateBeneficiary(b.id, { sharePercent: val })
           }}
         />
       ),
@@ -327,7 +327,7 @@ export function Beneficiaries() {
           value={b.distributionStandard || "HEMS"}
           options={DISTRIBUTION_STANDARDS}
           onSave={async (val) => {
-            await updateBeneficiaryMutation.mutateAsync({ id: b.id, data: { distributionStandard: val } })
+            await updateBeneficiary(b.id, { distributionStandard: val })
           }}
         />
       ),
@@ -344,7 +344,7 @@ export function Beneficiaries() {
             "h-7 w-7",
             b.informed && "bg-success hover:bg-success/90"
           )}
-          onClick={() => updateBeneficiaryMutation.mutateAsync({ id: b.id, data: { informed: !b.informed } })}
+          onClick={() => updateBeneficiary(b.id, { informed: !b.informed })}
         >
           {b.informed ? (
             <Check className="h-3.5 w-3.5" />
@@ -366,7 +366,7 @@ export function Beneficiaries() {
             b.releaseSigned && "bg-success hover:bg-success/90"
           )}
           onClick={() =>
-            updateBeneficiaryMutation.mutateAsync({ id: b.id, data: { releaseSigned: !b.releaseSigned } })
+            updateBeneficiary(b.id, { releaseSigned: !b.releaseSigned })
           }
         >
           {b.releaseSigned ? (
@@ -524,7 +524,7 @@ export function Beneficiaries() {
           <DialogHeader>
             <DialogTitle>
               {selectedBeneficiary
-                ? `${selectedBeneficiary.firstName} ${selectedBeneficiary.lastName}`
+                ? `${selectedBeneficiary?.firstName} ${selectedBeneficiary?.lastName}`
                 : ""}
             </DialogTitle>
           </DialogHeader>
@@ -664,7 +664,7 @@ function BeneficiaryDialogContent({
                     <EditableTextCell
                       value={beneficiary.email}
                       onSave={async (val) => {
-                        await updateBeneficiaryMutation.mutateAsync({ id: beneficiary.id, data: { email: val } })
+                        await updateBeneficiary(beneficiary.id, { email: val })
                         setSelectedBeneficiary({ ...beneficiary, email: val })
                       }}
                     />
@@ -675,7 +675,7 @@ function BeneficiaryDialogContent({
                     <EditableTextCell
                       value={beneficiary.phone}
                       onSave={async (val) => {
-                        await updateBeneficiaryMutation.mutateAsync({ id: beneficiary.id, data: { phone: val } })
+                        await updateBeneficiary(beneficiary.id, { phone: val })
                         setSelectedBeneficiary({ ...beneficiary, phone: val })
                       }}
                     />
@@ -686,7 +686,7 @@ function BeneficiaryDialogContent({
                       <EditableTextCell
                         value={beneficiary.streetAddress}
                         onSave={async (val) => {
-                          await updateBeneficiaryMutation.mutateAsync({ id: beneficiary.id, data: { streetAddress: val } })
+                          await updateBeneficiary(beneficiary.id, { streetAddress: val })
                           setSelectedBeneficiary({ ...beneficiary, streetAddress: val })
                         }}
                       />
@@ -694,21 +694,21 @@ function BeneficiaryDialogContent({
                         <EditableTextCell
                           value={beneficiary.city}
                           onSave={async (val) => {
-                            await updateBeneficiaryMutation.mutateAsync({ id: beneficiary.id, data: { city: val } })
+                            await updateBeneficiary(beneficiary.id, { city: val })
                             setSelectedBeneficiary({ ...beneficiary, city: val })
                           }}
                         />
                         <EditableTextCell
                           value={beneficiary.state}
                           onSave={async (val) => {
-                            await updateBeneficiaryMutation.mutateAsync({ id: beneficiary.id, data: { state: val } })
+                            await updateBeneficiary(beneficiary.id, { state: val })
                             setSelectedBeneficiary({ ...beneficiary, state: val })
                           }}
                         />
                         <EditableTextCell
                           value={beneficiary.zip}
                           onSave={async (val) => {
-                            await updateBeneficiaryMutation.mutateAsync({ id: beneficiary.id, data: { zip: val } })
+                            await updateBeneficiary(beneficiary.id, { zip: val })
                             setSelectedBeneficiary({ ...beneficiary, zip: val })
                           }}
                         />

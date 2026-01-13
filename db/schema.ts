@@ -1,46 +1,55 @@
-import { pgTable, varchar, timestamp, text, integer, jsonb, foreignKey, uniqueIndex, numeric, boolean, pgEnum, uuid } from "drizzle-orm/pg-core"
-import { sql } from "drizzle-orm"
+import { pgTable, varchar, timestamp, text, integer, jsonb, foreignKey, uniqueIndex, index, numeric, boolean, pgEnum, uuid } from "drizzle-orm/pg-core"
+import { sql, type SQL } from "drizzle-orm"
 
-// Type definitions for JSONB columns
+// ============================================
+// JSONB Type Definitions
+// ============================================
 type ActivityLogValues = Record<string, unknown>;
 
-export const accountStatus = pgEnum("AccountStatus", ['OPEN', 'CLOSED', 'FROZEN'])
-export const assetStatus = pgEnum("AssetStatus", ['ACTIVE', 'SOLD', 'TRANSFERRED', 'DISPOSED'])
-export const bankAccountType = pgEnum("BankAccountType", ['CHECKING', 'SAVINGS', 'CD', 'MONEY_MARKET', 'BUSINESS_CHECKING', 'BUSINESS_SAVINGS'])
-export const contactRole = pgEnum("ContactRole", ['ATTORNEY', 'ACCOUNTANT', 'FINANCIAL_ADVISOR', 'PROPERTY_MANAGER', 'TENANT', 'INSURANCE_AGENT', 'BANKER', 'CONTRACTOR', 'EMPLOYEE', 'BENEFICIARY_REP', 'OTHER'])
+// ============================================
+// Enums (PostgreSQL Types)
+// ============================================
+
+// Generic status for lifecycle tracking (replaces accountStatus, entityStatus, assetStatus, liabilityStatus, policyStatus)
+export const recordStatus = pgEnum("RecordStatus", ['ACTIVE', 'INACTIVE', 'OPEN', 'PENDING', 'CLOSED', 'FROZEN', 'SOLD', 'TRANSFERRED', 'DISPOSED', 'PAID_OFF', 'DISPUTED', 'WRITTEN_OFF', 'LAPSED', 'CANCELLED', 'CLAIMED', 'DISSOLVED'])
+
+// Asset and financial enums
 export const distributionType = pgEnum("DistributionType", ['INCOME', 'PRINCIPAL', 'CAPITAL_GAIN', 'EXPENSE_REIMBURSEMENT', 'OTHER'])
-export const documentType = pgEnum("DocumentType", ['DEED', 'TITLE', 'STATEMENT', 'CONTRACT', 'LEASE', 'TAX_RETURN', 'APPRAISAL', 'INSURANCE_POLICY', 'LICENSE', 'REGISTRATION', 'RECEIPT', 'INVOICE', 'CHECK_COPY', 'CORRESPONDENCE', 'TRUST_DOCUMENT', 'OPERATING_AGREEMENT', 'OTHER'])
-export const entityStatus = pgEnum("EntityStatus", ['ACTIVE', 'DISSOLVED', 'PENDING'])
-export const entityType = pgEnum("EntityType", ['TRUST', 'LLC', 'CORPORATION', 'PARTNERSHIP', 'INDIVIDUAL'])
 export const insurancePolicyType = pgEnum("InsurancePolicyType", ['LIFE', 'PROPERTY', 'AUTO', 'UMBRELLA', 'LIABILITY', 'HEALTH', 'OTHER'])
-export const investmentAccountType = pgEnum("InvestmentAccountType", ['BROKERAGE', 'IRA_TRADITIONAL', 'IRA_ROTH', 'K401', 'ANNUITY', 'HSA', 'FIVE29', 'OTHER'])
-export const logAction = pgEnum("LogAction", ['INSERT', 'UPDATE', 'DELETE'])
+export const liabilityType = pgEnum("LiabilityType", ['MORTGAGE', 'LOAN', 'CREDIT_CARD', 'TAX_OWED', 'ACCOUNTS_PAYABLE', 'LEGAL_JUDGMENT', 'OTHER'])
 export const paymentMethod = pgEnum("PaymentMethod", ['CHECK', 'ACH', 'WIRE', 'CASH', 'OTHER'])
-export const personalPropertyCategory = pgEnum("PersonalPropertyCategory", ['JEWELRY', 'ART', 'COLLECTIBLES', 'FURNITURE', 'EQUIPMENT', 'ELECTRONICS', 'TOOLS', 'FIREARMS', 'OTHER'])
-export const policyStatus = pgEnum("PolicyStatus", ['ACTIVE', 'LAPSED', 'CANCELLED', 'CLAIMED'])
 export const premiumFrequency = pgEnum("PremiumFrequency", ['MONTHLY', 'QUARTERLY', 'SEMI_ANNUAL', 'ANNUAL'])
 export const propertyType = pgEnum("PropertyType", ['SINGLE_FAMILY', 'MULTI_FAMILY', 'CONDO', 'TOWNHOUSE', 'LAND', 'COMMERCIAL', 'MOBILE_HOME'])
 export const rentalStatus = pgEnum("RentalStatus", ['RENTED', 'VACANT', 'UNDER_RENOVATION', 'LISTED'])
 export const titleStatus = pgEnum("TitleStatus", ['CLEAR', 'LIEN', 'PENDING_TRANSFER'])
-export const transactionType = pgEnum("TransactionType", ['INCOME', 'EXPENSE', 'TRANSFER', 'CAPITAL_IMPROVEMENT', 'DEPRECIATION'])
-export const valuationType = pgEnum("ValuationType", ['APPRAISAL', 'MARKET_ESTIMATE', 'TAX_ASSESSED', 'STATEMENT_BALANCE', 'PURCHASE_PRICE', 'BOOK_VALUE', 'SELF_ASSESSED'])
-export const transferStatus = pgEnum("TransferStatus", ['PENDING', 'STARTED', 'COMPLETE'])
-export const taskCategory = pgEnum("TaskCategory", ['INVENTORY', 'FINANCIAL', 'BENEFICIARY', 'LEGAL', 'ADMINISTRATIVE', 'OTHER'])
+export const valuationType = pgEnum("ValuationType", ['APPRAISAL', 'MARKET_ESTIMATE', 'TAX_ASSESSED', 'STATEMENT_BALANCE', 'PURCHASE_PRICE', 'BOOK_VALUE', 'SELF_ASSESSED', 'STATEMENT'])
+
+// Entity and trust enums
+export const entityType = pgEnum("EntityType", ['TRUST', 'LLC', 'CORPORATION', 'PARTNERSHIP', 'INDIVIDUAL'])
 export const trustType = pgEnum("TrustType", ['REVOCABLE', 'IRREVOCABLE'])
-export const dodValueType = pgEnum("DodValueType", ['APPRAISAL', 'STATEMENT', 'MARKET_ESTIMATE', 'TAX_ASSESSED'])
+
+// Beneficiary and distribution enums
 export const relationshipType = pgEnum("RelationshipType", ['CHILD', 'STEPCHILD', 'GRANDCHILD', 'OTHER'])
 export const distributionStandard = pgEnum("DistributionStandard", ['HEMS', 'HEMS_PLUS_WITHDRAWAL', 'BROADER', 'WITHDRAWAL_ONLY'])
-export const trusteeStatus = pgEnum("TrusteeStatus", ['CURRENT', 'SUCCESSOR', 'ARBITOR', 'RESIGNED', 'REMOVED', 'DECEASED'])
-export const hemsCategory = pgEnum("HemsCategory", ['HEALTH', 'EDUCATION', 'MAINTENANCE', 'SUPPORT', 'WITHDRAWAL', 'OTHER'])
-export const incomeType = pgEnum("IncomeType", ['DIVIDEND', 'INTEREST', 'RENT', 'ROYALTY', 'CAPITAL_GAIN', 'SALE_PROCEEDS', 'DISTRIBUTION', 'OTHER'])
-export const expenseType = pgEnum("ExpenseType", ['TAX', 'INSURANCE', 'MAINTENANCE', 'REPAIR', 'PROFESSIONAL_FEE', 'TRUSTEE_FEE', 'FILING_FEE', 'UTILITY', 'OTHER'])
-export const withdrawalStatus = pgEnum("WithdrawalStatus", ['ELIGIBLE', 'PARTIAL', 'COMPLETE', 'NOT_YET_ELIGIBLE'])
-export const allocationClass = pgEnum("AllocationClass", ['PRINCIPAL', 'INCOME'])
-export const liabilityType = pgEnum("LiabilityType", ['MORTGAGE', 'LOAN', 'CREDIT_CARD', 'TAX_OWED', 'ACCOUNTS_PAYABLE', 'LEGAL_JUDGMENT', 'OTHER'])
-export const liabilityStatus = pgEnum("LiabilityStatus", ['ACTIVE', 'PAID_OFF', 'DISPUTED', 'WRITTEN_OFF'])
 export const hemsRequestStatus = pgEnum("HemsRequestStatus", ['PENDING', 'APPROVED', 'DENIED', 'DISTRIBUTED', 'CANCELLED'])
+export const withdrawalStatus = pgEnum("WithdrawalStatus", ['ELIGIBLE', 'PARTIAL', 'COMPLETE', 'NOT_YET_ELIGIBLE'])
+
+// Trustee enums
+export const trusteeStatus = pgEnum("TrusteeStatus", ['CURRENT', 'SUCCESSOR', 'ARBITOR', 'RESIGNED', 'REMOVED', 'DECEASED'])
 export const trusteeFeeStatus = pgEnum("TrusteeFeeStatus", ['ACCRUED', 'APPROVED', 'PAID'])
 
+// Accounting enums
+export const allocationClass = pgEnum("AllocationClass", ['PRINCIPAL', 'INCOME'])
+export const transactionType = pgEnum("TransactionType", ['INCOME', 'EXPENSE', 'TRANSFER', 'CAPITAL_IMPROVEMENT', 'DEPRECIATION'])
+export const transferStatus = pgEnum("TransferStatus", ['PENDING', 'STARTED', 'COMPLETE'])
+
+// Auth and logging enums
+export const logAction = pgEnum("LogAction", ['INSERT', 'UPDATE', 'DELETE', 'SIGN_IN', 'SIGN_OUT', 'FAILED_AUTH', 'ACCESS_DENIED'])
+export const userRole = pgEnum("UserRole", ['admin', 'beneficiary'])
+
+// ============================================
+// Activity Log (Audit Trail)
+// ============================================
 
 export const activityLog = pgTable("ActivityLog", {
 	id: text().primaryKey().notNull(),
@@ -52,7 +61,21 @@ export const activityLog = pgTable("ActivityLog", {
 	changedBy: text().default('system').notNull(),
 	ipAddress: text(),
 	createdAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
-});
+}, (table) => [
+	index("idx_activity_log_table_name").on(table.tableName),
+	index("idx_activity_log_record_id").on(table.recordId),
+	index("idx_activity_log_action").on(table.action),
+	index("idx_activity_log_created_at").on(table.createdAt.desc()),
+	// BRIN index for append-only sequential data
+	index("idx_activity_log_created_at_brin").using("brin", table.createdAt),
+	// GIN indexes for JSONB columns
+	index("idx_activity_log_old_values_gin").using("gin", table.oldValues),
+	index("idx_activity_log_new_values_gin").using("gin", table.newValues),
+]);
+
+// ============================================
+// Entity (Trust/LLC/etc)
+// ============================================
 
 export const entity = pgTable("Entity", {
 	id: text().primaryKey().notNull(),
@@ -72,17 +95,23 @@ export const entity = pgTable("Entity", {
 	stateOfFormation: text(),
 	registeredAgent: text(),
 	parentEntityId: text(),
-	status: entityStatus().default('ACTIVE').notNull(),
+	status: recordStatus().default('ACTIVE').notNull(),
 	notes: text(),
 	createdAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 	updatedAt: timestamp({ precision: 3, mode: 'string' }).notNull(),
 }, (table) => [
+	index("idx_entity_parent_entity_id").on(table.parentEntityId),
+	index("idx_entity_status").on(table.status),
 	foreignKey({
 			columns: [table.parentEntityId],
 			foreignColumns: [table.id],
 			name: "Entity_parentEntityId_fkey"
 		}).onUpdate("cascade").onDelete("set null"),
 ]);
+
+// ============================================
+// Assets - Vehicles
+// ============================================
 
 export const vehicle = pgTable("Vehicle", {
 	id: text().primaryKey().notNull(),
@@ -99,20 +128,26 @@ export const vehicle = pgTable("Vehicle", {
 	acquisitionCost: numeric({ precision: 12, scale:  2 }),
 	dodValue: numeric({ precision: 14, scale: 2 }),
 	dodValueDate: timestamp({ precision: 3, mode: 'string' }),
-	dodValueType: dodValueType(),
-	status: assetStatus().default('ACTIVE').notNull(),
+	dodValueType: valuationType(), // Consolidated - was dodValueType
+	status: recordStatus().default('ACTIVE').notNull(), // Consolidated status
 	transferStatus: transferStatus().default('PENDING').notNull(),
 	notes: text(),
 	createdAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 	updatedAt: timestamp({ precision: 3, mode: 'string' }).notNull(),
 }, (table) => [
 	uniqueIndex("Vehicle_vin_key").using("btree", table.vin.asc().nullsLast().op("text_ops")),
+	index("idx_vehicle_entity_id").on(table.entityId),
+	index("idx_vehicle_status").on(table.status),
 	foreignKey({
 			columns: [table.entityId],
 			foreignColumns: [entity.id],
 			name: "Vehicle_entityId_fkey"
 		}).onUpdate("cascade").onDelete("restrict"),
 ]);
+
+// ============================================
+// Assets - Homestead
+// ============================================
 
 export const homestead = pgTable("Homestead", {
 	id: text().primaryKey().notNull(),
@@ -134,22 +169,28 @@ export const homestead = pgTable("Homestead", {
 	acquisitionCost: numeric({ precision: 12, scale:  2 }),
 	dodValue: numeric({ precision: 14, scale: 2 }),
 	dodValueDate: timestamp({ precision: 3, mode: 'string' }),
-	dodValueType: dodValueType(),
+	dodValueType: valuationType(), // Consolidated
 	dodAffidavitFiled: boolean().default(false),
 	dodAffidavitDate: timestamp({ precision: 3, mode: 'string' }),
 	clerkFileNo: text(),
-	status: assetStatus().default('ACTIVE').notNull(),
+	status: recordStatus().default('ACTIVE').notNull(), // Consolidated status
 	transferStatus: transferStatus().default('PENDING').notNull(),
 	notes: text(),
 	createdAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 	updatedAt: timestamp({ precision: 3, mode: 'string' }).notNull(),
 }, (table) => [
+	index("idx_homestead_entity_id").on(table.entityId),
+	index("idx_homestead_status").on(table.status),
 	foreignKey({
 			columns: [table.entityId],
 			foreignColumns: [entity.id],
 			name: "Homestead_entityId_fkey"
 		}).onUpdate("cascade").onDelete("restrict"),
 ]);
+
+// ============================================
+// Assets - Rental Property
+// ============================================
 
 export const rentalProperty = pgTable("RentalProperty", {
 	id: text().primaryKey().notNull(),
@@ -176,16 +217,18 @@ export const rentalProperty = pgTable("RentalProperty", {
 	mortgageBalance: numeric({ precision: 12, scale:  2 }),
 	dodValue: numeric({ precision: 14, scale: 2 }),
 	dodValueDate: timestamp({ precision: 3, mode: 'string' }),
-	dodValueType: dodValueType(),
+	dodValueType: valuationType(), // Consolidated
 	dodAffidavitFiled: boolean().default(false),
 	dodAffidavitDate: timestamp({ precision: 3, mode: 'string' }),
 	clerkFileNo: text(),
-	status: assetStatus().default('ACTIVE').notNull(),
+	status: recordStatus().default('ACTIVE').notNull(), // Consolidated status
 	transferStatus: transferStatus().default('PENDING').notNull(),
 	notes: text(),
 	createdAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 	updatedAt: timestamp({ precision: 3, mode: 'string' }).notNull(),
 }, (table) => [
+	index("idx_rental_property_entity_id").on(table.entityId),
+	index("idx_rental_property_status").on(table.rentalStatus),
 	foreignKey({
 			columns: [table.entityId],
 			foreignColumns: [entity.id],
@@ -193,11 +236,15 @@ export const rentalProperty = pgTable("RentalProperty", {
 		}).onUpdate("cascade").onDelete("restrict"),
 ]);
 
+// ============================================
+// Assets - Bank Accounts
+// ============================================
+
 export const bankAccount = pgTable("BankAccount", {
 	id: text().primaryKey().notNull(),
 	entityId: text().notNull(),
 	institution: text().notNull(),
-	accountType: bankAccountType().notNull(),
+	accountType: text().notNull(), // Converted from enum - 'CHECKING', 'SAVINGS', 'CD', 'MONEY_MARKET', etc.
 	accountName: text(),
 	accountNumber: text().notNull(),
 	routingNumber: text(),
@@ -205,12 +252,14 @@ export const bankAccount = pgTable("BankAccount", {
 	dodValueDate: timestamp({ precision: 3, mode: 'string' }),
 	currentBalance: numeric({ precision: 14, scale: 2 }), // Texas 113.152(4) - cash balance
 	currentBalanceDate: timestamp({ precision: 3, mode: 'string' }), // When balance was last verified
-	status: accountStatus().default('OPEN').notNull(),
+	status: recordStatus().default('ACTIVE').notNull(), // Consolidated status
 	transferStatus: transferStatus().default('PENDING').notNull(),
 	notes: text(),
 	createdAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 	updatedAt: timestamp({ precision: 3, mode: 'string' }).notNull(),
 }, (table) => [
+	index("idx_bank_account_entity_id").on(table.entityId),
+	index("idx_bank_account_status").on(table.status),
 	foreignKey({
 			columns: [table.entityId],
 			foreignColumns: [entity.id],
@@ -218,11 +267,15 @@ export const bankAccount = pgTable("BankAccount", {
 		}).onUpdate("cascade").onDelete("restrict"),
 ]);
 
+// ============================================
+// Assets - Investment Accounts
+// ============================================
+
 export const investmentAccount = pgTable("InvestmentAccount", {
 	id: text().primaryKey().notNull(),
 	entityId: text().notNull(),
 	institution: text().notNull(),
-	accountType: investmentAccountType().notNull(),
+	accountType: text().notNull(), // Converted from enum - 'BROKERAGE', 'IRA_TRADITIONAL', 'IRA_ROTH', etc.
 	accountName: text(),
 	accountNumber: text().notNull(),
 	dodValue: numeric({ precision: 14, scale: 2 }),
@@ -230,18 +283,24 @@ export const investmentAccount = pgTable("InvestmentAccount", {
 	costBasis: numeric({ precision: 14, scale: 2 }),
 	currentBalance: numeric({ precision: 14, scale: 2 }), // Texas 113.152(4) - current value
 	currentBalanceDate: timestamp({ precision: 3, mode: 'string' }), // When balance was last verified
-	status: accountStatus().default('OPEN').notNull(),
+	status: recordStatus().default('ACTIVE').notNull(), // Consolidated status
 	transferStatus: transferStatus().default('PENDING').notNull(),
 	notes: text(),
 	createdAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 	updatedAt: timestamp({ precision: 3, mode: 'string' }).notNull(),
 }, (table) => [
+	index("idx_investment_account_entity_id").on(table.entityId),
+	index("idx_investment_account_status").on(table.status),
 	foreignKey({
 			columns: [table.entityId],
 			foreignColumns: [entity.id],
 			name: "InvestmentAccount_entityId_fkey"
 		}).onUpdate("cascade").onDelete("restrict"),
 ]);
+
+// ============================================
+// Assets - Insurance Policies
+// ============================================
 
 export const insurancePolicy = pgTable("InsurancePolicy", {
 	id: text().primaryKey().notNull(),
@@ -256,17 +315,23 @@ export const insurancePolicy = pgTable("InsurancePolicy", {
 	expirationDate: timestamp({ precision: 3, mode: 'string' }),
 	insuredAsset: text(),
 	beneficiaries: text(),
-	status: policyStatus().default('ACTIVE').notNull(),
+	status: recordStatus().default('ACTIVE').notNull(), // Consolidated status
 	notes: text(),
 	createdAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 	updatedAt: timestamp({ precision: 3, mode: 'string' }).notNull(),
 }, (table) => [
+	index("idx_insurance_policy_entity_id").on(table.entityId),
+	index("idx_insurance_policy_status").on(table.status),
 	foreignKey({
 			columns: [table.entityId],
 			foreignColumns: [entity.id],
 			name: "InsurancePolicy_entityId_fkey"
 		}).onUpdate("cascade").onDelete("restrict"),
 ]);
+
+// ============================================
+// Beneficiaries
+// ============================================
 
 export const beneficiary = pgTable("Beneficiary", {
 	id: text().primaryKey().notNull(),
@@ -300,7 +365,13 @@ export const beneficiary = pgTable("Beneficiary", {
 	notes: text(),
 	createdAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 	updatedAt: timestamp({ precision: 3, mode: 'string' }).notNull(),
+	// PostgreSQL 17 generated column - full name for display and search
+	fullName: text("full_name").generatedAlwaysAs(
+		(): SQL => sql`${beneficiary.firstName} || ' ' || ${beneficiary.lastName}`
+	),
 }, (table) => [
+	index("idx_beneficiary_entity_id").on(table.entityId),
+	index("idx_beneficiary_parent_id").on(table.parentId),
 	uniqueIndex("Beneficiary_taxId_key").using("btree", table.taxId.asc().nullsLast().op("text_ops")),
 	foreignKey({
 		columns: [table.entityId],
@@ -314,6 +385,10 @@ export const beneficiary = pgTable("Beneficiary", {
 	}).onUpdate("cascade").onDelete("set null"),
 ]);
 
+// ============================================
+// Distributions
+// ============================================
+
 export const distribution = pgTable("Distribution", {
 	id: text().primaryKey().notNull(),
 	entityId: text(),
@@ -321,7 +396,7 @@ export const distribution = pgTable("Distribution", {
 	distributionDate: timestamp({ precision: 3, mode: 'string' }).notNull(),
 	amount: numeric({ precision: 12, scale:  2 }).notNull(),
 	distributionType: distributionType().notNull(),
-	hemsCategory: hemsCategory(),
+	hemsCategory: text(), // Converted from enum - 'HEALTH', 'EDUCATION', 'MAINTENANCE', 'SUPPORT', etc.
 	hemsJustification: text(),
 	isWithdrawal: boolean().default(false),
 	withdrawalPercent: integer(),
@@ -338,6 +413,9 @@ export const distribution = pgTable("Distribution", {
 	createdAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 	updatedAt: timestamp({ precision: 3, mode: 'string' }).notNull(),
 }, (table) => [
+	index("idx_distribution_beneficiary_id").on(table.beneficiaryId),
+	index("idx_distribution_date").on(table.distributionDate.desc()),
+	index("idx_distribution_beneficiary_date").on(table.beneficiaryId, table.distributionDate.desc()),
 	foreignKey({
 			columns: [table.beneficiaryId],
 			foreignColumns: [beneficiary.id],
@@ -349,6 +427,10 @@ export const distribution = pgTable("Distribution", {
 			name: "Distribution_entityId_fkey"
 		}).onUpdate("cascade").onDelete("set null"),
 ]);
+
+// ============================================
+// Valuations
+// ============================================
 
 export const valuation = pgTable("Valuation", {
 	id: text().primaryKey().notNull(),
@@ -366,6 +448,14 @@ export const valuation = pgTable("Valuation", {
 	notes: text(),
 	createdAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 }, (table) => [
+	index("idx_valuation_vehicle_id").on(table.vehicleId),
+	index("idx_valuation_homestead_id").on(table.homesteadId),
+	index("idx_valuation_rental_property_id").on(table.rentalPropertyId),
+	index("idx_valuation_bank_account_id").on(table.bankAccountId),
+	index("idx_valuation_investment_account_id").on(table.investmentAccountId),
+	index("idx_valuation_personal_property_id").on(table.personalPropertyId),
+	index("idx_valuation_artwork_id").on(table.artworkId),
+	index("idx_valuation_date").on(table.valuationDate.desc()),
 	foreignKey({
 			columns: [table.vehicleId],
 			foreignColumns: [vehicle.id],
@@ -403,24 +493,30 @@ export const valuation = pgTable("Valuation", {
 		}).onUpdate("cascade").onDelete("set null"),
 ]);
 
+// ============================================
+// Assets - Personal Property
+// ============================================
+
 export const personalProperty = pgTable("PersonalProperty", {
 	id: text().primaryKey().notNull(),
 	entityId: text().notNull(),
 	name: text().notNull(),
 	description: text(),
-	category: personalPropertyCategory().notNull(),
+	category: text().notNull(), // Converted from enum - 'JEWELRY', 'ART', 'COLLECTIBLES', etc.
 	location: text(),
 	acquisitionDate: timestamp({ precision: 3, mode: 'string' }),
 	acquisitionCost: numeric({ precision: 12, scale:  2 }),
 	dodValue: numeric({ precision: 14, scale: 2 }),
 	dodValueDate: timestamp({ precision: 3, mode: 'string' }),
-	dodValueType: dodValueType(),
-	status: assetStatus().default('ACTIVE').notNull(),
+	dodValueType: valuationType(), // Consolidated
+	status: recordStatus().default('ACTIVE').notNull(), // Consolidated status
 	transferStatus: transferStatus().default('PENDING').notNull(),
 	notes: text(),
 	createdAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 	updatedAt: timestamp({ precision: 3, mode: 'string' }).notNull(),
 }, (table) => [
+	index("idx_personal_property_entity_id").on(table.entityId),
+	index("idx_personal_property_status").on(table.status),
 	foreignKey({
 			columns: [table.entityId],
 			foreignColumns: [entity.id],
@@ -428,10 +524,14 @@ export const personalProperty = pgTable("PersonalProperty", {
 		}).onUpdate("cascade").onDelete("restrict"),
 ]);
 
+// ============================================
+// Documents
+// ============================================
+
 export const document = pgTable("Document", {
 	id: text().primaryKey().notNull(),
 	name: text().notNull(),
-	documentType: documentType().notNull(),
+	documentType: text().notNull(), // Converted from enum - 'DEED', 'TITLE', 'STATEMENT', etc.
 	filePath: text().notNull(),
 	entityId: text(),
 	vehicleId: text(),
@@ -447,6 +547,14 @@ export const document = pgTable("Document", {
 	createdAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 	updatedAt: timestamp({ precision: 3, mode: 'string' }).notNull(),
 }, (table) => [
+	index("idx_document_entity_id").on(table.entityId),
+	index("idx_document_vehicle_id").on(table.vehicleId),
+	index("idx_document_homestead_id").on(table.homesteadId),
+	index("idx_document_rental_property_id").on(table.rentalPropertyId),
+	index("idx_document_bank_account_id").on(table.bankAccountId),
+	index("idx_document_investment_account_id").on(table.investmentAccountId),
+	index("idx_document_insurance_policy_id").on(table.insurancePolicyId),
+	index("idx_document_personal_property_id").on(table.personalPropertyId),
 	foreignKey({
 			columns: [table.entityId],
 			foreignColumns: [entity.id],
@@ -489,6 +597,10 @@ export const document = pgTable("Document", {
 		}).onUpdate("cascade").onDelete("set null"),
 ]);
 
+// ============================================
+// Transactions
+// ============================================
+
 export const transaction = pgTable("Transaction", {
 	id: text().primaryKey().notNull(),
 	vehicleId: text(),
@@ -510,6 +622,13 @@ export const transaction = pgTable("Transaction", {
 	createdAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 	updatedAt: timestamp({ precision: 3, mode: 'string' }).notNull(),
 }, (table) => [
+	index("idx_transaction_vehicle_id").on(table.vehicleId),
+	index("idx_transaction_homestead_id").on(table.homesteadId),
+	index("idx_transaction_rental_property_id").on(table.rentalPropertyId),
+	index("idx_transaction_bank_account_id").on(table.bankAccountId),
+	index("idx_transaction_investment_account_id").on(table.investmentAccountId),
+	index("idx_transaction_insurance_policy_id").on(table.insurancePolicyId),
+	index("idx_transaction_date").on(table.transactionDate.desc()),
 	foreignKey({
 			columns: [table.vehicleId],
 			foreignColumns: [vehicle.id],
@@ -542,11 +661,15 @@ export const transaction = pgTable("Transaction", {
 		}).onUpdate("cascade").onDelete("set null"),
 ]);
 
+// ============================================
+// Contacts
+// ============================================
+
 export const contact = pgTable("Contact", {
 	id: text().primaryKey().notNull(),
 	name: text().notNull(),
 	company: text(),
-	role: contactRole().notNull(),
+	role: text().notNull(), // Converted from enum - 'ATTORNEY', 'ACCOUNTANT', 'FINANCIAL_ADVISOR', etc.
 	email: text(),
 	phone: text(),
 	dob: timestamp({ precision: 3, mode: 'string' }),
@@ -568,6 +691,8 @@ export const contactAssociation = pgTable("ContactAssociation", {
 	relationship: text(),
 	createdAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 }, (table) => [
+	index("idx_contact_association_contact_id").on(table.contactId),
+	index("idx_contact_association_entity_id").on(table.entityId),
 	foreignKey({
 			columns: [table.contactId],
 			foreignColumns: [contact.id],
@@ -580,17 +705,28 @@ export const contactAssociation = pgTable("ContactAssociation", {
 		}).onUpdate("cascade").onDelete("set null"),
 ]);
 
+// ============================================
+// Tasks
+// ============================================
+
 export const task = pgTable("Task", {
 	id: text().primaryKey().notNull(),
 	title: text().notNull(),
-	category: taskCategory().default('OTHER').notNull(),
+	category: text().default('OTHER').notNull(), // Converted from enum - 'INVENTORY', 'FINANCIAL', 'BENEFICIARY', etc.
 	completed: boolean().default(false).notNull(),
 	notes: text(),
 	dueDate: timestamp({ precision: 3, mode: 'string' }),
 	sortOrder: integer().default(0).notNull(),
 	createdAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 	updatedAt: timestamp({ precision: 3, mode: 'string' }).notNull(),
-});
+}, (table) => [
+	index("idx_task_completed").on(table.completed),
+	index("idx_task_due_date").on(table.dueDate.desc()),
+]);
+
+// ============================================
+// Assets - Artwork
+// ============================================
 
 export const artwork = pgTable("Artwork", {
 	id: text().primaryKey().notNull(),
@@ -604,19 +740,25 @@ export const artwork = pgTable("Artwork", {
 	location: text(),
 	dodValue: numeric({ precision: 14, scale: 2 }),
 	dodValueDate: timestamp({ precision: 3, mode: 'string' }),
-	dodValueType: dodValueType(),
+	dodValueType: valuationType(), // Consolidated
 	transferStatus: transferStatus().default('PENDING').notNull(),
-	status: assetStatus().default('ACTIVE').notNull(),
+	status: recordStatus().default('ACTIVE').notNull(), // Consolidated status
 	notes: text(),
 	createdAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 	updatedAt: timestamp({ precision: 3, mode: 'string' }).notNull(),
 }, (table) => [
+	index("idx_artwork_entity_id").on(table.entityId),
+	index("idx_artwork_status").on(table.status),
 	foreignKey({
 			columns: [table.entityId],
 			foreignColumns: [entity.id],
 			name: "Artwork_entityId_fkey"
 		}).onUpdate("cascade").onDelete("restrict"),
 ]);
+
+// ============================================
+// Trustees
+// ============================================
 
 export const trustee = pgTable("Trustee", {
 	id: text().primaryKey().notNull(),
@@ -635,6 +777,10 @@ export const trustee = pgTable("Trustee", {
 	createdAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 	updatedAt: timestamp({ precision: 3, mode: 'string' }).notNull(),
 }, (table) => [
+	index("idx_trustee_entity_id").on(table.entityId),
+	index("idx_trustee_contact_id").on(table.contactId),
+	index("idx_trustee_co_trustee_id").on(table.coTrusteeId),
+	index("idx_trustee_status").on(table.status),
 	foreignKey({
 		columns: [table.entityId],
 		foreignColumns: [entity.id],
@@ -652,6 +798,10 @@ export const trustee = pgTable("Trustee", {
 	}).onUpdate("cascade").onDelete("set null"),
 ]);
 
+// ============================================
+// Specific Bequests
+// ============================================
+
 export const specificBequest = pgTable("SpecificBequest", {
 	id: text().primaryKey().notNull(),
 	entityId: text().notNull(),
@@ -664,6 +814,8 @@ export const specificBequest = pgTable("SpecificBequest", {
 	createdAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 	updatedAt: timestamp({ precision: 3, mode: 'string' }).notNull(),
 }, (table) => [
+	index("idx_specific_bequest_entity_id").on(table.entityId),
+	index("idx_specific_bequest_beneficiary_id").on(table.beneficiaryId),
 	foreignKey({
 		columns: [table.entityId],
 		foreignColumns: [entity.id],
@@ -676,14 +828,17 @@ export const specificBequest = pgTable("SpecificBequest", {
 	}).onUpdate("cascade").onDelete("set null"),
 ]);
 
-// Trust-level accounting for income/expenses (Form 1041 preparation)
+// ============================================
+// Trust Accounting
+// ============================================
+
 export const trustAccounting = pgTable("TrustAccounting", {
 	id: text().primaryKey().notNull(),
 	entityId: text().notNull(),
 	accountingDate: timestamp({ precision: 3, mode: 'string' }).notNull(),
 	entryType: text().notNull(), // 'INCOME' or 'EXPENSE'
-	incomeType: incomeType(),
-	expenseType: expenseType(),
+	incomeType: text(), // Converted from enum - 'DIVIDEND', 'INTEREST', 'RENT', etc.
+	expenseType: text(), // Converted from enum - 'TAX', 'INSURANCE', 'MAINTENANCE', etc.
 	amount: numeric({ precision: 14, scale: 2 }).notNull(),
 	description: text().notNull(),
 	sourceAssetType: text(), // 'vehicle', 'rentalProperty', 'bankAccount', etc.
@@ -700,6 +855,11 @@ export const trustAccounting = pgTable("TrustAccounting", {
 	createdAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 	updatedAt: timestamp({ precision: 3, mode: 'string' }).notNull(),
 }, (table) => [
+	index("idx_trust_accounting_entity_id").on(table.entityId),
+	index("idx_trust_accounting_date").on(table.accountingDate.desc()),
+	index("idx_trust_accounting_entity_date").on(table.entityId, table.accountingDate.desc()),
+	// BRIN index for append-only sequential data
+	index("idx_trust_accounting_created_at_brin").using("brin", table.createdAt),
 	foreignKey({
 		columns: [table.entityId],
 		foreignColumns: [entity.id],
@@ -707,7 +867,10 @@ export const trustAccounting = pgTable("TrustAccounting", {
 	}).onUpdate("cascade").onDelete("restrict"),
 ]);
 
-// Track beneficiary withdrawal eligibility and exercises
+// ============================================
+// Withdrawal Records
+// ============================================
+
 export const withdrawalRecord = pgTable("WithdrawalRecord", {
 	id: text().primaryKey().notNull(),
 	beneficiaryId: text().notNull(),
@@ -724,6 +887,8 @@ export const withdrawalRecord = pgTable("WithdrawalRecord", {
 	createdAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 	updatedAt: timestamp({ precision: 3, mode: 'string' }).notNull(),
 }, (table) => [
+	index("idx_withdrawal_record_beneficiary_id").on(table.beneficiaryId),
+	index("idx_withdrawal_record_status").on(table.status),
 	foreignKey({
 		columns: [table.beneficiaryId],
 		foreignColumns: [beneficiary.id],
@@ -741,7 +906,10 @@ export const withdrawalRecord = pgTable("WithdrawalRecord", {
 	}).onUpdate("cascade").onDelete("set null"),
 ]);
 
-// Texas Property Code 113.152(5) - Liabilities of the trust
+// ============================================
+// Liabilities
+// ============================================
+
 export const liability = pgTable("Liability", {
 	id: text().primaryKey().notNull(),
 	entityId: text().notNull(),
@@ -760,12 +928,19 @@ export const liability = pgTable("Liability", {
 	homesteadId: text(),
 	// For vehicle loans
 	vehicleId: text(),
-	status: liabilityStatus().default('ACTIVE').notNull(),
+	status: recordStatus().default('ACTIVE').notNull(), // Consolidated status
 	allocationClass: allocationClass().default('PRINCIPAL'), // Texas 116.152 - Principal vs Income
 	notes: text(),
 	createdAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 	updatedAt: timestamp({ precision: 3, mode: 'string' }).notNull(),
+	// PostgreSQL 17 generated column - balance with accrued interest
+	effectiveBalance: numeric("effective_balance", { precision: 14, scale: 2 }).generatedAlwaysAs(
+		(): SQL => sql`${liability.currentBalance} * (1 + COALESCE(${liability.interestRate}, 0))`
+	),
 }, (table) => [
+	index("idx_liability_entity_id").on(table.entityId),
+	index("idx_liability_status").on(table.status),
+	index("idx_liability_entity_status").on(table.entityId, table.status),
 	foreignKey({
 		columns: [table.entityId],
 		foreignColumns: [entity.id],
@@ -788,7 +963,10 @@ export const liability = pgTable("Liability", {
 	}).onUpdate("cascade").onDelete("set null"),
 ]);
 
-// Track liability payments for accounting
+// ============================================
+// Liability Payments
+// ============================================
+
 export const liabilityPayment = pgTable("LiabilityPayment", {
 	id: text().primaryKey().notNull(),
 	liabilityId: text().notNull(),
@@ -803,6 +981,8 @@ export const liabilityPayment = pgTable("LiabilityPayment", {
 	notes: text(),
 	createdAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 }, (table) => [
+	index("idx_liability_payment_liability_id").on(table.liabilityId),
+	index("idx_liability_payment_date").on(table.paymentDate.desc()),
 	foreignKey({
 		columns: [table.liabilityId],
 		foreignColumns: [liability.id],
@@ -811,7 +991,7 @@ export const liabilityPayment = pgTable("LiabilityPayment", {
 ]);
 
 // ============================================
-// HEMS Request Workflow
+// HEMS Requests
 // ============================================
 
 export const hemsRequest = pgTable("HemsRequest", {
@@ -820,7 +1000,7 @@ export const hemsRequest = pgTable("HemsRequest", {
 	entityId: text().notNull(),
 
 	// Request details
-	category: hemsCategory().notNull(),
+	category: text().notNull(), // Converted from enum - 'HEALTH', 'EDUCATION', 'MAINTENANCE', 'SUPPORT', etc.
 	amountRequested: numeric({ precision: 14, scale: 2 }).notNull(),
 	justification: text().notNull(),
 	supportingDocPath: text(),
@@ -840,6 +1020,10 @@ export const hemsRequest = pgTable("HemsRequest", {
 	createdAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 	updatedAt: timestamp({ precision: 3, mode: 'string' }).notNull(),
 }, (table) => [
+	index("idx_hems_request_beneficiary_id").on(table.beneficiaryId),
+	index("idx_hems_request_entity_id").on(table.entityId),
+	index("idx_hems_request_status").on(table.status),
+	index("idx_hems_request_distribution_id").on(table.distributionId),
 	foreignKey({
 		columns: [table.beneficiaryId],
 		foreignColumns: [beneficiary.id],
@@ -858,10 +1042,9 @@ export const hemsRequest = pgTable("HemsRequest", {
 ]);
 
 // ============================================
-// Trustee Fee Structure
+// Trustee Fee Schedule
 // ============================================
 
-// Fee schedule configuration
 export const trusteeFeeSchedule = pgTable("TrusteeFeeSchedule", {
 	id: text().primaryKey().notNull(),
 	entityId: text().notNull(),
@@ -891,7 +1074,10 @@ export const trusteeFeeSchedule = pgTable("TrusteeFeeSchedule", {
 	}).onUpdate("cascade").onDelete("restrict"),
 ]);
 
-// Actual fee entries (accrued/paid)
+// ============================================
+// Trustee Fee Entries
+// ============================================
+
 export const trusteeFeeEntry = pgTable("TrusteeFeeEntry", {
 	id: text().primaryKey().notNull(),
 	entityId: text().notNull(),
@@ -947,8 +1133,6 @@ export const trusteeFeeEntry = pgTable("TrusteeFeeEntry", {
 // Better Auth Tables
 // ============================================
 
-export const userRole = pgEnum("UserRole", ['admin', 'beneficiary'])
-
 export const user = pgTable("user", {
 	id: text().primaryKey().notNull(),
 	name: text().notNull(),
@@ -978,6 +1162,9 @@ export const session = pgTable("session", {
 	userAgent: text("user_agent"),
 	userId: text("user_id").notNull(),
 }, (table) => [
+	index("idx_session_user_id").on(table.userId),
+	index("idx_session_token").on(table.token),
+	index("idx_session_expires_at").on(table.expiresAt),
 	foreignKey({
 		columns: [table.userId],
 		foreignColumns: [user.id],
@@ -1055,17 +1242,10 @@ export type Verification = typeof verification.$inferSelect;
 
 // Enum types
 export type PaymentMethodType = "CHECK" | "ACH" | "WIRE" | "CASH" | "OTHER";
-export type ExpenseTypeEnum = "TAX" | "INSURANCE" | "MAINTENANCE" | "REPAIR" | "PROFESSIONAL_FEE" | "TRUSTEE_FEE" | "FILING_FEE" | "UTILITY" | "OTHER";
-export type IncomeTypeEnum = "DIVIDEND" | "INTEREST" | "RENT" | "ROYALTY" | "CAPITAL_GAIN" | "SALE_PROCEEDS" | "DISTRIBUTION" | "OTHER";
 export type LiabilityTypeEnum = "MORTGAGE" | "LOAN" | "CREDIT_CARD" | "TAX_OWED" | "ACCOUNTS_PAYABLE" | "LEGAL_JUDGMENT" | "OTHER";
-export type LiabilityStatusEnum = "ACTIVE" | "PAID_OFF" | "DISPUTED" | "WRITTEN_OFF";
-export type HemsRequestStatusEnum = "PENDING" | "APPROVED" | "DENIED" | "DISTRIBUTED" | "CANCELLED";
-export type HemsCategoryEnum = "HEALTH" | "EDUCATION" | "MAINTENANCE" | "SUPPORT" | "WITHDRAWAL" | "OTHER";
-export type AssetStatusEnum = "ACTIVE" | "SOLD" | "TRANSFERRED" | "DISPOSED";
+export type RecordStatusEnum = "ACTIVE" | "INACTIVE" | "OPEN" | "PENDING" | "CLOSED" | "FROZEN" | "SOLD" | "TRANSFERRED" | "DISPOSED" | "PAID_OFF" | "DISPUTED" | "WRITTEN_OFF" | "LAPSED" | "CANCELLED" | "CLAIMED" | "DISSOLVED";
 export type TitleStatusEnum = "CLEAR" | "LIEN" | "PENDING_TRANSFER";
 export type TransferStatusEnum = "PENDING" | "STARTED" | "COMPLETE";
-export type AccountStatusEnum = "OPEN" | "CLOSED" | "FROZEN";
-export type EntityStatusEnum = "ACTIVE" | "DISSOLVED" | "PENDING";
 export type EntityTypeEnum = "TRUST" | "LLC" | "CORPORATION" | "PARTNERSHIP" | "INDIVIDUAL";
 export type TrustTypeEnum = "REVOCABLE" | "IRREVOCABLE";
 export type RelationshipTypeEnum = "CHILD" | "STEPCHILD" | "GRANDCHILD" | "OTHER";
@@ -1076,21 +1256,87 @@ export type WithdrawalStatusEnum = "ELIGIBLE" | "PARTIAL" | "COMPLETE" | "NOT_YE
 export type AllocationClassEnum = "PRINCIPAL" | "INCOME";
 export type TransactionTypeEnum = "INCOME" | "EXPENSE" | "TRANSFER" | "CAPITAL_IMPROVEMENT" | "DEPRECIATION";
 export type DistributionTypeEnum = "INCOME" | "PRINCIPAL" | "CAPITAL_GAIN" | "EXPENSE_REIMBURSEMENT" | "OTHER";
-export type DocumentTypeEnum = "DEED" | "TITLE" | "STATEMENT" | "CONTRACT" | "LEASE" | "TAX_RETURN" | "APPRAISAL" | "INSURANCE_POLICY" | "LICENSE" | "REGISTRATION" | "RECEIPT" | "INVOICE" | "CHECK_COPY" | "CORRESPONDENCE" | "TRUST_DOCUMENT" | "OPERATING_AGREEMENT" | "OTHER";
-export type ContactRoleEnum = "ATTORNEY" | "ACCOUNTANT" | "FINANCIAL_ADVISOR" | "PROPERTY_MANAGER" | "TENANT" | "INSURANCE_AGENT" | "BANKER" | "CONTRACTOR" | "EMPLOYEE" | "BENEFICIARY_REP" | "OTHER";
-export type TaskCategoryEnum = "INVENTORY" | "FINANCIAL" | "BENEFICIARY" | "LEGAL" | "ADMINISTRATIVE" | "OTHER";
-export type BankAccountTypeEnum = "CHECKING" | "SAVINGS" | "CD" | "MONEY_MARKET" | "BUSINESS_CHECKING" | "BUSINESS_SAVINGS";
-export type InvestmentAccountTypeEnum = "BROKERAGE" | "IRA_TRADITIONAL" | "IRA_ROTH" | "K401" | "ANNUITY" | "HSA" | "FIVE29" | "OTHER";
 export type InsurancePolicyTypeEnum = "LIFE" | "PROPERTY" | "AUTO" | "UMBRELLA" | "LIABILITY" | "HEALTH" | "OTHER";
-export type PolicyStatusEnum = "ACTIVE" | "LAPSED" | "CANCELLED" | "CLAIMED";
 export type PremiumFrequencyEnum = "MONTHLY" | "QUARTERLY" | "SEMI_ANNUAL" | "ANNUAL";
 export type PropertyTypeEnum = "SINGLE_FAMILY" | "MULTI_FAMILY" | "CONDO" | "TOWNHOUSE" | "LAND" | "COMMERCIAL" | "MOBILE_HOME";
 export type RentalStatusEnum = "RENTED" | "VACANT" | "UNDER_RENOVATION" | "LISTED";
-export type PersonalPropertyCategoryEnum = "JEWELRY" | "ART" | "COLLECTIBLES" | "FURNITURE" | "EQUIPMENT" | "ELECTRONICS" | "TOOLS" | "FIREARMS" | "OTHER";
-export type ValuationTypeEnum = "APPRAISAL" | "MARKET_ESTIMATE" | "TAX_ASSESSED" | "STATEMENT_BALANCE" | "PURCHASE_PRICE" | "BOOK_VALUE" | "SELF_ASSESSED";
-export type DodValueTypeEnum = "APPRAISAL" | "STATEMENT" | "MARKET_ESTIMATE" | "TAX_ASSESSED";
-export type LogActionEnum = "INSERT" | "UPDATE" | "DELETE";
+export type ValuationTypeEnum = "APPRAISAL" | "MARKET_ESTIMATE" | "TAX_ASSESSED" | "STATEMENT_BALANCE" | "PURCHASE_PRICE" | "BOOK_VALUE" | "SELF_ASSESSED" | "STATEMENT";
+export type LogActionEnum = "INSERT" | "UPDATE" | "DELETE" | "SIGN_IN" | "SIGN_OUT" | "FAILED_AUTH" | "ACCESS_DENIED";
 export type UserRoleEnum = "admin" | "beneficiary";
+export type HemsRequestStatusEnum = "PENDING" | "APPROVED" | "DENIED" | "DISTRIBUTED" | "CANCELLED";
 
 // Commonly used combined types
 export type TrustAccountingEntryType = "INCOME" | "EXPENSE";
+
+// =============================================================================
+// ENUM TYPE GUARDS
+// Runtime validation for enum values from user input
+// =============================================================================
+
+/**
+ * Type guard for PaymentMethod enum
+ * @example isPaymentMethod(formData.paymentMethod) ? formData.paymentMethod : null
+ */
+export function isPaymentMethod(value: unknown): value is PaymentMethodType {
+  const valid: PaymentMethodType[] = ['CHECK', 'ACH', 'WIRE', 'CASH', 'OTHER'];
+  return typeof value === 'string' && valid.includes(value as PaymentMethodType);
+}
+
+/**
+ * Type guard for LiabilityType enum
+ */
+export function isLiabilityType(value: unknown): value is LiabilityTypeEnum {
+  const valid: LiabilityTypeEnum[] = [
+    'MORTGAGE', 'LOAN', 'CREDIT_CARD', 'TAX_OWED',
+    'ACCOUNTS_PAYABLE', 'LEGAL_JUDGMENT', 'OTHER'
+  ];
+  return typeof value === 'string' && valid.includes(value as LiabilityTypeEnum);
+}
+
+/**
+ * Type guard for RecordStatus enum
+ */
+export function isRecordStatus(value: unknown): value is RecordStatusEnum {
+  const valid: RecordStatusEnum[] = [
+    'ACTIVE', 'INACTIVE', 'OPEN', 'PENDING', 'CLOSED', 'FROZEN',
+    'SOLD', 'TRANSFERRED', 'DISPOSED', 'PAID_OFF', 'DISPUTED',
+    'WRITTEN_OFF', 'LAPSED', 'CANCELLED', 'CLAIMED', 'DISSOLVED'
+  ];
+  return typeof value === 'string' && valid.includes(value as RecordStatusEnum);
+}
+
+/**
+ * Type guard for DistributionType enum
+ */
+export function isDistributionType(value: unknown): value is DistributionTypeEnum {
+  const valid: DistributionTypeEnum[] = [
+    'INCOME', 'PRINCIPAL', 'CAPITAL_GAIN', 'EXPENSE_REIMBURSEMENT', 'OTHER'
+  ];
+  return typeof value === 'string' && valid.includes(value as DistributionTypeEnum);
+}
+
+/**
+ * Type guard for AllocationClass enum (Principal vs Income)
+ */
+export function isAllocationClass(value: unknown): value is AllocationClassEnum {
+  const valid: AllocationClassEnum[] = ['PRINCIPAL', 'INCOME'];
+  return typeof value === 'string' && valid.includes(value as AllocationClassEnum);
+}
+
+/**
+ * Type guard for UserRole enum
+ */
+export function isUserRole(value: unknown): value is UserRoleEnum {
+  const valid: UserRoleEnum[] = ['admin', 'beneficiary'];
+  return typeof value === 'string' && valid.includes(value as UserRoleEnum);
+}
+
+/**
+ * Type guard for HemsRequestStatus enum
+ */
+export function isHemsRequestStatus(value: unknown): value is HemsRequestStatusEnum {
+  const valid: HemsRequestStatusEnum[] = [
+    'PENDING', 'APPROVED', 'DENIED', 'DISTRIBUTED', 'CANCELLED'
+  ];
+  return typeof value === 'string' && valid.includes(value as HemsRequestStatusEnum);
+}

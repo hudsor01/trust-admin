@@ -156,6 +156,11 @@ export function Liabilities() {
   const { data: liabilities = [], isLoading: liabilitiesLoading } = useLiabilities(selectedEntity || undefined)
   const createLiabilityMutation = useCreateLiability()
   const updateLiabilityMutation = useUpdateLiability()
+
+  // Wrapper function to match inline cell API
+  const updateLiability = async (id: string, data: Partial<Liability>) => {
+    return await updateLiabilityMutation.mutateAsync({ id, data })
+  }
   const deleteLiabilityMutation = useDeleteLiability()
 
   const [editingLiabilityId, setEditingLiabilityId] = useState<string | null>(null)
@@ -345,7 +350,7 @@ export function Liabilities() {
       render: (liability) => (
         <EditableTextCell
           value={liability.creditor}
-          onSave={async (v) => updateLiability(liability.id, { creditor: v || "" })}
+          onSave={async (v: any) => updateLiability(liability.id, { creditor: v || "" })}
         />
       ),
     },
@@ -355,7 +360,7 @@ export function Liabilities() {
       render: (liability) => (
         <EditableCurrencyCell
           value={liability.originalAmount}
-          onSave={async (v) => updateLiability(liability.id, { originalAmount: v || "0" })}
+          onSave={async (v: any) => updateLiability(liability.id, { originalAmount: v || "0" })}
         />
       ),
     },
@@ -365,7 +370,7 @@ export function Liabilities() {
       render: (liability) => (
         <EditableCurrencyCell
           value={liability.currentBalance}
-          onSave={async (v) => updateLiability(liability.id, { currentBalance: v || "0" })}
+          onSave={async (v: any) => updateLiability(liability.id, { currentBalance: v || "0" })}
         />
       ),
     },
@@ -375,7 +380,7 @@ export function Liabilities() {
       render: (liability) => (
         <EditableCurrencyCell
           value={liability.monthlyPayment}
-          onSave={async (v) => updateLiability(liability.id, { monthlyPayment: v })}
+          onSave={async (v: any) => updateLiability(liability.id, { monthlyPayment: v })}
         />
       ),
     },
@@ -387,7 +392,7 @@ export function Liabilities() {
           value={liability.status}
           options={LIABILITY_STATUS}
           variants={STATUS_VARIANTS}
-          onSave={async (v) => updateLiability(liability.id, { status: v })}
+          onSave={async (v: any) => updateLiability(liability.id, { status: v })}
         />
       ),
     },
@@ -398,7 +403,7 @@ export function Liabilities() {
         <EditableSelectCell
           value={liability.allocationClass || "PRINCIPAL"}
           options={ALLOCATION_CLASS}
-          onSave={async (v) => updateLiability(liability.id, { allocationClass: v })}
+          onSave={async (v: any) => updateLiability(liability.id, { allocationClass: v })}
         />
       ),
     },
@@ -532,7 +537,7 @@ export function Liabilities() {
               <h4 className="text-sm font-medium mb-3">Liability Information</h4>
               <div className="grid grid-cols-2 gap-4">
                 <liabilityFormInstance.Field name="liabilityType">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label htmlFor="liability-type">Liability Type *</Label>
                       <Select
@@ -557,7 +562,7 @@ export function Liabilities() {
                   )}
                 </liabilityFormInstance.Field>
                 <liabilityFormInstance.Field name="creditor">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label htmlFor="creditor">Creditor *</Label>
                       <Input
@@ -575,7 +580,7 @@ export function Liabilities() {
                 </liabilityFormInstance.Field>
               </div>
               <liabilityFormInstance.Field name="description">
-                {(field) => (
+                {(field: any) => (
                   <div className="space-y-2 mt-4">
                     <Label htmlFor="description">Description</Label>
                     <Input
@@ -597,7 +602,7 @@ export function Liabilities() {
               <h4 className="text-sm font-medium mb-3">Financial Details</h4>
               <div className="grid grid-cols-2 gap-4">
                 <liabilityFormInstance.Field name="originalAmount">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label htmlFor="original-amount">Original Amount *</Label>
                       <Input
@@ -614,7 +619,7 @@ export function Liabilities() {
                   )}
                 </liabilityFormInstance.Field>
                 <liabilityFormInstance.Field name="currentBalance">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label htmlFor="current-balance">Current Balance *</Label>
                       <Input
@@ -633,7 +638,7 @@ export function Liabilities() {
               </div>
               <div className="grid grid-cols-3 gap-4 mt-4">
                 <liabilityFormInstance.Field name="interestRate">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label htmlFor="interest-rate">Interest Rate (%)</Label>
                       <Input
@@ -650,7 +655,7 @@ export function Liabilities() {
                   )}
                 </liabilityFormInstance.Field>
                 <liabilityFormInstance.Field name="monthlyPayment">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label htmlFor="monthly-payment">Monthly Payment</Label>
                       <Input
@@ -667,7 +672,7 @@ export function Liabilities() {
                   )}
                 </liabilityFormInstance.Field>
                 <liabilityFormInstance.Field name="paymentDueDay">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label htmlFor="payment-due-day">Payment Due Day</Label>
                       <Input
@@ -689,7 +694,7 @@ export function Liabilities() {
               </div>
               <div className="grid grid-cols-2 gap-4 mt-4">
                 <liabilityFormInstance.Field name="dueDate">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label htmlFor="due-date">Maturity/Due Date</Label>
                       <Input
@@ -706,7 +711,7 @@ export function Liabilities() {
                   )}
                 </liabilityFormInstance.Field>
                 <liabilityFormInstance.Field name="currentBalanceDate">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label htmlFor="balance-date">Balance As Of</Label>
                       <Input
@@ -729,7 +734,7 @@ export function Liabilities() {
               <h4 className="text-sm font-medium mb-3">Status & Classification</h4>
               <div className="grid grid-cols-2 gap-4">
                 <liabilityFormInstance.Field name="status">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label htmlFor="status">Status *</Label>
                       <Select
@@ -754,7 +759,7 @@ export function Liabilities() {
                   )}
                 </liabilityFormInstance.Field>
                 <liabilityFormInstance.Field name="allocationClass">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label htmlFor="allocation">Allocation Class (Texas 116.152)</Label>
                       <Select
@@ -782,7 +787,7 @@ export function Liabilities() {
             </div>
 
             <liabilityFormInstance.Field name="notes">
-              {(field) => (
+              {(field: any) => (
                 <div className="space-y-2">
                   <Label htmlFor="notes">Notes</Label>
                   <Textarea
@@ -832,7 +837,7 @@ export function Liabilities() {
                 <h4 className="text-sm font-medium mb-3">Payment Details</h4>
                 <div className="grid grid-cols-2 gap-4">
                   <paymentFormInstance.Field name="paymentDate">
-                    {(field) => (
+                    {(field: any) => (
                       <div className="space-y-2">
                         <Label htmlFor="payment-date">Payment Date *</Label>
                         <Input
@@ -849,7 +854,7 @@ export function Liabilities() {
                     )}
                   </paymentFormInstance.Field>
                   <paymentFormInstance.Field name="amount">
-                    {(field) => (
+                    {(field: any) => (
                       <div className="space-y-2">
                         <Label htmlFor="payment-amount">Amount *</Label>
                         <Input
@@ -873,7 +878,7 @@ export function Liabilities() {
                 <h4 className="text-sm font-medium mb-3">Payment Breakdown (optional)</h4>
                 <div className="grid grid-cols-3 gap-3">
                   <paymentFormInstance.Field name="principalPortion">
-                    {(field) => (
+                    {(field: any) => (
                       <div className="space-y-2">
                         <Label htmlFor="principal-portion" className="text-xs">Principal</Label>
                         <Input
@@ -890,7 +895,7 @@ export function Liabilities() {
                     )}
                   </paymentFormInstance.Field>
                   <paymentFormInstance.Field name="interestPortion">
-                    {(field) => (
+                    {(field: any) => (
                       <div className="space-y-2">
                         <Label htmlFor="interest-portion" className="text-xs">Interest</Label>
                         <Input
@@ -907,7 +912,7 @@ export function Liabilities() {
                     )}
                   </paymentFormInstance.Field>
                   <paymentFormInstance.Field name="escrowPortion">
-                    {(field) => (
+                    {(field: any) => (
                       <div className="space-y-2">
                         <Label htmlFor="escrow-portion" className="text-xs">Escrow</Label>
                         <Input
@@ -929,7 +934,7 @@ export function Liabilities() {
               {/* Payment Method */}
               <div className="grid grid-cols-2 gap-4">
                 <paymentFormInstance.Field name="paymentMethod">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label htmlFor="payment-method">Payment Method</Label>
                       <Select
@@ -953,11 +958,11 @@ export function Liabilities() {
                     </div>
                   )}
                 </paymentFormInstance.Field>
-                <paymentFormInstance.Subscribe selector={(state) => state.values.paymentMethod}>
-                  {(paymentMethod) =>
+                <paymentFormInstance.Subscribe selector={(state: any) => state.values.paymentMethod}>
+                  {(paymentMethod: any) =>
                     paymentMethod === "CHECK" ? (
                       <paymentFormInstance.Field name="checkNumber">
-                        {(field) => (
+                        {(field: any) => (
                           <div className="space-y-2">
                             <Label htmlFor="check-number">Check #</Label>
                             <Input
@@ -975,7 +980,7 @@ export function Liabilities() {
                       </paymentFormInstance.Field>
                     ) : (
                       <paymentFormInstance.Field name="confirmationNumber">
-                        {(field) => (
+                        {(field: any) => (
                           <div className="space-y-2">
                             <Label htmlFor="confirmation-number">Confirmation #</Label>
                             <Input
@@ -998,7 +1003,7 @@ export function Liabilities() {
 
               {/* Notes */}
               <paymentFormInstance.Field name="notes">
-                {(field) => (
+                {(field: any) => (
                   <div className="space-y-2">
                     <Label htmlFor="payment-notes">Notes</Label>
                     <Textarea
@@ -1018,7 +1023,7 @@ export function Liabilities() {
 
               {/* Auto-create expense toggle */}
               <paymentFormInstance.Field name="createExpenseEntry">
-                {(field) => (
+                {(field: any) => (
                   <div className="flex items-center justify-between rounded-lg border p-4">
                     <div className="space-y-0.5">
                       <Label htmlFor="create-expense" className="font-medium">

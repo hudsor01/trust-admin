@@ -7,15 +7,25 @@
  */
 
 import { useState, useMemo } from "react"
+
 import { Loader2, CheckCircle, XCircle, Clock, FileText, DollarSign } from "lucide-react"
+
 import { Button } from "@/components/ui/button"
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+
 import { Badge } from "@/components/ui/badge"
+
 import { Input } from "@/components/ui/input"
+
 import { Label } from "@/components/ui/label"
+
 import { Textarea } from "@/components/ui/textarea"
+
 import { DataTable, type ColumnDef } from "@/components/data-table"
+
 import {
+
   Dialog,
   DialogContent,
   DialogDescription,
@@ -24,6 +34,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import {
+
   Select,
   SelectContent,
   SelectItem,
@@ -31,8 +42,11 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+
 import { useEntities } from "@/hooks/entities/queries"
+
 import {
+
   useHemsRequests,
   useApproveHemsRequest,
   useDenyHemsRequest,
@@ -40,6 +54,12 @@ import {
 } from "@/hooks/hems-requests/queries"
 import { formatCurrency, formatDate } from "@/utils/formatters"
 import { STATUS_VARIANTS } from "@/lib/constants"
+
+// Extended type for HemsRequest with beneficiary join
+type HemsRequestWithBeneficiary = HemsRequestType & {
+  beneficiary: { firstName: string; lastName: string; email?: string | null; sharePercent?: number | null }
+}
+
 
 // Interfaces imported from hooks
 
@@ -64,6 +84,9 @@ export function HemsQueue() {
   const { data: entities = [], isLoading: entitiesLoading } = useEntities()
   const [selectedEntity, setSelectedEntity] = useState<string | null>(null)
   const { data: requests = [], isLoading: requestsLoading } = useHemsRequests(undefined, selectedEntity || undefined)
+
+  // Cast to include beneficiary data (API returns joined data)
+  const requestsWithBeneficiary = requests as unknown as HemsRequestWithBeneficiary[]
   const approveRequestMutation = useApproveHemsRequest()
   const denyRequestMutation = useDenyHemsRequest()
 
@@ -71,7 +94,7 @@ export function HemsQueue() {
   const [activeTab, setActiveTab] = useState("pending")
 
   // Review dialog state
-  const [reviewingRequest, setReviewingRequest] = useState<HemsRequestType | null>(null)
+  const [reviewingRequest, setReviewingRequest] = useState<HemsRequestWithBeneficiary | null>(null)
   const [approvedAmount, setApprovedAmount] = useState("")
   const [reviewNotes, setReviewNotes] = useState("")
   const [submitting, setSubmitting] = useState(false)
@@ -80,18 +103,18 @@ export function HemsQueue() {
 
   // Filter requests by status
   const pendingRequests = useMemo(
-    () => requests.filter((r) => r.status === "PENDING"),
-    [requests]
+    () => requestsWithBeneficiary.filter((r) => r.status === "PENDING"),
+    [requestsWithBeneficiary]
   )
   const reviewedRequests = useMemo(
-    () => requests.filter((r) => r.status !== "PENDING"),
-    [requests]
+    () => requestsWithBeneficiary.filter((r) => r.status !== "PENDING"),
+    [requestsWithBeneficiary]
   )
 
   const displayedRequests = activeTab === "pending" ? pendingRequests : reviewedRequests
 
   // Column definitions for HEMS requests table
-  const columns: ColumnDef<HemsRequestType>[] = [
+  const columns: ColumnDef<HemsRequestWithBeneficiary>[] = [
     {
       key: "createdAt",
       header: "Date",
@@ -164,7 +187,7 @@ export function HemsQueue() {
 
   // Open review dialog
   const openReview = (request: HemsRequestType) => {
-    setReviewingRequest(request)
+    setReviewingRequest(request as any)
     setApprovedAmount(request.amountRequested)
     setReviewNotes("")
   }
@@ -280,7 +303,7 @@ export function HemsQueue() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {requests.filter((r) => r.status === "APPROVED" || r.status === "DISTRIBUTED").length}
+              {requestsWithBeneficiary.filter((r) => r.status === "APPROVED" || r.status === "DISTRIBUTED").length}
             </div>
             <p className="text-xs text-muted-foreground">approved</p>
           </CardContent>

@@ -1,6 +1,5 @@
 import { useState } from "react"
 import { useForm } from "@tanstack/react-form"
-import { zodValidator } from "@tanstack/zod-form-adapter"
 import type { ZodSchema } from "zod"
 
 export interface UseResourceFormOptions<T> {
@@ -16,11 +15,12 @@ export interface UseResourceFormReturn<T> {
   form: T
   setForm: (form: T) => void
   isEditing: boolean
+  editing: T | null // The item being edited (null if creating)
   handleEdit: (item: T) => void
   handleAdd: () => void
   handleSave: () => Promise<void>
   isSubmitting: boolean
-  formInstance: ReturnType<typeof useForm<T>> // TanStack Form instance
+  formInstance: any // TanStack Form instance (type too complex for generic wrapper)
 }
 
 /**
@@ -61,15 +61,15 @@ export function useResourceForm<T>({
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   // TanStack Form instance
-  const formInstance = useForm<T>({
+  // Type cast required: TanStack Form's generic constraints are too complex for wrapper hooks
+  const formInstance = useForm({
     defaultValues: initialData,
-    validatorAdapter: zodValidator(),
     validators: schema
-      ? {
+      ? ({
           onBlur: schema, // onBlur validation strategy
-        }
+        } as any)
       : undefined,
-    onSubmit: async ({ value }) => {
+    onSubmit: async ({ value }: { value: T }) => {
       setIsSubmitting(true)
       try {
         await onSubmit(value)
@@ -81,7 +81,7 @@ export function useResourceForm<T>({
         setIsSubmitting(false)
       }
     },
-  })
+  }) as any
 
   const open = () => setIsOpen(true)
   const close = () => {
@@ -95,7 +95,7 @@ export function useResourceForm<T>({
     setEditing(item)
     setForm(item)
     // Update form instance with item data
-    Object.entries(item as any).forEach(([key, value]) => {
+    Object.entries(item as Record<string, unknown>).forEach(([key, value]) => {
       formInstance.setFieldValue(key, value)
     })
     setIsOpen(true)
@@ -120,6 +120,7 @@ export function useResourceForm<T>({
     form,
     setForm,
     isEditing: editing !== null,
+    editing,
     handleEdit,
     handleAdd,
     handleSave,

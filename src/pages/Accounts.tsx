@@ -131,7 +131,7 @@ const createBankAccountColumns = (
       <EditableTextCell
         value={account.institution}
         onSave={async (val) => {
-          await updateBankAccountMutation.mutateAsync({ id: account.id, data: { institution: val as string } })
+          await updateBankAccount(account.id, { institution: val as string })
         }}
       />
     ),
@@ -143,7 +143,7 @@ const createBankAccountColumns = (
       <EditableTextCell
         value={account.accountName}
         onSave={async (val) => {
-          await updateBankAccountMutation.mutateAsync({ id: account.id, data: { accountName: val } })
+          await updateBankAccount(account.id, { accountName: val })
         }}
       />
     ),
@@ -171,7 +171,7 @@ const createBankAccountColumns = (
       <EditableCurrencyCell
         value={account.dodValue}
         onSave={async (val) => {
-          await updateBankAccountMutation.mutateAsync({ id: account.id, data: { dodValue: val } })
+          await updateBankAccount(account.id, { dodValue: val })
         }}
       />
     ),
@@ -185,7 +185,7 @@ const createBankAccountColumns = (
         options={ACCOUNT_STATUS}
         variants={STATUS_VARIANTS}
         onSave={async (val) => {
-          await updateBankAccountMutation.mutateAsync({ id: account.id, data: { status: val } })
+          await updateBankAccount(account.id, { status: val })
         }}
       />
     ),
@@ -199,7 +199,7 @@ const createBankAccountColumns = (
         options={TRANSFER_STATUS}
         variants={STATUS_VARIANTS}
         onSave={async (val) => {
-          await updateBankAccountMutation.mutateAsync({ id: account.id, data: { transferStatus: val } })
+          await updateBankAccount(account.id, { transferStatus: val })
         }}
       />
     ),
@@ -241,7 +241,7 @@ const createInvestmentAccountColumns = (
       <EditableTextCell
         value={account.institution}
         onSave={async (val) => {
-          await updateInvestmentAccountMutation.mutateAsync({ id: account.id, data: { institution: val as string } })
+          await updateInvestmentAccount(account.id, { institution: val as string })
         }}
       />
     ),
@@ -253,7 +253,7 @@ const createInvestmentAccountColumns = (
       <EditableTextCell
         value={account.accountName}
         onSave={async (val) => {
-          await updateInvestmentAccountMutation.mutateAsync({ id: account.id, data: { accountName: val } })
+          await updateInvestmentAccount(account.id, { accountName: val })
         }}
       />
     ),
@@ -281,7 +281,7 @@ const createInvestmentAccountColumns = (
       <EditableCurrencyCell
         value={account.dodValue}
         onSave={async (val) => {
-          await updateInvestmentAccountMutation.mutateAsync({ id: account.id, data: { dodValue: val } })
+          await updateInvestmentAccount(account.id, { dodValue: val })
         }}
       />
     ),
@@ -293,7 +293,7 @@ const createInvestmentAccountColumns = (
       <EditableCurrencyCell
         value={account.costBasis}
         onSave={async (val) => {
-          await updateInvestmentAccountMutation.mutateAsync({ id: account.id, data: { costBasis: val } })
+          await updateInvestmentAccount(account.id, { costBasis: val })
         }}
       />
     ),
@@ -307,7 +307,7 @@ const createInvestmentAccountColumns = (
         options={ACCOUNT_STATUS}
         variants={STATUS_VARIANTS}
         onSave={async (val) => {
-          await updateInvestmentAccountMutation.mutateAsync({ id: account.id, data: { status: val } })
+          await updateInvestmentAccount(account.id, { status: val })
         }}
       />
     ),
@@ -321,7 +321,7 @@ const createInvestmentAccountColumns = (
         options={TRANSFER_STATUS}
         variants={STATUS_VARIANTS}
         onSave={async (val) => {
-          await updateInvestmentAccountMutation.mutateAsync({ id: account.id, data: { transferStatus: val } })
+          await updateInvestmentAccount(account.id, { transferStatus: val })
         }}
       />
     ),
@@ -369,6 +369,14 @@ export function Accounts() {
   const updateInvestmentAccountMutation = useUpdateInvestmentAccount()
   const deleteInvestmentAccountMutation = useDeleteInvestmentAccount()
 
+  // Wrapper functions to match inline cell API
+  const updateBankAccount = async (id: string, data: Partial<BankAccount>) => {
+    return await updateBankAccountMutation.mutateAsync({ id, data })
+  }
+  const updateInvestmentAccount = async (id: string, data: Partial<InvestmentAccount>) => {
+    return await updateInvestmentAccountMutation.mutateAsync({ id, data })
+  }
+
   // Bank Account Dialog - useResourceForm hook
   const [editingBankId, setEditingBankId] = useState<string | null>(null)
 
@@ -392,18 +400,18 @@ export function Accounts() {
         institution: data.institution,
         accountType: data.accountType,
         accountName: data.accountName,
-        accountNumber: data.accountNumber || null,
-        routingNumber: data.routingNumber || null,
-        dodValue: parseFloat(data.dodValue) || null,
-        dodValueDate: data.dodValueDate || null,
+        accountNumber: data.accountNumber || undefined,
+        routingNumber: data.routingNumber || undefined,
+        dodValue: parseFloat(data.dodValue) || undefined,
+        dodValueDate: data.dodValueDate || undefined,
         status: data.status,
         transferStatus: data.transferStatus,
-        notes: data.notes || null,
+        notes: data.notes || undefined,
       }
       if (isEditingBank && editingBankId) {
-        await updateBankAccountMutation.mutateAsync({ id: editingBankId, data: payload as any })
+        await updateBankAccount(editingBankId, payload as Record<string, unknown>)
       } else {
-        await createBankAccountMutation.mutateAsync(payload as any)
+        await createBankAccountMutation.mutateAsync(payload as Record<string, unknown>)
       }
       setEditingBankId(null)
     },
@@ -432,18 +440,18 @@ export function Accounts() {
         institution: data.institution,
         accountType: data.accountType,
         accountName: data.accountName,
-        accountNumber: data.accountNumber || null,
-        dodValue: parseFloat(data.dodValue) || null,
-        dodValueDate: data.dodValueDate || null,
-        costBasis: parseFloat(data.costBasis) || null,
+        accountNumber: data.accountNumber || undefined,
+        dodValue: parseFloat(data.dodValue) || undefined,
+        dodValueDate: data.dodValueDate || undefined,
+        costBasis: parseFloat(data.costBasis) || undefined,
         taxDeferred: data.accountType.includes("IRA") || data.accountType === "K401",
         beneficiaryDesignated: false,
         status: data.status,
         transferStatus: data.transferStatus,
-        notes: data.notes || null,
+        notes: data.notes || undefined,
       }
       if (isEditingInvestment && editingInvestmentId) {
-        await updateInvestmentAccountMutation.mutateAsync({ id: editingInvestmentId, data: payload as any })
+        await updateInvestmentAccount(editingInvestmentId, payload as any)
       } else {
         await createInvestmentAccountMutation.mutateAsync(payload as any)
       }
@@ -511,11 +519,11 @@ export function Accounts() {
 
   // Inline update handlers for editable cells
   const handleUpdateBank = async (id: string, updates: Partial<BankAccount>) => {
-    await updateBankAccountMutation.mutateAsync({ id, data: updates })
+    await updateBankAccount(id, updates)
   }
 
   const handleUpdateInvestment = async (id: string, updates: Partial<InvestmentAccount>) => {
-    await updateInvestmentAccountMutation.mutateAsync({ id, data: updates })
+    await updateInvestmentAccount(id, updates)
   }
 
   const loading = entitiesLoading || bankLoading || investmentLoading
@@ -529,8 +537,8 @@ export function Accounts() {
   }
 
   // Create column configurations
-  const bankColumns = createBankAccountColumns(updateBankAccount, handleDeleteBank)
-  const investmentColumns = createInvestmentAccountColumns(updateInvestmentAccount, handleDeleteInvestment)
+  const bankColumns = createBankAccountColumns(handleUpdateBank, handleDeleteBank)
+  const investmentColumns = createInvestmentAccountColumns(handleUpdateInvestment, handleDeleteInvestment)
 
   const totalBankValue = bankAccounts.reduce(
     (sum, a) => sum + (parseFloat(a.dodValue || "0") || 0),
@@ -625,7 +633,7 @@ export function Accounts() {
             <div className="grid grid-cols-2 gap-4">
               {/* Institution */}
               <bankFormInstance.Field name="institution">
-                {(field) => (
+                {(field: any) => (
                   <div className="space-y-2">
                     <Label htmlFor="bank-institution">Institution *</Label>
                     <Input
@@ -641,7 +649,7 @@ export function Accounts() {
 
               {/* Account Type */}
               <bankFormInstance.Field name="accountType">
-                {(field) => (
+                {(field: any) => (
                   <div className="space-y-2">
                     <Label htmlFor="bank-type">Account Type *</Label>
                     <Select
@@ -666,7 +674,7 @@ export function Accounts() {
 
             {/* Account Name */}
             <bankFormInstance.Field name="accountName">
-              {(field) => (
+              {(field: any) => (
                 <div className="space-y-2 mt-4">
                   <Label htmlFor="bank-name">Account Name</Label>
                   <Input
@@ -683,7 +691,7 @@ export function Accounts() {
             <div className="grid grid-cols-2 gap-4 mt-4">
               {/* Account Number */}
               <bankFormInstance.Field name="accountNumber">
-                {(field) => (
+                {(field: any) => (
                   <div className="space-y-2">
                     <Label htmlFor="bank-number">Account Number *</Label>
                     <Input
@@ -698,7 +706,7 @@ export function Accounts() {
 
               {/* Routing Number */}
               <bankFormInstance.Field name="routingNumber">
-                {(field) => (
+                {(field: any) => (
                   <div className="space-y-2">
                     <Label htmlFor="bank-routing">Routing Number</Label>
                     <Input
@@ -718,7 +726,7 @@ export function Accounts() {
             <div className="grid grid-cols-2 gap-4">
               {/* DOD Value */}
               <bankFormInstance.Field name="dodValue">
-                {(field) => (
+                {(field: any) => (
                   <div className="space-y-2">
                     <Label htmlFor="bank-dod-value">DOD Balance</Label>
                     <Input
@@ -734,7 +742,7 @@ export function Accounts() {
 
               {/* DOD Value Date */}
               <bankFormInstance.Field name="dodValueDate">
-                {(field) => (
+                {(field: any) => (
                   <div className="space-y-2">
                     <Label htmlFor="bank-dod-date">DOD Value Date</Label>
                     <Input
@@ -755,7 +763,7 @@ export function Accounts() {
             <div className="grid grid-cols-2 gap-4">
               {/* Account Status */}
               <bankFormInstance.Field name="status">
-                {(field) => (
+                {(field: any) => (
                   <div className="space-y-2">
                     <Label htmlFor="bank-status">Account Status *</Label>
                     <Select
@@ -779,7 +787,7 @@ export function Accounts() {
 
               {/* Transfer Status */}
               <bankFormInstance.Field name="transferStatus">
-                {(field) => (
+                {(field: any) => (
                   <div className="space-y-2">
                     <Label htmlFor="bank-transfer">Transfer Status *</Label>
                     <Select
@@ -805,7 +813,7 @@ export function Accounts() {
 
           {/* Notes */}
           <bankFormInstance.Field name="notes">
-            {(field) => (
+            {(field: any) => (
               <div className="space-y-2">
                 <Label htmlFor="bank-notes">Notes</Label>
                 <Textarea
@@ -835,7 +843,7 @@ export function Accounts() {
             <div className="grid grid-cols-2 gap-4">
               {/* Institution */}
               <investmentFormInstance.Field name="institution">
-                {(field) => (
+                {(field: any) => (
                   <div className="space-y-2">
                     <Label htmlFor="inv-institution">Institution *</Label>
                     <Input
@@ -851,7 +859,7 @@ export function Accounts() {
 
               {/* Account Type */}
               <investmentFormInstance.Field name="accountType">
-                {(field) => (
+                {(field: any) => (
                   <div className="space-y-2">
                     <Label htmlFor="inv-type">Account Type *</Label>
                     <Select
@@ -877,7 +885,7 @@ export function Accounts() {
             <div className="grid grid-cols-2 gap-4 mt-4">
               {/* Account Name */}
               <investmentFormInstance.Field name="accountName">
-                {(field) => (
+                {(field: any) => (
                   <div className="space-y-2">
                     <Label htmlFor="inv-name">Account Name</Label>
                     <Input
@@ -893,7 +901,7 @@ export function Accounts() {
 
               {/* Account Number */}
               <investmentFormInstance.Field name="accountNumber">
-                {(field) => (
+                {(field: any) => (
                   <div className="space-y-2">
                     <Label htmlFor="inv-number">Account Number *</Label>
                     <Input
@@ -913,7 +921,7 @@ export function Accounts() {
             <div className="grid grid-cols-3 gap-4">
               {/* DOD Value */}
               <investmentFormInstance.Field name="dodValue">
-                {(field) => (
+                {(field: any) => (
                   <div className="space-y-2">
                     <Label htmlFor="inv-dod-value">DOD Value</Label>
                     <Input
@@ -929,7 +937,7 @@ export function Accounts() {
 
               {/* DOD Value Date */}
               <investmentFormInstance.Field name="dodValueDate">
-                {(field) => (
+                {(field: any) => (
                   <div className="space-y-2">
                     <Label htmlFor="inv-dod-date">DOD Value Date</Label>
                     <Input
@@ -945,7 +953,7 @@ export function Accounts() {
 
               {/* Cost Basis */}
               <investmentFormInstance.Field name="costBasis">
-                {(field) => (
+                {(field: any) => (
                   <div className="space-y-2">
                     <Label htmlFor="inv-cost-basis">Cost Basis</Label>
                     <Input
@@ -966,7 +974,7 @@ export function Accounts() {
             <div className="grid grid-cols-2 gap-4">
               {/* Account Status */}
               <investmentFormInstance.Field name="status">
-                {(field) => (
+                {(field: any) => (
                   <div className="space-y-2">
                     <Label htmlFor="inv-status">Account Status *</Label>
                     <Select
@@ -990,7 +998,7 @@ export function Accounts() {
 
               {/* Transfer Status */}
               <investmentFormInstance.Field name="transferStatus">
-                {(field) => (
+                {(field: any) => (
                   <div className="space-y-2">
                     <Label htmlFor="inv-transfer">Transfer Status *</Label>
                     <Select
@@ -1016,7 +1024,7 @@ export function Accounts() {
 
           {/* Notes */}
           <investmentFormInstance.Field name="notes">
-            {(field) => (
+            {(field: any) => (
               <div className="space-y-2">
                 <Label htmlFor="inv-notes">Notes</Label>
                 <Textarea

@@ -40,7 +40,7 @@ import {
   type PaginatedResult,
 } from "@/hooks/trust-accounting/queries"
 
-interface TrustAccountingEntry {
+interface TrustAccounting {
   id: string
   entityId: string
   accountingDate: string
@@ -196,13 +196,13 @@ export function Accounting() {
         entityId: selectedEntity,
         accountingDate: data.accountingDate,
         entryType: data.entryType,
-        incomeType: data.entryType === "INCOME" ? data.incomeType : null,
-        expenseType: data.entryType === "EXPENSE" ? data.expenseType : null,
+        incomeType: data.entryType === "INCOME" ? data.incomeType : undefined,
+        expenseType: data.entryType === "EXPENSE" ? data.expenseType : undefined,
         amount: data.amount,
-        description: data.description || null,
+        description: data.description || undefined,
         isPrincipal: data.isPrincipal,
         taxDeductible: data.taxDeductible,
-        referenceNumber: data.referenceNumber || null,
+        referenceNumber: data.referenceNumber || undefined,
         fiscalYear: data.accountingDate
           ? new Date(data.accountingDate).getFullYear()
           : new Date().getFullYear(),
@@ -219,7 +219,7 @@ export function Accounting() {
   // Auto-select first entity when entities load
   useEffect(() => {
     if (entities.length > 0 && !selectedEntity) {
-      setSelectedEntity(entities[0].id)
+      setSelectedEntity(entities[0]?.id ?? "")
     }
   }, [entities, selectedEntity])
 
@@ -237,8 +237,8 @@ export function Accounting() {
     }
   }
 
-  const updateEntry = async (id: string, updates: Partial<TrustAccountingEntry>) => {
-    await updateEntryMutation.mutateAsync({ id, data: updates })
+  const updateEntry = async (id: string, updates: Partial<TrustAccounting>) => {
+    await updateEntryMutation.mutateAsync({ id, data: updates as any })
   }
 
 
@@ -714,7 +714,7 @@ export function Accounting() {
   ])
 
   // Handler for opening edit dialog from DataTable
-  const openEditForm = (entry: TrustAccountingEntry) => {
+  const openEditForm = (entry: TrustAccounting) => {
     setEditingId(entry.id)
     handleEditEntry({
       accountingDate: entry.accountingDate?.split("T")[0] || "",
@@ -730,7 +730,7 @@ export function Accounting() {
   }
 
   // Column configuration for DataTable
-  const accountingColumns: ColumnDef<TrustAccountingEntry>[] = [
+  const accountingColumns: ColumnDef<TrustAccounting>[] = [
     {
       key: "accountingDate",
       header: "Date",
@@ -972,7 +972,7 @@ export function Accounting() {
             <CardContent className="pt-4">
               <DataTable
                 columns={accountingColumns}
-                data={filteredEntries}
+                data={filteredEntries as any}
                 isLoading={loading}
                 emptyMessage="No entries recorded yet. Click 'Add Entry' to start tracking."
                 onEdit={openEditForm}
@@ -1000,7 +1000,7 @@ export function Accounting() {
         <div className="space-y-4">
           {/* Date */}
           <formInstance.Field name="accountingDate">
-            {(field) => (
+            {(field: any) => (
               <div className="space-y-2">
                 <Label htmlFor="date">Date</Label>
                 <Input
@@ -1019,7 +1019,7 @@ export function Accounting() {
 
           {/* Entry Type */}
           <formInstance.Field name="entryType">
-            {(field) => (
+            {(field: any) => (
               <div className="space-y-2">
                 <Label htmlFor="entryType">Entry Type</Label>
                 <Select
@@ -1042,11 +1042,11 @@ export function Accounting() {
           </formInstance.Field>
 
           {/* Conditional Category Selection */}
-          <formInstance.Subscribe selector={(state) => state.values.entryType}>
-            {(entryType) =>
+          <formInstance.Subscribe selector={(state: any) => state.values.entryType}>
+            {(entryType: any) =>
               entryType === "INCOME" ? (
                 <formInstance.Field name="incomeType">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label htmlFor="incomeType">Income Category</Label>
                       <Select
@@ -1072,7 +1072,7 @@ export function Accounting() {
                 </formInstance.Field>
               ) : (
                 <formInstance.Field name="expenseType">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="space-y-2">
                       <Label htmlFor="expenseType">Expense Category</Label>
                       <Select
@@ -1102,7 +1102,7 @@ export function Accounting() {
 
           {/* Amount */}
           <formInstance.Field name="amount">
-            {(field) => (
+            {(field: any) => (
               <div className="space-y-2">
                 <Label htmlFor="amount">Amount</Label>
                 <Input
@@ -1122,7 +1122,7 @@ export function Accounting() {
 
           {/* Description */}
           <formInstance.Field name="description">
-            {(field) => (
+            {(field: any) => (
               <div className="space-y-2">
                 <Label htmlFor="description">Description</Label>
                 <Textarea
@@ -1141,7 +1141,7 @@ export function Accounting() {
 
           {/* Reference Number */}
           <formInstance.Field name="referenceNumber">
-            {(field) => (
+            {(field: any) => (
               <div className="space-y-2">
                 <Label htmlFor="reference">Reference Number</Label>
                 <Input
@@ -1162,7 +1162,7 @@ export function Accounting() {
 
           {/* isPrincipal Switch */}
           <formInstance.Field name="isPrincipal">
-            {(field) => (
+            {(field: any) => (
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
                   <Label htmlFor="isPrincipal">Principal (not income)</Label>
@@ -1180,11 +1180,11 @@ export function Accounting() {
           </formInstance.Field>
 
           {/* taxDeductible Switch (conditional) */}
-          <formInstance.Subscribe selector={(state) => state.values.entryType}>
-            {(entryType) =>
+          <formInstance.Subscribe selector={(state: any) => state.values.entryType}>
+            {(entryType: any) =>
               entryType === "EXPENSE" && (
                 <formInstance.Field name="taxDeductible">
-                  {(field) => (
+                  {(field: any) => (
                     <div className="flex items-center justify-between">
                       <div className="space-y-0.5">
                         <Label htmlFor="taxDeductible">Tax Deductible</Label>
