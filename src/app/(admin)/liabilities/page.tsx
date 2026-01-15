@@ -145,6 +145,12 @@ export default function LiabilitiesPage() {
   const deleteLiabilityMutation = trpc.liability.delete.useMutation({
     onSuccess: () => utils.liability.list.invalidate(),
   })
+  const recordPaymentMutation = trpc.liability.recordPayment.useMutation({
+    onSuccess: () => {
+      utils.liability.list.invalidate()
+      utils.trustAccounting.listPaginated.invalidate()
+    },
+  })
 
   // Wrapper function to match inline cell API
   const updateLiability = async (id: string, data: Partial<Liability>) => {
@@ -210,21 +216,22 @@ export default function LiabilitiesPage() {
         createExpenseEntry: data.createExpenseEntry,
       }
 
-      // Use direct API call for payment recording (special endpoint)
-      const res = await fetch(`/api/liabilities/${payingLiabilityId}/record-payment`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      })
+      // Use tRPC mutation for payment recording
+      // Map CREDIT_CARD to OTHER since tRPC schema doesn't include it
+      const paymentMethod =
+        payload.paymentMethod === "CREDIT_CARD" ? "OTHER" : payload.paymentMethod
 
-      if (res.ok) {
-        // Invalidate caches to refresh data
-        await utils.liability.list.invalidate()
-        await utils.trustAccounting.listPaginated.invalidate()
-      } else {
-        const error = await res.json()
-        throw new Error(error.message || "Failed to record payment")
-      }
+      await recordPaymentMutation.mutateAsync({
+        liabilityId: payingLiabilityId,
+        paymentDate: payload.paymentDate,
+        amount: data.amount, // Keep as string for tRPC
+        principalPortion: data.principalPortion || undefined,
+        interestPortion: data.interestPortion || undefined,
+        escrowPortion: data.escrowPortion || undefined,
+        paymentMethod,
+        checkNumber: data.checkNumber || undefined,
+        notes: data.notes || undefined,
+      })
 
       setPayingLiabilityId(null)
     },

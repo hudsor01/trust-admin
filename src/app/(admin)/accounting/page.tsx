@@ -235,23 +235,7 @@ export default function AccountingPage() {
     setGeneratingReport(true)
 
     try {
-      // Fetch all required data for the report
-      const [
-        bankAccountsRes,
-        investmentAccountsRes,
-        homesteadsRes,
-        rentalPropertiesRes,
-        vehiclesRes,
-        liabilitiesRes,
-      ] = await Promise.all([
-        fetch(`/api/bank-accounts?entityId=${selectedEntity}`),
-        fetch(`/api/investment-accounts?entityId=${selectedEntity}`),
-        fetch(`/api/homesteads?entityId=${selectedEntity}`),
-        fetch(`/api/rental-properties?entityId=${selectedEntity}`),
-        fetch(`/api/vehicles?entityId=${selectedEntity}`),
-        fetch(`/api/liabilities?entityId=${selectedEntity}`),
-      ])
-
+      // Fetch all required data for the report using tRPC
       const [
         bankAccounts,
         investmentAccounts,
@@ -260,12 +244,12 @@ export default function AccountingPage() {
         vehicles,
         liabilities,
       ] = await Promise.all([
-        bankAccountsRes.json(),
-        investmentAccountsRes.json(),
-        homesteadsRes.json(),
-        rentalPropertiesRes.json(),
-        vehiclesRes.json(),
-        liabilitiesRes.json(),
+        utils.bankAccount.list.fetch({ entityId: selectedEntity }),
+        utils.investmentAccount.list.fetch({ entityId: selectedEntity }),
+        utils.homestead.list.fetch({ entityId: selectedEntity }),
+        utils.rentalProperty.list.fetch({ entityId: selectedEntity }),
+        utils.vehicle.list.fetch({ entityId: selectedEntity }),
+        utils.liability.list.fetch({ entityId: selectedEntity }),
       ])
 
       const entity = entities.find((e) => e.id === selectedEntity)
@@ -338,7 +322,7 @@ export default function AccountingPage() {
     } finally {
       setGeneratingReport(false)
     }
-  }, [selectedEntity, entities, incomeTotal, expenseTotal, netIncome])
+  }, [selectedEntity, entities, incomeTotal, expenseTotal, netIncome, utils])
 
   // Handler for opening edit dialog from DataTable
   const openEditForm = (entry: TrustAccounting) => {
