@@ -147,18 +147,18 @@ export default function AccountingPage() {
     },
   })
 
+  // Handle entity change - updates entity and resets pagination
+  const handleEntityChange = useCallback((entityId: string) => {
+    setSelectedEntity(entityId)
+    setCurrentPage(1)
+  }, [])
+
   // Auto-select first entity when entities load
   useEffect(() => {
-    if (entities.length > 0 && !selectedEntity) {
-      setSelectedEntity(entities[0]?.id ?? "")
+    if (entities.length > 0 && !selectedEntity && entities[0]) {
+      handleEntityChange(entities[0].id)
     }
-  }, [entities, selectedEntity])
-
-  // Reset to page 1 when entity changes
-  // biome-ignore lint/correctness/useExhaustiveDependencies: Intentionally run effect when selectedEntity changes
-  useEffect(() => {
-    setCurrentPage(1)
-  }, [selectedEntity])
+  }, [entities, selectedEntity, handleEntityChange])
 
   const deleteEntry = async (id: string) => {
     if (!confirm("Are you sure you want to delete this entry?")) return
@@ -459,7 +459,7 @@ export default function AccountingPage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Select value={selectedEntity} onValueChange={setSelectedEntity}>
+          <Select value={selectedEntity} onValueChange={handleEntityChange}>
             <SelectTrigger className="w-62.5">
               <SelectValue placeholder="Select Trust" />
             </SelectTrigger>
