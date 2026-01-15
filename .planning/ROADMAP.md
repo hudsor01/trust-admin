@@ -12,6 +12,7 @@ Trust Admin application development roadmap. v1.0 focused on code quality and re
 
 - ✅ **v1.0 Code Quality & Reliability** - Phases 1-11 (shipped 2026-01-09)
 - 🚧 **v2.0 Next.js + tRPC Migration** - Phases 12-17 (in progress)
+- 🔜 **v3.0 Database Schema Improvements** - Phases 18-24 (pending v2.0)
 
 ## Phases
 
@@ -377,6 +378,304 @@ Plans:
 
 ---
 
+### 🔜 v3.0 Database Schema Improvements (Pending v2.0 completion)
+
+**Milestone Goal:** Apply PostgreSQL best practices to the database schema based on official Drizzle and PostgreSQL documentation. Address all identified schema issues systematically with proper research, migration strategies, and rollback plans.
+
+**Why This Matters:**
+- Current schema uses `timestamp` instead of `timestamptz` (timezone issues)
+- TEXT primary keys instead of BIGINT IDENTITY (performance, storage)
+- Polymorphic tables lack constraints (data integrity)
+- Missing composite indexes (query performance)
+- Text fields used where enums should be (type safety)
+
+**Reference Documentation:**
+- PostgreSQL Official: https://www.postgresql.org/docs/current/
+- Drizzle ORM: https://orm.drizzle.team/docs/column-types/pg
+- Drizzle Kit Migrations: https://orm.drizzle.team/docs/migrations
+
+**Breaking Change Strategy:**
+- Phases 18-22: Non-breaking (can be applied in production)
+- Phases 23-24: Breaking (require migration scripts, downtime planning)
+
+---
+
+#### Phase 18: Timestamp Migration to TIMESTAMPTZ
+**Goal**: Migrate all timestamp columns from `timestamp` to `timestamptz` for proper timezone handling
+
+**Depends on**: v2.0 complete
+
+**Research**: Yes (Drizzle ORM timestamp types, PostgreSQL timezone handling)
+
+**Research topics**:
+- Drizzle `timestamp` vs `timestamp({ withTimezone: true })` patterns
+- PostgreSQL timezone conversion behavior
+- Migration strategy for existing data (AT TIME ZONE)
+
+**Plans**: 1 plan (4 tasks)
+
+**Scope:**
+- 98 timestamp columns across 31 tables (discovered via grep)
+- Current pattern: `t.timestamp({ precision: 3, mode: "string" })`
+- Target pattern: `t.timestamp({ precision: 3, mode: "string", withTimezone: true })`
+
+**Tasks:**
+1. Research Drizzle ORM timestamptz patterns and migration behavior
+2. Create migration script to alter columns with timezone conversion
+3. Update all schema.ts timestamp definitions to use withTimezone: true
+4. Verify data integrity and run tests
+
+**Impact**: Non-breaking for application code (dates stored as strings)
+
+Plans:
+- [ ] 18-01: Timestamp to timestamptz migration
+
+---
+
+#### Phase 19: Enum Type Corrections
+**Goal**: Convert text fields to proper PostgreSQL enums where semantically appropriate
+
+**Depends on**: Phase 18
+
+**Research**: Yes (PostgreSQL enum best practices, Drizzle pgEnum patterns)
+
+**Research topics**:
+- When to use enums vs CHECK constraints vs lookup tables
+- Drizzle pgEnum migration patterns
+- Adding new enum values safely
+
+**Plans**: 1 plan (4 tasks)
+
+**Fields to Convert:**
+| Table | Column | Current | Target Enum Values |
+|-------|--------|---------|-------------------|
+| trustAccounting | entryType | TEXT | INCOME, EXPENSE |
+| trustAccounting | incomeType | TEXT | DIVIDEND, INTEREST, RENT, ROYALTY, OTHER |
+| trustAccounting | expenseType | TEXT | TAX, INSURANCE, MAINTENANCE, LEGAL, OTHER |
+| personalProperty | category | TEXT | JEWELRY, ART, COLLECTIBLES, ELECTRONICS, FURNITURE, OTHER |
+| document | documentType | TEXT | DEED, TITLE, STATEMENT, CONTRACT, LEGAL, OTHER |
+
+**Tasks:**
+1. Research PostgreSQL enum vs CHECK constraint tradeoffs
+2. Create pgEnum definitions in schema.ts
+3. Create migration to convert TEXT columns to enum
+4. Update validation.ts with proper Zod enum integration
+
+**Impact**: Non-breaking (values already match expected patterns)
+
+Plans:
+- [ ] 19-01: Text to enum type conversions
+
+---
+
+#### Phase 20: Polymorphic Constraint Enforcement
+**Goal**: Add CHECK constraints to polymorphic tables (Valuation, Document, Transaction) ensuring exactly one FK is set
+
+**Depends on**: Phase 19
+
+**Research**: Yes (PostgreSQL CHECK constraints, Drizzle custom constraints)
+
+**Research topics**:
+- CHECK constraint syntax for XOR patterns
+- Drizzle ORM check() builder
+- Handling existing invalid data
+
+**Plans**: 1 plan (5 tasks)
+
+**Affected Tables:**
+- `Valuation`: vehicleId, homesteadId, rentalPropertyId, bankAccountId, investmentAccountId, personalPropertyId, artworkId (7 FKs)
+- `Document`: entityId, vehicleId, homesteadId, rentalPropertyId, bankAccountId, investmentAccountId, insurancePolicyId, personalPropertyId (8 FKs)
+- `Transaction`: vehicleId, homesteadId, rentalPropertyId, bankAccountId, investmentAccountId, insurancePolicyId (6 FKs)
+
+**Constraint Pattern:**
+```sql
+CHECK (
+  (CASE WHEN vehicleId IS NOT NULL THEN 1 ELSE 0 END +
+   CASE WHEN homesteadId IS NOT NULL THEN 1 ELSE 0 END +
+   ...
+  ) = 1
+)
+```
+
+**Tasks:**
+1. Research Drizzle check() constraint builder syntax
+2. Audit existing data for constraint violations
+3. Create data cleanup script for any violations
+4. Add CHECK constraints to schema.ts
+5. Test constraint enforcement
+
+**Impact**: May require data cleanup if violations exist
+
+Plans:
+- [ ] 20-01: Polymorphic constraint implementation
+
+---
+
+#### Phase 21: Composite Index Optimization
+**Goal**: Add composite indexes for common query patterns to improve performance
+
+**Depends on**: Phase 20
+
+**Research**: Yes (PostgreSQL composite index ordering, EXPLAIN ANALYZE patterns)
+
+**Research topics**:
+- Composite index column ordering strategy
+- Covering indexes with INCLUDE
+- Partial indexes for filtered queries
+
+**Plans**: 1 plan (4 tasks)
+
+**Candidate Indexes:**
+| Table | Columns | Rationale |
+|-------|---------|-----------|
+| trustAccounting | (entityId, accountingDate) | Common filter + sort |
+| distribution | (beneficiaryId, distributionDate) | Beneficiary history |
+| liabilityPayment | (liabilityId, paymentDate) | Payment history |
+| activityLog | (tableName, recordId) | Audit lookups |
+| hemsRequest | (beneficiaryId, status) | Pending requests by beneficiary |
+
+**Tasks:**
+1. Analyze current query patterns from application code
+2. Run EXPLAIN ANALYZE on common queries
+3. Add composite indexes to schema.ts
+4. Verify performance improvement
+
+**Impact**: Non-breaking (indexes are additive)
+
+Plans:
+- [ ] 21-01: Composite index implementation
+
+---
+
+#### Phase 22: Nullable FK Business Logic Review
+**Goal**: Review nullable FKs and tighten to NOT NULL where business logic requires
+
+**Depends on**: Phase 21
+
+**Research**: Yes (Drizzle FK constraints, application domain logic)
+
+**Research topics**:
+- Business rules for each relationship
+- Orphan record handling
+- Migration strategy for existing nulls
+
+**Plans**: 1 plan (4 tasks)
+
+**Candidates for Review:**
+| Table | Column | Currently | Question |
+|-------|--------|-----------|----------|
+| distribution | beneficiaryId | NOT NULL | Correct ✓ |
+| hemsRequest | beneficiaryId | NOT NULL | Correct ✓ |
+| trustAccounting | bankAccountId | nullable | Should distributions require an account? |
+| specificBequest | beneficiaryId | NOT NULL | Correct ✓ |
+| liability | homesteadId/vehicleId | nullable | Correct for unsecured debt ✓ |
+
+**Tasks:**
+1. Document business rules for each FK relationship
+2. Identify FKs that should be NOT NULL
+3. Audit data for existing nulls that would violate new constraints
+4. Apply tightened constraints where appropriate
+
+**Impact**: May require data cleanup
+
+Plans:
+- [ ] 22-01: Nullable FK business logic review
+
+---
+
+#### Phase 23: Primary Key Type Migration (BREAKING)
+**Goal**: Migrate from TEXT primary keys to BIGINT GENERATED ALWAYS AS IDENTITY
+
+**Depends on**: Phase 22
+
+**Research**: Yes (Drizzle IDENTITY columns, PostgreSQL sequence migration)
+
+**Research topics**:
+- Drizzle BIGINT with IDENTITY pattern
+- Migrating existing UUID/CUID text PKs
+- Foreign key cascade updates
+- Application code impact
+
+**Plans**: 1 plan (6 tasks)
+
+**⚠️ BREAKING CHANGE - Requires:**
+- Database migration with FK updates
+- Application code changes (ID generation)
+- API contract changes (ID format)
+- Client-side ID handling updates
+
+**Scope:**
+- 31 tables with TEXT primary keys
+- All FK references must update
+
+**Migration Strategy:**
+1. Add new BIGINT column with IDENTITY
+2. Backfill with sequential values
+3. Update FKs to reference new column
+4. Drop old TEXT column
+5. Rename new column to id
+
+**Tasks:**
+1. Research Drizzle IDENTITY column patterns
+2. Create comprehensive migration script
+3. Update schema.ts with BIGINT IDENTITY PKs
+4. Update application code for numeric IDs
+5. Update API contracts and documentation
+6. Create rollback plan
+
+**Impact**: BREAKING - Major change requiring coordinated deployment
+
+Plans:
+- [ ] 23-01: Primary key type migration
+
+---
+
+#### Phase 24: Table Naming Convention (BREAKING)
+**Goal**: Migrate from PascalCase to snake_case table names per PostgreSQL conventions
+
+**Depends on**: Phase 23
+
+**Research**: Yes (PostgreSQL identifier rules, Drizzle table mapping)
+
+**Research topics**:
+- PostgreSQL identifier case sensitivity
+- Drizzle table name vs schema name mapping
+- ORM query impact
+- Migration strategy
+
+**Plans**: 1 plan (5 tasks)
+
+**⚠️ BREAKING CHANGE - Requires:**
+- Database migration (ALTER TABLE RENAME)
+- Application code review
+- SQL query updates
+- Index and constraint rename
+
+**Current → Target:**
+| Current | Target |
+|---------|--------|
+| ActivityLog | activity_log |
+| BankAccount | bank_account |
+| Beneficiary | beneficiary |
+| Document | document |
+| Distribution | distribution |
+| Entity | entity |
+| ... | ... (31 tables total) |
+
+**Tasks:**
+1. Research Drizzle table renaming patterns
+2. Create migration script for table renames
+3. Update all FK constraint names
+4. Update index names
+5. Verify ORM queries still work
+
+**Impact**: BREAKING - Requires coordinated deployment
+
+Plans:
+- [ ] 24-01: Table naming convention migration
+
+---
+
 ## Files to Copy As-Is
 
 These files can be copied directly with minimal changes:
@@ -403,7 +702,8 @@ These files can be copied directly with minimal changes:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 12 → 13 → 14 → 15 → 16 → 17
+- v2.0: 12 → 13 → 14 → 15 → 16 → 17
+- v3.0: 18 → 19 → 20 → 21 → 22 → 23 → 24
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -424,3 +724,10 @@ Phases execute in numeric order: 12 → 13 → 14 → 15 → 16 → 17
 | 15. Page Migration | v2.0 | 0/1 | Not started | - |
 | 16. Testing & Verification | v2.0 | 0/1 | Not started | - |
 | 17. Cleanup | v2.0 | 0/1 | Not started | - |
+| 18. Timestamp Migration to TIMESTAMPTZ | v3.0 | 0/1 | Not started | - |
+| 19. Enum Type Corrections | v3.0 | 0/1 | Not started | - |
+| 20. Polymorphic Constraint Enforcement | v3.0 | 0/1 | Not started | - |
+| 21. Composite Index Optimization | v3.0 | 0/1 | Not started | - |
+| 22. Nullable FK Business Logic Review | v3.0 | 0/1 | Not started | - |
+| 23. Primary Key Type Migration | v3.0 | 0/1 | Not started | - |
+| 24. Table Naming Convention | v3.0 | 0/1 | Not started | - |
