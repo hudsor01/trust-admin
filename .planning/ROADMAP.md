@@ -149,7 +149,7 @@ Plans:
 ---
 
 #### Phase 12: Setup
-**Goal**: Initialize Next.js 16.1 app, install dependencies, copy existing code
+**Goal**: Initialize Next.js 16.1 app in-place, install dependencies, setup migration-friendly structure
 
 **Depends on**: v1.0 complete
 
@@ -159,12 +159,47 @@ Plans:
 
 **Plans**: 1 plan (5 tasks)
 
+**Migration-friendly structure with `--src-dir`:**
+```
+trust-admin/
+├── src/
+│   ├── app/              # NEW: Next.js App Router
+│   ├── server/           # NEW: tRPC routers
+│   ├── lib/              # Migrated utilities
+│   ├── components/       # Migrated components
+│   └── hooks/            # Simplified (tRPC replaces most)
+├── db/                   # Keep as-is (shared during migration)
+├── index.ts              # OLD: Delete after migration
+├── vite.config.ts        # OLD: Delete after migration
+└── next.config.ts        # NEW: Next.js config
+```
+
 **Tasks:**
-1. Create Next.js 16 app: `npx create-next-app@latest trust-admin-next --typescript --tailwind --app`
-2. Install dependencies: drizzle-orm, @trpc/server, @trpc/client, @trpc/react-query, better-auth, zod, react-hook-form, @hookform/resolvers
-3. Copy `db/` folder (schema, queries, validation, crud-factory)
-4. Copy `components/` folder (resource-dialog, data-table, editable-cells, ui/)
-5. Setup environment variables
+1. Initialize Next.js 16.1 in-place:
+   ```bash
+   bunx create-next-app@latest . --yes --use-bun --src-dir
+   ```
+   This gives: TypeScript, Tailwind, ESLint, App Router, Turbopack, Bun
+
+2. Install additional dependencies:
+   ```bash
+   bun add @trpc/server@next @trpc/client@next @trpc/react-query@next \
+     drizzle-orm better-auth zod react-hook-form @hookform/resolvers \
+     resend @tanstack/react-query
+   bun add -d drizzle-kit
+   ```
+
+3. Initialize shadcn/ui:
+   ```bash
+   bunx shadcn@latest init
+   ```
+
+4. Copy files to `src/`:
+   - `src/components/` ← copy from current `src/components/` (resource-dialog, data-table, editable-cells, ui/)
+   - `src/lib/` ← copy from current `src/lib/` (constants, classification-rules, distribution-calculator, fee-calculator, formatters)
+   - `db/` stays at root (shared between old and new during migration)
+
+5. Setup environment variables in `.env.local`
 
 Plans:
 - [ ] 12-01: Next.js 16.1 project setup and file copying
