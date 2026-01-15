@@ -6,24 +6,34 @@ See: .planning/PROJECT.md (updated 2026-01-09)
 
 **Core value:** Reliable trust administration - The API works without silent failures, users see clear error messages, and the codebase is maintainable for ongoing development.
 
-**Current focus:** Phase 15 — Page Migration (v2.0 Next.js + tRPC Migration)
+**Current focus:** Phase 16 — Testing & Verification (v2.0 Next.js + tRPC Migration)
 
 ## Current Position
 
-Phase: 15 of 17 (Page Migration)
+Phase: 16 of 17 (Testing & Verification)
 Plan: Not started
-Status: Executing
-Last activity: 2026-01-15 - Phase 14 Auth Migration complete
+Status: Ready to execute
+Last activity: 2026-01-15 - Phase 15 Page Migration complete
 
-Progress: ████████████████░░░░░░░░ 82% (14/17 phases complete)
+Progress: ████████████████████░░░░ 88% (15/17 phases complete)
 
 ## Performance Metrics
 
 **Velocity:**
 - v1.0 plans completed: 41
-- v2.0 plans completed: 3
+- v2.0 plans completed: 4
 
 ## Accumulated Context
+
+### v2.0 Phase 15 Completed:
+- ✅ All 15 admin pages migrated to App Router with tRPC
+- ✅ Portal dashboard migrated to use `trpc.beneficiary.me.useQuery()`
+- ✅ HemsRequestForm migrated to use `trpc.hemsRequest.submit.useMutation()`
+- ✅ 24 tRPC routers created and merged in router.ts
+- ✅ Root layout with TRPCProvider and Toaster
+- ✅ Admin layout with sidebar
+- ✅ Portal login page
+- ✅ Build verified passing (22 routes)
 
 ### v2.0 Phase 14 Completed:
 - ✅ auth.ts updated with nextCookies plugin (last in plugins array)
@@ -36,8 +46,8 @@ Progress: ████████████████░░░░░░░�
 ## Session Continuity
 
 Last session: 2026-01-15
-Stopped at: Phase 14 complete - Executing Phase 15 (Page Migration)
-Note: Auth infrastructure complete. Phase 15 will migrate 18 pages to App Router.
+Stopped at: Phase 15 complete - Ready to execute Phase 16 (Testing & Verification)
+Note: All pages migrated to Next.js App Router with tRPC. Phase 16 will verify functionality.
 
 ## Milestone History
 

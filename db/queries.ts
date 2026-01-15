@@ -4,7 +4,7 @@
  * Consolidated query functions using the CRUD factory for standard operations.
  * Custom queries are kept for complex operations that need specific logic.
  */
-import { eq } from "drizzle-orm"
+import { desc, eq } from "drizzle-orm"
 import {
   type ExpenseType,
   type IncomeType,
@@ -554,38 +554,300 @@ export async function getActivityLogWithChanges(recordId: string) {
   `)
 }
 
+// =============================================================================
+// BENEFICIARY DEATH HANDLING - Trust Section 7.01
+// If beneficiary dies before complete distribution without exercising LPOA,
+// their share goes pro-rata to other beneficiaries
+// =============================================================================
+
+interface MarkDeceasedData {
+  beneficiaryId: string
+  deceasedDate: string
+  lpoaExercised?: boolean
+  lpoaDocumentPath?: string
+}
+
 /**
- * Search ActivityLog for changes to specific fields using JSON_TABLE
+ * Mark a beneficiary as deceased and optionally recalculate shares
  *
- * Example: Find all entries where status changed from "ACTIVE" to "INACTIVE"
+ * Per Trust Section 7.01: If a beneficiary dies before complete distribution
+ * and doesn't exercise LPOA, their share goes pro-rata to other beneficiaries.
+ */
+export async function markBeneficiaryDeceased(data: MarkDeceasedData) {
+  // 1. Update the beneficiary record
+  await db
+    .update(beneficiary)
+    .set({
+      deceasedDate: data.deceasedDate,
+      lpoaExercised: data.lpoaExercised ?? false,
+      lpoaDocumentPath: data.lpoaDocumentPath ?? null,
+      updatedAt: new Date().toISOString(),
+    })
+    .where(eq(beneficiary.id, data.beneficiaryId))
+
+  // 2. Get the deceased beneficiary's info
+  const deceased = await db.query.beneficiary.findFirst({
+    where: eq(beneficiary.id, data.beneficiaryId),
+  })
+
+  if (!deceased || !deceased.entityId) {
+    return { success: true, shareRecalculated: false }
+  }
+
+  // 3. If LPOA was NOT exercised, recalculate shares for remaining beneficiaries
+  if (!data.lpoaExercised) {
+    return recalculateBeneficiaryShares(deceased.entityId, data.beneficiaryId)
+  }
+
+  return { success: true, shareRecalculated: false, deceased }
+}
+
+/**
+ * Recalculate beneficiary shares when a beneficiary dies without exercising LPOA
  *
- * @param fieldName - The JSONB field name to search for (e.g., "status", "value")
- * @param fieldValue - The value to match
+ * The deceased beneficiary's share is distributed pro-rata among remaining
+ * living beneficiaries based on their current share percentages.
+ */
+export async function recalculateBeneficiaryShares(entityId: string, excludeBeneficiaryId: string) {
+  // Get all beneficiaries for this entity
+  const allBeneficiaries = await db.query.beneficiary.findMany({
+    where: eq(beneficiary.entityId, entityId),
+  })
+
+  // Find deceased and living beneficiaries
+  const deceased = allBeneficiaries.find((b) => b.id === excludeBeneficiaryId)
+  const living = allBeneficiaries.filter((b) => b.id !== excludeBeneficiaryId && !b.deceasedDate)
+
+  if (!deceased || !deceased.sharePercent) {
+    return { success: true, shareRecalculated: false }
+  }
+
+  const deceasedShare = parseFloat(deceased.sharePercent)
+
+  // Calculate total shares of living beneficiaries
+  const totalLivingShares = living.reduce((sum, b) => {
+    return sum + (parseFloat(b.sharePercent || "0") || 0)
+  }, 0)
+
+  if (totalLivingShares <= 0) {
+    return { success: true, shareRecalculated: false, error: "No living beneficiaries" }
+  }
+
+  // Distribute deceased's share pro-rata
+  const updates: { id: string; newShare: string }[] = []
+
+  for (const b of living) {
+    const currentShare = parseFloat(b.sharePercent || "0") || 0
+    const proportion = currentShare / totalLivingShares
+    const additionalShare = deceasedShare * proportion
+    const newShare = (currentShare + additionalShare).toFixed(2)
+
+    await db
+      .update(beneficiary)
+      .set({
+        sharePercent: newShare,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(eq(beneficiary.id, b.id))
+
+    updates.push({ id: b.id, newShare })
+  }
+
+  // Zero out the deceased beneficiary's share
+  await db
+    .update(beneficiary)
+    .set({
+      sharePercent: "0.00",
+      updatedAt: new Date().toISOString(),
+    })
+    .where(eq(beneficiary.id, excludeBeneficiaryId))
+
+  return {
+    success: true,
+    shareRecalculated: true,
+    deceasedShare,
+    updates,
+  }
+}
+
+// =============================================================================
+// INCOME TO PRINCIPAL CONVERSION - Trust Section 7.10(c)
+// "All income not distributed shall be added to principal at least annually"
+// =============================================================================
+
+/**
+ * Convert undistributed income to principal for a fiscal year
+ *
+ * Per Trust Section 7.10(c): All income not distributed shall be added
+ * to principal at least annually. This function marks income entries as
+ * converted and creates corresponding principal entries.
+ */
+export async function convertIncomeToPrincipal(entityId: string, fiscalYear: number) {
+  // 1. Find all unconverted income entries for the fiscal year
+  const incomeEntries = await db.query.trustAccounting.findMany({
+    where: (ta, { and, eq: eqOp }) =>
+      and(
+        eqOp(ta.entityId, entityId),
+        eqOp(ta.entryType, "INCOME"),
+        eqOp(ta.isPrincipal, false),
+        eqOp(ta.convertedToPrincipal, false),
+        eqOp(ta.fiscalYear, fiscalYear),
+      ),
+  })
+
+  if (incomeEntries.length === 0) {
+    return {
+      success: true,
+      converted: 0,
+      totalAmount: "0.00",
+      entries: [],
+    }
+  }
+
+  // 2. Calculate total income to convert
+  const totalIncome = incomeEntries.reduce((sum, entry) => sum + (parseFloat(entry.amount) || 0), 0)
+
+  const now = new Date().toISOString()
+
+  // 3. Create a principal entry for the converted income
+  const principalEntryId = generateId()
+  await db.insert(trustAccounting).values({
+    id: principalEntryId,
+    entityId,
+    accountingDate: now,
+    entryType: "INCOME", // It's still income, but now classified as principal
+    incomeType: "INCOME_TO_PRINCIPAL_CONVERSION",
+    amount: totalIncome.toFixed(2),
+    description: `FY${fiscalYear} undistributed income added to principal per Trust Section 7.10(c)`,
+    isPrincipal: true, // Now treated as principal
+    fiscalYear,
+    notes: `Converted ${incomeEntries.length} income entries totaling $${totalIncome.toFixed(2)}`,
+    updatedAt: now,
+  })
+
+  // 4. Mark all the original income entries as converted
+  const convertedIds: string[] = []
+  for (const entry of incomeEntries) {
+    await db
+      .update(trustAccounting)
+      .set({
+        convertedToPrincipal: true,
+        conversionDate: now,
+        conversionEntryId: principalEntryId,
+        updatedAt: now,
+      })
+      .where(eq(trustAccounting.id, entry.id))
+    convertedIds.push(entry.id)
+  }
+
+  return {
+    success: true,
+    converted: incomeEntries.length,
+    totalAmount: totalIncome.toFixed(2),
+    principalEntryId,
+    convertedIds,
+  }
+}
+
+/**
+ * Get summary of unconverted income by fiscal year
+ */
+export async function getUnconvertedIncomeSummary(entityId: string) {
+  const entries = await db.query.trustAccounting.findMany({
+    where: (ta, { and, eq: eqOp }) =>
+      and(
+        eqOp(ta.entityId, entityId),
+        eqOp(ta.entryType, "INCOME"),
+        eqOp(ta.isPrincipal, false),
+        eqOp(ta.convertedToPrincipal, false),
+      ),
+    orderBy: (ta, { asc }) => [asc(ta.fiscalYear)],
+  })
+
+  // Group by fiscal year
+  const byYear: Record<number, { count: number; total: number }> = {}
+  for (const entry of entries) {
+    const year = entry.fiscalYear || new Date(entry.accountingDate).getFullYear()
+    if (!byYear[year]) {
+      byYear[year] = { count: 0, total: 0 }
+    }
+    byYear[year].count++
+    byYear[year].total += parseFloat(entry.amount) || 0
+  }
+
+  return Object.entries(byYear).map(([year, data]) => ({
+    fiscalYear: parseInt(year, 10),
+    entryCount: data.count,
+    totalAmount: data.total.toFixed(2),
+  }))
+}
+
+/**
+ * Allowlist of searchable fields in ActivityLog newValues JSONB column.
+ * Only these fields can be searched to prevent SQL injection.
+ */
+export const SEARCHABLE_ACTIVITY_LOG_FIELDS = [
+  "status",
+  "amount",
+  "currentBalance",
+  "name",
+  "firstName",
+  "lastName",
+  "email",
+  "action",
+  "category",
+  "distributionType",
+  "liabilityType",
+  "paymentMethod",
+] as const
+
+export type SearchableActivityLogField = (typeof SEARCHABLE_ACTIVITY_LOG_FIELDS)[number]
+
+/**
+ * Type guard to validate field name is in allowlist
+ */
+export function isSearchableActivityLogField(field: string): field is SearchableActivityLogField {
+  return SEARCHABLE_ACTIVITY_LOG_FIELDS.includes(field as SearchableActivityLogField)
+}
+
+/**
+ * Search ActivityLog for changes to specific fields using JSONB operators
+ *
+ * SECURITY: Uses allowlist for field names and parameterized queries for values
+ * to prevent SQL injection attacks.
+ *
+ * Example: Find all entries where status changed to "ACTIVE"
+ *
+ * @param fieldName - The JSONB field name to search for (must be in allowlist)
+ * @param fieldValue - The value to match (safely parameterized)
  * @returns Matching activity log entries with extracted field values
  */
-export async function searchActivityLogByField(fieldName: string, fieldValue: string) {
-  // Use parameterized query for field value, but field name must be static
-  // This is safe because fieldName is controlled by application code
-  const query = sql.raw(`
-    SELECT
-      al.id,
-      al.table_name,
-      al.record_id,
-      al.action,
-      al.changed_by,
-      al.created_at,
-      field_data.value as field_value
-    FROM "ActivityLog" al
-    LEFT JOIN LATERAL json_table(
-      al.new_values,
-      '$' COLUMNS (
-        value TEXT PATH '$.${fieldName}'
-      )
-    ) AS field_data ON true
-    WHERE field_data.value = '${fieldValue}'
-    ORDER BY al.created_at DESC
-    LIMIT 100
-  `)
+export async function searchActivityLogByField(
+  fieldName: SearchableActivityLogField,
+  fieldValue: string,
+) {
+  // Validate field name against allowlist (defense in depth - TypeScript enforces this too)
+  if (!isSearchableActivityLogField(fieldName)) {
+    throw new Error(
+      `Invalid field name: ${fieldName}. Allowed fields: ${SEARCHABLE_ACTIVITY_LOG_FIELDS.join(", ")}`,
+    )
+  }
 
-  return db.execute(query)
+  // Use parameterized query with JSONB ->> operator
+  // The field name is from allowlist (safe), the value is parameterized (safe)
+  return db
+    .select({
+      id: activityLog.id,
+      tableName: activityLog.tableName,
+      recordId: activityLog.recordId,
+      action: activityLog.action,
+      changedBy: activityLog.changedBy,
+      createdAt: activityLog.createdAt,
+      // Extract the field value from newValues JSONB
+      fieldValue: sql<string>`${activityLog.newValues}->>${fieldName}`,
+    })
+    .from(activityLog)
+    .where(sql`${activityLog.newValues}->>${fieldName} = ${fieldValue}`)
+    .orderBy(desc(activityLog.createdAt))
+    .limit(100)
 }
