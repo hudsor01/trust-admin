@@ -13,6 +13,8 @@ Trust Admin application development roadmap. v1.0 focused on code quality and re
 - ✅ **v1.0 Code Quality & Reliability** - Phases 1-11 (shipped 2026-01-09)
 - 🚧 **v2.0 Next.js + tRPC Migration** - Phases 12-17 (in progress)
 - 🔜 **v3.0 Database Schema Improvements** - Phases 18-24 (pending v2.0)
+- 🔜 **v4.0 Smart Liability Management** - Phases 25-29 (pending v2.0)
+- 🔜 **v5.0 Developer Experience & Observability** - Phases 30-35 (pending v2.0)
 
 ## Phases
 
@@ -699,11 +701,344 @@ These files can be copied directly with minimal changes:
 
 ---
 
+### 🔜 v4.0 Smart Liability Management (Pending v2.0 completion)
+
+**Milestone Goal:** Transform liability tracking from simple balance recording to intelligent loan management with automatic amortization calculations, payment tracking, and payoff projections. Make it easy to enter initial loan terms and have the system handle all calculations automatically.
+
+**Why This Matters:**
+- Users currently have to manually calculate principal/interest splits
+- No visibility into loan progress or payoff timelines
+- Initial data entry is tedious for multiple liabilities
+- No differentiation between liability types (mortgage vs credit card vs auto loan)
+
+**User Experience Goals:**
+- Enter loan terms once, system calculates everything thereafter
+- Type-aware forms that show relevant fields only
+- Real-time feedback as data is entered
+- Visual progress indicators for each liability
+- Bulk entry mode for initial inventory
+
+---
+
+#### Phase 25: Loan Terms Schema & Calculation Engine
+**Goal**: Add schema fields for loan terms and build backend amortization calculation logic
+
+**Depends on**: v2.0 complete
+
+**Research**: Yes (amortization formulas, edge cases for different loan types)
+
+**Plans**: 1 plan (5 tasks)
+
+**Schema Additions:**
+| Field | Type | Purpose |
+|-------|------|---------|
+| `loanTermMonths` | integer (nullable) | Loan duration (360 for 30yr, 60 for 5yr) |
+| `loanStartDate` | date (nullable) | When loan originated |
+| `escrowMonthly` | decimal (nullable) | Monthly escrow for taxes/insurance |
+| `isRevolvingCredit` | boolean | True for credit cards (no fixed term) |
+
+**Calculation Functions:**
+- `calculateAmortizationSchedule(principal, rate, termMonths, startDate)`
+- `getCurrentLoanPosition(schedule, currentBalance)`
+- `calculatePaymentSplit(currentBalance, annualRate, paymentAmount)`
+- `estimatePayoffDate(balance, rate, monthlyPayment)`
+
+**Tasks:**
+1. Add new fields to liability schema
+2. Create amortization calculation utilities
+3. Update recordPayment to auto-calculate principal/interest split
+4. Add payoff projection calculations
+5. Write unit tests for calculation edge cases
+
+Plans:
+- [ ] 25-01: Loan terms schema and calculation engine
+
+---
+
+#### Phase 26: Type-Aware Liability Form
+**Goal**: Dynamic form that adapts based on liability type, with smart defaults and real-time calculation feedback
+
+**Depends on**: Phase 25
+
+**Research**: Unlikely (UI patterns established)
+
+**Plans**: 1 plan (4 tasks)
+
+**Type Configurations:**
+| Type | Term Fields | Escrow | Smart Defaults |
+|------|-------------|--------|----------------|
+| MORTGAGE | Yes | Yes | 30yr, monthly payment |
+| LOAN | Yes | No | 5yr term |
+| CREDIT_CARD | No (revolving) | No | Show APR, min payment |
+| TAX_OWED | Optional | No | Payment plan terms |
+| ACCOUNTS_PAYABLE | No | No | Simple balance tracking |
+
+**UI Features:**
+- Type selector changes visible fields
+- Real-time payment calculation as user types
+- Validation feedback ("Calculated payment differs from entered")
+- "Existing Loan" mode: enter current balance, system calculates position
+- Collapsible sections for optional details
+
+**Tasks:**
+1. Create liability type configuration map
+2. Build dynamic form component with conditional fields
+3. Add real-time calculation display (payment, payoff date, progress)
+4. Implement validation with helpful feedback
+
+Plans:
+- [ ] 26-01: Type-aware liability form
+
+---
+
+#### Phase 27: Bulk Entry Mode
+**Goal**: Quick-entry interface for initial inventory of multiple liabilities
+
+**Depends on**: Phase 26
+
+**Research**: Unlikely (table/spreadsheet UI patterns)
+
+**Plans**: 1 plan (3 tasks)
+
+**Features:**
+- Spreadsheet-like table for rapid entry
+- Tab between cells, enter to add row
+- Paste from Excel/Google Sheets
+- Type column with dropdown
+- Validation row-by-row with error highlighting
+- "Import from CSV" option (future enhancement)
+
+**Tasks:**
+1. Build bulk entry table component
+2. Add keyboard navigation and paste handling
+3. Implement row validation and batch save
+
+Plans:
+- [ ] 27-01: Bulk entry mode for liabilities
+
+---
+
+#### Phase 28: Progress Visualization & Dashboard
+**Goal**: Visual representation of liability payoff progress and projections
+
+**Depends on**: Phase 25
+
+**Research**: Unlikely (visualization patterns)
+
+**Plans**: 1 plan (4 tasks)
+
+**Visualizations:**
+- Progress bars showing % paid off
+- Payments made vs total (e.g., "48/360")
+- Estimated payoff date
+- Principal paid vs interest paid breakdown
+- "On track" / "Ahead" / "Behind" indicators
+
+**Dashboard Enhancements:**
+- Liability summary cards with progress
+- Total debt trending over time
+- Next payments due calendar view
+- Payoff milestone celebrations
+
+**Tasks:**
+1. Create LiabilityProgressBar component
+2. Build enhanced liability list with progress indicators
+3. Add liability summary to main dashboard
+4. Implement payoff projections display
+
+Plans:
+- [ ] 28-01: Progress visualization and dashboard
+
+---
+
+#### Phase 29: Payment Recording Integration
+**Goal**: Seamless payment recording that auto-calculates splits and updates projections
+
+**Depends on**: Phases 25, 28
+
+**Research**: Unlikely (integration of existing work)
+
+**Plans**: 1 plan (3 tasks)
+
+**Payment Flow:**
+1. User clicks Record Payment
+2. Dialog pre-fills: suggested amount (monthly payment), current balance
+3. User enters actual payment amount
+4. System calculates: principal portion, interest portion, new balance
+5. Shows: "This payment reduces your balance to $X. Payoff date: Y"
+6. On save: creates payment record, updates balance, logs to trust accounting
+
+**Edge Cases:**
+- Extra payment → show accelerated payoff impact
+- Partial payment → warn about potential penalties
+- No interest rate → entire payment to principal
+- Escrow → separate from principal/interest
+
+**Tasks:**
+1. Update payment dialog with auto-calculation display
+2. Integrate payoff impact preview
+3. Handle edge cases (extra payments, partial, etc.)
+
+Plans:
+- [ ] 29-01: Payment recording integration
+
+---
+
+### 🔜 v5.0 Developer Experience & Observability (Pending v2.0 completion)
+
+**Milestone Goal:** Add modern DX packages to improve URL state management, money calculations, data visualization, list performance, navigation UX, and error monitoring.
+
+**Why This Matters:**
+- Entity selection doesn't persist in URL (can't share links, back button doesn't work)
+- Money calculations use parseFloat() which causes floating point errors
+- Dashboard lacks visual insights (no charts for asset allocation, trends)
+- Large lists (accounting, activity log) could benefit from virtualization
+- No quick navigation for power users (⌘K command palette)
+- No production error monitoring after Sentry was removed
+
+**Packages:**
+| Package | Purpose | Bundle Impact |
+|---------|---------|---------------|
+| nuqs | Type-safe URL state for Next.js | ~3KB |
+| dinero.js | Precise money calculations | ~5KB |
+| recharts | React charting library | ~40KB (tree-shakeable) |
+| @tanstack/react-virtual | List virtualization | ~10KB |
+| cmdk | Command palette (shadcn) | ~8KB |
+| @sentry/nextjs | Error monitoring | ~30KB |
+
+---
+
+#### Phase 30: nuqs URL State Management
+**Goal**: Replace useState with URL-based state for entity selection across all admin pages
+
+**Depends on**: v2.0 complete
+
+**Research**: Likely (nuqs Next.js 16 App Router patterns, searchParams handling)
+
+**Research topics**: nuqs parseAsString patterns, shallow routing, server component compatibility
+
+**Plans**: 1 plan (3 tasks)
+
+**Tasks:**
+1. Install nuqs, create useEntityFilter hook
+2. Replace selectedEntity useState with useQueryState in all 9 admin pages
+3. Test URL persistence, back button, shareable links
+
+Plans:
+- [ ] 30-01: nuqs URL state integration
+
+---
+
+#### Phase 31: dinero.js Money Calculations
+**Goal**: Replace parseFloat() with dinero.js for precise currency math
+
+**Depends on**: Phase 30
+
+**Research**: Likely (dinero.js v2 API, USD currency setup)
+
+**Research topics**: dinero.js v2 patterns, Drizzle string→dinero conversion, formatting
+
+**Plans**: 1 plan (4 tasks)
+
+**Tasks:**
+1. Install dinero.js, create money utility functions
+2. Update formatCurrency to use dinero
+3. Replace all parseFloat calculations with dinero operations
+4. Update summary cards and totals calculations
+
+Plans:
+- [ ] 31-01: dinero.js money calculations
+
+---
+
+#### Phase 32: recharts Dashboard Charts
+**Goal**: Add visual charts to dashboard for asset allocation, distributions over time, liability progress
+
+**Depends on**: Phase 31
+
+**Research**: Unlikely (standard React charting patterns)
+
+**Plans**: 1 plan (4 tasks)
+
+**Tasks:**
+1. Install recharts
+2. Create AssetAllocationChart (pie chart by asset type)
+3. Create DistributionTrendChart (line chart over time)
+4. Create LiabilityProgressChart (stacked bar showing paid vs remaining)
+
+Plans:
+- [ ] 32-01: Dashboard charts with recharts
+
+---
+
+#### Phase 33: @tanstack/react-virtual List Virtualization
+**Goal**: Virtualize large tables (accounting entries, activity log) for performance
+
+**Depends on**: Phase 32
+
+**Research**: Unlikely (@tanstack/react-virtual well-documented)
+
+**Plans**: 1 plan (3 tasks)
+
+**Tasks:**
+1. Install @tanstack/react-virtual
+2. Create VirtualizedTable component wrapping DataTable
+3. Apply to accounting page and activity log
+
+Plans:
+- [ ] 33-01: Virtual list implementation
+
+---
+
+#### Phase 34: cmdk Command Palette
+**Goal**: Add ⌘K command palette for quick navigation and actions
+
+**Depends on**: Phase 33
+
+**Research**: Unlikely (shadcn/ui cmdk component established)
+
+**Plans**: 1 plan (4 tasks)
+
+**Tasks:**
+1. Add shadcn command component (bunx shadcn@latest add command)
+2. Create CommandPalette with page navigation
+3. Add entity quick-switch commands
+4. Add keyboard shortcut (⌘K) to open palette
+
+Plans:
+- [ ] 34-01: Command palette implementation
+
+---
+
+#### Phase 35: @sentry/nextjs Error Monitoring
+**Goal**: Add production error monitoring and performance tracking
+
+**Depends on**: Phase 34
+
+**Research**: Likely (Sentry Next.js 16 integration, App Router patterns)
+
+**Research topics**: Sentry Next.js 16 setup, instrumentation.ts, error boundaries, performance monitoring
+
+**Plans**: 1 plan (4 tasks)
+
+**Tasks:**
+1. Install @sentry/nextjs, run setup wizard
+2. Configure sentry.client.config.ts and sentry.server.config.ts
+3. Add error boundary integration
+4. Test error capture in development
+
+Plans:
+- [ ] 35-01: Sentry error monitoring setup
+
+---
+
 ## Progress
 
 **Execution Order:**
 - v2.0: 12 → 13 → 14 → 15 → 16 → 17
 - v3.0: 18 → 19 → 20 → 21 → 22 → 23 → 24
+- v4.0: 25 → 26 → 27 → 28 → 29
+- v5.0: 30 → 31 → 32 → 33 → 34 → 35
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -731,3 +1066,14 @@ These files can be copied directly with minimal changes:
 | 22. Nullable FK Business Logic Review | v3.0 | 0/1 | Not started | - |
 | 23. Primary Key Type Migration | v3.0 | 0/1 | Not started | - |
 | 24. Table Naming Convention | v3.0 | 0/1 | Not started | - |
+| 25. Loan Terms Schema & Calculation Engine | v4.0 | 0/1 | Not started | - |
+| 26. Type-Aware Liability Form | v4.0 | 0/1 | Not started | - |
+| 27. Bulk Entry Mode | v4.0 | 0/1 | Not started | - |
+| 28. Progress Visualization & Dashboard | v4.0 | 0/1 | Not started | - |
+| 29. Payment Recording Integration | v4.0 | 0/1 | Not started | - |
+| 30. nuqs URL State Management | v5.0 | 0/1 | Not started | - |
+| 31. dinero.js Money Calculations | v5.0 | 0/1 | Not started | - |
+| 32. recharts Dashboard Charts | v5.0 | 0/1 | Not started | - |
+| 33. @tanstack/react-virtual Lists | v5.0 | 0/1 | Not started | - |
+| 34. cmdk Command Palette | v5.0 | 0/1 | Not started | - |
+| 35. Sentry Error Monitoring | v5.0 | 0/1 | Not started | - |

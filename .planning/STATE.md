@@ -11,11 +11,11 @@ See: .planning/PROJECT.md (updated 2026-01-09)
 ## Current Position
 
 Phase: 16 of 17 (Testing & Verification)
-Plan: Not started
-Status: Ready to execute
-Last activity: 2026-01-15 - Phase 15 Page Migration complete
+Plan: 16-01 complete, awaiting CRUD verification
+Status: Migration verified - build passes, typecheck clean, 174/177 tests pass
+Last activity: 2026-01-15 - Fixed residual Vite/Sentry references in lib files
 
-Progress: ████████████████████░░░░ 88% (15/17 phases complete)
+Progress: ████████████████████░░░░ 94% (16/17 phases complete, Phase 16 in progress)
 
 ## Performance Metrics
 
@@ -24,6 +24,31 @@ Progress: ████████████████████░░░�
 - v2.0 plans completed: 4
 
 ## Accumulated Context
+
+### v2.0 Phase 16 Progress (Testing & Verification):
+- ✅ Build passes (22 routes)
+- ✅ TypeScript compiles clean
+- ✅ 174 tests pass, 3 skip, 0 fail
+- ✅ Fixed env.ts SENTRY_DSN reference (removed from schema)
+- ✅ Cleaned up src/env.d.ts (removed Vite types, SENTRY_DSN)
+- ✅ Fixed admin layout missing auth check (caused infinite loading spinners)
+- ⏳ Awaiting CRUD/workflow manual verification (Phase 16 Task 3)
+
+### v2.0 Phase 17 Completed (Cleanup):
+- ✅ Old files already removed (index.ts, vite.config.ts, src/pages/, src/App.tsx)
+- ✅ package.json scripts already updated for Next.js
+- ✅ neon_workflow.yml updated: Bun setup, db:push, build verification, schema diff comments
+- ✅ ci.yml updated: Added Next.js build step with DATABASE_URL handling
+- ✅ All GitHub Actions pinned to commit SHAs for security
+- ✅ CLAUDE.md updated: tRPC patterns, new commands, current state
+
+### Trust Audit Gap Features (Ad-hoc, outside GSD):
+- ✅ Beneficiary death handling: `deceasedDate` field + `markDeceased` tRPC procedure
+- ✅ Automatic share redistribution on beneficiary death (Section 7.01)
+- ✅ Year-end income-to-principal conversion (Section 7.10(c))
+- ✅ UI: "Mark as Deceased" button in beneficiary dialog
+- ✅ UI: "Year-End Conversion" card in accounting page
+- ✅ docs/trust-audit-gaps.md updated with completed implementations
 
 ### v2.0 Phase 15 Completed:
 - ✅ All 15 admin pages migrated to App Router with tRPC
@@ -56,3 +81,5 @@ Note: All pages migrated to Next.js App Router with tRPC. Phase 16 will verify f
 | v1.0 Code Quality & Reliability | 1-11 | 41 | ✅ Complete | 2026-01-09 |
 | v2.0 Next.js + tRPC Migration | 12-17 | 6 | 🚧 In Progress | - |
 | v3.0 Database Schema Improvements | 18-24 | 7 | 🔜 Pending v2.0 | - |
+| v4.0 Smart Liability Management | 25-29 | 5 | 🔜 Pending v2.0 | - |
+| v5.0 Developer Experience & Observability | 30-35 | 6 | 🔜 Pending v2.0 | - |
