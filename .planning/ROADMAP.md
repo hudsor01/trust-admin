@@ -11,7 +11,7 @@ Trust Admin application development roadmap. v1.0 focused on code quality and re
 ## Milestones
 
 - ✅ **v1.0 Code Quality & Reliability** - Phases 1-11 (shipped 2026-01-09)
-- 🚧 **v2.0 Next.js + tRPC Migration** - Phases 12-17 (in progress)
+- ✅ **v2.0 Next.js + tRPC Migration** - Phases 12-17 (shipped 2026-01-16)
 - 🔜 **v3.0 Database Schema Improvements** - Phases 18-24 (pending v2.0)
 - 🔜 **v4.0 Smart Liability Management** - Phases 25-29 (pending v2.0)
 - 🔜 **v5.0 Developer Experience & Observability** - Phases 30-35 (pending v2.0)
@@ -122,7 +122,7 @@ Plans:
 
 </details>
 
-### 🚧 v2.0 Next.js + tRPC Migration (In Progress)
+### ✅ v2.0 Next.js + tRPC Migration (Shipped 2026-01-16)
 
 **Milestone Goal:** Migrate from React/Vite + Bun.serve() to Next.js 16.1 + tRPC v11 for improved type safety, developer experience, and scalability. In-place migration within the same codebase.
 
@@ -1057,8 +1057,8 @@ Plans:
 | 13. tRPC Setup | v2.0 | 1/1 | ✅ Complete | 2026-01-15 |
 | 14. Auth Migration | v2.0 | 1/1 | ✅ Complete | 2026-01-15 |
 | 15. Page Migration | v2.0 | 1/1 | ✅ Complete | 2026-01-15 |
-| 16. Testing & Verification | v2.0 | 0/1 | Not started | - |
-| 17. Cleanup | v2.0 | 0/1 | Not started | - |
+| 16. Testing & Verification | v2.0 | 1/1 | ✅ Complete | 2026-01-16 |
+| 17. Cleanup | v2.0 | 1/1 | ✅ Complete | 2026-01-16 |
 | 18. Timestamp Migration to TIMESTAMPTZ | v3.0 | 0/1 | Not started | - |
 | 19. Enum Type Corrections | v3.0 | 0/1 | Not started | - |
 | 20. Polymorphic Constraint Enforcement | v3.0 | 0/1 | Not started | - |
