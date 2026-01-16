@@ -925,7 +925,7 @@ Plans:
 3. Test URL persistence, back button, shareable links
 
 Plans:
-- [ ] 30-01: nuqs URL state integration
+- [x] 30-01: nuqs URL state integration (completed 2026-01-16)
 
 ---
 
@@ -1071,7 +1071,7 @@ Plans:
 | 27. Bulk Entry Mode | v4.0 | 0/1 | Not started | - |
 | 28. Progress Visualization & Dashboard | v4.0 | 0/1 | Not started | - |
 | 29. Payment Recording Integration | v4.0 | 0/1 | Not started | - |
-| 30. nuqs URL State Management | v5.0 | 0/1 | Not started | - |
+| 30. nuqs URL State Management | v5.0 | 1/1 | ✅ Complete | 2026-01-16 |
 | 31. dinero.js Money Calculations | v5.0 | 0/1 | Not started | - |
 | 32. recharts Dashboard Charts | v5.0 | 0/1 | Not started | - |
 | 33. @tanstack/react-virtual Lists | v5.0 | 0/1 | Not started | - |

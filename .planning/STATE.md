@@ -6,16 +6,16 @@ See: .planning/PROJECT.md (updated 2026-01-09)
 
 **Core value:** Reliable trust administration - The API works without silent failures, users see clear error messages, and the codebase is maintainable for ongoing development.
 
-**Current focus:** Phase 16 — Testing & Verification (v2.0 Next.js + tRPC Migration)
+**Current focus:** v2.0 Complete — Ready for v3.0 (Database Schema) or v5.0 (DX & Observability)
 
 ## Current Position
 
-Phase: 16 of 17 (Testing & Verification)
-Plan: 16-01 complete, awaiting CRUD verification
-Status: Migration verified - build passes, typecheck clean, 174/177 tests pass
-Last activity: 2026-01-15 - Fixed residual Vite/Sentry references in lib files
+Phase: 30 of 35 (v5.0 Started)
+Plan: 30-01 complete
+Status: Phase 30 complete - nuqs URL state management implemented
+Last activity: 2026-01-16 - Completed Phase 30 (nuqs URL state)
 
-Progress: ████████████████████░░░░ 94% (16/17 phases complete, Phase 16 in progress)
+Progress: █████░░░░░ 1/6 v5.0 phases complete
 
 ## Performance Metrics
 
@@ -24,6 +24,15 @@ Progress: ████████████████████░░░�
 - v2.0 plans completed: 4
 
 ## Accumulated Context
+
+### v5.0 Phase 30 Completed (nuqs URL State):
+- ✅ Installed nuqs v2.8.6 (~6KB gzipped)
+- ✅ Created `useEntityFilter` hook wrapping nuqs `useQueryState`
+- ✅ Added NuqsAdapter to root layout
+- ✅ Migrated all 11 admin pages from useState to URL-based entity selection
+- ✅ Entity selection now persists in URL as `?entity=<id>`
+- ✅ Verified: build passes, typecheck clean, no remaining selectedEntityOverride patterns
+- Note: Full testing requires multiple entities (currently only 1 trust exists)
 
 ### v2.0 Phase 16 Progress (Testing & Verification):
 - ✅ Build passes (22 routes)
@@ -79,7 +88,7 @@ Note: All pages migrated to Next.js App Router with tRPC. Phase 16 will verify f
 | Milestone | Phases | Plans | Status | Shipped |
 |-----------|--------|-------|--------|---------|
 | v1.0 Code Quality & Reliability | 1-11 | 41 | ✅ Complete | 2026-01-09 |
-| v2.0 Next.js + tRPC Migration | 12-17 | 6 | 🚧 In Progress | - |
-| v3.0 Database Schema Improvements | 18-24 | 7 | 🔜 Pending v2.0 | - |
-| v4.0 Smart Liability Management | 25-29 | 5 | 🔜 Pending v2.0 | - |
-| v5.0 Developer Experience & Observability | 30-35 | 6 | 🔜 Pending v2.0 | - |
+| v2.0 Next.js + tRPC Migration | 12-17 | 6 | ✅ Complete | 2026-01-16 |
+| v3.0 Database Schema Improvements | 18-24 | 7 | 🔜 Pending | - |
+| v4.0 Smart Liability Management | 25-29 | 5 | 🔜 Pending | - |
+| v5.0 Developer Experience & Observability | 30-35 | 6 | 🔄 In Progress | - |
