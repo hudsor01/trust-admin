@@ -35,6 +35,7 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip'
 import type { SpecificBequest } from '@/db/schema'
+import { useEntityFilter } from '@/hooks/use-entity-filter'
 import { useResourceForm } from '@/hooks/use-resource-form'
 import { trpc } from '@/lib/trpc'
 import { formatDate } from '@/utils/formatters'
@@ -56,10 +57,8 @@ export default function BequestsPage() {
 
     const { data: entities = [], isLoading: entitiesLoading } =
         trpc.entity.list.useQuery()
-    const [selectedEntityOverride, setSelectedEntity] = useState<
-        string | undefined
-    >(undefined)
-    const selectedEntity = selectedEntityOverride ?? entities[0]?.id
+    const [entityId, setEntityId] = useEntityFilter()
+    const selectedEntity = entityId || entities[0]?.id
 
     const { data: beneficiaries = [] } = trpc.beneficiary.list.useQuery(
         { entityId: selectedEntity! },
@@ -192,7 +191,7 @@ export default function BequestsPage() {
                 <div className="flex items-center gap-2">
                     <Select
                         value={selectedEntity || ''}
-                        onValueChange={setSelectedEntity}
+                        onValueChange={(val) => setEntityId(val || null)}
                     >
                         <SelectTrigger className="w-[250px]">
                             <SelectValue placeholder="Select Trust" />
