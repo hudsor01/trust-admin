@@ -6,9 +6,11 @@
 <vision>
 ## How This Should Work
 
-When a trustee opens the dashboard, they should immediately see the financial health of the trust at a glance. The primary visual is a **net worth summary** - total assets vs total liabilities - so you instantly know "how healthy is this trust?"
+When I (the trustee) open the admin dashboard, I immediately see the financial health of the trust at a glance. The primary visual is a **net worth summary** - total assets vs total liabilities - so I instantly know "how healthy is this trust?"
 
 This is about **financial snapshot**, not historical analysis. Current state only. The charts should communicate value in seconds, not require study.
+
+Note: Beneficiaries have their own portal (magic link login) with a different, limited view. These charts are for the admin dashboard only.
 
 </vision>
 
@@ -17,7 +19,7 @@ This is about **financial snapshot**, not historical analysis. Current state onl
 
 - **Clarity over features** - One or two charts that are immediately understandable. No dashboard clutter. Quality over quantity.
 - **Net worth first** - The big picture (assets vs liabilities) should be the most prominent visual element.
-- **Instant comprehension** - A trustee glances at the dashboard and knows the trust's financial position.
+- **Instant comprehension** - I glance at the dashboard and know the trust's financial position.
 
 </essential>
 
@@ -50,7 +52,7 @@ The roadmap mentions three potential charts:
 
 User prioritizes: net worth summary > asset allocation > liability progress
 
-Focus: Make charts that a busy trustee can understand in 2 seconds.
+Focus: Charts I can understand in 2 seconds.
 
 </notes>
 
