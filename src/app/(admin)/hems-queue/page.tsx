@@ -41,6 +41,7 @@ import { Textarea } from '@/components/ui/textarea'
 import type { HemsRequest } from '@/db/schema'
 import { useEntityFilter } from '@/hooks/use-entity-filter'
 import { STATUS_VARIANTS } from '@/lib/constants'
+import { sumStrings } from '@/lib/money'
 import { trpc } from '@/lib/trpc'
 import { formatCurrency, formatDate } from '@/utils/formatters'
 
@@ -157,7 +158,7 @@ export default function HemsQueuePage() {
             header: 'Amount',
             render: (request) => (
                 <span className="font-medium">
-                    {formatCurrency(parseFloat(request.amountRequested))}
+                    {formatCurrency(request.amountRequested)}
                 </span>
             ),
         },
@@ -301,11 +302,10 @@ export default function HemsQueuePage() {
                     <CardContent>
                         <div className="text-2xl font-bold">
                             {formatCurrency(
-                                pendingRequests.reduce(
-                                    (sum, r) =>
-                                        sum +
-                                        parseFloat(r.amountRequested || '0'),
-                                    0,
+                                sumStrings(
+                                    pendingRequests.map(
+                                        (r) => r.amountRequested,
+                                    ),
                                 ),
                             )}
                         </div>
@@ -404,9 +404,7 @@ export default function HemsQueuePage() {
                                     </span>
                                     <span className="font-medium">
                                         {formatCurrency(
-                                            parseFloat(
-                                                reviewingRequest.amountRequested,
-                                            ),
+                                            reviewingRequest.amountRequested,
                                         )}
                                     </span>
                                 </div>
@@ -472,9 +470,7 @@ export default function HemsQueuePage() {
                                             </span>
                                             <span className="font-medium">
                                                 {formatCurrency(
-                                                    parseFloat(
-                                                        reviewingRequest.approvedAmount,
-                                                    ),
+                                                    reviewingRequest.approvedAmount,
                                                 )}
                                             </span>
                                         </div>

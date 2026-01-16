@@ -44,6 +44,7 @@ import {
 } from '@/lib/constants'
 import { toDateInput, vehicleFormDefaults } from '@/lib/form-factory'
 import { getFieldError } from '@/lib/form-helpers'
+import { sumStrings } from '@/lib/money'
 import { trpc } from '@/lib/trpc'
 import {
     asRecordStatus,
@@ -183,10 +184,7 @@ export default function VehiclesPage() {
         )
     })
 
-    const totalValue = vehicles.reduce(
-        (sum, v) => sum + (parseFloat(v.dodValue || '0') || 0),
-        0,
-    )
+    const totalValue = sumStrings(vehicles.map((v) => v.dodValue))
 
     return (
         <div className="space-y-6">
@@ -195,7 +193,7 @@ export default function VehiclesPage() {
                 <p className="text-sm text-muted-foreground">
                     Manage vehicle assets
                     {vehicles.length > 0 &&
-                        ` - Total DOD Value: ${formatCurrency(totalValue.toString())}`}
+                        ` - Total DOD Value: ${formatCurrency(totalValue)}`}
                 </p>
                 <Select
                     value={selectedEntity || undefined}

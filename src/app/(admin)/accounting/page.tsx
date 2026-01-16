@@ -33,6 +33,7 @@ import {
 import type { TrustAccounting } from '@/db/schema'
 import { useEntityFilter } from '@/hooks/use-entity-filter'
 import { useResourceForm } from '@/hooks/use-resource-form'
+import { isNegative, subtractMoney, sumStrings } from '@/lib/money'
 import { trpc } from '@/lib/trpc'
 import { cn } from '@/lib/utils'
 import { formatCurrency, formatDate } from '@/utils/formatters'
@@ -238,38 +239,32 @@ export default function AccountingPage() {
     } = useMemo(() => {
         const income = entries.filter((e) => e.entryType === 'INCOME')
         const expense = entries.filter((e) => e.entryType === 'EXPENSE')
-        const incTotal = income.reduce(
-            (sum, e) => sum + parseFloat(e.amount || '0'),
-            0,
+        const incTotal = sumStrings(income.map((e) => e.amount))
+        const expTotal = sumStrings(expense.map((e) => e.amount))
+        const deductible = sumStrings(
+            expense.filter((e) => e.taxDeductible).map((e) => e.amount),
         )
-        const expTotal = expense.reduce(
-            (sum, e) => sum + parseFloat(e.amount || '0'),
-            0,
-        )
-        const deductible = expense
-            .filter((e) => e.taxDeductible)
-            .reduce((sum, e) => sum + parseFloat(e.amount || '0'), 0)
 
         // Texas 113.152(2) - categorize by principal and income
-        const principalRec = income
-            .filter((e) => e.isPrincipal)
-            .reduce((sum, e) => sum + parseFloat(e.amount || '0'), 0)
-        const incomeRec = income
-            .filter((e) => !e.isPrincipal)
-            .reduce((sum, e) => sum + parseFloat(e.amount || '0'), 0)
-        const principalDisb = expense
-            .filter((e) => e.isPrincipal)
-            .reduce((sum, e) => sum + parseFloat(e.amount || '0'), 0)
-        const incomeDisb = expense
-            .filter((e) => !e.isPrincipal)
-            .reduce((sum, e) => sum + parseFloat(e.amount || '0'), 0)
+        const principalRec = sumStrings(
+            income.filter((e) => e.isPrincipal).map((e) => e.amount),
+        )
+        const incomeRec = sumStrings(
+            income.filter((e) => !e.isPrincipal).map((e) => e.amount),
+        )
+        const principalDisb = sumStrings(
+            expense.filter((e) => e.isPrincipal).map((e) => e.amount),
+        )
+        const incomeDisb = sumStrings(
+            expense.filter((e) => !e.isPrincipal).map((e) => e.amount),
+        )
 
         return {
             incomeEntries: income,
             expenseEntries: expense,
             incomeTotal: incTotal,
             expenseTotal: expTotal,
-            netIncome: incTotal - expTotal,
+            netIncome: subtractMoney(incTotal, expTotal),
             deductibleExpenses: deductible,
             principalReceipts: principalRec,
             incomeReceipts: incomeRec,
@@ -594,9 +589,9 @@ export default function AccountingPage() {
                             <p
                                 className={cn(
                                     'mt-2 text-2xl font-bold',
-                                    netIncome >= 0
-                                        ? 'text-success'
-                                        : 'text-destructive',
+                                    isNegative(netIncome)
+                                        ? 'text-destructive'
+                                        : 'text-success',
                                 )}
                             >
                                 {formatCurrency(netIncome)}

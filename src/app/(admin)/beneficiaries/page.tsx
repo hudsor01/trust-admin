@@ -51,6 +51,7 @@ import {
 // import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import type { Beneficiary } from '@/db/schema'
 import { useEntityFilter } from '@/hooks/use-entity-filter'
+import { isPositive, sumStrings } from '@/lib/money'
 import { trpc } from '@/lib/trpc'
 import {
     asDistributionStandard,
@@ -216,7 +217,7 @@ export default function BeneficiariesPage() {
         if (
             !selectedBeneficiary ||
             !newDistribution.amount ||
-            parseFloat(newDistribution.amount) <= 0
+            !isPositive(newDistribution.amount)
         )
             return
 
@@ -260,22 +261,16 @@ export default function BeneficiariesPage() {
 
     const totalDistributed = useMemo(
         () =>
-            beneficiaries.reduce((sum, b) => {
-                const bTotal = (b.distributions || []).reduce(
-                    (s, d) => s + parseFloat(d.amount),
-                    0,
-                )
-                return sum + bTotal
-            }, 0),
+            sumStrings(
+                beneficiaries.flatMap((b) =>
+                    (b.distributions || []).map((d) => d.amount),
+                ),
+            ),
         [beneficiaries],
     )
 
     const totalShares = useMemo(
-        () =>
-            beneficiaries.reduce(
-                (sum, b) => sum + parseFloat(b.sharePercent || '0'),
-                0,
-            ),
+        () => sumStrings(beneficiaries.map((b) => b.sharePercent)),
         [beneficiaries],
     )
 
@@ -432,9 +427,8 @@ export default function BeneficiariesPage() {
             key: 'totalDistributed',
             header: 'Distributed',
             render: (b) => {
-                const totalDist = (b.distributions || []).reduce(
-                    (s, d) => s + parseFloat(d.amount),
-                    0,
+                const totalDist = sumStrings(
+                    (b.distributions || []).map((d) => d.amount),
                 )
                 return (
                     <span className="text-sm font-medium tabular-nums">
@@ -499,7 +493,7 @@ export default function BeneficiariesPage() {
                                 Total Shares
                             </p>
                             <p className="mt-2 text-2xl font-bold">
-                                {totalShares.toFixed(1)}%
+                                {totalShares}%
                             </p>
                         </CardContent>
                     </Card>

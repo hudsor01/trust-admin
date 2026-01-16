@@ -31,6 +31,7 @@ import {
     investmentAccountFormDefaults,
     toDateInput,
 } from '@/lib/form-factory'
+import { sumStrings } from '@/lib/money'
 import { trpc } from '@/lib/trpc'
 import { asRecordStatus, asTransferStatus } from '@/lib/type-utils'
 import { formatCurrency } from '@/utils/formatters'
@@ -549,13 +550,9 @@ export default function AccountsPage() {
         handleDeleteInvestment,
     )
 
-    const totalBankValue = bankAccounts.reduce(
-        (sum, a) => sum + (parseFloat(a.dodValue || '0') || 0),
-        0,
-    )
-    const totalInvestmentValue = investmentAccounts.reduce(
-        (sum, a) => sum + (parseFloat(a.dodValue || '0') || 0),
-        0,
+    const totalBankValue = sumStrings(bankAccounts.map((a) => a.dodValue))
+    const totalInvestmentValue = sumStrings(
+        investmentAccounts.map((a) => a.dodValue),
     )
 
     return (

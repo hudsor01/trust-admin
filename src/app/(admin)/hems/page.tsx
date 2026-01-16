@@ -31,6 +31,7 @@ import { Textarea } from '@/components/ui/textarea'
 import type { Beneficiary, Distribution, WithdrawalRecord } from '@/db/schema'
 import { useEntityFilter } from '@/hooks/use-entity-filter'
 import { useResourceForm } from '@/hooks/use-resource-form'
+import { addMoney, sumStrings } from '@/lib/money'
 import { trpc } from '@/lib/trpc'
 import {
     asPaymentMethod,
@@ -273,15 +274,17 @@ export default function DistributionsPage() {
     const hemsDistributions = distributions.filter(
         (d) => d.hemsCategory && !d.isWithdrawal,
     )
-    const hemsTotalDistributed = hemsDistributions.reduce(
-        (sum, d) => sum + parseFloat(d.amount),
-        0,
+    const hemsTotalDistributed = sumStrings(
+        hemsDistributions.map((d) => d.amount),
     )
-    const withdrawalsTotalProcessed = distributions
-        .filter((d) => d.isWithdrawal)
-        .reduce((sum, d) => sum + parseFloat(d.amount), 0)
+    const withdrawalsTotalProcessed = sumStrings(
+        distributions.filter((d) => d.isWithdrawal).map((d) => d.amount),
+    )
     const eligibleWithdrawalsCount = eligibleWithdrawals.length
-    const totalDistributed = hemsTotalDistributed + withdrawalsTotalProcessed
+    const totalDistributed = addMoney(
+        hemsTotalDistributed,
+        withdrawalsTotalProcessed,
+    )
 
     const hemsColumns: ColumnDef<Distribution>[] = [
         {

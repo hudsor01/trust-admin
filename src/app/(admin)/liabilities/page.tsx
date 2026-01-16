@@ -34,6 +34,7 @@ import { useEntityFilter } from '@/hooks/use-entity-filter'
 import { useResourceForm } from '@/hooks/use-resource-form'
 import { STATUS_VARIANTS } from '@/lib/constants'
 import { toDateInput } from '@/lib/form-factory'
+import { sumStrings } from '@/lib/money'
 import { trpc } from '@/lib/trpc'
 import {
     ALLOCATION_CLASS_VALUES,
@@ -286,15 +287,13 @@ export default function LiabilitiesPage() {
         )
     }
 
-    const totalLiabilities = liabilities.reduce(
-        (sum, l) => sum + (parseFloat(l.currentBalance || '0') || 0),
-        0,
+    const totalLiabilities = sumStrings(
+        liabilities.map((l) => l.currentBalance),
     )
 
     const activeLiabilities = liabilities.filter((l) => l.status === 'ACTIVE')
-    const totalActive = activeLiabilities.reduce(
-        (sum, l) => sum + (parseFloat(l.currentBalance || '0') || 0),
-        0,
+    const totalActive = sumStrings(
+        activeLiabilities.map((l) => l.currentBalance),
     )
 
     const liabilityColumns: ColumnDef<Liability>[] = [
