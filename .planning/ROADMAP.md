@@ -947,7 +947,7 @@ Plans:
 4. Update summary cards and totals calculations
 
 Plans:
-- [ ] 31-01: dinero.js money calculations
+- [x] 31-01: dinero.js money calculations (completed 2026-01-16)
 
 ---
 
@@ -1072,7 +1072,7 @@ Plans:
 | 28. Progress Visualization & Dashboard | v4.0 | 0/1 | Not started | - |
 | 29. Payment Recording Integration | v4.0 | 0/1 | Not started | - |
 | 30. nuqs URL State Management | v5.0 | 1/1 | ✅ Complete | 2026-01-16 |
-| 31. dinero.js Money Calculations | v5.0 | 0/1 | Not started | - |
+| 31. dinero.js Money Calculations | v5.0 | 1/1 | ✅ Complete | 2026-01-16 |
 | 32. recharts Dashboard Charts | v5.0 | 0/1 | Not started | - |
 | 33. @tanstack/react-virtual Lists | v5.0 | 0/1 | Not started | - |
 | 34. cmdk Command Palette | v5.0 | 0/1 | Not started | - |

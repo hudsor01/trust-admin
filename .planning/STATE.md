@@ -10,12 +10,12 @@ See: .planning/PROJECT.md (updated 2026-01-09)
 
 ## Current Position
 
-Phase: 30 of 35 (v5.0 Started)
-Plan: 30-01 complete
-Status: Phase 30 complete - nuqs URL state management implemented
-Last activity: 2026-01-16 - Completed Phase 30 (nuqs URL state)
+Phase: 31 of 35 (v5.0 In Progress)
+Plan: 31-01 complete
+Status: Phase 31 complete - dinero.js money calculations implemented
+Last activity: 2026-01-16 - Completed Phase 31 (dinero.js money calculations)
 
-Progress: █████░░░░░ 1/6 v5.0 phases complete
+Progress: ██████░░░░ 2/6 v5.0 phases complete
 
 ## Performance Metrics
 
@@ -24,6 +24,19 @@ Progress: █████░░░░░ 1/6 v5.0 phases complete
 - v2.0 plans completed: 4
 
 ## Accumulated Context
+
+### v5.0 Phase 31 Completed (dinero.js Money Calculations):
+- ✅ Installed dinero.js v2 alpha and @dinero.js/currencies
+- ✅ Created `src/lib/money.ts` utility module:
+  - `toDinero()`: Convert DB strings to Dinero objects
+  - `sumStrings()`: Sum array of money strings with precision
+  - `addMoney()`, `subtractMoney()`: Binary operations
+  - `formatMoney()`: Display formatting with locale support
+  - `isPositive()`, `isNegative()`, `isZero()`: Comparison helpers
+- ✅ Updated `formatCurrency` to delegate to dinero.js
+- ✅ Replaced parseFloat calculations in 9 component files
+- ✅ All 174 tests pass, build succeeds
+- Pattern: `sumStrings(items.map(x => x.amount))` for totals
 
 ### v5.0 Phase 30 Completed (nuqs URL State):
 - ✅ Installed nuqs v2.8.6 (~6KB gzipped)
@@ -79,9 +92,9 @@ Progress: █████░░░░░ 1/6 v5.0 phases complete
 
 ## Session Continuity
 
-Last session: 2026-01-15
-Stopped at: Phase 15 complete - Ready to execute Phase 16 (Testing & Verification)
-Note: All pages migrated to Next.js App Router with tRPC. Phase 16 will verify functionality.
+Last session: 2026-01-16
+Stopped at: Phase 31 complete - Ready for Phase 32 (recharts Dashboard Charts)
+Note: Precision money calculations in place. Dashboard ready for visualization enhancements.
 
 ## Milestone History
 
