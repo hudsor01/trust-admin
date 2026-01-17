@@ -65,6 +65,20 @@ export default function DashboardPage() {
     const { data: hemsRequests = [], isLoading: hemsLoading } =
         trpc.hemsRequest.list.useQuery()
 
+    // Asset queries for charts
+    const { data: bankAccounts = [], isLoading: bankAccountsLoading } =
+        trpc.bankAccount.list.useQuery()
+    const { data: investmentAccounts = [], isLoading: investmentsLoading } =
+        trpc.investmentAccount.list.useQuery()
+    const { data: homesteads = [], isLoading: homesteadsLoading } =
+        trpc.homestead.list.useQuery()
+    const { data: rentalProperties = [], isLoading: rentalsLoading } =
+        trpc.rentalProperty.list.useQuery()
+    const { data: vehicles = [], isLoading: vehiclesLoading } =
+        trpc.vehicle.list.useQuery()
+    const { data: liabilities = [], isLoading: liabilitiesLoading } =
+        trpc.liability.list.useQuery()
+
     const utils = trpc.useUtils()
     const createTaskMutation = trpc.task.create.useMutation({
         onSuccess: () => utils.task.list.invalidate(),
@@ -79,7 +93,13 @@ export default function DashboardPage() {
         beneficiariesLoading ||
         withdrawalRecordsLoading ||
         accountingLoading ||
-        hemsLoading
+        hemsLoading ||
+        bankAccountsLoading ||
+        investmentsLoading ||
+        homesteadsLoading ||
+        rentalsLoading ||
+        vehiclesLoading ||
+        liabilitiesLoading
 
     // Get primary entity
     const entity = allEntities.length > 0 ? allEntities[0] : null
@@ -169,6 +189,31 @@ export default function DashboardPage() {
             .map((e) => e.amount),
     )
     const netIncome = subtractMoney(incomeTotal, expenseTotal)
+
+    // Calculate asset totals for charts using dinero.js for precision
+    const totalBankAccounts = sumStrings(
+        bankAccounts.map((a) => a.currentBalance ?? '0'),
+    )
+    const totalInvestments = sumStrings(
+        investmentAccounts.map((a) => a.currentBalance ?? '0'),
+    )
+    const totalRealEstate = sumStrings(
+        [...homesteads, ...rentalProperties].map((p) => p.dodValue ?? '0'),
+    )
+    const totalVehicles = sumStrings(vehicles.map((v) => v.dodValue ?? '0'))
+    const totalLiabilities = sumStrings(
+        liabilities.map((l) => l.currentBalance ?? '0'),
+    )
+
+    // Calculate total assets and net worth
+    const totalAssets = sumStrings([
+        totalBankAccounts,
+        totalInvestments,
+        totalRealEstate,
+        totalVehicles,
+    ])
+    // netWorth will be used by NetWorthChart in Task 3
+    const _netWorth = subtractMoney(totalAssets, totalLiabilities)
 
     // Get grandchildren with withdrawal info
     const grandchildren = beneficiaries.filter(
