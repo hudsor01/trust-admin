@@ -717,7 +717,15 @@ export default function LiabilitiesPage() {
                                     </div>
                                 )}
                             </liabilityFormInstance.Field>
-                            <liabilityFormInstance.Field name="creditor">
+                            <liabilityFormInstance.Field
+                                name="creditor"
+                                validators={{
+                                    onBlur: ({ value }) =>
+                                        !value?.trim()
+                                            ? 'Creditor is required'
+                                            : undefined,
+                                }}
+                            >
                                 {(field) => (
                                     <div className="space-y-2">
                                         <Label htmlFor="creditor">
@@ -820,7 +828,23 @@ export default function LiabilitiesPage() {
                                             )}
                                         </liabilityFormInstance.Field>
                                     </div>
-                                    <liabilityFormInstance.Field name="currentBalance">
+                                    <liabilityFormInstance.Field
+                                        name="currentBalance"
+                                        validators={{
+                                            onBlur: ({ value }) => {
+                                                if (!value?.trim())
+                                                    return 'Current balance is required'
+                                                const num = parseFloat(
+                                                    value.replace(/[,$]/g, ''),
+                                                )
+                                                if (Number.isNaN(num))
+                                                    return 'Enter a valid amount'
+                                                if (num < 0)
+                                                    return 'Balance cannot be negative'
+                                                return undefined
+                                            },
+                                        }}
+                                    >
                                         {(field) => (
                                             <div className="space-y-2">
                                                 <Label htmlFor="current-balance">
@@ -851,7 +875,23 @@ export default function LiabilitiesPage() {
                                     </liabilityFormInstance.Field>
                                 </div>
                                 <div className="grid grid-cols-3 gap-4 mt-4">
-                                    <liabilityFormInstance.Field name="interestRate">
+                                    <liabilityFormInstance.Field
+                                        name="interestRate"
+                                        validators={{
+                                            onBlur: ({ value }) => {
+                                                if (!value?.trim())
+                                                    return undefined // Optional field
+                                                const num = parseFloat(value)
+                                                if (Number.isNaN(num))
+                                                    return 'Enter a valid percentage'
+                                                if (num < 0)
+                                                    return 'Rate cannot be negative'
+                                                if (num > 100)
+                                                    return 'Rate seems unusually high (>100%)'
+                                                return undefined
+                                            },
+                                        }}
+                                    >
                                         {(field) => (
                                             <div className="space-y-2">
                                                 <Label htmlFor="interest-rate">
