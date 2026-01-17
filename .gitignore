@@ -4,6 +4,7 @@ node_modules
 # output
 out
 dist
+.next
 *.tgz
 
 # code coverage
@@ -41,3 +42,6 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 # Docker secrets - NEVER commit these
 /secrets/*
 !/secrets/.gitkeep
+
+# Planning files - private development notes
+.planning/
