@@ -6,16 +6,16 @@ See: .planning/PROJECT.md (updated 2026-01-09)
 
 **Core value:** Reliable trust administration - The API works without silent failures, users see clear error messages, and the codebase is maintainable for ongoing development.
 
-**Current focus:** v4.0 Smart Liability Management - Phase 26 complete, Phase 27 next
+**Current focus:** v4.0 Smart Liability Management - Phase 27 complete, Phase 28 next
 
 ## Current Position
 
-Phase: 27 of 29 (v4.0 Smart Liability Management)
+Phase: 28 of 29 (v4.0 Smart Liability Management)
 Plan: 0 of 1 in current phase
 Status: Ready to plan
-Last activity: 2026-01-17 - Completed Phase 26 (type-aware liability form)
+Last activity: 2026-01-17 - Completed Phase 27 (bulk entry mode)
 
-Progress: ████████████░░░ 4/5 v4.0 plans complete
+Progress: █████████████░░ 5/5 v4.0 plans complete (Phase 28-29 remaining)
 
 ## Performance Metrics
 
@@ -24,6 +24,20 @@ Progress: ████████████░░░ 4/5 v4.0 plans complete
 - v2.0 plans completed: 4
 
 ## Accumulated Context
+
+### v4.0 Phase 27 COMPLETE (Bulk Entry Mode):
+
+**27-01 Completed (Spreadsheet-Style Bulk Entry):**
+- ✅ Created `src/components/bulk-entry-table.tsx` (473 lines)
+- ✅ `useFieldArray` for multi-row form state management
+- ✅ Keyboard navigation: Tab cycles columns, Enter adds rows, Arrow keys move rows
+- ✅ Excel/Google Sheets paste handling (tab-delimited)
+- ✅ Type-aware column visibility (loan term fields for MORTGAGE/LOAN only)
+- ✅ Per-row Zod validation with inline error display
+- ✅ Added `bulkCreate` tRPC procedure for batch creation
+- ✅ Integrated into liabilities page with mode toggle
+- Pattern: `data-row`/`data-col` attributes for keyboard nav targeting
+- Pattern: `clipboardData.getData('text/plain')` + tab split for paste
 
 ### v4.0 Phase 26 COMPLETE (Type-Aware Liability Form):
 
@@ -177,7 +191,7 @@ Progress: ████████████░░░ 4/5 v4.0 plans complete
 ## Session Continuity
 
 Last session: 2026-01-17
-Stopped at: Completed Phase 26 (type-aware liability form), ready for Phase 27
+Stopped at: Completed Phase 27 (bulk entry mode), ready for Phase 28
 Resume file: None
 
 ## Milestone History

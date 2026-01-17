@@ -817,7 +817,7 @@ Plans:
 3. Implement row validation and batch save
 
 Plans:
-- [ ] 27-01: Bulk entry mode for liabilities
+- [x] 27-01: Bulk entry mode for liabilities
 
 ---
 
@@ -1236,7 +1236,7 @@ Plans:
 | 24. Table Naming Convention | v3.0 | 0/1 | Not started | - |
 | 25. Loan Terms Schema & Calculation Engine | v4.0 | 3/3 | ✅ Complete | 2026-01-17 |
 | 26. Type-Aware Liability Form | v4.0 | 1/1 | ✅ Complete | 2026-01-17 |
-| 27. Bulk Entry Mode | v4.0 | 0/1 | Not started | - |
+| 27. Bulk Entry Mode | v4.0 | 1/1 | ✅ Complete | 2026-01-17 |
 | 28. Progress Visualization & Dashboard | v4.0 | 0/1 | Not started | - |
 | 29. Payment Recording Integration | v4.0 | 0/1 | Not started | - |
 | 30. nuqs URL State Management | v5.0 | 1/1 | ✅ Complete | 2026-01-16 |
