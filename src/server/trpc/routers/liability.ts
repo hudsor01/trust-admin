@@ -9,7 +9,19 @@ import {
     updateLiabilitySchema,
 } from '../../../../db/validation'
 import { estimatePayoffDate } from '../../../lib/amortization'
+import { LIABILITY_TYPE_VALUES } from '../../../lib/type-utils'
 import { adminProcedure, createTRPCRouter } from '../index'
+
+// Schema for bulk entry rows (simplified subset for rapid entry)
+const bulkLiabilityRowSchema = z.object({
+    liabilityType: z.enum(LIABILITY_TYPE_VALUES),
+    creditor: z.string().min(1),
+    currentBalance: z.string().regex(/^[\d,]+\.?\d*$/),
+    interestRate: z.string().optional(),
+    monthlyPayment: z.string().optional(),
+    loanTermMonths: z.string().optional(),
+    escrowMonthly: z.string().optional(),
+})
 
 const recordPaymentSchema = z.object({
     liabilityId: z.string(),
@@ -23,6 +35,8 @@ const recordPaymentSchema = z.object({
     referenceNumber: z.string().optional(),
     notes: z.string().optional(),
     paidFromAccountId: z.string().optional(),
+    // Allocation class for trust accounting (Principal vs Income)
+    allocationClass: z.enum(['PRINCIPAL', 'INCOME']).optional(),
 })
 
 export const liabilityRouter = createTRPCRouter({
@@ -52,6 +66,47 @@ export const liabilityRouter = createTRPCRouter({
     delete: adminProcedure.input(z.string()).mutation(async ({ input }) => {
         return liabilityCrud.delete(input)
     }),
+
+    // Special: Bulk create multiple liabilities at once
+    bulkCreate: adminProcedure
+        .input(
+            z.object({
+                entityId: z.string(),
+                liabilities: z.array(bulkLiabilityRowSchema),
+            }),
+        )
+        .mutation(async ({ input }) => {
+            const results = await Promise.all(
+                input.liabilities.map((row) => {
+                    // Clean numeric strings (remove commas)
+                    const cleanBalance = row.currentBalance.replace(/,/g, '')
+                    const cleanRate =
+                        row.interestRate?.replace(/,/g, '') || null
+                    const cleanPayment =
+                        row.monthlyPayment?.replace(/,/g, '') || null
+                    const cleanEscrow =
+                        row.escrowMonthly?.replace(/,/g, '') || null
+                    const cleanTerm = row.loanTermMonths
+                        ? parseInt(row.loanTermMonths, 10)
+                        : null
+
+                    return liabilityCrud.create({
+                        entityId: input.entityId,
+                        liabilityType: row.liabilityType,
+                        creditor: row.creditor,
+                        originalAmount: cleanBalance, // Use current balance as original for new entries
+                        currentBalance: cleanBalance,
+                        interestRate: cleanRate,
+                        monthlyPayment: cleanPayment,
+                        escrowMonthly: cleanEscrow,
+                        loanTermMonths: cleanTerm,
+                        isRevolvingCredit: row.liabilityType === 'CREDIT_CARD',
+                        status: 'ACTIVE',
+                    })
+                }),
+            )
+            return results
+        }),
 
     // Special: Record payment with auto-accounting entry
     recordPayment: adminProcedure

@@ -1,8 +1,20 @@
 'use client'
 
-import { DollarSign, Loader2, Pencil, Plus, Trash2 } from 'lucide-react'
+import {
+    DollarSign,
+    List,
+    Loader2,
+    Pencil,
+    Plus,
+    Table2,
+    Trash2,
+} from 'lucide-react'
 import { useDeferredValue, useMemo, useState } from 'react'
 import { toast } from 'sonner'
+import {
+    BulkEntryTable,
+    type BulkLiabilityRow,
+} from '@/components/bulk-entry-table'
 import { type ColumnDef, DataTable } from '@/components/data-table'
 import {
     EditableCurrencyCell,
@@ -255,6 +267,14 @@ export default function LiabilitiesPage() {
         },
         onError: (error) => toast.error(error.message),
     })
+    const bulkCreateMutation = trpc.liability.bulkCreate.useMutation({
+        onSuccess: (results) => {
+            utils.liability.list.invalidate()
+            toast.success(`Created ${results.length} liabilities`)
+            setBulkMode(false)
+        },
+        onError: (error) => toast.error(error.message),
+    })
 
     // Wrapper function to match inline cell API
     const updateLiability = async (id: string, data: Partial<Liability>) => {
@@ -264,6 +284,7 @@ export default function LiabilitiesPage() {
     const [editingLiabilityId, setEditingLiabilityId] = useState<string | null>(
         null,
     )
+    const [bulkMode, setBulkMode] = useState(false)
 
     const liabilityForm = useResourceForm<LiabilityFormData>({
         initialData: defaultFormData(),
@@ -394,6 +415,14 @@ export default function LiabilitiesPage() {
             confirmationNumber: '',
             allocationClass: l.allocationClass || 'PRINCIPAL',
             notes: '',
+        })
+    }
+
+    const handleBulkSave = async (rows: BulkLiabilityRow[]) => {
+        if (!selectedEntity) return
+        await bulkCreateMutation.mutateAsync({
+            entityId: selectedEntity,
+            liabilities: rows,
         })
     }
 
@@ -637,33 +666,75 @@ export default function LiabilitiesPage() {
                     </div>
 
                     {/* Actions */}
-                    <div className="flex justify-end">
-                        <Button onClick={() => liabilityForm.open()}>
-                            <Plus className="h-4 w-4 mr-2" />
-                            Add Liability
+                    <div className="flex justify-end gap-2">
+                        <Button
+                            variant="outline"
+                            onClick={() => setBulkMode(!bulkMode)}
+                        >
+                            {bulkMode ? (
+                                <>
+                                    <List className="h-4 w-4 mr-2" />
+                                    Single Entry
+                                </>
+                            ) : (
+                                <>
+                                    <Table2 className="h-4 w-4 mr-2" />
+                                    Bulk Entry
+                                </>
+                            )}
                         </Button>
+                        {!bulkMode && (
+                            <Button onClick={() => liabilityForm.open()}>
+                                <Plus className="h-4 w-4 mr-2" />
+                                Add Liability
+                            </Button>
+                        )}
                     </div>
 
-                    {/* Table */}
-                    {liabilitiesLoading ? (
-                        <div className="flex justify-center py-12">
-                            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                        </div>
-                    ) : liabilities.length === 0 ? (
+                    {/* Bulk Entry Mode */}
+                    {bulkMode && (
                         <Card>
-                            <CardContent className="py-12">
-                                <p className="text-center text-muted-foreground">
-                                    No liabilities recorded. Click Add to create
-                                    one.
-                                </p>
+                            <CardContent className="pt-6">
+                                <div className="mb-4">
+                                    <h3 className="text-lg font-semibold">
+                                        Bulk Entry Mode
+                                    </h3>
+                                    <p className="text-sm text-muted-foreground">
+                                        Enter multiple liabilities at once. Tab
+                                        through cells, Enter adds rows. Paste
+                                        from Excel/Sheets.
+                                    </p>
+                                </div>
+                                <BulkEntryTable
+                                    onSave={handleBulkSave}
+                                    onCancel={() => setBulkMode(false)}
+                                    isLoading={bulkCreateMutation.isPending}
+                                />
                             </CardContent>
                         </Card>
-                    ) : (
-                        <DataTable
-                            columns={liabilityColumns}
-                            data={liabilities}
-                        />
                     )}
+
+                    {/* Table */}
+                    {!bulkMode &&
+                        (liabilitiesLoading ? (
+                            <div className="flex justify-center py-12">
+                                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                            </div>
+                        ) : liabilities.length === 0 ? (
+                            <Card>
+                                <CardContent className="py-12">
+                                    <p className="text-center text-muted-foreground">
+                                        No liabilities recorded. Click Add to
+                                        create one.
+                                    </p>
+                                </CardContent>
+                            </Card>
+                        ) : (
+                            <DataTable
+                                columns={liabilityColumns}
+                                data={liabilities}
+                            />
+                        ))}
                 </>
             )}
 
