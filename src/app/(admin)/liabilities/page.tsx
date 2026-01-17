@@ -27,6 +27,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Progress } from '@/components/ui/progress'
 import {
     Select,
     SelectContent,
@@ -501,6 +502,40 @@ export default function LiabilitiesPage() {
                     }
                 />
             ),
+        },
+        {
+            key: 'progress',
+            header: 'Progress',
+            align: 'center',
+            render: (liability) => {
+                const original = parseFloat(liability.originalAmount ?? '0')
+                const current = parseFloat(liability.currentBalance ?? '0')
+                const percent =
+                    original > 0
+                        ? Math.round(((original - current) / original) * 100)
+                        : 0
+                const isPaidOff = current <= 0
+
+                return (
+                    <div className="flex items-center gap-2 min-w-[100px]">
+                        <Progress
+                            value={percent}
+                            className={
+                                isPaidOff
+                                    ? 'h-2 flex-1 [&>div]:bg-green-500'
+                                    : percent >= 75
+                                      ? 'h-2 flex-1 [&>div]:bg-green-500'
+                                      : percent >= 25
+                                        ? 'h-2 flex-1 [&>div]:bg-yellow-500'
+                                        : 'h-2 flex-1'
+                            }
+                        />
+                        <span className="text-xs text-muted-foreground w-10 text-right">
+                            {isPaidOff ? 'Paid' : `${percent}%`}
+                        </span>
+                    </div>
+                )
+            },
         },
         {
             key: 'monthlyPayment',
