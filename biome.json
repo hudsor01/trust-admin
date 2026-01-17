@@ -1,52 +1,64 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.3.11/schema.json",
-  "vcs": {
-    "enabled": true,
-    "clientKind": "git",
-    "useIgnoreFile": true
-  },
-  "files": {
-    "ignoreUnknown": false,
-    "includes": ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx"]
-  },
-  "formatter": {
-    "enabled": true,
-    "indentStyle": "space",
-    "indentWidth": 2,
-    "lineWidth": 100
-  },
-  "linter": {
-    "enabled": true,
-    "rules": {
-      "recommended": true,
-      "suspicious": {
-        "noExplicitAny": "error",
-        "noArrayIndexKey": "off",
-        "noDocumentCookie": "off",
-        "noAssignInExpressions": "off",
-        "useIterableCallbackReturn": "off"
-      },
-      "style": {
-        "noNonNullAssertion": "off"
-      },
-      "correctness": {
-        "noUnusedVariables": "warn",
-        "noUnusedFunctionParameters": "warn",
-        "useExhaustiveDependencies": "warn"
-      },
-      "a11y": {
-        "noStaticElementInteractions": "off",
-        "useKeyWithClickEvents": "off",
-        "useButtonType": "off",
-        "useFocusableInteractive": "off",
-        "useSemanticElements": "off"
-      }
-    }
-  },
-  "javascript": {
+    "$schema": "https://biomejs.dev/schemas/2.3.11/schema.json",
+    "vcs": {
+        "enabled": true,
+        "clientKind": "git",
+        "useIgnoreFile": true
+    },
+    "files": {
+        "ignoreUnknown": false,
+        "includes": ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx"]
+    },
     "formatter": {
-      "quoteStyle": "double",
-      "semicolons": "asNeeded"
-    }
-  }
+        "enabled": true,
+        "indentStyle": "space",
+        "indentWidth": 4,
+        "lineWidth": 80
+    },
+    "linter": {
+        "enabled": true,
+        "rules": {
+            "recommended": true,
+            "suspicious": {
+                "noExplicitAny": "error",
+                "noArrayIndexKey": "off",
+                "noDocumentCookie": "off",
+                "noAssignInExpressions": "off",
+                "useIterableCallbackReturn": "off"
+            },
+            "style": {
+                "noNonNullAssertion": "off"
+            },
+            "correctness": {
+                "noUnusedVariables": "warn",
+                "noUnusedFunctionParameters": "warn",
+                "useExhaustiveDependencies": "warn"
+            },
+            "a11y": {
+                "noStaticElementInteractions": "off",
+                "useKeyWithClickEvents": "off",
+                "useButtonType": "off",
+                "useFocusableInteractive": "off",
+                "useSemanticElements": "off"
+            }
+        }
+    },
+    "javascript": {
+        "formatter": {
+            "quoteStyle": "single",
+            "semicolons": "asNeeded"
+        }
+    },
+    "overrides": [
+        {
+            "includes": ["src/components/ui/chart.tsx"],
+            "linter": {
+                "rules": {
+                    "security": {
+                        "noDangerouslySetInnerHtml": "off"
+                    }
+                }
+            }
+        }
+    ]
 }

@@ -12,6 +12,8 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { useState } from 'react'
+import { AssetAllocationChart } from '@/components/charts/asset-allocation-chart'
+import { NetWorthChart } from '@/components/charts/net-worth-chart'
 import { type ColumnDef, DataTable } from '@/components/data-table'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -212,8 +214,29 @@ export default function DashboardPage() {
         totalRealEstate,
         totalVehicles,
     ])
-    // netWorth will be used by NetWorthChart in Task 3
-    const _netWorth = subtractMoney(totalAssets, totalLiabilities)
+    // Prepare asset allocation data for chart
+    const assetAllocationData = [
+        {
+            name: 'Bank Accounts',
+            value: Number.parseFloat(totalBankAccounts) || 0,
+            fill: 'hsl(221, 83%, 53%)',
+        },
+        {
+            name: 'Investments',
+            value: Number.parseFloat(totalInvestments) || 0,
+            fill: 'hsl(262, 83%, 58%)',
+        },
+        {
+            name: 'Real Estate',
+            value: Number.parseFloat(totalRealEstate) || 0,
+            fill: 'hsl(142, 76%, 36%)',
+        },
+        {
+            name: 'Vehicles',
+            value: Number.parseFloat(totalVehicles) || 0,
+            fill: 'hsl(38, 92%, 50%)',
+        },
+    ].filter((item) => item.value > 0)
 
     // Get grandchildren with withdrawal info
     const grandchildren = beneficiaries.filter(
@@ -473,6 +496,31 @@ export default function DashboardPage() {
                     </AlertDescription>
                 </Alert>
             )}
+
+            {/* Financial Overview Charts */}
+            <div className="@container">
+                <div className="grid gap-6 @md:grid-cols-2">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Net Worth</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <NetWorthChart
+                                totalAssets={totalAssets}
+                                totalLiabilities={totalLiabilities}
+                            />
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Asset Allocation</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <AssetAllocationChart data={assetAllocationData} />
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
 
             {/* Summary Cards */}
             <div className="@container">
