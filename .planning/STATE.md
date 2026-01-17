@@ -11,11 +11,11 @@ See: .planning/PROJECT.md (updated 2026-01-09)
 ## Current Position
 
 Phase: 28 of 29 (v4.0 Smart Liability Management)
-Plan: 0 of 1 in current phase
-Status: Ready to plan
-Last activity: 2026-01-17 - Completed Phase 27 (bulk entry mode)
+Plan: 1 of 1 in current phase
+Status: Phase complete
+Last activity: 2026-01-17 - Completed Phase 28 (progress visualization)
 
-Progress: █████████████░░ 5/5 v4.0 plans complete (Phase 28-29 remaining)
+Progress: ██████████████░ 6/7 v4.0 plans complete (Phase 29 remaining)
 
 ## Performance Metrics
 
@@ -24,6 +24,18 @@ Progress: █████████████░░ 5/5 v4.0 plans complete 
 - v2.0 plans completed: 4
 
 ## Accumulated Context
+
+### v4.0 Phase 28 COMPLETE (Progress Visualization):
+
+**28-01 Completed (Liability Progress Visualization):**
+- ✅ Created `src/components/liability-progress-card.tsx` (reusable progress card)
+- ✅ Supports compact mode (for dashboard list) and full card mode
+- ✅ Shows payment position, payoff date, monthly payment, interest rate
+- ✅ Added Liabilities tab to Dashboard with summary statistics
+- ✅ Added Progress column to Liabilities table with color-coded bars
+- Pattern: Progress bar color coding (green >75%, yellow 25-75%, default <25%)
+- Pattern: Progress calculation `(original - current) / original * 100`
+- Uses amortization utilities from Phase 25 (estimatePayoffDate, getCurrentLoanPosition)
 
 ### v4.0 Phase 27 COMPLETE (Bulk Entry Mode):
 
@@ -191,7 +203,7 @@ Progress: █████████████░░ 5/5 v4.0 plans complete 
 ## Session Continuity
 
 Last session: 2026-01-17
-Stopped at: Completed Phase 27 (bulk entry mode), ready for Phase 28
+Stopped at: Completed Phase 28 (progress visualization), ready for Phase 29
 Resume file: None
 
 ## Milestone History
