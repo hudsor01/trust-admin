@@ -1,7 +1,7 @@
 'use client'
 
 import { DollarSign, Loader2, Pencil, Plus, Trash2 } from 'lucide-react'
-import { useState } from 'react'
+import { useDeferredValue, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { type ColumnDef, DataTable } from '@/components/data-table'
 import {
@@ -32,6 +32,7 @@ import {
 import type { Liability } from '@/db/schema'
 import { useEntityFilter } from '@/hooks/use-entity-filter'
 import { useResourceForm } from '@/hooks/use-resource-form'
+import { calculateMonthlyPayment, estimatePayoffDate } from '@/lib/amortization'
 import { STATUS_VARIANTS } from '@/lib/constants'
 import { toDateInput } from '@/lib/form-factory'
 import { sumStrings } from '@/lib/money'
@@ -87,6 +88,87 @@ const isRevolvingType = (type: string) => type === 'CREDIT_CARD'
 // Loan types have amortization-specific fields
 const hasLoanTermFields = (type: string) =>
     type === 'MORTGAGE' || type === 'LOAN'
+
+/**
+ * PaymentPreview component - shows estimated monthly payment as user types loan terms.
+ * Uses useDeferredValue for smooth typing experience without calculation lag.
+ */
+// biome-ignore lint/suspicious/noExplicitAny: FormApi has complex generics, using any for formInstance
+function PaymentPreview({ formInstance }: { formInstance: any }) {
+    // Subscribe to relevant form values - all hooks must be called unconditionally
+    const principal = formInstance.useStore(
+        (s: { values: LiabilityFormData }) => s.values.originalAmount,
+    )
+    const rate = formInstance.useStore(
+        (s: { values: LiabilityFormData }) => s.values.interestRate,
+    )
+    const term = formInstance.useStore(
+        (s: { values: LiabilityFormData }) => s.values.loanTermMonths,
+    )
+    const liabilityType = formInstance.useStore(
+        (s: { values: LiabilityFormData }) => s.values.liabilityType,
+    )
+
+    // Defer inputs for smooth typing - hooks must be called before any early returns
+    const deferredPrincipal = useDeferredValue(principal)
+    const deferredRate = useDeferredValue(rate)
+    const deferredTerm = useDeferredValue(term)
+
+    // Calculate payment only when deferred values settle
+    const calculated = useMemo(() => {
+        // Skip calculation for revolving credit (no fixed term)
+        if (isRevolvingType(liabilityType)) return null
+        if (!deferredPrincipal || !deferredRate || !deferredTerm) return null
+
+        const p = parseFloat(deferredPrincipal)
+        const r = parseFloat(deferredRate)
+        const t = parseInt(deferredTerm, 10)
+
+        if (
+            Number.isNaN(p) ||
+            Number.isNaN(r) ||
+            Number.isNaN(t) ||
+            p <= 0 ||
+            r < 0 ||
+            t <= 0
+        )
+            return null
+
+        const rateDecimal = (r / 100).toString()
+        const payment = calculateMonthlyPayment(
+            deferredPrincipal,
+            rateDecimal,
+            t,
+        )
+        const payoffDate = payment
+            ? estimatePayoffDate(deferredPrincipal, rateDecimal, payment)
+            : null
+
+        return { payment, payoffDate }
+    }, [deferredPrincipal, deferredRate, deferredTerm, liabilityType])
+
+    // Render null if no valid calculation (revolving, incomplete data, etc.)
+    if (!calculated?.payment) return null
+
+    return (
+        <div className="rounded-lg bg-muted/50 p-3 mt-4 transition-all duration-200">
+            <div className="text-sm text-muted-foreground">
+                Estimated Monthly Payment (P&I)
+            </div>
+            <div className="text-lg font-semibold">
+                {formatCurrency(calculated.payment)}
+            </div>
+            {calculated.payoffDate?.payoffDate && (
+                <div className="text-xs text-muted-foreground mt-1">
+                    Payoff date:{' '}
+                    {new Date(
+                        calculated.payoffDate.payoffDate,
+                    ).toLocaleDateString()}
+                </div>
+            )}
+        </div>
+    )
+}
 
 const defaultFormData = (): LiabilityFormData => ({
     liabilityType: 'MORTGAGE',
@@ -877,82 +959,100 @@ export default function LiabilitiesPage() {
 
                                 {/* Loan term fields - animated section for mortgages and loans */}
                                 <div
-                                    className={`grid grid-cols-3 gap-4 mt-4 transition-all duration-200 ease-out ${
+                                    className={`mt-4 transition-all duration-200 ease-out ${
                                         hasLoanTermFields(liabilityType)
-                                            ? 'opacity-100 max-h-96 overflow-visible'
+                                            ? 'opacity-100 max-h-[500px] overflow-visible'
                                             : 'opacity-0 max-h-0 overflow-hidden'
                                     }`}
                                 >
-                                    <liabilityFormInstance.Field name="loanTermMonths">
-                                        {(field) => (
-                                            <div className="space-y-2">
-                                                <Label htmlFor="loan-term">
-                                                    Loan Term (months)
-                                                </Label>
-                                                <Input
-                                                    id="loan-term"
-                                                    type="number"
-                                                    placeholder="e.g., 360"
-                                                    value={field.state.value}
-                                                    onBlur={field.handleBlur}
-                                                    onChange={(e) =>
-                                                        field.handleChange(
-                                                            e.target.value,
-                                                        )
-                                                    }
-                                                />
-                                                <p className="text-xs text-muted-foreground">
-                                                    360 = 30yr, 180 = 15yr
-                                                </p>
-                                            </div>
-                                        )}
-                                    </liabilityFormInstance.Field>
-                                    <liabilityFormInstance.Field name="loanStartDate">
-                                        {(field) => (
-                                            <div className="space-y-2">
-                                                <Label htmlFor="loan-start">
-                                                    Loan Start Date
-                                                </Label>
-                                                <Input
-                                                    id="loan-start"
-                                                    type="date"
-                                                    value={
-                                                        field.state.value || ''
-                                                    }
-                                                    onBlur={field.handleBlur}
-                                                    onChange={(e) =>
-                                                        field.handleChange(
-                                                            e.target.value ||
-                                                                null,
-                                                        )
-                                                    }
-                                                />
-                                            </div>
-                                        )}
-                                    </liabilityFormInstance.Field>
-                                    <liabilityFormInstance.Field name="escrowMonthly">
-                                        {(field) => (
-                                            <div className="space-y-2">
-                                                <Label htmlFor="escrow">
-                                                    Monthly Escrow
-                                                </Label>
-                                                <Input
-                                                    id="escrow"
-                                                    placeholder="$"
-                                                    value={field.state.value}
-                                                    onBlur={field.handleBlur}
-                                                    onChange={(e) =>
-                                                        field.handleChange(
-                                                            e.target.value,
-                                                        )
-                                                    }
-                                                />
-                                                <p className="text-xs text-muted-foreground">
-                                                    Taxes & insurance
-                                                </p>
-                                            </div>
-                                        )}
-                                    </liabilityFormInstance.Field>
+                                    <div className="grid grid-cols-3 gap-4">
+                                        <liabilityFormInstance.Field name="loanTermMonths">
+                                            {(field) => (
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="loan-term">
+                                                        Loan Term (months)
+                                                    </Label>
+                                                    <Input
+                                                        id="loan-term"
+                                                        type="number"
+                                                        placeholder="e.g., 360"
+                                                        value={
+                                                            field.state.value
+                                                        }
+                                                        onBlur={
+                                                            field.handleBlur
+                                                        }
+                                                        onChange={(e) =>
+                                                            field.handleChange(
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                    />
+                                                    <p className="text-xs text-muted-foreground">
+                                                        360 = 30yr, 180 = 15yr
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </liabilityFormInstance.Field>
+                                        <liabilityFormInstance.Field name="loanStartDate">
+                                            {(field) => (
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="loan-start">
+                                                        Loan Start Date
+                                                    </Label>
+                                                    <Input
+                                                        id="loan-start"
+                                                        type="date"
+                                                        value={
+                                                            field.state.value ||
+                                                            ''
+                                                        }
+                                                        onBlur={
+                                                            field.handleBlur
+                                                        }
+                                                        onChange={(e) =>
+                                                            field.handleChange(
+                                                                e.target
+                                                                    .value ||
+                                                                    null,
+                                                            )
+                                                        }
+                                                    />
+                                                </div>
+                                            )}
+                                        </liabilityFormInstance.Field>
+                                        <liabilityFormInstance.Field name="escrowMonthly">
+                                            {(field) => (
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="escrow">
+                                                        Monthly Escrow
+                                                    </Label>
+                                                    <Input
+                                                        id="escrow"
+                                                        placeholder="$"
+                                                        value={
+                                                            field.state.value
+                                                        }
+                                                        onBlur={
+                                                            field.handleBlur
+                                                        }
+                                                        onChange={(e) =>
+                                                            field.handleChange(
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                    />
+                                                    <p className="text-xs text-muted-foreground">
+                                                        Taxes & insurance
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </liabilityFormInstance.Field>
+                                    </div>
+                                    {/* Payment Preview - shows estimated monthly payment */}
+                                    <PaymentPreview
+                                        formInstance={liabilityFormInstance}
+                                    />
                                 </div>
 
                                 {/* Dates row - animated maturity field for non-revolving */}
