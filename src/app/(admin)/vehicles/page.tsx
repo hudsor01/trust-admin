@@ -1,12 +1,8 @@
 'use client'
 
-import { Loader2, Pencil, Plus, Trash2 } from 'lucide-react'
+import { Loader2, Plus } from 'lucide-react'
 import { useState } from 'react'
-import {
-    EditableCurrencyCell,
-    EditableSelectCell,
-    EditableTextCell,
-} from '@/components/editable-cells'
+import { CurrencyField, FormField } from '@/components/form-field'
 import { ResourceDialog } from '@/components/resource-dialog'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -27,17 +23,16 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table'
-import { Textarea } from '@/components/ui/textarea'
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
-} from '@/components/ui/tooltip'
 import type { Vehicle } from '@/db/schema'
 import { useCrudMutations } from '@/hooks/use-crud-mutations'
 import { useEntityFilter } from '@/hooks/use-entity-filter'
 import { useResourceForm } from '@/hooks/use-resource-form'
+import {
+    actionsColumn,
+    editableCurrencyColumn,
+    editableSelectColumn,
+    editableTextColumn,
+} from '@/lib/column-helpers'
 import {
     DOD_VALUE_TYPES,
     STATUS_VARIANTS,
@@ -140,10 +135,10 @@ export default function VehiclesPage() {
         })
     }
 
-    const handleDelete = async (id: number) => {
+    const handleDelete = async (item: Vehicle) => {
         if (!confirm('Are you sure you want to delete this vehicle?')) return
         try {
-            await deleteVehicleMutation.mutateAsync(id)
+            await deleteVehicleMutation.mutateAsync(item.id)
         } catch (err) {
             console.error('Failed to delete vehicle:', err)
         }
@@ -159,6 +154,51 @@ export default function VehiclesPage() {
             console.error('Failed to update vehicle:', err)
         }
     }
+
+    // Column definitions using helpers
+    const colorColumn = editableTextColumn<Vehicle>(
+        'color',
+        'Color',
+        (id, val) => handleInlineUpdate(id, { color: val }),
+        { placeholder: 'Add color' },
+    )
+
+    const dodValueColumn = editableCurrencyColumn<Vehicle>(
+        'dodValue',
+        'DOD Value',
+        (id, val) => handleInlineUpdate(id, { dodValue: val }),
+    )
+
+    const titleColumn = editableSelectColumn<Vehicle>(
+        'titleStatus',
+        'Title',
+        TITLE_STATUS,
+        (id, val) =>
+            handleInlineUpdate(id, { titleStatus: asTitleStatus(val) }),
+        { variants: STATUS_VARIANTS },
+    )
+
+    const statusColumn = editableSelectColumn<Vehicle>(
+        'status',
+        'Status',
+        ASSET_STATUS,
+        (id, val) => handleInlineUpdate(id, { status: asRecordStatus(val) }),
+        { variants: STATUS_VARIANTS },
+    )
+
+    const transferColumn = editableSelectColumn<Vehicle>(
+        'transferStatus',
+        'Transfer',
+        TRANSFER_STATUS,
+        (id, val) =>
+            handleInlineUpdate(id, { transferStatus: asTransferStatus(val) }),
+        { variants: STATUS_VARIANTS },
+    )
+
+    const actions = actionsColumn<Vehicle>({
+        onEdit: handleEdit,
+        onDelete: handleDelete,
+    })
 
     if (entitiesLoading) {
         return (
@@ -290,11 +330,21 @@ export default function VehiclesPage() {
                                                     Year/Make/Model
                                                 </TableHead>
                                                 <TableHead>VIN</TableHead>
-                                                <TableHead>Color</TableHead>
-                                                <TableHead>DOD Value</TableHead>
-                                                <TableHead>Title</TableHead>
-                                                <TableHead>Status</TableHead>
-                                                <TableHead>Transfer</TableHead>
+                                                <TableHead>
+                                                    {colorColumn.header}
+                                                </TableHead>
+                                                <TableHead>
+                                                    {dodValueColumn.header}
+                                                </TableHead>
+                                                <TableHead>
+                                                    {titleColumn.header}
+                                                </TableHead>
+                                                <TableHead>
+                                                    {statusColumn.header}
+                                                </TableHead>
+                                                <TableHead>
+                                                    {transferColumn.header}
+                                                </TableHead>
                                                 <TableHead className="w-20">
                                                     Actions
                                                 </TableHead>
@@ -324,155 +374,32 @@ export default function VehiclesPage() {
                                                         </code>
                                                     </TableCell>
                                                     <TableCell>
-                                                        <EditableTextCell
-                                                            value={v.color}
-                                                            onSave={(val) =>
-                                                                handleInlineUpdate(
-                                                                    v.id,
-                                                                    {
-                                                                        color: val,
-                                                                    },
-                                                                )
-                                                            }
-                                                            placeholder="Add color"
-                                                        />
+                                                        {colorColumn.render?.(
+                                                            v,
+                                                        )}
                                                     </TableCell>
                                                     <TableCell>
-                                                        <EditableCurrencyCell
-                                                            value={v.dodValue}
-                                                            onSave={(val) =>
-                                                                handleInlineUpdate(
-                                                                    v.id,
-                                                                    {
-                                                                        dodValue:
-                                                                            val,
-                                                                    },
-                                                                )
-                                                            }
-                                                        />
+                                                        {dodValueColumn.render?.(
+                                                            v,
+                                                        )}
                                                     </TableCell>
                                                     <TableCell>
-                                                        <EditableSelectCell
-                                                            value={
-                                                                v.titleStatus
-                                                            }
-                                                            options={
-                                                                TITLE_STATUS
-                                                            }
-                                                            variants={
-                                                                STATUS_VARIANTS
-                                                            }
-                                                            onSave={(val) =>
-                                                                handleInlineUpdate(
-                                                                    v.id,
-                                                                    {
-                                                                        titleStatus:
-                                                                            asTitleStatus(
-                                                                                val,
-                                                                            ),
-                                                                    },
-                                                                )
-                                                            }
-                                                        />
+                                                        {titleColumn.render?.(
+                                                            v,
+                                                        )}
                                                     </TableCell>
                                                     <TableCell>
-                                                        <EditableSelectCell
-                                                            value={v.status}
-                                                            options={
-                                                                ASSET_STATUS
-                                                            }
-                                                            variants={
-                                                                STATUS_VARIANTS
-                                                            }
-                                                            onSave={(val) =>
-                                                                handleInlineUpdate(
-                                                                    v.id,
-                                                                    {
-                                                                        status: asRecordStatus(
-                                                                            val,
-                                                                        ),
-                                                                    },
-                                                                )
-                                                            }
-                                                        />
+                                                        {statusColumn.render?.(
+                                                            v,
+                                                        )}
                                                     </TableCell>
                                                     <TableCell>
-                                                        <EditableSelectCell
-                                                            value={
-                                                                v.transferStatus
-                                                            }
-                                                            options={
-                                                                TRANSFER_STATUS
-                                                            }
-                                                            variants={
-                                                                STATUS_VARIANTS
-                                                            }
-                                                            onSave={(val) =>
-                                                                handleInlineUpdate(
-                                                                    v.id,
-                                                                    {
-                                                                        transferStatus:
-                                                                            asTransferStatus(
-                                                                                val,
-                                                                            ),
-                                                                    },
-                                                                )
-                                                            }
-                                                        />
+                                                        {transferColumn.render?.(
+                                                            v,
+                                                        )}
                                                     </TableCell>
                                                     <TableCell>
-                                                        <div className="flex items-center gap-1">
-                                                            <TooltipProvider>
-                                                                <Tooltip>
-                                                                    <TooltipTrigger
-                                                                        asChild
-                                                                    >
-                                                                        <Button
-                                                                            variant="ghost"
-                                                                            size="icon"
-                                                                            className="h-8 w-8"
-                                                                            onClick={() =>
-                                                                                handleEdit(
-                                                                                    v,
-                                                                                )
-                                                                            }
-                                                                        >
-                                                                            <Pencil className="h-4 w-4" />
-                                                                        </Button>
-                                                                    </TooltipTrigger>
-                                                                    <TooltipContent>
-                                                                        <p>
-                                                                            Edit
-                                                                        </p>
-                                                                    </TooltipContent>
-                                                                </Tooltip>
-                                                            </TooltipProvider>
-                                                            <TooltipProvider>
-                                                                <Tooltip>
-                                                                    <TooltipTrigger
-                                                                        asChild
-                                                                    >
-                                                                        <Button
-                                                                            variant="ghost"
-                                                                            size="icon"
-                                                                            className="h-8 w-8 text-destructive hover:text-destructive"
-                                                                            onClick={() =>
-                                                                                handleDelete(
-                                                                                    v.id,
-                                                                                )
-                                                                            }
-                                                                        >
-                                                                            <Trash2 className="h-4 w-4" />
-                                                                        </Button>
-                                                                    </TooltipTrigger>
-                                                                    <TooltipContent>
-                                                                        <p>
-                                                                            Delete
-                                                                        </p>
-                                                                    </TooltipContent>
-                                                                </Tooltip>
-                                                            </TooltipProvider>
-                                                        </div>
+                                                        {actions.render?.(v)}
                                                     </TableCell>
                                                 </TableRow>
                                             ))}
@@ -494,14 +421,22 @@ export default function VehiclesPage() {
                 isLoading={vehicleForm.isSubmitting}
             >
                 <div className="space-y-6">
-                    {/* Vehicle Information */}
+                    {/* Vehicle Information - Year/Make/Model grid kept raw for special handling */}
                     <div>
                         <h4 className="text-sm font-medium mb-3">
                             Vehicle Information
                         </h4>
                         <div className="grid grid-cols-3 gap-4">
+                            {/* Year field needs special min/max handling */}
                             <vehicleForm.formInstance.Field name="year">
-                                {(field) => (
+                                {(field: {
+                                    state: {
+                                        value: number
+                                        meta: { errors?: unknown[] }
+                                    }
+                                    handleChange: (value: number) => void
+                                    handleBlur: () => void
+                                }) => (
                                     <div className="space-y-2">
                                         <Label htmlFor="year">Year *</Label>
                                         <Input
@@ -512,7 +447,7 @@ export default function VehiclesPage() {
                                             value={field.state.value || ''}
                                             onChange={(e) =>
                                                 field.handleChange(
-                                                    parseInt(
+                                                    Number.parseInt(
                                                         e.target.value,
                                                         10,
                                                     ) ||
@@ -531,60 +466,32 @@ export default function VehiclesPage() {
                                     </div>
                                 )}
                             </vehicleForm.formInstance.Field>
-                            <vehicleForm.formInstance.Field name="make">
-                                {(field) => (
-                                    <div className="space-y-2">
-                                        <Label htmlFor="make">Make *</Label>
-                                        <Input
-                                            id="make"
-                                            placeholder="e.g., Ford, Toyota"
-                                            value={field.state.value || ''}
-                                            onChange={(e) =>
-                                                field.handleChange(
-                                                    e.target.value,
-                                                )
-                                            }
-                                            onBlur={field.handleBlur}
-                                        />
-                                        {field.state.meta.errors &&
-                                            field.state.meta.errors.length >
-                                                0 && (
-                                                <p className="text-sm text-red-500">
-                                                    {getFieldError(field)}
-                                                </p>
-                                            )}
-                                    </div>
-                                )}
-                            </vehicleForm.formInstance.Field>
-                            <vehicleForm.formInstance.Field name="model">
-                                {(field) => (
-                                    <div className="space-y-2">
-                                        <Label htmlFor="model">Model *</Label>
-                                        <Input
-                                            id="model"
-                                            placeholder="e.g., F-150, Camry"
-                                            value={field.state.value || ''}
-                                            onChange={(e) =>
-                                                field.handleChange(
-                                                    e.target.value,
-                                                )
-                                            }
-                                            onBlur={field.handleBlur}
-                                        />
-                                        {field.state.meta.errors &&
-                                            field.state.meta.errors.length >
-                                                0 && (
-                                                <p className="text-sm text-red-500">
-                                                    {getFieldError(field)}
-                                                </p>
-                                            )}
-                                    </div>
-                                )}
-                            </vehicleForm.formInstance.Field>
+                            <FormField
+                                form={vehicleForm.formInstance}
+                                name="make"
+                                label="Make"
+                                required
+                                placeholder="e.g., Ford, Toyota"
+                            />
+                            <FormField
+                                form={vehicleForm.formInstance}
+                                name="model"
+                                label="Model"
+                                required
+                                placeholder="e.g., F-150, Camry"
+                            />
                         </div>
                         <div className="grid grid-cols-2 gap-4 mt-4">
+                            {/* VIN field needs uppercase transform */}
                             <vehicleForm.formInstance.Field name="vin">
-                                {(field) => (
+                                {(field: {
+                                    state: {
+                                        value: string
+                                        meta: { errors?: unknown[] }
+                                    }
+                                    handleChange: (value: string) => void
+                                    handleBlur: () => void
+                                }) => (
                                     <div className="space-y-2">
                                         <Label htmlFor="vin">VIN *</Label>
                                         <Input
@@ -608,127 +515,32 @@ export default function VehiclesPage() {
                                     </div>
                                 )}
                             </vehicleForm.formInstance.Field>
-                            <vehicleForm.formInstance.Field name="color">
-                                {(field) => (
-                                    <div className="space-y-2">
-                                        <Label htmlFor="color">Color</Label>
-                                        <Input
-                                            id="color"
-                                            value={field.state.value || ''}
-                                            onChange={(e) =>
-                                                field.handleChange(
-                                                    e.target.value,
-                                                )
-                                            }
-                                            onBlur={field.handleBlur}
-                                        />
-                                        {field.state.meta.errors &&
-                                            field.state.meta.errors.length >
-                                                0 && (
-                                                <p className="text-sm text-red-500">
-                                                    {getFieldError(field)}
-                                                </p>
-                                            )}
-                                    </div>
-                                )}
-                            </vehicleForm.formInstance.Field>
+                            <FormField
+                                form={vehicleForm.formInstance}
+                                name="color"
+                                label="Color"
+                            />
                         </div>
                         <div className="grid grid-cols-3 gap-4 mt-4">
-                            <vehicleForm.formInstance.Field name="licensePlate">
-                                {(field) => (
-                                    <div className="space-y-2">
-                                        <Label htmlFor="licensePlate">
-                                            License Plate
-                                        </Label>
-                                        <Input
-                                            id="licensePlate"
-                                            value={field.state.value || ''}
-                                            onChange={(e) =>
-                                                field.handleChange(
-                                                    e.target.value,
-                                                )
-                                            }
-                                            onBlur={field.handleBlur}
-                                        />
-                                        {field.state.meta.errors &&
-                                            field.state.meta.errors.length >
-                                                0 && (
-                                                <p className="text-sm text-red-500">
-                                                    {getFieldError(field)}
-                                                </p>
-                                            )}
-                                    </div>
-                                )}
-                            </vehicleForm.formInstance.Field>
-                            <vehicleForm.formInstance.Field name="mileage">
-                                {(field) => (
-                                    <div className="space-y-2">
-                                        <Label htmlFor="mileage">Mileage</Label>
-                                        <Input
-                                            id="mileage"
-                                            type="number"
-                                            value={field.state.value || ''}
-                                            onChange={(e) =>
-                                                field.handleChange(
-                                                    e.target.value
-                                                        ? parseInt(
-                                                              e.target.value,
-                                                              10,
-                                                          )
-                                                        : null,
-                                                )
-                                            }
-                                            onBlur={field.handleBlur}
-                                        />
-                                        {field.state.meta.errors &&
-                                            field.state.meta.errors.length >
-                                                0 && (
-                                                <p className="text-sm text-red-500">
-                                                    {getFieldError(field)}
-                                                </p>
-                                            )}
-                                    </div>
-                                )}
-                            </vehicleForm.formInstance.Field>
-                            <vehicleForm.formInstance.Field name="titleStatus">
-                                {(field) => (
-                                    <div className="space-y-2">
-                                        <Label htmlFor="titleStatus">
-                                            Title Status *
-                                        </Label>
-                                        <Select
-                                            value={field.state.value || ''}
-                                            onValueChange={(v) =>
-                                                field.handleChange(v)
-                                            }
-                                        >
-                                            <SelectTrigger
-                                                id="titleStatus"
-                                                onBlur={field.handleBlur}
-                                            >
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {TITLE_STATUS.map((s) => (
-                                                    <SelectItem
-                                                        key={s.value}
-                                                        value={s.value}
-                                                    >
-                                                        {s.label}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        {field.state.meta.errors &&
-                                            field.state.meta.errors.length >
-                                                0 && (
-                                                <p className="text-sm text-red-500">
-                                                    {getFieldError(field)}
-                                                </p>
-                                            )}
-                                    </div>
-                                )}
-                            </vehicleForm.formInstance.Field>
+                            <FormField
+                                form={vehicleForm.formInstance}
+                                name="licensePlate"
+                                label="License Plate"
+                            />
+                            <FormField
+                                form={vehicleForm.formInstance}
+                                name="mileage"
+                                label="Mileage"
+                                type="number"
+                            />
+                            <FormField
+                                form={vehicleForm.formInstance}
+                                name="titleStatus"
+                                label="Title Status"
+                                required
+                                type="select"
+                                options={TITLE_STATUS}
+                            />
                         </div>
                     </div>
 
@@ -738,60 +550,17 @@ export default function VehiclesPage() {
                             Acquisition
                         </h4>
                         <div className="grid grid-cols-2 gap-4">
-                            <vehicleForm.formInstance.Field name="acquisitionDate">
-                                {(field) => (
-                                    <div className="space-y-2">
-                                        <Label htmlFor="acquisitionDate">
-                                            Acquisition Date
-                                        </Label>
-                                        <Input
-                                            id="acquisitionDate"
-                                            type="date"
-                                            value={field.state.value || ''}
-                                            onChange={(e) =>
-                                                field.handleChange(
-                                                    e.target.value || null,
-                                                )
-                                            }
-                                            onBlur={field.handleBlur}
-                                        />
-                                        {field.state.meta.errors &&
-                                            field.state.meta.errors.length >
-                                                0 && (
-                                                <p className="text-sm text-red-500">
-                                                    {getFieldError(field)}
-                                                </p>
-                                            )}
-                                    </div>
-                                )}
-                            </vehicleForm.formInstance.Field>
-                            <vehicleForm.formInstance.Field name="acquisitionCost">
-                                {(field) => (
-                                    <div className="space-y-2">
-                                        <Label htmlFor="acquisitionCost">
-                                            Acquisition Cost
-                                        </Label>
-                                        <Input
-                                            id="acquisitionCost"
-                                            placeholder="$"
-                                            value={field.state.value || ''}
-                                            onChange={(e) =>
-                                                field.handleChange(
-                                                    e.target.value,
-                                                )
-                                            }
-                                            onBlur={field.handleBlur}
-                                        />
-                                        {field.state.meta.errors &&
-                                            field.state.meta.errors.length >
-                                                0 && (
-                                                <p className="text-sm text-red-500">
-                                                    {getFieldError(field)}
-                                                </p>
-                                            )}
-                                    </div>
-                                )}
-                            </vehicleForm.formInstance.Field>
+                            <FormField
+                                form={vehicleForm.formInstance}
+                                name="acquisitionDate"
+                                label="Acquisition Date"
+                                type="date"
+                            />
+                            <CurrencyField
+                                form={vehicleForm.formInstance}
+                                name="acquisitionCost"
+                                label="Acquisition Cost"
+                            />
                         </div>
                     </div>
 
@@ -801,99 +570,26 @@ export default function VehiclesPage() {
                             Date of Death Valuation
                         </h4>
                         <div className="grid grid-cols-3 gap-4">
-                            <vehicleForm.formInstance.Field name="dodValue">
-                                {(field) => (
-                                    <div className="space-y-2">
-                                        <Label htmlFor="dodValue">
-                                            DOD Value
-                                        </Label>
-                                        <Input
-                                            id="dodValue"
-                                            placeholder="$ (KBB/NADA)"
-                                            value={field.state.value || ''}
-                                            onChange={(e) =>
-                                                field.handleChange(
-                                                    e.target.value,
-                                                )
-                                            }
-                                            onBlur={field.handleBlur}
-                                        />
-                                        {field.state.meta.errors &&
-                                            field.state.meta.errors.length >
-                                                0 && (
-                                                <p className="text-sm text-red-500">
-                                                    {getFieldError(field)}
-                                                </p>
-                                            )}
-                                    </div>
-                                )}
-                            </vehicleForm.formInstance.Field>
-                            <vehicleForm.formInstance.Field name="dodValueDate">
-                                {(field) => (
-                                    <div className="space-y-2">
-                                        <Label htmlFor="dodValueDate">
-                                            DOD Value Date
-                                        </Label>
-                                        <Input
-                                            id="dodValueDate"
-                                            type="date"
-                                            value={field.state.value || ''}
-                                            onChange={(e) =>
-                                                field.handleChange(
-                                                    e.target.value || null,
-                                                )
-                                            }
-                                            onBlur={field.handleBlur}
-                                        />
-                                        {field.state.meta.errors &&
-                                            field.state.meta.errors.length >
-                                                0 && (
-                                                <p className="text-sm text-red-500">
-                                                    {getFieldError(field)}
-                                                </p>
-                                            )}
-                                    </div>
-                                )}
-                            </vehicleForm.formInstance.Field>
-                            <vehicleForm.formInstance.Field name="dodValueType">
-                                {(field) => (
-                                    <div className="space-y-2">
-                                        <Label htmlFor="dodValueType">
-                                            Valuation Type
-                                        </Label>
-                                        <Select
-                                            value={field.state.value || ''}
-                                            onValueChange={(v) =>
-                                                field.handleChange(v)
-                                            }
-                                        >
-                                            <SelectTrigger
-                                                id="dodValueType"
-                                                onBlur={field.handleBlur}
-                                            >
-                                                <SelectValue placeholder="Select type" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {DOD_VALUE_TYPES.map((t) => (
-                                                    <SelectItem
-                                                        key={t.value}
-                                                        value={t.value}
-                                                    >
-                                                        {t.label}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        {field.state.meta.errors &&
-                                            field.state.meta.errors.length >
-                                                0 && (
-                                                <p className="text-sm text-red-500">
-                                                    {getFieldError(field)}
-                                                </p>
-                                            )}
-                                    </div>
-                                )}
-                            </vehicleForm.formInstance.Field>
+                            <CurrencyField
+                                form={vehicleForm.formInstance}
+                                name="dodValue"
+                                label="DOD Value"
+                                placeholder="$ (KBB/NADA)"
+                            />
+                            <FormField
+                                form={vehicleForm.formInstance}
+                                name="dodValueDate"
+                                label="DOD Value Date"
+                                type="date"
+                            />
+                            <FormField
+                                form={vehicleForm.formInstance}
+                                name="dodValueType"
+                                label="Valuation Type"
+                                type="select"
+                                options={DOD_VALUE_TYPES}
+                                placeholder="Select type"
+                            />
                         </div>
                     </div>
 
@@ -901,110 +597,32 @@ export default function VehiclesPage() {
                     <div>
                         <h4 className="text-sm font-medium mb-3">Status</h4>
                         <div className="grid grid-cols-2 gap-4">
-                            <vehicleForm.formInstance.Field name="status">
-                                {(field) => (
-                                    <div className="space-y-2">
-                                        <Label htmlFor="status">
-                                            Asset Status *
-                                        </Label>
-                                        <Select
-                                            value={field.state.value || ''}
-                                            onValueChange={(v) =>
-                                                field.handleChange(v)
-                                            }
-                                        >
-                                            <SelectTrigger
-                                                id="status"
-                                                onBlur={field.handleBlur}
-                                            >
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {ASSET_STATUS.map((s) => (
-                                                    <SelectItem
-                                                        key={s.value}
-                                                        value={s.value}
-                                                    >
-                                                        {s.label}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        {field.state.meta.errors &&
-                                            field.state.meta.errors.length >
-                                                0 && (
-                                                <p className="text-sm text-red-500">
-                                                    {getFieldError(field)}
-                                                </p>
-                                            )}
-                                    </div>
-                                )}
-                            </vehicleForm.formInstance.Field>
-                            <vehicleForm.formInstance.Field name="transferStatus">
-                                {(field) => (
-                                    <div className="space-y-2">
-                                        <Label htmlFor="transferStatus">
-                                            Transfer Status *
-                                        </Label>
-                                        <Select
-                                            value={field.state.value || ''}
-                                            onValueChange={(v) =>
-                                                field.handleChange(v)
-                                            }
-                                        >
-                                            <SelectTrigger
-                                                id="transferStatus"
-                                                onBlur={field.handleBlur}
-                                            >
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {TRANSFER_STATUS.map((s) => (
-                                                    <SelectItem
-                                                        key={s.value}
-                                                        value={s.value}
-                                                    >
-                                                        {s.label}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        {field.state.meta.errors &&
-                                            field.state.meta.errors.length >
-                                                0 && (
-                                                <p className="text-sm text-red-500">
-                                                    {getFieldError(field)}
-                                                </p>
-                                            )}
-                                    </div>
-                                )}
-                            </vehicleForm.formInstance.Field>
+                            <FormField
+                                form={vehicleForm.formInstance}
+                                name="status"
+                                label="Asset Status"
+                                required
+                                type="select"
+                                options={ASSET_STATUS}
+                            />
+                            <FormField
+                                form={vehicleForm.formInstance}
+                                name="transferStatus"
+                                label="Transfer Status"
+                                required
+                                type="select"
+                                options={TRANSFER_STATUS}
+                            />
                         </div>
                     </div>
 
                     {/* Notes */}
-                    <vehicleForm.formInstance.Field name="notes">
-                        {(field) => (
-                            <div className="space-y-2">
-                                <Label htmlFor="notes">Notes</Label>
-                                <Textarea
-                                    id="notes"
-                                    value={field.state.value || ''}
-                                    onChange={(e) =>
-                                        field.handleChange(e.target.value)
-                                    }
-                                    onBlur={field.handleBlur}
-                                    rows={3}
-                                />
-                                {field.state.meta.errors &&
-                                    field.state.meta.errors.length > 0 && (
-                                        <p className="text-sm text-red-500">
-                                            {getFieldError(field)}
-                                        </p>
-                                    )}
-                            </div>
-                        )}
-                    </vehicleForm.formInstance.Field>
+                    <FormField
+                        form={vehicleForm.formInstance}
+                        name="notes"
+                        label="Notes"
+                        type="textarea"
+                    />
                 </div>
             </ResourceDialog>
         </div>
