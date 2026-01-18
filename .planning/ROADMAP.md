@@ -15,8 +15,8 @@ Trust Admin application development roadmap. v1.0 focused on code quality and re
 - ✅ [v3.0 Database Schema Improvements](milestones/v3.0-ROADMAP.md) - Phases 18-24 (shipped 2026-01-18)
 - ✅ [v4.0 Smart Liability Management](milestones/v4.0-ROADMAP.md) - Phases 25-29 (shipped 2026-01-17)
 - ✅ [v5.0 Developer Experience & Observability](milestones/v5.0-ROADMAP.md) - Phases 30-35 (shipped 2026-01-16)
-- 🔄 **v6.0 React 19.2 Platform Optimizations** - Phases 36-40 (in progress)
-- 📋 **v7.0 Codebase Consolidation** - Phases 41-46 (planned)
+- ✅ [v6.0 React 19.2 Platform Optimizations](milestones/v6.0-ROADMAP.md) - Phases 36-39 (shipped 2026-01-18)
+- 📋 **v7.0 Codebase Consolidation** - Phases 40-45 (planned)
 
 ## Phases
 
@@ -762,167 +762,19 @@ Plans:
 
 ---
 
-### 🔄 v6.0 React 19.2 Platform Optimizations (In Progress)
+<details>
+<summary>✅ v6.0 React 19.2 Platform Optimizations (Phases 36-39) - SHIPPED 2026-01-18</summary>
 
-**Milestone Goal:** Leverage React 19.2 and Next.js 16 native features to eliminate dependencies, improve UX with optimistic updates, and enhance performance with intelligent caching.
+**Milestone Goal:** Leverage React 19.2 and Next.js 16 native features to improve UX with optimistic updates, non-blocking audit logging, and progressive enhancement.
 
-**Why This Matters:**
-- React 19.2 provides useOptimistic for instant UI feedback during mutations
-- Next.js 16 after() can move audit logging out of the response path
-- cacheLife/cacheTag provide fine-grained caching without manual invalidation
-- These features are production-ready and can replace custom implementations
+- [x] Phase 36: useOptimistic for Mutations (1/1 plan) - completed 2026-01-18
+- [x] Phase 37: after() for Audit Logging (1/1 plan) - completed 2026-01-18
+- [x] Phase 38: cacheLife Profiles (1/1 plan) - completed 2026-01-18
+- [x] Phase 39: Progressive Enhancement (1/1 plan) - completed 2026-01-18
 
-**Key Features:**
-| Feature | React 19.2 / Next.js 16 | Current State | Improvement |
-|---------|-------------------------|---------------|-------------|
-| Optimistic Updates | `useOptimistic` | None | Instant UI feedback |
-| Post-Response Tasks | `after()` | Inline audit logging | Non-blocking logging |
-| Cache Management | `cacheLife`, `cacheTag`, `revalidateTag` | Manual invalidation | Automatic, tag-based |
-| Form Actions | `useActionState` | Client-only mutations | Progressive enhancement |
-| Ref Prop | No forwardRef needed | forwardRef wrappers | Simpler components |
+See [v6.0 Archive](milestones/v6.0-ROADMAP.md) for full details.
 
----
-
-#### Phase 36: useOptimistic for Mutations
-**Goal**: Add optimistic UI updates to payment recording, HEMS approval, and task completion
-
-**Depends on**: v4.0 complete
-
-**Research**: Unlikely (documented in 26-RESEARCH.md)
-
-**Plans**: 1 plan (4 tasks)
-
-**Mutation Targets:**
-| Mutation | Current UX | With useOptimistic |
-|----------|------------|-------------------|
-| Record payment | Loading spinner → update | Balance decreases instantly |
-| Approve HEMS | Loading → status change | Status shows "Approved" instantly |
-| Complete task | Loading → checkbox | Checkbox fills instantly |
-| Update balance | Loading → new value | Value updates instantly |
-
-**Tasks:**
-1. Create useOptimisticMutation hook wrapper
-2. Apply to liability payment recording
-3. Apply to HEMS request approval flow
-4. Apply to task completion toggle
-
-Plans:
-- [x] 36-01: useOptimistic integration for mutations ✅ (2026-01-18)
-
----
-
-#### Phase 37: after() for Audit Logging
-**Goal**: Move audit logging (activityLog entries) to after() so responses aren't blocked
-
-**Depends on**: Phase 36
-
-**Research**: Unlikely (documented in 26-RESEARCH.md)
-
-**Plans**: 1 plan (3 tasks)
-
-**Current Flow:**
-```
-Request → Mutation → Audit Log → Response
-                     ↑ blocking
-```
-
-**Target Flow:**
-```
-Request → Mutation → Response → Audit Log (background)
-                               ↑ non-blocking via after()
-```
-
-**Tasks:**
-1. Create auditLogAfter() utility wrapping after() + createActivityLog
-2. Update tRPC mutation procedures to use after() for logging
-3. Verify audit entries still capture request context (headers, user)
-
-Plans:
-- [x] 37-01: after() for non-blocking audit logging ✅ (2026-01-18)
-
----
-
-#### Phase 38: cacheLife Profiles for Data Fetching
-**Goal**: Configure caching profiles for different data types (financial data, config, reference data)
-
-**Depends on**: Phase 37
-
-**Research**: Unlikely (documented in 26-RESEARCH.md)
-
-**Plans**: 1 plan (4 tasks)
-
-**Cache Profiles:**
-| Profile | stale | revalidate | expire | Use Case |
-|---------|-------|------------|--------|----------|
-| `financial` | 60s | 5min | 1hr | Balances, transactions |
-| `reference` | 1hr | 6hr | 24hr | Beneficiary list, trustees |
-| `config` | 1day | 1week | 2weeks | Entity settings, fee schedules |
-
-**Tasks:**
-1. Add cacheLife profiles to next.config.ts
-2. Enable cacheComponents: true
-3. Apply 'use cache' + cacheLife() to tRPC queries
-4. Test cache behavior and invalidation
-
-Plans:
-- [x] 38-01: cacheLife profiles for data fetching ✅ (2026-01-18)
-
----
-
-#### Phase 39: cacheTag for Smart Invalidation
-**Goal**: Tag cached data and use revalidateTag() for precise cache invalidation on mutations
-
-**Depends on**: Phase 38
-
-**Research**: Unlikely (documented in 26-RESEARCH.md)
-
-**Plans**: 1 plan (4 tasks)
-
-**Tagging Strategy:**
-| Data | Tag Pattern | Invalidate On |
-|------|-------------|---------------|
-| Beneficiaries | `beneficiaries-{entityId}` | Any beneficiary mutation |
-| Liabilities | `liabilities-{entityId}` | Payment, balance update |
-| Accounting | `accounting-{entityId}-{year}` | New entry, edit |
-| Dashboard | `dashboard-{entityId}` | Any financial change |
-
-**Tasks:**
-1. Add cacheTag() to cached queries
-2. Create revalidateEntityCache() utility
-3. Call revalidateTag() in mutation procedures
-4. Verify cache invalidation across related queries
-
-Plans:
-- [ ] 39-01: cacheTag for smart cache invalidation
-
----
-
-#### Phase 40: Progressive Enhancement with useActionState
-**Goal**: Add Server Actions with useActionState for form submissions that work without JS
-
-**Depends on**: Phase 39
-
-**Research**: Unlikely (documented in 26-RESEARCH.md)
-
-**Plans**: 1 plan (3 tasks)
-
-**Form Targets:**
-- HEMS request submission (portal)
-- Payment recording
-- Quick task creation
-
-**Benefits:**
-- Forms work even if JS fails to load
-- Built-in pending state management
-- Server-side validation + error handling
-
-**Tasks:**
-1. Create Server Actions for key forms
-2. Update forms to use useActionState + Next.js Form component
-3. Maintain tRPC for complex mutations (keep both patterns)
-
-Plans:
-- [ ] 40-01: useActionState for progressive forms
+</details>
 
 ---
 
@@ -941,7 +793,7 @@ Plans:
 
 ---
 
-#### Phase 41: Quick Fixes
+#### Phase 40: Quick Fixes
 **Goal**: Remove duplicate type definition, replace hardcoded enums with constants, add `getAllArray()` helper to CRUD factory
 
 **Depends on**: Can start anytime (no dependencies)
@@ -961,14 +813,14 @@ Plans:
 - `db/crud-factory.ts`
 
 Plans:
-- [ ] 41-01: Quick fixes for type and enum duplication
+- [x] 40-01: Quick fixes for type and enum duplication
 
 ---
 
-#### Phase 42: Hook Extraction
+#### Phase 41: Hook Extraction
 **Goal**: Extract reusable hooks for editable cells and CRUD mutations, create shared login page component
 
-**Depends on**: Phase 41
+**Depends on**: Phase 40
 
 **Research**: Unlikely (established React patterns)
 
@@ -982,14 +834,14 @@ Plans:
 **Impact:** ~400 lines consolidated
 
 Plans:
-- [ ] 42-01: Hook extraction and login page consolidation
+- [ ] 41-01: Hook extraction and login page consolidation
 
 ---
 
-#### Phase 43: tRPC Router Factory
+#### Phase 42: tRPC Router Factory
 **Goal**: Create `createCrudRouter()` factory to eliminate boilerplate in 13 simple routers
 
-**Depends on**: Phase 41
+**Depends on**: Phase 40
 
 **Research**: Unlikely (internal tRPC patterns)
 
@@ -1007,14 +859,14 @@ Plans:
 **Note:** Routers with custom logic (liability, distribution, hemsRequest, beneficiary) remain explicit.
 
 Plans:
-- [ ] 43-01: tRPC router factory implementation
+- [ ] 42-01: tRPC router factory implementation
 
 ---
 
-#### Phase 44: Table Consolidation
+#### Phase 43: Table Consolidation
 **Goal**: Migrate all pages to TanStack Table, remove deprecated `data-table.tsx`
 
-**Depends on**: Phase 42
+**Depends on**: Phase 41
 
 **Research**: Unlikely (migration work, TanStack Table already in use)
 
@@ -1028,14 +880,14 @@ Plans:
 **Impact:** ~300 lines removed, single table implementation
 
 Plans:
-- [ ] 44-01: Table implementation consolidation
+- [ ] 43-01: Table implementation consolidation
 
 ---
 
-#### Phase 45: Query Optimization
+#### Phase 44: Query Optimization
 **Goal**: Fix in-memory filtering, standardize `getById` relations across asset queries
 
-**Depends on**: Phase 43
+**Depends on**: Phase 42
 
 **Research**: Unlikely (internal query patterns)
 
@@ -1052,14 +904,14 @@ Plans:
 **Impact:** Performance improvement for large datasets
 
 Plans:
-- [ ] 45-01: Query optimization and relation standardization
+- [ ] 44-01: Query optimization and relation standardization
 
 ---
 
-#### Phase 46: Admin Page Patterns
+#### Phase 45: Admin Page Patterns
 **Goal**: Create column definition factory and FormField wrapper to reduce page boilerplate
 
-**Depends on**: Phases 42, 44
+**Depends on**: Phases 41, 43
 
 **Research**: Unlikely (UI patterns established)
 
@@ -1074,7 +926,7 @@ Plans:
 **Note:** This phase is optional but provides significant long-term maintainability benefits.
 
 Plans:
-- [ ] 46-01: Admin page pattern extraction
+- [ ] 45-01: Admin page pattern extraction
 
 ---
 
@@ -1085,8 +937,8 @@ Plans:
 - v3.0: 18 → 19 → 20 → 21 → 22 → 23 → 24
 - v4.0: 25 → 26 → 27 → 28 → 29
 - v5.0: 30 → 31 → 32 → 33 → 34 → 35
-- v6.0: 36 → 37 → 38 → 39 → 40
-- v7.0: 41 → 42 → 43 → 44 → 45 → 46
+- v6.0: 36 → 37 → 38 → 39
+- v7.0: 40 → 41 → 42 → 43 → 44 → 45
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -1128,11 +980,10 @@ Plans:
 | 36. useOptimistic for Mutations | v6.0 | 1/1 | ✅ Complete | 2026-01-18 |
 | 37. after() for Audit Logging | v6.0 | 1/1 | ✅ Complete | 2026-01-18 |
 | 38. cacheLife Profiles | v6.0 | 1/1 | ✅ Complete | 2026-01-18 |
-| 39. cacheTag Smart Invalidation | v6.0 | 0/1 | Not started | - |
-| 40. Progressive Enhancement | v6.0 | 0/1 | Not started | - |
-| 41. Quick Fixes | v7.0 | 0/1 | Not started | - |
-| 42. Hook Extraction | v7.0 | 0/1 | Not started | - |
-| 43. tRPC Router Factory | v7.0 | 0/1 | Not started | - |
-| 44. Table Consolidation | v7.0 | 0/1 | Not started | - |
-| 45. Query Optimization | v7.0 | 0/1 | Not started | - |
-| 46. Admin Page Patterns | v7.0 | 0/1 | Not started | - |
+| 39. Progressive Enhancement | v6.0 | 1/1 | ✅ Complete | 2026-01-18 |
+| 40. Quick Fixes | v7.0 | 1/1 | ✅ Complete | 2026-01-18 |
+| 41. Hook Extraction | v7.0 | 0/1 | Not started | - |
+| 42. tRPC Router Factory | v7.0 | 0/1 | Not started | - |
+| 43. Table Consolidation | v7.0 | 0/1 | Not started | - |
+| 44. Query Optimization | v7.0 | 0/1 | Not started | - |
+| 45. Admin Page Patterns | v7.0 | 0/1 | Not started | - |

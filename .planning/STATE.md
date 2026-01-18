@@ -6,16 +6,16 @@ See: .planning/PROJECT.md (updated 2026-01-09)
 
 **Core value:** Reliable trust administration - The API works without silent failures, users see clear error messages, and the codebase is maintainable for ongoing development.
 
-**Current focus:** v6.0 React 19.2 Platform Optimizations
+**Current focus:** v7.0 Codebase Consolidation
 
 ## Current Position
 
-Phase: 38 of 40 (cacheLife Profiles)
-Plan: 38-01 (1 plan) - COMPLETE
+Phase: 40 of 45 (Quick Fixes)
+Plan: 1 of 1 - COMPLETE
 Status: Phase complete
-Last activity: 2026-01-18 - Completed 38-01 (cacheLife profiles)
+Last activity: 2026-01-18 - Completed 40-01-PLAN.md
 
-Progress: ███████████████░░░░ 3/5 v6.0 plans complete
+Progress: ██░░░░░░░░░░░░░░░░░░ 1/6 v7.0 plans
 
 ## Performance Metrics
 
@@ -23,9 +23,31 @@ Progress: ███████████████░░░░ 3/5 v6.0 pla
 - v1.0 plans completed: 41
 - v2.0 plans completed: 4
 - v3.0 plans completed: 7
-- v6.0 plans completed: 3
+- v6.0 plans completed: 4
 
 ## Accumulated Context
+
+### v7.0 Phase 40 COMPLETE (Quick Fixes):
+
+**40-01 Completed (getAllArray Migration):**
+- ✅ Migrated 23 tRPC routers to use getAllArray()
+- ✅ Eliminated manual type guards: `Array.isArray(result) ? result : result.data`
+- ✅ Verified AllocationClass imports from type-utils.ts
+- ✅ Verified liability.ts uses centralized enum constants
+- ✅ Commit: 046065a
+- Pattern: `liabilityCrud.getAllArray(input?.entityId)` for list queries
+
+### v6.0 Phase 39 COMPLETE (Progressive Enhancement):
+
+**39-01 Completed (useActionState for HEMS Form):**
+- ✅ Created Server Action `submitHemsRequest.ts` with Zod validation
+- ✅ Refactored HemsRequestForm to use React 19 `useActionState`
+- ✅ Form works before JS hydrates via native form submission
+- ✅ Used hidden input to sync Radix Select with native form
+- ✅ Commits: 3d9ea81, 99a49c1
+- Pattern: Hidden input syncs Radix UI component values with native form submission
+- Pattern: Server Action returns `{ error: string | null, success: boolean }` for useActionState
+- Decision: Keep tRPC for admin operations, Server Action for beneficiary-facing form
 
 ### v6.0 Phase 38 COMPLETE (cacheLife Profiles):
 
@@ -335,7 +357,7 @@ Progress: ███████████████░░░░ 3/5 v6.0 pla
 ## Session Continuity
 
 Last session: 2026-01-18
-Stopped at: Completed Phase 38-01, Phase 38 complete
+Stopped at: Completed Phase 40-01, Phase 40 complete
 Resume file: None
 
 ## Milestone History
@@ -347,5 +369,5 @@ Resume file: None
 | v3.0 Database Schema Improvements | 18-24 | 8 | ✅ Complete | 2026-01-18 |
 | v4.0 Smart Liability Management | 25-29 | 7 | ✅ Complete | 2026-01-17 |
 | v5.0 Developer Experience & Observability | 30-35 | 6 | ✅ Complete | 2026-01-16 |
-| v6.0 React 19.2 Platform Optimizations | 36-40 | 5 | 🔄 In Progress (1/5) | - |
-| v7.0 Codebase Consolidation | 41-46 | 6 | 📋 Planned | - |
+| v6.0 React 19.2 Platform Optimizations | 36-39 | 4 | ✅ Complete | 2026-01-18 |
+| v7.0 Codebase Consolidation | 40-45 | 6 | 🔄 In Progress (1/6) | - |

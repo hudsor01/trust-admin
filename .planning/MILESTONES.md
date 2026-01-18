@@ -1,5 +1,32 @@
 # Project Milestones: Trust Admin
 
+## v6.0 React 19.2 Platform Optimizations (Shipped: 2026-01-18)
+
+**Delivered:** React 19.2 and Next.js 16 native features for instant UI feedback, non-blocking audit logging, and progressive enhancement.
+
+**Phases completed:** 36-39 (4 plans total)
+
+**Key accomplishments:**
+
+- useOptimistic for instant UI feedback (liability payments, HEMS approval, task toggle)
+- after() for non-blocking audit logging (fire-and-forget pattern)
+- useActionState + Server Actions for progressive enhancement on HEMS form
+- TanStack Query tuning (30s staleTime, 10min gcTime)
+- cacheLife profiles documented for future server-side caching adoption
+
+**Stats:**
+
+- 15 files created/modified
+- 459 insertions, 128 deletions
+- 4 phases, 4 plans
+- 10 days from start to ship
+
+**Git range:** `ce6c81f` → `99a49c1`
+
+**What's next:** v7.0 Codebase Consolidation
+
+---
+
 ## v4.0 Smart Liability Management (Shipped: 2026-01-17)
 
 **Delivered:** Intelligent loan management with automatic amortization calculations, type-aware forms, bulk entry, progress visualization, and real-time payment impact preview.

@@ -8,9 +8,15 @@ A trust administration application for managing the **Hudson Living Trust** (Tex
 
 **Reliable trust administration** — Type-safe APIs, clear error handling, database-level constraints, and maintainable code for ongoing development.
 
-## Current State (v3.0 shipped)
+## Current State (v6.0 shipped)
 
-**Stack:** Next.js 16.1 + tRPC v11 + Drizzle ORM + Better Auth + Neon PostgreSQL
+**Stack:** Next.js 16.1 + tRPC v11 + React 19.2 + Drizzle ORM + Better Auth + Neon PostgreSQL
+
+**React 19.2 features (v6.0):**
+- `useOptimistic` for instant UI feedback (payments, HEMS, tasks)
+- `after()` for non-blocking audit logging
+- `useActionState` + Server Actions for progressive enhancement
+- TanStack Query tuning (30s staleTime, 10min gcTime)
 
 **Database improvements (v3.0):**
 - 116 timestamp columns using TIMESTAMPTZ
@@ -23,11 +29,11 @@ A trust administration application for managing the **Hudson Living Trust** (Tex
 **Features working:**
 - 24 tRPC routers for all resources
 - Admin auth + beneficiary portal (magic link)
-- Payment recording with auto-accounting
-- HEMS workflow (request → approve → distribute)
+- Payment recording with auto-accounting + optimistic UI
+- HEMS workflow (request → approve → distribute) + progressive enhancement
 - Year-end income-to-principal conversion
 - Beneficiary death handling with share redistribution
-- Activity log audit trail
+- Activity log audit trail (non-blocking)
 - Command palette (⌘K)
 - Dashboard charts (recharts)
 - Virtualized tables for large datasets
@@ -48,10 +54,12 @@ A trust administration application for managing the **Hudson Living Trust** (Tex
 - ✓ Bulk entry for liabilities — v4.0
 - ✓ Dashboard charts — v5.0
 - ✓ Error monitoring (@sentry/nextjs) — v5.0
+- ✓ Optimistic UI updates (useOptimistic) — v6.0
+- ✓ Non-blocking audit logging (after()) — v6.0
+- ✓ Progressive enhancement (useActionState) — v6.0
 
 ### Active
 
-- [ ] v6.0: React 19.2 platform optimizations
 - [ ] v7.0: Codebase consolidation
 
 ### Out of Scope
@@ -70,6 +78,10 @@ A trust administration application for managing the **Hudson Living Trust** (Tex
 | Better Auth tables keep TEXT IDs | Compatibility with auth library | ✓ Good |
 | recordId stays text | Polymorphic across Better Auth and app tables | ✓ Good |
 | z.coerce.number() for ID validation | Handles URL string→number conversion | ✓ Good |
+| useOptimistic for mutations | Instant UI feedback before server responds | ✓ Good |
+| after() for audit logging | Fire-and-forget, non-blocking | ✓ Good |
+| Hidden inputs for Radix Select | Sync UI component with native form | ✓ Good |
+| TanStack Query over server cache | tRPC apps benefit from client-side caching | ✓ Good |
 
 ## Constraints
 
@@ -79,4 +91,4 @@ A trust administration application for managing the **Hudson Living Trust** (Tex
 - **No Breaking Changes**: Preserve existing API contracts
 
 ---
-*Last updated: 2026-01-18 after v3.0 milestone*
+*Last updated: 2026-01-18 after v6.0 milestone*
