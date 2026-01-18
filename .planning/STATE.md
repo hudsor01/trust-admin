@@ -10,12 +10,12 @@ See: .planning/PROJECT.md (updated 2026-01-09)
 
 ## Current Position
 
-Phase: 40 of 45 (Quick Fixes)
-Plan: 1 of 1 - COMPLETE
-Status: Phase complete
-Last activity: 2026-01-18 - Completed 40-01-PLAN.md
+Phase: 41 of 45 (Hook Extraction)
+Plan: 1 of 3 - COMPLETE
+Status: Plan 01 complete, plans 02-03 pending
+Last activity: 2026-01-18 - Completed 41-01-PLAN.md
 
-Progress: ██░░░░░░░░░░░░░░░░░░ 1/6 v7.0 plans
+Progress: ████░░░░░░░░░░░░░░░░ 2/6 v7.0 plans
 
 ## Performance Metrics
 
@@ -26,6 +26,17 @@ Progress: ██░░░░░░░░░░░░░░░░░░ 1/6 v7.0 
 - v6.0 plans completed: 4
 
 ## Accumulated Context
+
+### v7.0 Phase 41 IN PROGRESS (Hook Extraction):
+
+**41-01 Completed (useEditableCell Hook):**
+- ✅ Created `src/hooks/use-editable-cell.ts` (118 lines)
+- ✅ Migrated 5 editable cell components to use the hook
+- ✅ EditableSelectCell intentionally kept separate (different pattern)
+- ✅ Commits: d60b756, 3f51c4c
+- Pattern: `formatForEdit` converts value→string, `parseFromEdit` converts string→value
+- Pattern: Hook returns handlers (startEditing, handleSave, handleKeyDown) + state
+- Decision: Use hook for text-based editable cells, keep select separate
 
 ### v7.0 Phase 40 COMPLETE (Quick Fixes):
 
@@ -357,7 +368,7 @@ Progress: ██░░░░░░░░░░░░░░░░░░ 1/6 v7.0 
 ## Session Continuity
 
 Last session: 2026-01-18
-Stopped at: Completed Phase 40-01, Phase 40 complete
+Stopped at: Completed Phase 41-01, plans 02-03 pending
 Resume file: None
 
 ## Milestone History

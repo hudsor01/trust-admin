@@ -822,14 +822,13 @@ Plans:
 
 **Depends on**: Phase 40
 
-**Research**: Unlikely (established React patterns)
+**Research**: ✅ Completed (41-RESEARCH.md)
 
-**Plans**: 1 plan (3 tasks)
-
-**Tasks:**
-1. Create `useEditableCell(value, onSave)` hook in `src/hooks/use-editable-cell.ts` - handles editing state, save logic, loading state
-2. Create `useCrudMutations(trpc.resource)` hook - returns `{create, update, delete}` with auto-invalidation
-3. Create shared `<LoginPage>` component accepting `{title, icon, redirectPath, callbackURL}` - consolidate `src/app/login/page.tsx` and `src/app/portal/login/page.tsx`
+**Plans**: 3 plans
+Plans:
+- [x] 41-01: Create useEditableCell hook and migrate 5 editable cell components
+- [ ] 41-02: Create shared LoginPage component
+- [ ] 41-03: Create useCrudMutations hook and migrate 3 pilot pages
 
 **Impact:** ~400 lines consolidated
 
