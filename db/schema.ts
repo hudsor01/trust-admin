@@ -206,7 +206,7 @@ export const activityLog = pgTable(
         changedBy: t.text().default('system').notNull(),
         ipAddress: t.text(),
         createdAt: t
-            .timestamp({ precision: 3, mode: 'string' })
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
             .default(sql`CURRENT_TIMESTAMP`)
             .notNull(),
     }),
@@ -242,24 +242,38 @@ export const entity = pgTable(
         trustType: trustType(),
         grantorName: t.text(),
         decedent: t.text(),
-        dod: t.timestamp({ precision: 3, mode: 'string' }),
-        originalDate: t.timestamp({ precision: 3, mode: 'string' }),
-        restatedDate: t.timestamp({ precision: 3, mode: 'string' }),
+        dod: t.timestamp({ precision: 3, mode: 'string', withTimezone: true }),
+        originalDate: t.timestamp({
+            precision: 3,
+            mode: 'string',
+            withTimezone: true,
+        }),
+        restatedDate: t.timestamp({
+            precision: 3,
+            mode: 'string',
+            withTimezone: true,
+        }),
         governingLaw: t.text(),
         hasNoContestClause: t.boolean().default(false),
         hasSpendthriftProvision: t.boolean().default(false),
         ein: t.text(),
-        formationDate: t.timestamp({ precision: 3, mode: 'string' }),
+        formationDate: t.timestamp({
+            precision: 3,
+            mode: 'string',
+            withTimezone: true,
+        }),
         stateOfFormation: t.text(),
         registeredAgent: t.text(),
         parentEntityId: t.text(),
         status: recordStatus().default('ACTIVE').notNull(),
         notes: t.text(),
         createdAt: t
-            .timestamp({ precision: 3, mode: 'string' })
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
             .default(sql`CURRENT_TIMESTAMP`)
             .notNull(),
-        updatedAt: t.timestamp({ precision: 3, mode: 'string' }).notNull(),
+        updatedAt: t
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
+            .notNull(),
     }),
     (table) => [
         index('idx_entity_parent_entity_id').on(table.parentEntityId),
@@ -294,19 +308,29 @@ export const vehicle = pgTable(
         titleStatus: titleStatus().default('CLEAR').notNull(),
         licensePlate: t.text(),
         mileage: t.integer(),
-        acquisitionDate: t.timestamp({ precision: 3, mode: 'string' }),
+        acquisitionDate: t.timestamp({
+            precision: 3,
+            mode: 'string',
+            withTimezone: true,
+        }),
         acquisitionCost: t.numeric({ precision: 12, scale: 2 }),
         dodValue: t.numeric({ precision: 14, scale: 2 }),
-        dodValueDate: t.timestamp({ precision: 3, mode: 'string' }),
+        dodValueDate: t.timestamp({
+            precision: 3,
+            mode: 'string',
+            withTimezone: true,
+        }),
         dodValueType: valuationType(), // Consolidated - was dodValueType
         status: recordStatus().default('ACTIVE').notNull(), // Consolidated status
         transferStatus: transferStatus().default('PENDING').notNull(),
         notes: t.text(),
         createdAt: t
-            .timestamp({ precision: 3, mode: 'string' })
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
             .default(sql`CURRENT_TIMESTAMP`)
             .notNull(),
-        updatedAt: t.timestamp({ precision: 3, mode: 'string' }).notNull(),
+        updatedAt: t
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
+            .notNull(),
     }),
     (table) => [
         uniqueIndex('Vehicle_vin_key').using(
@@ -350,22 +374,36 @@ export const homestead = pgTable(
         lotSizeAcres: t.numeric({ precision: 10, scale: 4 }),
         bedrooms: t.integer(),
         bathrooms: t.numeric({ precision: 3, scale: 1 }),
-        acquisitionDate: t.timestamp({ precision: 3, mode: 'string' }),
+        acquisitionDate: t.timestamp({
+            precision: 3,
+            mode: 'string',
+            withTimezone: true,
+        }),
         acquisitionCost: t.numeric({ precision: 12, scale: 2 }),
         dodValue: t.numeric({ precision: 14, scale: 2 }),
-        dodValueDate: t.timestamp({ precision: 3, mode: 'string' }),
+        dodValueDate: t.timestamp({
+            precision: 3,
+            mode: 'string',
+            withTimezone: true,
+        }),
         dodValueType: valuationType(), // Consolidated
         dodAffidavitFiled: t.boolean().default(false),
-        dodAffidavitDate: t.timestamp({ precision: 3, mode: 'string' }),
+        dodAffidavitDate: t.timestamp({
+            precision: 3,
+            mode: 'string',
+            withTimezone: true,
+        }),
         clerkFileNo: t.text(),
         status: recordStatus().default('ACTIVE').notNull(), // Consolidated status
         transferStatus: transferStatus().default('PENDING').notNull(),
         notes: t.text(),
         createdAt: t
-            .timestamp({ precision: 3, mode: 'string' })
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
             .default(sql`CURRENT_TIMESTAMP`)
             .notNull(),
-        updatedAt: t.timestamp({ precision: 3, mode: 'string' }).notNull(),
+        updatedAt: t
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
+            .notNull(),
     }),
     (table) => [
         index('idx_homestead_entity_id').on(table.entityId),
@@ -406,26 +444,48 @@ export const rentalProperty = pgTable(
         yearBuilt: t.integer(),
         rentalStatus: rentalStatus().default('RENTED').notNull(),
         monthlyRent: t.numeric({ precision: 10, scale: 2 }),
-        leaseStart: t.timestamp({ precision: 3, mode: 'string' }),
-        leaseEnd: t.timestamp({ precision: 3, mode: 'string' }),
+        leaseStart: t.timestamp({
+            precision: 3,
+            mode: 'string',
+            withTimezone: true,
+        }),
+        leaseEnd: t.timestamp({
+            precision: 3,
+            mode: 'string',
+            withTimezone: true,
+        }),
         propertyManager: t.text(),
-        acquisitionDate: t.timestamp({ precision: 3, mode: 'string' }),
+        acquisitionDate: t.timestamp({
+            precision: 3,
+            mode: 'string',
+            withTimezone: true,
+        }),
         acquisitionCost: t.numeric({ precision: 12, scale: 2 }),
         mortgageBalance: t.numeric({ precision: 12, scale: 2 }),
         dodValue: t.numeric({ precision: 14, scale: 2 }),
-        dodValueDate: t.timestamp({ precision: 3, mode: 'string' }),
+        dodValueDate: t.timestamp({
+            precision: 3,
+            mode: 'string',
+            withTimezone: true,
+        }),
         dodValueType: valuationType(), // Consolidated
         dodAffidavitFiled: t.boolean().default(false),
-        dodAffidavitDate: t.timestamp({ precision: 3, mode: 'string' }),
+        dodAffidavitDate: t.timestamp({
+            precision: 3,
+            mode: 'string',
+            withTimezone: true,
+        }),
         clerkFileNo: t.text(),
         status: recordStatus().default('ACTIVE').notNull(), // Consolidated status
         transferStatus: transferStatus().default('PENDING').notNull(),
         notes: t.text(),
         createdAt: t
-            .timestamp({ precision: 3, mode: 'string' })
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
             .default(sql`CURRENT_TIMESTAMP`)
             .notNull(),
-        updatedAt: t.timestamp({ precision: 3, mode: 'string' }).notNull(),
+        updatedAt: t
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
+            .notNull(),
     }),
     (table) => [
         index('idx_rental_property_entity_id').on(table.entityId),
@@ -458,17 +518,27 @@ export const bankAccount = pgTable(
         accountNumber: t.text().notNull(),
         routingNumber: t.text(),
         dodValue: t.numeric({ precision: 14, scale: 2 }),
-        dodValueDate: t.timestamp({ precision: 3, mode: 'string' }),
+        dodValueDate: t.timestamp({
+            precision: 3,
+            mode: 'string',
+            withTimezone: true,
+        }),
         currentBalance: t.numeric({ precision: 14, scale: 2 }), // Texas 113.152(4) - cash balance
-        currentBalanceDate: t.timestamp({ precision: 3, mode: 'string' }), // When balance was last verified
+        currentBalanceDate: t.timestamp({
+            precision: 3,
+            mode: 'string',
+            withTimezone: true,
+        }), // When balance was last verified
         status: recordStatus().default('ACTIVE').notNull(), // Consolidated status
         transferStatus: transferStatus().default('PENDING').notNull(),
         notes: t.text(),
         createdAt: t
-            .timestamp({ precision: 3, mode: 'string' })
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
             .default(sql`CURRENT_TIMESTAMP`)
             .notNull(),
-        updatedAt: t.timestamp({ precision: 3, mode: 'string' }).notNull(),
+        updatedAt: t
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
+            .notNull(),
     }),
     (table) => [
         index('idx_bank_account_entity_id').on(table.entityId),
@@ -500,18 +570,28 @@ export const investmentAccount = pgTable(
         accountName: t.text(),
         accountNumber: t.text().notNull(),
         dodValue: t.numeric({ precision: 14, scale: 2 }),
-        dodValueDate: t.timestamp({ precision: 3, mode: 'string' }),
+        dodValueDate: t.timestamp({
+            precision: 3,
+            mode: 'string',
+            withTimezone: true,
+        }),
         costBasis: t.numeric({ precision: 14, scale: 2 }),
         currentBalance: t.numeric({ precision: 14, scale: 2 }), // Texas 113.152(4) - current value
-        currentBalanceDate: t.timestamp({ precision: 3, mode: 'string' }), // When balance was last verified
+        currentBalanceDate: t.timestamp({
+            precision: 3,
+            mode: 'string',
+            withTimezone: true,
+        }), // When balance was last verified
         status: recordStatus().default('ACTIVE').notNull(), // Consolidated status
         transferStatus: transferStatus().default('PENDING').notNull(),
         notes: t.text(),
         createdAt: t
-            .timestamp({ precision: 3, mode: 'string' })
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
             .default(sql`CURRENT_TIMESTAMP`)
             .notNull(),
-        updatedAt: t.timestamp({ precision: 3, mode: 'string' }).notNull(),
+        updatedAt: t
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
+            .notNull(),
     }),
     (table) => [
         index('idx_investment_account_entity_id').on(table.entityId),
@@ -544,17 +624,27 @@ export const insurancePolicy = pgTable(
         coverageAmount: t.numeric({ precision: 12, scale: 2 }),
         premium: t.numeric({ precision: 10, scale: 2 }),
         premiumFrequency: premiumFrequency(),
-        effectiveDate: t.timestamp({ precision: 3, mode: 'string' }),
-        expirationDate: t.timestamp({ precision: 3, mode: 'string' }),
+        effectiveDate: t.timestamp({
+            precision: 3,
+            mode: 'string',
+            withTimezone: true,
+        }),
+        expirationDate: t.timestamp({
+            precision: 3,
+            mode: 'string',
+            withTimezone: true,
+        }),
         insuredAsset: t.text(),
         beneficiaries: t.text(),
         status: recordStatus().default('ACTIVE').notNull(), // Consolidated status
         notes: t.text(),
         createdAt: t
-            .timestamp({ precision: 3, mode: 'string' })
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
             .default(sql`CURRENT_TIMESTAMP`)
             .notNull(),
-        updatedAt: t.timestamp({ precision: 3, mode: 'string' }).notNull(),
+        updatedAt: t
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
+            .notNull(),
     }),
     (table) => [
         index('idx_insurance_policy_entity_id').on(table.entityId),
@@ -586,7 +676,7 @@ export const beneficiary = pgTable(
         relationship: t.text().notNull(),
         relationshipType: relationshipType(),
         parentId: t.text(),
-        dob: t.timestamp({ precision: 3, mode: 'string' }),
+        dob: t.timestamp({ precision: 3, mode: 'string', withTimezone: true }),
         email: t.text(),
         phone: t.text(),
         streetAddress: t.text(),
@@ -604,16 +694,30 @@ export const beneficiary = pgTable(
         isPrimary: t.boolean().default(true),
         isContingent: t.boolean().default(false),
         informed: t.boolean().default(false),
-        informedDate: t.timestamp({ precision: 3, mode: 'string' }),
+        informedDate: t.timestamp({
+            precision: 3,
+            mode: 'string',
+            withTimezone: true,
+        }),
         releaseSigned: t.boolean().default(false),
-        releaseDate: t.timestamp({ precision: 3, mode: 'string' }),
-        deceasedDate: t.timestamp({ precision: 3, mode: 'string' }),
+        releaseDate: t.timestamp({
+            precision: 3,
+            mode: 'string',
+            withTimezone: true,
+        }),
+        deceasedDate: t.timestamp({
+            precision: 3,
+            mode: 'string',
+            withTimezone: true,
+        }),
         notes: t.text(),
         createdAt: t
-            .timestamp({ precision: 3, mode: 'string' })
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
             .default(sql`CURRENT_TIMESTAMP`)
             .notNull(),
-        updatedAt: t.timestamp({ precision: 3, mode: 'string' }).notNull(),
+        updatedAt: t
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
+            .notNull(),
         // PostgreSQL 17 generated column - full name for display and search
         fullName: t
             .text('full_name')
@@ -660,7 +764,7 @@ export const distribution = pgTable(
         entityId: t.text(),
         beneficiaryId: t.text().notNull(),
         distributionDate: t
-            .timestamp({ precision: 3, mode: 'string' })
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
             .notNull(),
         amount: t.numeric({ precision: 12, scale: 2 }).notNull(),
         distributionType: distributionType().notNull(),
@@ -676,13 +780,19 @@ export const distribution = pgTable(
         documentId: t.text(),
         supportingDocPath: t.text(),
         approvedBy: t.text(),
-        approvalDate: t.timestamp({ precision: 3, mode: 'string' }),
+        approvalDate: t.timestamp({
+            precision: 3,
+            mode: 'string',
+            withTimezone: true,
+        }),
         notes: t.text(),
         createdAt: t
-            .timestamp({ precision: 3, mode: 'string' })
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
             .default(sql`CURRENT_TIMESTAMP`)
             .notNull(),
-        updatedAt: t.timestamp({ precision: 3, mode: 'string' }).notNull(),
+        updatedAt: t
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
+            .notNull(),
     }),
     (table) => [
         index('idx_distribution_beneficiary_id').on(table.beneficiaryId),
@@ -726,13 +836,15 @@ export const valuation = pgTable(
         investmentAccountId: t.text(),
         personalPropertyId: t.text(),
         artworkId: t.text(),
-        valuationDate: t.timestamp({ precision: 3, mode: 'string' }).notNull(),
+        valuationDate: t
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
+            .notNull(),
         value: t.numeric({ precision: 14, scale: 2 }).notNull(),
         valuationType: valuationType().notNull(),
         source: t.text(),
         notes: t.text(),
         createdAt: t
-            .timestamp({ precision: 3, mode: 'string' })
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
             .default(sql`CURRENT_TIMESTAMP`)
             .notNull(),
     }),
@@ -817,19 +929,29 @@ export const personalProperty = pgTable(
         description: t.text(),
         category: t.text().notNull(), // Converted from enum - 'JEWELRY', 'ART', 'COLLECTIBLES', etc.
         location: t.text(),
-        acquisitionDate: t.timestamp({ precision: 3, mode: 'string' }),
+        acquisitionDate: t.timestamp({
+            precision: 3,
+            mode: 'string',
+            withTimezone: true,
+        }),
         acquisitionCost: t.numeric({ precision: 12, scale: 2 }),
         dodValue: t.numeric({ precision: 14, scale: 2 }),
-        dodValueDate: t.timestamp({ precision: 3, mode: 'string' }),
+        dodValueDate: t.timestamp({
+            precision: 3,
+            mode: 'string',
+            withTimezone: true,
+        }),
         dodValueType: valuationType(), // Consolidated
         status: recordStatus().default('ACTIVE').notNull(), // Consolidated status
         transferStatus: transferStatus().default('PENDING').notNull(),
         notes: t.text(),
         createdAt: t
-            .timestamp({ precision: 3, mode: 'string' })
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
             .default(sql`CURRENT_TIMESTAMP`)
             .notNull(),
-        updatedAt: t.timestamp({ precision: 3, mode: 'string' }).notNull(),
+        updatedAt: t
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
+            .notNull(),
     }),
     (table) => [
         index('idx_personal_property_entity_id').on(table.entityId),
@@ -866,14 +988,24 @@ export const document = pgTable(
         investmentAccountId: t.text(),
         insurancePolicyId: t.text(),
         personalPropertyId: t.text(),
-        documentDate: t.timestamp({ precision: 3, mode: 'string' }),
-        expirationDate: t.timestamp({ precision: 3, mode: 'string' }),
+        documentDate: t.timestamp({
+            precision: 3,
+            mode: 'string',
+            withTimezone: true,
+        }),
+        expirationDate: t.timestamp({
+            precision: 3,
+            mode: 'string',
+            withTimezone: true,
+        }),
         notes: t.text(),
         createdAt: t
-            .timestamp({ precision: 3, mode: 'string' })
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
             .default(sql`CURRENT_TIMESTAMP`)
             .notNull(),
-        updatedAt: t.timestamp({ precision: 3, mode: 'string' }).notNull(),
+        updatedAt: t
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
+            .notNull(),
     }),
     (table) => [
         index('idx_document_entity_id').on(table.entityId),
@@ -963,7 +1095,7 @@ export const transaction = pgTable(
         investmentAccountId: t.text(),
         insurancePolicyId: t.text(),
         transactionDate: t
-            .timestamp({ precision: 3, mode: 'string' })
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
             .notNull(),
         transactionType: transactionType().notNull(),
         category: t.text().notNull(),
@@ -975,10 +1107,12 @@ export const transaction = pgTable(
         allocationClass: allocationClass().default('PRINCIPAL'), // Texas 116.152 - Principal vs Income
         notes: t.text(),
         createdAt: t
-            .timestamp({ precision: 3, mode: 'string' })
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
             .default(sql`CURRENT_TIMESTAMP`)
             .notNull(),
-        updatedAt: t.timestamp({ precision: 3, mode: 'string' }).notNull(),
+        updatedAt: t
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
+            .notNull(),
     }),
     (table) => [
         index('idx_transaction_vehicle_id').on(table.vehicleId),
@@ -1051,7 +1185,7 @@ export const contact = pgTable('Contact', (t) => ({
     role: t.text().notNull(), // Converted from enum - 'ATTORNEY', 'ACCOUNTANT', 'FINANCIAL_ADVISOR', etc.
     email: t.text(),
     phone: t.text(),
-    dob: t.timestamp({ precision: 3, mode: 'string' }),
+    dob: t.timestamp({ precision: 3, mode: 'string', withTimezone: true }),
     streetAddress: t.text(),
     city: t.text(),
     state: t.text(),
@@ -1060,10 +1194,12 @@ export const contact = pgTable('Contact', (t) => ({
     barNo: t.text(),
     notes: t.text(),
     createdAt: t
-        .timestamp({ precision: 3, mode: 'string' })
+        .timestamp({ precision: 3, mode: 'string', withTimezone: true })
         .default(sql`CURRENT_TIMESTAMP`)
         .notNull(),
-    updatedAt: t.timestamp({ precision: 3, mode: 'string' }).notNull(),
+    updatedAt: t
+        .timestamp({ precision: 3, mode: 'string', withTimezone: true })
+        .notNull(),
 }))
 
 export type Contact = typeof contact.$inferSelect
@@ -1077,7 +1213,7 @@ export const contactAssociation = pgTable(
         entityId: t.text(),
         relationship: t.text(),
         createdAt: t
-            .timestamp({ precision: 3, mode: 'string' })
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
             .default(sql`CURRENT_TIMESTAMP`)
             .notNull(),
     }),
@@ -1116,13 +1252,19 @@ export const task = pgTable(
         category: t.text().default('OTHER').notNull(), // Converted from enum - 'INVENTORY', 'FINANCIAL', 'BENEFICIARY', etc.
         completed: t.boolean().default(false).notNull(),
         notes: t.text(),
-        dueDate: t.timestamp({ precision: 3, mode: 'string' }),
+        dueDate: t.timestamp({
+            precision: 3,
+            mode: 'string',
+            withTimezone: true,
+        }),
         sortOrder: t.integer().default(0).notNull(),
         createdAt: t
-            .timestamp({ precision: 3, mode: 'string' })
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
             .default(sql`CURRENT_TIMESTAMP`)
             .notNull(),
-        updatedAt: t.timestamp({ precision: 3, mode: 'string' }).notNull(),
+        updatedAt: t
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
+            .notNull(),
     }),
     (table) => [
         index('idx_task_completed').on(table.completed),
@@ -1146,20 +1288,30 @@ export const artwork = pgTable(
         artist: t.text(),
         medium: t.text(),
         dimensions: t.text(),
-        acquisitionDate: t.timestamp({ precision: 3, mode: 'string' }),
+        acquisitionDate: t.timestamp({
+            precision: 3,
+            mode: 'string',
+            withTimezone: true,
+        }),
         acquisitionCost: t.numeric({ precision: 12, scale: 2 }),
         location: t.text(),
         dodValue: t.numeric({ precision: 14, scale: 2 }),
-        dodValueDate: t.timestamp({ precision: 3, mode: 'string' }),
+        dodValueDate: t.timestamp({
+            precision: 3,
+            mode: 'string',
+            withTimezone: true,
+        }),
         dodValueType: valuationType(), // Consolidated
         transferStatus: transferStatus().default('PENDING').notNull(),
         status: recordStatus().default('ACTIVE').notNull(), // Consolidated status
         notes: t.text(),
         createdAt: t
-            .timestamp({ precision: 3, mode: 'string' })
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
             .default(sql`CURRENT_TIMESTAMP`)
             .notNull(),
-        updatedAt: t.timestamp({ precision: 3, mode: 'string' }).notNull(),
+        updatedAt: t
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
+            .notNull(),
     }),
     (table) => [
         index('idx_artwork_entity_id').on(table.entityId),
@@ -1190,18 +1342,28 @@ export const trustee = pgTable(
         name: t.text().notNull(),
         email: t.text(),
         phone: t.text(),
-        dob: t.timestamp({ precision: 3, mode: 'string' }),
+        dob: t.timestamp({ precision: 3, mode: 'string', withTimezone: true }),
         status: trusteeStatus().default('ACTIVE'),
         order: t.integer().notNull(),
         isCo: t.boolean().default(false),
         coTrusteeId: t.text(),
-        startDate: t.timestamp({ precision: 3, mode: 'string' }),
-        endDate: t.timestamp({ precision: 3, mode: 'string' }),
+        startDate: t.timestamp({
+            precision: 3,
+            mode: 'string',
+            withTimezone: true,
+        }),
+        endDate: t.timestamp({
+            precision: 3,
+            mode: 'string',
+            withTimezone: true,
+        }),
         createdAt: t
-            .timestamp({ precision: 3, mode: 'string' })
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
             .default(sql`CURRENT_TIMESTAMP`)
             .notNull(),
-        updatedAt: t.timestamp({ precision: 3, mode: 'string' }).notNull(),
+        updatedAt: t
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
+            .notNull(),
     }),
     (table) => [
         index('idx_trustee_entity_id').on(table.entityId),
@@ -1248,13 +1410,19 @@ export const specificBequest = pgTable(
         description: t.text().notNull(),
         category: t.text(),
         recipientName: t.text(),
-        dateDistributed: t.timestamp({ precision: 3, mode: 'string' }),
+        dateDistributed: t.timestamp({
+            precision: 3,
+            mode: 'string',
+            withTimezone: true,
+        }),
         notes: t.text(),
         createdAt: t
-            .timestamp({ precision: 3, mode: 'string' })
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
             .default(sql`CURRENT_TIMESTAMP`)
             .notNull(),
-        updatedAt: t.timestamp({ precision: 3, mode: 'string' }).notNull(),
+        updatedAt: t
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
+            .notNull(),
     }),
     (table) => [
         index('idx_specific_bequest_entity_id').on(table.entityId),
@@ -1288,7 +1456,9 @@ export const trustAccounting = pgTable(
     (t) => ({
         id: t.text().primaryKey().notNull(),
         entityId: t.text().notNull(),
-        accountingDate: t.timestamp({ precision: 3, mode: 'string' }).notNull(),
+        accountingDate: t
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
+            .notNull(),
         entryType: t.text().notNull(), // 'INCOME' or 'EXPENSE'
         incomeType: t.text(), // Converted from enum - 'DIVIDEND', 'INTEREST', 'RENT', etc.
         expenseType: t.text(), // Converted from enum - 'TAX', 'INSURANCE', 'MAINTENANCE', etc.
@@ -1302,19 +1472,29 @@ export const trustAccounting = pgTable(
         vendor: t.text(),
         checkNumber: t.text(),
         reconciled: t.boolean().default(false),
-        reconciledDate: t.timestamp({ precision: 3, mode: 'string' }),
+        reconciledDate: t.timestamp({
+            precision: 3,
+            mode: 'string',
+            withTimezone: true,
+        }),
         fiscalYear: t.integer(),
         // Income-to-Principal Conversion - Trust Section 7.10(c)
         // "All income not distributed shall be added to principal at least annually"
         convertedToPrincipal: t.boolean().default(false), // Has this income entry been converted to principal
-        conversionDate: t.timestamp({ precision: 3, mode: 'string' }), // When conversion occurred
+        conversionDate: t.timestamp({
+            precision: 3,
+            mode: 'string',
+            withTimezone: true,
+        }), // When conversion occurred
         conversionEntryId: t.text(), // Links to the principal entry created during conversion
         notes: t.text(),
         createdAt: t
-            .timestamp({ precision: 3, mode: 'string' })
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
             .default(sql`CURRENT_TIMESTAMP`)
             .notNull(),
-        updatedAt: t.timestamp({ precision: 3, mode: 'string' }).notNull(),
+        updatedAt: t
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
+            .notNull(),
     }),
     (table) => [
         index('idx_trust_accounting_entity_id').on(table.entityId),
@@ -1352,19 +1532,27 @@ export const withdrawalRecord = pgTable(
         beneficiaryId: t.text().notNull(),
         entityId: t.text().notNull(),
         withdrawalType: t.text().notNull(), // 'AGE_25', 'AGE_30', 'FULL'
-        eligibleDate: t.timestamp({ precision: 3, mode: 'string' }).notNull(),
+        eligibleDate: t
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
+            .notNull(),
         eligibleAmount: t.numeric({ precision: 14, scale: 2 }).notNull(),
         withdrawnAmount: t.numeric({ precision: 14, scale: 2 }).default('0'),
         remainingAmount: t.numeric({ precision: 14, scale: 2 }),
         status: withdrawalStatus().default('NOT_YET_ELIGIBLE'),
-        exercisedDate: t.timestamp({ precision: 3, mode: 'string' }),
+        exercisedDate: t.timestamp({
+            precision: 3,
+            mode: 'string',
+            withTimezone: true,
+        }),
         distributionId: t.text(), // Link to actual distribution if exercised
         notes: t.text(),
         createdAt: t
-            .timestamp({ precision: 3, mode: 'string' })
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
             .default(sql`CURRENT_TIMESTAMP`)
             .notNull(),
-        updatedAt: t.timestamp({ precision: 3, mode: 'string' }).notNull(),
+        updatedAt: t
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
+            .notNull(),
     }),
     (table) => [
         index('idx_withdrawal_record_beneficiary_id').on(table.beneficiaryId),
@@ -1410,14 +1598,26 @@ export const liability = pgTable(
         description: t.text(),
         originalAmount: t.numeric({ precision: 14, scale: 2 }).notNull(), // Original debt amount
         currentBalance: t.numeric({ precision: 14, scale: 2 }).notNull(), // Current outstanding balance
-        currentBalanceDate: t.timestamp({ precision: 3, mode: 'string' }), // When balance was last verified
+        currentBalanceDate: t.timestamp({
+            precision: 3,
+            mode: 'string',
+            withTimezone: true,
+        }), // When balance was last verified
         interestRate: t.numeric({ precision: 5, scale: 3 }), // Annual interest rate
         monthlyPayment: t.numeric({ precision: 12, scale: 2 }),
-        dueDate: t.timestamp({ precision: 3, mode: 'string' }), // Final due date or maturity
+        dueDate: t.timestamp({
+            precision: 3,
+            mode: 'string',
+            withTimezone: true,
+        }), // Final due date or maturity
         paymentDueDay: t.integer(), // Day of month payment is due
         // Loan term fields for amortization calculations
         loanTermMonths: t.integer(), // Loan duration (e.g., 360 for 30yr, 60 for 5yr)
-        loanStartDate: t.timestamp({ precision: 3, mode: 'string' }), // When loan originated
+        loanStartDate: t.timestamp({
+            precision: 3,
+            mode: 'string',
+            withTimezone: true,
+        }), // When loan originated
         escrowMonthly: t.numeric({ precision: 12, scale: 2 }), // Monthly escrow for taxes/insurance
         isRevolvingCredit: t.boolean().default(false).notNull(), // True for credit cards (no fixed term)
         // For mortgages - link to property
@@ -1429,10 +1629,12 @@ export const liability = pgTable(
         allocationClass: allocationClass().default('PRINCIPAL'), // Texas 116.152 - Principal vs Income
         notes: t.text(),
         createdAt: t
-            .timestamp({ precision: 3, mode: 'string' })
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
             .default(sql`CURRENT_TIMESTAMP`)
             .notNull(),
-        updatedAt: t.timestamp({ precision: 3, mode: 'string' }).notNull(),
+        updatedAt: t
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
+            .notNull(),
         // PostgreSQL 17 generated column - balance with accrued interest
         effectiveBalance: t
             .numeric('effective_balance', { precision: 14, scale: 2 })
@@ -1488,7 +1690,9 @@ export const liabilityPayment = pgTable(
     (t) => ({
         id: t.text().primaryKey().notNull(),
         liabilityId: t.text().notNull(),
-        paymentDate: t.timestamp({ precision: 3, mode: 'string' }).notNull(),
+        paymentDate: t
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
+            .notNull(),
         amount: t.numeric({ precision: 12, scale: 2 }).notNull(),
         principalPortion: t.numeric({ precision: 12, scale: 2 }), // Principal portion of payment
         interestPortion: t.numeric({ precision: 12, scale: 2 }), // Interest portion of payment
@@ -1498,7 +1702,7 @@ export const liabilityPayment = pgTable(
         confirmationNumber: t.text(),
         notes: t.text(),
         createdAt: t
-            .timestamp({ precision: 3, mode: 'string' })
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
             .default(sql`CURRENT_TIMESTAMP`)
             .notNull(),
     }),
@@ -1540,7 +1744,11 @@ export const hemsRequest = pgTable(
 
         // Review details
         reviewedBy: t.text(),
-        reviewedAt: t.timestamp({ precision: 3, mode: 'string' }),
+        reviewedAt: t.timestamp({
+            precision: 3,
+            mode: 'string',
+            withTimezone: true,
+        }),
         reviewNotes: t.text(),
         approvedAmount: t.numeric({ precision: 14, scale: 2 }),
 
@@ -1548,10 +1756,12 @@ export const hemsRequest = pgTable(
         distributionId: t.text(),
 
         createdAt: t
-            .timestamp({ precision: 3, mode: 'string' })
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
             .default(sql`CURRENT_TIMESTAMP`)
             .notNull(),
-        updatedAt: t.timestamp({ precision: 3, mode: 'string' }).notNull(),
+        updatedAt: t
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
+            .notNull(),
     }),
     (table) => [
         index('idx_hems_request_beneficiary_id').on(table.beneficiaryId),
@@ -1606,12 +1816,18 @@ export const trusteeFeeSchedule = pgTable(
         incomePercent: t.numeric({ precision: 5, scale: 2 }).default('8.0'),
         hourlyRate: t.numeric({ precision: 10, scale: 2 }).default('125.00'),
 
-        effectiveDate: t.timestamp({ precision: 3, mode: 'string' }).notNull(),
-        endDate: t.timestamp({ precision: 3, mode: 'string' }),
+        effectiveDate: t
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
+            .notNull(),
+        endDate: t.timestamp({
+            precision: 3,
+            mode: 'string',
+            withTimezone: true,
+        }),
         notes: t.text(),
 
         createdAt: t
-            .timestamp({ precision: 3, mode: 'string' })
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
             .default(sql`CURRENT_TIMESTAMP`)
             .notNull(),
     }),
@@ -1649,8 +1865,12 @@ export const trusteeFeeEntry = pgTable(
         scheduleId: t.text(),
 
         // Period
-        periodStart: t.timestamp({ precision: 3, mode: 'string' }).notNull(),
-        periodEnd: t.timestamp({ precision: 3, mode: 'string' }).notNull(),
+        periodStart: t
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
+            .notNull(),
+        periodEnd: t
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
+            .notNull(),
 
         // Calculated fees
         assetFee: t.numeric({ precision: 14, scale: 2 }).default('0'),
@@ -1668,16 +1888,22 @@ export const trusteeFeeEntry = pgTable(
 
         // Payment tracking
         status: trusteeFeeStatus().default('ACCRUED').notNull(),
-        paidDate: t.timestamp({ precision: 3, mode: 'string' }),
+        paidDate: t.timestamp({
+            precision: 3,
+            mode: 'string',
+            withTimezone: true,
+        }),
         paymentMethod: paymentMethod(),
         checkNumber: t.text(),
 
         notes: t.text(),
         createdAt: t
-            .timestamp({ precision: 3, mode: 'string' })
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
             .default(sql`CURRENT_TIMESTAMP`)
             .notNull(),
-        updatedAt: t.timestamp({ precision: 3, mode: 'string' }).notNull(),
+        updatedAt: t
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
+            .notNull(),
     }),
     (table) => [
         foreignKey({
@@ -1719,8 +1945,14 @@ export const user = pgTable(
         email: t.text().notNull().unique(),
         emailVerified: t.boolean('email_verified').notNull().default(false),
         image: t.text(),
-        createdAt: t.timestamp('created_at').notNull().defaultNow(),
-        updatedAt: t.timestamp('updated_at').notNull().defaultNow(),
+        createdAt: t
+            .timestamp('created_at', { withTimezone: true })
+            .notNull()
+            .defaultNow(),
+        updatedAt: t
+            .timestamp('updated_at', { withTimezone: true })
+            .notNull()
+            .defaultNow(),
         // Custom fields
         role: userRole().notNull().default('beneficiary'),
         beneficiaryId: t.text('beneficiary_id'),
@@ -1743,10 +1975,16 @@ export const session = pgTable(
     'session',
     (t) => ({
         id: t.text().primaryKey().notNull(),
-        expiresAt: t.timestamp('expires_at').notNull(),
+        expiresAt: t.timestamp('expires_at', { withTimezone: true }).notNull(),
         token: t.text().notNull().unique(),
-        createdAt: t.timestamp('created_at').notNull().defaultNow(),
-        updatedAt: t.timestamp('updated_at').notNull().defaultNow(),
+        createdAt: t
+            .timestamp('created_at', { withTimezone: true })
+            .notNull()
+            .defaultNow(),
+        updatedAt: t
+            .timestamp('updated_at', { withTimezone: true })
+            .notNull()
+            .defaultNow(),
         ipAddress: t.text('ip_address'),
         userAgent: t.text('user_agent'),
         userId: t.text('user_id').notNull(),
@@ -1778,12 +2016,22 @@ export const account = pgTable(
         accessToken: t.text('access_token'),
         refreshToken: t.text('refresh_token'),
         idToken: t.text('id_token'),
-        accessTokenExpiresAt: t.timestamp('access_token_expires_at'),
-        refreshTokenExpiresAt: t.timestamp('refresh_token_expires_at'),
+        accessTokenExpiresAt: t.timestamp('access_token_expires_at', {
+            withTimezone: true,
+        }),
+        refreshTokenExpiresAt: t.timestamp('refresh_token_expires_at', {
+            withTimezone: true,
+        }),
         scope: t.text(),
         password: t.text(),
-        createdAt: t.timestamp('created_at').notNull().defaultNow(),
-        updatedAt: t.timestamp('updated_at').notNull().defaultNow(),
+        createdAt: t
+            .timestamp('created_at', { withTimezone: true })
+            .notNull()
+            .defaultNow(),
+        updatedAt: t
+            .timestamp('updated_at', { withTimezone: true })
+            .notNull()
+            .defaultNow(),
     }),
     (table) => [
         foreignKey({
@@ -1803,9 +2051,15 @@ export const verification = pgTable('verification', (t) => ({
     id: t.text().primaryKey().notNull(),
     identifier: t.text().notNull(),
     value: t.text().notNull(),
-    expiresAt: t.timestamp('expires_at').notNull(),
-    createdAt: t.timestamp('created_at').notNull().defaultNow(),
-    updatedAt: t.timestamp('updated_at').notNull().defaultNow(),
+    expiresAt: t.timestamp('expires_at', { withTimezone: true }).notNull(),
+    createdAt: t
+        .timestamp('created_at', { withTimezone: true })
+        .notNull()
+        .defaultNow(),
+    updatedAt: t
+        .timestamp('updated_at', { withTimezone: true })
+        .notNull()
+        .defaultNow(),
 }))
 
 export type Verification = typeof verification.$inferSelect
