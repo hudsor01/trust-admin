@@ -73,6 +73,7 @@ interface AccountingFormData {
     expenseType: string
     amount: string
     description: string
+    bankAccountId: string
     isPrincipal: boolean
     taxDeductible: boolean
     checkNumber: string
@@ -85,6 +86,12 @@ export default function AccountingPage() {
         trpc.entity.list.useQuery()
     const [entityId, setEntityId] = useEntityFilter()
     const selectedEntity = entityId || entities[0]?.id
+
+    // Fetch bank accounts for the current entity
+    const { data: bankAccounts = [] } = trpc.bankAccount.list.useQuery(
+        { entityId: selectedEntity },
+        { enabled: !!selectedEntity },
+    )
 
     // Pagination state
     const [currentPage, setCurrentPage] = useState(1)
@@ -137,11 +144,20 @@ export default function AccountingPage() {
 
     const handleConvertYear = async (fiscalYear: number) => {
         if (!selectedEntity) return
+        // Use the first bank account for the conversion entry
+        const defaultBankAccount = bankAccounts[0]
+        if (!defaultBankAccount) {
+            console.error(
+                'No bank account available for income-to-principal conversion',
+            )
+            return
+        }
         setConvertingYear(fiscalYear)
         try {
             await convertIncomeMutation.mutateAsync({
                 entityId: selectedEntity,
                 fiscalYear,
+                bankAccountId: defaultBankAccount.id,
             })
         } catch (error) {
             console.error('Failed to convert income:', error)
@@ -157,6 +173,7 @@ export default function AccountingPage() {
         expenseType: 'PROFESSIONAL_FEE',
         amount: '',
         description: '',
+        bankAccountId: '',
         isPrincipal: false,
         taxDeductible: false,
         checkNumber: '',
@@ -189,6 +206,7 @@ export default function AccountingPage() {
                         : undefined,
                 amount: data.amount,
                 description: data.description || '',
+                bankAccountId: data.bankAccountId,
                 isPrincipal: data.isPrincipal,
                 taxDeductible: data.taxDeductible,
                 checkNumber: data.checkNumber || undefined,
@@ -396,6 +414,7 @@ export default function AccountingPage() {
             expenseType: entry.expenseType || 'PROFESSIONAL_FEE',
             amount: entry.amount,
             description: entry.description || '',
+            bankAccountId: entry.bankAccountId || '',
             isPrincipal: entry.isPrincipal ?? false,
             taxDeductible: entry.taxDeductible ?? false,
             checkNumber: entry.checkNumber || '',
@@ -968,6 +987,38 @@ export default function AccountingPage() {
                                     }
                                     placeholder="$0.00"
                                 />
+                            </div>
+                        )}
+                    </formInstance.Field>
+
+                    {/* Bank Account */}
+                    <formInstance.Field name="bankAccountId">
+                        {(field) => (
+                            <div className="space-y-2">
+                                <Label htmlFor="bankAccountId">
+                                    Bank Account
+                                </Label>
+                                <Select
+                                    value={field.state.value}
+                                    onValueChange={(val) =>
+                                        field.handleChange(val)
+                                    }
+                                >
+                                    <SelectTrigger id="bankAccountId">
+                                        <SelectValue placeholder="Select bank account" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {bankAccounts.map((account) => (
+                                            <SelectItem
+                                                key={account.id}
+                                                value={account.id}
+                                            >
+                                                {account.institution} -{' '}
+                                                {account.accountName}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             </div>
                         )}
                     </formInstance.Field>

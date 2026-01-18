@@ -1563,6 +1563,7 @@ export const trustAccounting = pgTable(
         description: t.text().notNull(),
         sourceAssetType: t.text(), // 'vehicle', 'rentalProperty', 'bankAccount', etc.
         sourceAssetId: t.text(),
+        bankAccountId: t.text().notNull(), // Every accounting entry must trace to a bank account
         isPrincipal: t.boolean().default(false), // Principal vs Income distinction
         taxDeductible: t.boolean().default(false),
         documentPath: t.text(),
@@ -1609,6 +1610,14 @@ export const trustAccounting = pgTable(
             columns: [table.entityId],
             foreignColumns: [entity.id],
             name: 'TrustAccounting_entityId_fkey',
+        })
+            .onUpdate('cascade')
+            .onDelete('restrict'),
+        index('idx_trust_accounting_bank_account').on(table.bankAccountId),
+        foreignKey({
+            columns: [table.bankAccountId],
+            foreignColumns: [bankAccount.id],
+            name: 'TrustAccounting_bankAccountId_fkey',
         })
             .onUpdate('cascade')
             .onDelete('restrict'),

@@ -99,9 +99,14 @@ export const trustAccountingRouter = createTRPCRouter({
             z.object({
                 entityId: z.string(),
                 fiscalYear: z.number(),
+                bankAccountId: z.string(),
             }),
         )
         .mutation(async ({ input }) => {
-            return convertIncomeToPrincipal(input.entityId, input.fiscalYear)
+            return convertIncomeToPrincipal(
+                input.entityId,
+                input.fiscalYear,
+                input.bankAccountId,
+            )
         }),
 })

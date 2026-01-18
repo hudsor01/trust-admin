@@ -452,6 +452,7 @@ interface RecordPaymentData {
     liabilityId: string
     paymentDate: string
     amount: string
+    bankAccountId: string // Required: which account the payment came from
     principalPortion?: string | null
     interestPortion?: string | null
     escrowPortion?: string | null
@@ -564,6 +565,7 @@ export async function recordLiabilityPayment(data: RecordPaymentData) {
             expenseType,
             amount: data.amount,
             description: expenseDescription,
+            bankAccountId: data.bankAccountId,
             isPrincipal,
             taxDeductible:
                 liabilityRecord.liabilityType === 'MORTGAGE' ||
@@ -793,6 +795,7 @@ export async function recalculateBeneficiaryShares(
 export async function convertIncomeToPrincipal(
     entityId: string,
     fiscalYear: number,
+    bankAccountId: string,
 ) {
     // 1. Find all unconverted income entries for the fiscal year
     const incomeEntries = await db.query.trustAccounting.findMany({
@@ -833,6 +836,7 @@ export async function convertIncomeToPrincipal(
         incomeType: 'INCOME_TO_PRINCIPAL_CONVERSION',
         amount: totalIncome.toFixed(2),
         description: `FY${fiscalYear} undistributed income added to principal per Trust Section 7.10(c)`,
+        bankAccountId,
         isPrincipal: true, // Now treated as principal
         fiscalYear,
         notes: `Converted ${incomeEntries.length} income entries totaling $${totalIncome.toFixed(2)}`,

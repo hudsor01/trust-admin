@@ -375,6 +375,7 @@ const defaultFormData = (): LiabilityFormData => ({
 interface PaymentFormData {
     paymentDate: string
     amount: string
+    bankAccountId: string
     paymentMethod: string
     checkNumber: string
     confirmationNumber: string
@@ -387,6 +388,7 @@ const defaultPaymentForm = (): PaymentFormData => {
     return {
         paymentDate: today ?? '',
         amount: '',
+        bankAccountId: '',
         paymentMethod: 'CHECK',
         checkNumber: '',
         confirmationNumber: '',
@@ -410,6 +412,13 @@ export default function LiabilitiesPage() {
             { entityId: selectedEntity! },
             { enabled: queryEnabled },
         )
+
+    // Fetch bank accounts for payment form
+    const { data: bankAccounts = [] } = trpc.bankAccount.list.useQuery(
+        { entityId: selectedEntity },
+        { enabled: !!selectedEntity },
+    )
+
     const createLiabilityMutation = trpc.liability.create.useMutation({
         onSuccess: () => {
             utils.liability.list.invalidate()
@@ -536,6 +545,7 @@ export default function LiabilitiesPage() {
                 liabilityId: payingLiabilityId,
                 paymentDate: data.paymentDate,
                 amount: data.amount,
+                bankAccountId: data.bankAccountId,
                 paymentMethod,
                 checkNumber: data.checkNumber || undefined,
                 allocationClass: data.allocationClass as 'PRINCIPAL' | 'INCOME',
@@ -581,9 +591,12 @@ export default function LiabilitiesPage() {
 
     const openPaymentDialog = (l: Liability) => {
         setPayingLiabilityId(l.id)
+        // Default to first bank account if available
+        const defaultBankAccountId = bankAccounts[0]?.id || ''
         paymentForm.handleEdit({
             paymentDate: new Date().toISOString().split('T')[0] ?? '',
             amount: l.monthlyPayment?.toString() || '',
+            bankAccountId: defaultBankAccountId,
             paymentMethod: 'CHECK',
             checkNumber: '',
             confirmationNumber: '',
@@ -1613,6 +1626,49 @@ export default function LiabilitiesPage() {
                                             )}
                                         </paymentFormInstance.Field>
                                     </div>
+
+                                    {/* Bank Account */}
+                                    <paymentFormInstance.Field name="bankAccountId">
+                                        {(field) => (
+                                            <div className="space-y-2">
+                                                <Label htmlFor="bank-account">
+                                                    Bank Account *
+                                                </Label>
+                                                <Select
+                                                    value={field.state.value}
+                                                    onValueChange={(v) =>
+                                                        field.handleChange(v)
+                                                    }
+                                                >
+                                                    <SelectTrigger id="bank-account">
+                                                        <SelectValue placeholder="Select account" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {bankAccounts.map(
+                                                            (account) => (
+                                                                <SelectItem
+                                                                    key={
+                                                                        account.id
+                                                                    }
+                                                                    value={
+                                                                        account.id
+                                                                    }
+                                                                >
+                                                                    {
+                                                                        account.institution
+                                                                    }{' '}
+                                                                    -{' '}
+                                                                    {
+                                                                        account.accountName
+                                                                    }
+                                                                </SelectItem>
+                                                            ),
+                                                        )}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                        )}
+                                    </paymentFormInstance.Field>
 
                                     {/* Real-time Payment Breakdown Preview */}
                                     <PaymentImpactPreview

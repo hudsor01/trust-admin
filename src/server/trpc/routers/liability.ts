@@ -9,7 +9,11 @@ import {
     updateLiabilitySchema,
 } from '../../../../db/validation'
 import { estimatePayoffDate } from '../../../lib/amortization'
-import { LIABILITY_TYPE_VALUES } from '../../../lib/type-utils'
+import {
+    ALLOCATION_CLASS_VALUES,
+    LIABILITY_TYPE_VALUES,
+    PAYMENT_METHOD_VALUES,
+} from '../../../lib/type-utils'
 import { adminProcedure, createTRPCRouter } from '../index'
 
 // Schema for bulk entry rows (simplified subset for rapid entry)
@@ -27,16 +31,16 @@ const recordPaymentSchema = z.object({
     liabilityId: z.string(),
     paymentDate: z.string(),
     amount: z.string(),
+    bankAccountId: z.string(), // Required: which account the payment came from
     principalPortion: z.string().optional(),
     interestPortion: z.string().optional(),
     escrowPortion: z.string().optional(),
-    paymentMethod: z.enum(['CHECK', 'ACH', 'WIRE', 'CASH', 'OTHER']),
+    paymentMethod: z.enum(PAYMENT_METHOD_VALUES),
     checkNumber: z.string().optional(),
     referenceNumber: z.string().optional(),
     notes: z.string().optional(),
-    paidFromAccountId: z.string().optional(),
     // Allocation class for trust accounting (Principal vs Income)
-    allocationClass: z.enum(['PRINCIPAL', 'INCOME']).optional(),
+    allocationClass: z.enum(ALLOCATION_CLASS_VALUES).optional(),
 })
 
 export const liabilityRouter = createTRPCRouter({
