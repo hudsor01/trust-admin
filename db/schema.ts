@@ -246,7 +246,7 @@ export const userRole = pgEnum('UserRole', ['admin', 'beneficiary'])
 // ============================================
 
 export const activityLog = pgTable(
-    'ActivityLog',
+    'activity_log',
     (t) => ({
         id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
         tableName: t.text().notNull(),
@@ -290,7 +290,7 @@ export type InsertActivityLog = typeof activityLog.$inferInsert
 // ============================================
 
 export const entity = pgTable(
-    'Entity',
+    'entity',
     (t) => ({
         id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
         name: t.text().notNull(),
@@ -352,7 +352,7 @@ export type InsertEntity = typeof entity.$inferInsert
 // ============================================
 
 export const vehicle = pgTable(
-    'Vehicle',
+    'vehicle',
     (t) => ({
         id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
         entityId: bigint({ mode: 'number' }).notNull(),
@@ -413,7 +413,7 @@ export type InsertVehicle = typeof vehicle.$inferInsert
 // ============================================
 
 export const homestead = pgTable(
-    'Homestead',
+    'homestead',
     (t) => ({
         id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
         entityId: bigint({ mode: 'number' }).notNull(),
@@ -482,7 +482,7 @@ export type InsertHomestead = typeof homestead.$inferInsert
 // ============================================
 
 export const rentalProperty = pgTable(
-    'RentalProperty',
+    'rental_property',
     (t) => ({
         id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
         entityId: bigint({ mode: 'number' }).notNull(),
@@ -564,7 +564,7 @@ export type InsertRentalProperty = typeof rentalProperty.$inferInsert
 // ============================================
 
 export const bankAccount = pgTable(
-    'BankAccount',
+    'bank_account',
     (t) => ({
         id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
         entityId: bigint({ mode: 'number' }).notNull(),
@@ -617,7 +617,7 @@ export type InsertBankAccount = typeof bankAccount.$inferInsert
 // ============================================
 
 export const investmentAccount = pgTable(
-    'InvestmentAccount',
+    'investment_account',
     (t) => ({
         id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
         entityId: bigint({ mode: 'number' }).notNull(),
@@ -670,7 +670,7 @@ export type InsertInvestmentAccount = typeof investmentAccount.$inferInsert
 // ============================================
 
 export const insurancePolicy = pgTable(
-    'InsurancePolicy',
+    'insurance_policy',
     (t) => ({
         id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
         entityId: bigint({ mode: 'number' }).notNull(),
@@ -723,7 +723,7 @@ export type InsertInsurancePolicy = typeof insurancePolicy.$inferInsert
 // ============================================
 
 export const beneficiary = pgTable(
-    'Beneficiary',
+    'beneficiary',
     (t) => ({
         id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
         entityId: bigint({ mode: 'number' }),
@@ -814,7 +814,7 @@ export type InsertBeneficiary = typeof beneficiary.$inferInsert
 // ============================================
 
 export const distribution = pgTable(
-    'Distribution',
+    'distribution',
     (t) => ({
         id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
         entityId: bigint({ mode: 'number' }),
@@ -882,7 +882,7 @@ export type InsertDistribution = typeof distribution.$inferInsert
 // ============================================
 
 export const valuation = pgTable(
-    'Valuation',
+    'valuation',
     (t) => ({
         id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
         vehicleId: bigint({ mode: 'number' }),
@@ -991,7 +991,7 @@ export type InsertValuation = typeof valuation.$inferInsert
 // ============================================
 
 export const personalProperty = pgTable(
-    'PersonalProperty',
+    'personal_property',
     (t) => ({
         id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
         entityId: bigint({ mode: 'number' }).notNull(),
@@ -1044,7 +1044,7 @@ export type InsertPersonalProperty = typeof personalProperty.$inferInsert
 // ============================================
 
 export const document = pgTable(
-    'Document',
+    'document',
     (t) => ({
         id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
         name: t.text().notNull(),
@@ -1170,7 +1170,7 @@ export type InsertDocument = typeof document.$inferInsert
 // ============================================
 
 export const transaction = pgTable(
-    'Transaction',
+    'transaction',
     (t) => ({
         id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
         vehicleId: bigint({ mode: 'number' }),
@@ -1276,7 +1276,7 @@ export type InsertTransaction = typeof transaction.$inferInsert
 // Contacts
 // ============================================
 
-export const contact = pgTable('Contact', (t) => ({
+export const contact = pgTable('contact', (t) => ({
     id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
     name: t.text().notNull(),
     company: t.text(),
@@ -1304,7 +1304,7 @@ export type Contact = typeof contact.$inferSelect
 export type InsertContact = typeof contact.$inferInsert
 
 export const contactAssociation = pgTable(
-    'ContactAssociation',
+    'contact_association',
     (t) => ({
         id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
         contactId: bigint({ mode: 'number' }).notNull(),
@@ -1343,7 +1343,7 @@ export type InsertContactAssociation = typeof contactAssociation.$inferInsert
 // ============================================
 
 export const task = pgTable(
-    'Task',
+    'task',
     (t) => ({
         id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
         title: t.text().notNull(),
@@ -1378,7 +1378,7 @@ export type InsertTask = typeof task.$inferInsert
 // ============================================
 
 export const artwork = pgTable(
-    'Artwork',
+    'artwork',
     (t) => ({
         id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
         entityId: bigint({ mode: 'number' }).notNull(),
@@ -1432,7 +1432,7 @@ export type InsertArtwork = typeof artwork.$inferInsert
 // ============================================
 
 export const trustee = pgTable(
-    'Trustee',
+    'trustee',
     (t) => ({
         id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
         entityId: bigint({ mode: 'number' }).notNull(),
@@ -1500,7 +1500,7 @@ export type InsertTrustee = typeof trustee.$inferInsert
 // ============================================
 
 export const specificBequest = pgTable(
-    'SpecificBequest',
+    'specific_bequest',
     (t) => ({
         id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
         entityId: bigint({ mode: 'number' }).notNull(),
@@ -1550,7 +1550,7 @@ export type InsertSpecificBequest = typeof specificBequest.$inferInsert
 // ============================================
 
 export const trustAccounting = pgTable(
-    'TrustAccounting',
+    'trust_accounting',
     (t) => ({
         id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
         entityId: bigint({ mode: 'number' }).notNull(),
@@ -1633,7 +1633,7 @@ export type InsertTrustAccounting = typeof trustAccounting.$inferInsert
 // ============================================
 
 export const withdrawalRecord = pgTable(
-    'WithdrawalRecord',
+    'withdrawal_record',
     (t) => ({
         id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
         beneficiaryId: bigint({ mode: 'number' }).notNull(),
@@ -1696,7 +1696,7 @@ export type InsertWithdrawalRecord = typeof withdrawalRecord.$inferInsert
 // ============================================
 
 export const liability = pgTable(
-    'Liability',
+    'liability',
     (t) => ({
         id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
         entityId: bigint({ mode: 'number' }).notNull(),
@@ -1793,7 +1793,7 @@ export type InsertLiability = typeof liability.$inferInsert
 // ============================================
 
 export const liabilityPayment = pgTable(
-    'LiabilityPayment',
+    'liability_payment',
     (t) => ({
         id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
         liabilityId: bigint({ mode: 'number' }).notNull(),
@@ -1839,7 +1839,7 @@ export type InsertLiabilityPayment = typeof liabilityPayment.$inferInsert
 // ============================================
 
 export const hemsRequest = pgTable(
-    'HemsRequest',
+    'hems_request',
     (t) => ({
         id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
         beneficiaryId: bigint({ mode: 'number' }).notNull(),
@@ -1917,7 +1917,7 @@ export type InsertHemsRequest = typeof hemsRequest.$inferInsert
 // ============================================
 
 export const trusteeFeeSchedule = pgTable(
-    'TrusteeFeeSchedule',
+    'trustee_fee_schedule',
     (t) => ({
         id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
         entityId: bigint({ mode: 'number' }).notNull(),
@@ -1974,7 +1974,7 @@ export type InsertTrusteeFeeSchedule = typeof trusteeFeeSchedule.$inferInsert
 // ============================================
 
 export const trusteeFeeEntry = pgTable(
-    'TrusteeFeeEntry',
+    'trustee_fee_entry',
     (t) => ({
         id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
         entityId: bigint({ mode: 'number' }).notNull(),
