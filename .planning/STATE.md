@@ -6,47 +6,62 @@ See: .planning/PROJECT.md (updated 2026-01-09)
 
 **Core value:** Reliable trust administration - The API works without silent failures, users see clear error messages, and the codebase is maintainable for ongoing development.
 
-**Current focus:** v3.0 Database Schema Improvements - Phase 23 (PK Type Migration)
+**Current focus:** v3.0 Database Schema Improvements - Phase 24 next
 
 ## Current Position
 
-Phase: 23 of 40 (PK Type Migration)
-Plan: 02 complete
-Status: Ready for Phase 23-03 (Application Layer)
-Last activity: 2026-01-17 - Phase 23-02 completed (Validation Layer)
+Phase: 24 of 40 (Table Naming Convention) - PLANNED
+Plan: 01 ready for execution
+Status: Ready to execute
+Last activity: 2026-01-17 - Phase 24 research and plan created
 
-Progress: █████████░░░░░░░░░░ 6/7 v3.0 plans complete
+Progress: █████████░░░░░░░░░░ 7/8 v3.0 plans (Phase 24 planned)
 
 ## Performance Metrics
 
 **Velocity:**
 - v1.0 plans completed: 41
 - v2.0 plans completed: 4
+- v3.0 plans completed: 7
 
 ## Accumulated Context
 
-### v3.0 Phase 23 IN PROGRESS (PK Type Migration):
+### v3.0 Phase 24 PLANNED (Table Naming Convention):
+
+**24-01 Research Complete:**
+- ✅ Researched PostgreSQL identifier case sensitivity (unquoted folds to lowercase)
+- ✅ Researched Drizzle ORM table naming patterns (explicit string in pgTable)
+- ✅ Analyzed current state: 27 PascalCase tables, 4 Better Auth lowercase tables
+- ✅ Documented migration strategy: ALTER TABLE RENAME + schema.ts updates
+- ✅ Created RESEARCH.md and PLAN.md
+- Pattern: Drizzle `casing` option only affects columns, not table names
+- Decision: Better Auth tables (user, session, account, verification) keep lowercase names
+
+### v3.0 Phase 23 COMPLETE (PK Type Migration):
 
 **23-01 Completed (BIGINT IDENTITY PKs):**
 - ✅ Migrated 27 application tables from TEXT to BIGINT IDENTITY PKs
 - ✅ Updated ~50 FK columns to `bigint({ mode: 'number' })` type
 - ✅ Configured Better Auth with `database.generateId: false`
-- ✅ Updated beneficiaryId type from string to number in auth.ts
-- ✅ Deprecated generateId/textId helpers in helpers.ts
 - ✅ Commit: 44d4a9c
 - Pattern: `bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity()` for PKs
-- Pattern: FKs must match PK type - `bigint({ mode: 'number' })` for all
-- Decision: recordId in ActivityLog stays text (polymorphic to Better Auth tables)
-- Note: 303 TypeScript errors expected - to be fixed in subsequent plans
 
 **23-02 Completed (Validation Layer):**
-- ✅ Removed 27 id refinements from insert schemas (IDENTITY auto-excludes)
+- ✅ Removed 27 id refinements from insert schemas
 - ✅ Updated all tRPC router inputs to z.coerce.number() for IDs
-- ✅ Converted FK inputs: entityId, beneficiaryId, liabilityId, bankAccountId
 - ✅ Commit: 924f0c8
-- ✅ Reduced TypeScript errors from 303 to 278
 - Pattern: z.coerce.number() handles string→number conversion for URL params
-- Note: Remaining errors in CRUD layer (23-03 scope)
+
+**23-03 Completed (Application Layer):**
+- ✅ Updated db/queries.ts and db/crud-factory.ts for numeric IDs
+- ✅ Updated db/seed-hudson-trust.ts with .returning() pattern
+- ✅ Updated 15 admin pages with numeric ID types
+- ✅ All TypeScript errors resolved (was 130, now 0)
+- ✅ All tests pass (206 pass, 0 fail)
+- ✅ Commit: c11c2b6
+- Pattern: Select components need .toString() for entity IDs
+- Decision: recordId in ActivityLog stays text (polymorphic to Better Auth tables)
+- Decision: Better Auth tables (user, session) keep TEXT IDs
 
 ### v3.0 Phase 22 COMPLETE (Nullable FK Business Logic Review):
 
@@ -285,7 +300,7 @@ Progress: █████████░░░░░░░░░░ 6/7 v3.0 pla
 ## Session Continuity
 
 Last session: 2026-01-17
-Stopped at: Completed Phase 23-02 (Validation Layer)
+Stopped at: Created Phase 24 research and plan
 Resume file: None
 
 ## Milestone History
