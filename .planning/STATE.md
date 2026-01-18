@@ -6,16 +6,16 @@ See: .planning/PROJECT.md (updated 2026-01-09)
 
 **Core value:** Reliable trust administration - The API works without silent failures, users see clear error messages, and the codebase is maintainable for ongoing development.
 
-**Current focus:** v3.0 Database Schema Improvements - Phase 19 (Enum Type Corrections)
+**Current focus:** v3.0 Database Schema Improvements - Phase 20 (Polymorphic Constraints)
 
 ## Current Position
 
-Phase: 19 of 40 (Enum Type Corrections)
+Phase: 20 of 40 (Polymorphic Constraints)
 Plan: 01 complete
-Status: Ready for Phase 20
-Last activity: 2026-01-17 - Phase 19-01 completed (TEXT to pgEnum conversion)
+Status: Ready for Phase 21
+Last activity: 2026-01-17 - Phase 20-01 completed (CHECK constraints for polymorphic tables)
 
-Progress: ██████░░░░░░░░░░░░░ 2/7 v3.0 plans complete
+Progress: ██████░░░░░░░░░░░░░ 3/7 v3.0 plans complete
 
 ## Performance Metrics
 
@@ -24,6 +24,17 @@ Progress: ██████░░░░░░░░░░░░░ 2/7 v3.0 pla
 - v2.0 plans completed: 4
 
 ## Accumulated Context
+
+### v3.0 Phase 20 COMPLETE (Polymorphic Constraints):
+
+**20-01 Completed (CHECK Constraints for Polymorphic Tables):**
+- ✅ Added CHECK constraint to Valuation table (7 FK columns)
+- ✅ Added CHECK constraint to Document table (8 FK columns)
+- ✅ Added CHECK constraint to Transaction table (6 FK columns)
+- ✅ Applied migration with `bun drizzle-kit push --force`
+- ✅ Cleaned 6 orphaned Valuation records that violated constraint
+- ✅ Verified constraints enforce exactly-one-FK rule
+- Pattern: CASE WHEN counting for PostgreSQL CHECK constraints
 
 ### v3.0 Phase 19 COMPLETE (Enum Type Corrections):
 
@@ -227,7 +238,7 @@ Progress: ██████░░░░░░░░░░░░░ 2/7 v3.0 pla
 ## Session Continuity
 
 Last session: 2026-01-17
-Stopped at: Completed Phase 18-01 (timestamp migration to TIMESTAMPTZ)
+Stopped at: Completed Phase 20-01 (polymorphic CHECK constraints)
 Resume file: None
 
 ## Milestone History
