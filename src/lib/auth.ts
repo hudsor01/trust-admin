@@ -349,7 +349,7 @@ export const auth = betterAuth({
                     const userAgent =
                         request.headers.get('user-agent') || 'unknown'
 
-                    await recordSignIn(user.id, {
+                    recordSignIn(user.id, {
                         path: url.pathname,
                         ip,
                         userAgent,

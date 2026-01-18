@@ -54,7 +54,7 @@ export async function requireAuth(
 
         if (!session) {
             // Record failed auth attempt
-            await recordAuthEvent('FAILED_AUTH', null, {
+            recordAuthEvent('FAILED_AUTH', null, {
                 path: url.pathname,
                 ip,
                 userAgent,
@@ -74,7 +74,7 @@ export async function requireAuth(
         // Role validation
         if (allowedRoles && !allowedRoles.includes(user.role)) {
             // Record permission denied
-            await recordAuthEvent('ACCESS_DENIED', user.id, {
+            recordAuthEvent('ACCESS_DENIED', user.id, {
                 path: url.pathname,
                 ip,
                 userAgent,
