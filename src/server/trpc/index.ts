@@ -5,7 +5,7 @@
  * Used by all routers in server/trpc/routers/
  */
 import { initTRPC, TRPCError } from '@trpc/server'
-import { ZodError } from 'zod'
+import { ZodError, z } from 'zod'
 import { auth } from '@/lib/auth'
 
 /**
@@ -106,3 +106,77 @@ export const beneficiaryProcedure = protectedProcedure.use(
         return next({ ctx })
     },
 )
+
+/**
+ * CRUD Router Factory
+ *
+ * Creates a standard CRUD router with 5 procedures:
+ * - list: Get all records (optionally filtered by entityId)
+ * - byId: Get a single record by ID
+ * - create: Create a new record
+ * - update: Update an existing record
+ * - delete: Delete a record
+ *
+ * @param config.crud - CRUD instance with getAllArray, getById, create, update, delete
+ * @param config.insertSchema - Zod schema for create input validation
+ * @param config.updateSchema - Zod schema for update input validation
+ * @param config.getById - Optional custom getById function (for queries with relations)
+ * @param config.listFilterKey - Optional custom filter key (default: 'entityId')
+ */
+interface CrudRouterConfig<TInsert, TUpdate> {
+    crud: {
+        getAllArray: (filterId?: number) => Promise<unknown[]>
+        getById: (id: number) => Promise<unknown>
+        create: (data: TInsert) => Promise<unknown>
+        update: (id: number, data: TUpdate) => Promise<unknown>
+        delete: (id: number) => Promise<unknown>
+    }
+    insertSchema: z.ZodType<TInsert>
+    updateSchema: z.ZodType<TUpdate>
+    getById?: (id: number) => Promise<unknown>
+    listFilterKey?: string
+}
+
+export function createCrudRouter<TInsert, TUpdate>(
+    config: CrudRouterConfig<TInsert, TUpdate>,
+) {
+    const {
+        crud,
+        insertSchema,
+        updateSchema,
+        getById,
+        listFilterKey = 'entityId',
+    } = config
+
+    return createTRPCRouter({
+        list: adminProcedure
+            .input(
+                z
+                    .object({ [listFilterKey]: z.coerce.number().optional() })
+                    .optional(),
+            )
+            .query(async ({ input }) =>
+                crud.getAllArray(
+                    input?.[listFilterKey as keyof typeof input] as
+                        | number
+                        | undefined,
+                ),
+            ),
+
+        byId: adminProcedure
+            .input(z.coerce.number())
+            .query(async ({ input }) => (getById ?? crud.getById)(input)),
+
+        create: adminProcedure
+            .input(insertSchema)
+            .mutation(async ({ input }) => crud.create(input as TInsert)),
+
+        update: adminProcedure
+            .input(z.object({ id: z.coerce.number(), data: updateSchema }))
+            .mutation(async ({ input }) => crud.update(input.id, input.data)),
+
+        delete: adminProcedure
+            .input(z.coerce.number())
+            .mutation(async ({ input }) => crud.delete(input)),
+    })
+}
