@@ -6,16 +6,16 @@ See: .planning/PROJECT.md (updated 2026-01-09)
 
 **Core value:** Reliable trust administration - The API works without silent failures, users see clear error messages, and the codebase is maintainable for ongoing development.
 
-**Current focus:** v3.0 Database Schema Improvements - Phase 20 (Polymorphic Constraints)
+**Current focus:** v3.0 Database Schema Improvements - Phase 21 (Composite Indexes)
 
 ## Current Position
 
-Phase: 20 of 40 (Polymorphic Constraints)
+Phase: 21 of 40 (Composite Index Optimization)
 Plan: 01 complete
-Status: Ready for Phase 21
-Last activity: 2026-01-17 - Phase 20-01 completed (CHECK constraints for polymorphic tables)
+Status: Ready for Phase 22
+Last activity: 2026-01-18 - Phase 21-01 completed (composite indexes for 3 tables)
 
-Progress: ██████░░░░░░░░░░░░░ 3/7 v3.0 plans complete
+Progress: ███████░░░░░░░░░░░░ 4/7 v3.0 plans complete
 
 ## Performance Metrics
 
@@ -24,6 +24,16 @@ Progress: ██████░░░░░░░░░░░░░ 3/7 v3.0 pla
 - v2.0 plans completed: 4
 
 ## Accumulated Context
+
+### v3.0 Phase 21 COMPLETE (Composite Index Optimization):
+
+**21-01 Completed (Composite Indexes for 3 Tables):**
+- ✅ Added `idx_liability_payment_liability_date` on (liabilityId, paymentDate DESC)
+- ✅ Added `idx_activity_log_table_record` on (tableName, recordId)
+- ✅ Added `idx_hems_request_beneficiary_status` on (beneficiaryId, status)
+- ✅ Applied migration with `bun drizzle-kit push --force`
+- ✅ Verified indexes exist in pg_indexes, all 206 tests pass
+- Pattern: Composite index for filter+sort query patterns
 
 ### v3.0 Phase 20 COMPLETE (Polymorphic Constraints):
 
@@ -237,8 +247,8 @@ Progress: ██████░░░░░░░░░░░░░ 3/7 v3.0 pla
 
 ## Session Continuity
 
-Last session: 2026-01-17
-Stopped at: Completed Phase 20-01 (polymorphic CHECK constraints)
+Last session: 2026-01-18
+Stopped at: Completed Phase 21-01 (composite indexes)
 Resume file: None
 
 ## Milestone History

@@ -547,7 +547,7 @@ Plans:
 **Impact**: Non-breaking (indexes are additive)
 
 Plans:
-- [ ] 21-01: Composite index implementation
+- [x] 21-01: Composite index implementation (completed 2026-01-18)
 
 ---
 
@@ -1381,8 +1381,8 @@ Plans:
 | 17. Cleanup | v2.0 | 1/1 | ✅ Complete | 2026-01-16 |
 | 18. Timestamp Migration to TIMESTAMPTZ | v3.0 | 1/1 | ✅ Complete | 2026-01-17 |
 | 19. Enum Type Corrections | v3.0 | 1/1 | ✅ Complete | 2026-01-17 |
-| 20. Polymorphic Constraint Enforcement | v3.0 | 0/1 | Not started | - |
-| 21. Composite Index Optimization | v3.0 | 0/1 | Not started | - |
+| 20. Polymorphic Constraint Enforcement | v3.0 | 1/1 | ✅ Complete | 2026-01-17 |
+| 21. Composite Index Optimization | v3.0 | 1/1 | ✅ Complete | 2026-01-18 |
 | 22. Nullable FK Business Logic Review | v3.0 | 0/1 | Not started | - |
 | 23. Primary Key Type Migration | v3.0 | 0/1 | Not started | - |
 | 24. Table Naming Convention | v3.0 | 0/1 | Not started | - |
