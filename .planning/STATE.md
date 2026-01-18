@@ -10,12 +10,12 @@ See: .planning/PROJECT.md (updated 2026-01-09)
 
 ## Current Position
 
-Phase: 24 of 40 (Table Naming Convention) - PLANNED
-Plan: 01 ready for execution
-Status: Ready to execute
-Last activity: 2026-01-17 - Phase 24 research and plan created
+Phase: 24 of 40 (Table Naming Convention) - COMPLETE
+Plan: 01 of 01 - executed
+Status: Phase 24 complete, v3.0 milestone complete
+Last activity: 2026-01-18 - Phase 24 table naming migration executed
 
-Progress: █████████░░░░░░░░░░ 7/8 v3.0 plans (Phase 24 planned)
+Progress: ██████████░░░░░░░░░ 8/8 v3.0 plans complete
 
 ## Performance Metrics
 
@@ -26,16 +26,17 @@ Progress: █████████░░░░░░░░░░ 7/8 v3.0 pla
 
 ## Accumulated Context
 
-### v3.0 Phase 24 PLANNED (Table Naming Convention):
+### v3.0 Phase 24 COMPLETE (Table Naming Convention):
 
-**24-01 Research Complete:**
-- ✅ Researched PostgreSQL identifier case sensitivity (unquoted folds to lowercase)
-- ✅ Researched Drizzle ORM table naming patterns (explicit string in pgTable)
-- ✅ Analyzed current state: 27 PascalCase tables, 4 Better Auth lowercase tables
-- ✅ Documented migration strategy: ALTER TABLE RENAME + schema.ts updates
-- ✅ Created RESEARCH.md and PLAN.md
-- Pattern: Drizzle `casing` option only affects columns, not table names
-- Decision: Better Auth tables (user, session, account, verification) keep lowercase names
+**24-01 Completed (Table Name Migration to snake_case):**
+- ✅ Created `db/migrations/0001_rename_tables_to_snake_case.sql` with 27 ALTER TABLE RENAME statements
+- ✅ Updated all 27 pgTable() names in schema.ts from PascalCase to snake_case
+- ✅ Updated 62 FK constraint names in schema.ts to snake_case pattern
+- ✅ Executed migration on Neon database via MCP
+- ✅ Verified: TypeScript compiles, 206 tests pass, dev server starts
+- Commits: 5f09823, 45c46bf, 242bf92
+- Pattern: Table names use snake_case, TypeScript variables stay camelCase
+- Decision: Better Auth tables (user, session, account, verification) unchanged
 
 ### v3.0 Phase 23 COMPLETE (PK Type Migration):
 
@@ -299,8 +300,8 @@ Progress: █████████░░░░░░░░░░ 7/8 v3.0 pla
 
 ## Session Continuity
 
-Last session: 2026-01-17
-Stopped at: Created Phase 24 research and plan
+Last session: 2026-01-18
+Stopped at: Completed Phase 24-01, v3.0 milestone complete
 Resume file: None
 
 ## Milestone History
@@ -309,7 +310,7 @@ Resume file: None
 |-----------|--------|-------|--------|---------|
 | v1.0 Code Quality & Reliability | 1-11 | 41 | ✅ Complete | 2026-01-09 |
 | v2.0 Next.js + tRPC Migration | 12-17 | 6 | ✅ Complete | 2026-01-16 |
-| v3.0 Database Schema Improvements | 18-24 | 7 | 🚧 In Progress | - |
+| v3.0 Database Schema Improvements | 18-24 | 8 | ✅ Complete | 2026-01-18 |
 | v4.0 Smart Liability Management | 25-29 | 7 | ✅ Complete | 2026-01-17 |
 | v5.0 Developer Experience & Observability | 30-35 | 6 | ✅ Complete | 2026-01-16 |
 | v6.0 React 19.2 Platform Optimizations | 36-40 | 5 | 🔜 Pending | - |

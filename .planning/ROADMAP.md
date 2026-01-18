@@ -12,7 +12,7 @@ Trust Admin application development roadmap. v1.0 focused on code quality and re
 
 - ✅ [v1.0 Code Quality & Reliability](milestones/v1.0-ROADMAP.md) - Phases 1-11 (shipped 2026-01-09)
 - ✅ [v2.0 Next.js + tRPC Migration](milestones/v2.0-ROADMAP.md) - Phases 12-17 (shipped 2026-01-16)
-- 🚧 **v3.0 Database Schema Improvements** - Phases 18-24 (in progress)
+- ✅ [v3.0 Database Schema Improvements](milestones/v3.0-ROADMAP.md) - Phases 18-24 (shipped 2026-01-18)
 - ✅ [v4.0 Smart Liability Management](milestones/v4.0-ROADMAP.md) - Phases 25-29 (shipped 2026-01-17)
 - ✅ [v5.0 Developer Experience & Observability](milestones/v5.0-ROADMAP.md) - Phases 30-35 (shipped 2026-01-16)
 - 🔜 **v6.0 React 19.2 Platform Optimizations** - Phases 36-40 (pending)
@@ -676,7 +676,7 @@ Plans:
 **Impact**: BREAKING - Requires coordinated deployment
 
 Plans:
-- [ ] 24-01: Table naming convention migration
+- [x] 24-01: Table naming convention migration (completed 2026-01-18)
 
 ---
 
