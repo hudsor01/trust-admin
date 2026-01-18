@@ -6,16 +6,16 @@ See: .planning/PROJECT.md (updated 2026-01-09)
 
 **Core value:** Reliable trust administration - The API works without silent failures, users see clear error messages, and the codebase is maintainable for ongoing development.
 
-**Current focus:** v3.0 Database Schema Improvements - Phase 21 (Composite Indexes)
+**Current focus:** v3.0 Database Schema Improvements - Phase 22 (Nullable FK Review)
 
 ## Current Position
 
-Phase: 21 of 40 (Composite Index Optimization)
+Phase: 22 of 40 (Nullable FK Business Logic Review)
 Plan: 01 complete
-Status: Ready for Phase 22
-Last activity: 2026-01-18 - Phase 21-01 completed (composite indexes for 3 tables)
+Status: Ready for Phase 23
+Last activity: 2026-01-18 - Phase 22-01 completed (bankAccountId FK on trustAccounting)
 
-Progress: ███████░░░░░░░░░░░░ 4/7 v3.0 plans complete
+Progress: ████████░░░░░░░░░░░ 5/7 v3.0 plans complete
 
 ## Performance Metrics
 
@@ -24,6 +24,20 @@ Progress: ███████░░░░░░░░░░░░ 4/7 v3.0 pla
 - v2.0 plans completed: 4
 
 ## Accumulated Context
+
+### v3.0 Phase 22 COMPLETE (Nullable FK Business Logic Review):
+
+**22-01 Completed (bankAccountId FK on trustAccounting):**
+- ✅ Added `bankAccountId` NOT NULL column to trustAccounting table
+- ✅ Added FK constraint `TrustAccounting_bankAccountId_fkey` referencing bankAccount
+- ✅ Added index `idx_trust_accounting_bank_account` for query performance
+- ✅ Updated RecordPaymentData interface and convertIncomeToPrincipal function
+- ✅ Added bank account selector to accounting entry form
+- ✅ Added bank account selector to liability payment form
+- ✅ Applied migration with `bun drizzle-kit push --force`
+- ✅ Verified column, FK, and index exist; all 206 tests pass
+- Pattern: Required FK addition requires schema, queries, tRPC schemas, and forms updates
+- Decision: Keep sourceAssetType/sourceAssetId nullable (context), bankAccountId required (money flow)
 
 ### v3.0 Phase 21 COMPLETE (Composite Index Optimization):
 
@@ -248,7 +262,7 @@ Progress: ███████░░░░░░░░░░░░ 4/7 v3.0 pla
 ## Session Continuity
 
 Last session: 2026-01-18
-Stopped at: Completed Phase 21-01 (composite indexes)
+Stopped at: Completed Phase 22-01 (bankAccountId FK on trustAccounting)
 Resume file: None
 
 ## Milestone History
