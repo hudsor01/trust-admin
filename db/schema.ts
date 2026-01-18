@@ -1,5 +1,6 @@
 import { type SQL, sql } from 'drizzle-orm'
 import {
+    bigint,
     check,
     foreignKey,
     index,
@@ -247,7 +248,7 @@ export const userRole = pgEnum('UserRole', ['admin', 'beneficiary'])
 export const activityLog = pgTable(
     'ActivityLog',
     (t) => ({
-        id: t.text().primaryKey().notNull(),
+        id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
         tableName: t.text().notNull(),
         recordId: t.text().notNull(),
         action: logAction().notNull(),
@@ -291,7 +292,7 @@ export type InsertActivityLog = typeof activityLog.$inferInsert
 export const entity = pgTable(
     'Entity',
     (t) => ({
-        id: t.text().primaryKey().notNull(),
+        id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
         name: t.text().notNull(),
         entityType: entityType().notNull(),
         trustType: trustType(),
@@ -319,7 +320,7 @@ export const entity = pgTable(
         }),
         stateOfFormation: t.text(),
         registeredAgent: t.text(),
-        parentEntityId: t.text(),
+        parentEntityId: bigint({ mode: 'number' }),
         status: recordStatus().default('ACTIVE').notNull(),
         notes: t.text(),
         createdAt: t
@@ -353,8 +354,8 @@ export type InsertEntity = typeof entity.$inferInsert
 export const vehicle = pgTable(
     'Vehicle',
     (t) => ({
-        id: t.text().primaryKey().notNull(),
-        entityId: t.text().notNull(),
+        id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
+        entityId: bigint({ mode: 'number' }).notNull(),
         year: t.integer().notNull(),
         make: t.text().notNull(),
         model: t.text().notNull(),
@@ -414,8 +415,8 @@ export type InsertVehicle = typeof vehicle.$inferInsert
 export const homestead = pgTable(
     'Homestead',
     (t) => ({
-        id: t.text().primaryKey().notNull(),
-        entityId: t.text().notNull(),
+        id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
+        entityId: bigint({ mode: 'number' }).notNull(),
         streetAddress: t.text().notNull(),
         city: t.text().notNull(),
         state: t.text().notNull(),
@@ -483,8 +484,8 @@ export type InsertHomestead = typeof homestead.$inferInsert
 export const rentalProperty = pgTable(
     'RentalProperty',
     (t) => ({
-        id: t.text().primaryKey().notNull(),
-        entityId: t.text().notNull(),
+        id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
+        entityId: bigint({ mode: 'number' }).notNull(),
         name: t.text().notNull(),
         streetAddress: t.text().notNull(),
         city: t.text().notNull(),
@@ -565,8 +566,8 @@ export type InsertRentalProperty = typeof rentalProperty.$inferInsert
 export const bankAccount = pgTable(
     'BankAccount',
     (t) => ({
-        id: t.text().primaryKey().notNull(),
-        entityId: t.text().notNull(),
+        id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
+        entityId: bigint({ mode: 'number' }).notNull(),
         institution: t.text().notNull(),
         accountType: t.text().notNull(), // Converted from enum - 'CHECKING', 'SAVINGS', 'CD', 'MONEY_MARKET', etc.
         accountName: t.text(),
@@ -618,8 +619,8 @@ export type InsertBankAccount = typeof bankAccount.$inferInsert
 export const investmentAccount = pgTable(
     'InvestmentAccount',
     (t) => ({
-        id: t.text().primaryKey().notNull(),
-        entityId: t.text().notNull(),
+        id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
+        entityId: bigint({ mode: 'number' }).notNull(),
         institution: t.text().notNull(),
         accountType: t.text().notNull(), // Converted from enum - 'BROKERAGE', 'IRA_TRADITIONAL', 'IRA_ROTH', etc.
         accountName: t.text(),
@@ -671,8 +672,8 @@ export type InsertInvestmentAccount = typeof investmentAccount.$inferInsert
 export const insurancePolicy = pgTable(
     'InsurancePolicy',
     (t) => ({
-        id: t.text().primaryKey().notNull(),
-        entityId: t.text().notNull(),
+        id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
+        entityId: bigint({ mode: 'number' }).notNull(),
         policyType: insurancePolicyType().notNull(),
         carrier: t.text().notNull(),
         policyNumber: t.text().notNull(),
@@ -724,13 +725,13 @@ export type InsertInsurancePolicy = typeof insurancePolicy.$inferInsert
 export const beneficiary = pgTable(
     'Beneficiary',
     (t) => ({
-        id: t.text().primaryKey().notNull(),
-        entityId: t.text(),
+        id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
+        entityId: bigint({ mode: 'number' }),
         firstName: t.text().notNull(),
         lastName: t.text().notNull(),
         relationship: t.text().notNull(),
         relationshipType: relationshipType(),
-        parentId: t.text(),
+        parentId: bigint({ mode: 'number' }),
         dob: t.timestamp({ precision: 3, mode: 'string', withTimezone: true }),
         email: t.text(),
         phone: t.text(),
@@ -815,9 +816,9 @@ export type InsertBeneficiary = typeof beneficiary.$inferInsert
 export const distribution = pgTable(
     'Distribution',
     (t) => ({
-        id: t.text().primaryKey().notNull(),
-        entityId: t.text(),
-        beneficiaryId: t.text().notNull(),
+        id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
+        entityId: bigint({ mode: 'number' }),
+        beneficiaryId: bigint({ mode: 'number' }).notNull(),
         distributionDate: t
             .timestamp({ precision: 3, mode: 'string', withTimezone: true })
             .notNull(),
@@ -832,7 +833,7 @@ export const distribution = pgTable(
         paymentMethod: paymentMethod().notNull(),
         taxReported: t.boolean().default(false).notNull(),
         tax1099Issued: t.boolean().default(false).notNull(),
-        documentId: t.text(),
+        documentId: bigint({ mode: 'number' }),
         supportingDocPath: t.text(),
         approvedBy: t.text(),
         approvalDate: t.timestamp({
@@ -883,14 +884,14 @@ export type InsertDistribution = typeof distribution.$inferInsert
 export const valuation = pgTable(
     'Valuation',
     (t) => ({
-        id: t.text().primaryKey().notNull(),
-        vehicleId: t.text(),
-        homesteadId: t.text(),
-        rentalPropertyId: t.text(),
-        bankAccountId: t.text(),
-        investmentAccountId: t.text(),
-        personalPropertyId: t.text(),
-        artworkId: t.text(),
+        id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
+        vehicleId: bigint({ mode: 'number' }),
+        homesteadId: bigint({ mode: 'number' }),
+        rentalPropertyId: bigint({ mode: 'number' }),
+        bankAccountId: bigint({ mode: 'number' }),
+        investmentAccountId: bigint({ mode: 'number' }),
+        personalPropertyId: bigint({ mode: 'number' }),
+        artworkId: bigint({ mode: 'number' }),
         valuationDate: t
             .timestamp({ precision: 3, mode: 'string', withTimezone: true })
             .notNull(),
@@ -992,8 +993,8 @@ export type InsertValuation = typeof valuation.$inferInsert
 export const personalProperty = pgTable(
     'PersonalProperty',
     (t) => ({
-        id: t.text().primaryKey().notNull(),
-        entityId: t.text().notNull(),
+        id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
+        entityId: bigint({ mode: 'number' }).notNull(),
         name: t.text().notNull(),
         description: t.text(),
         category: personalPropertyCategory().notNull(),
@@ -1045,18 +1046,18 @@ export type InsertPersonalProperty = typeof personalProperty.$inferInsert
 export const document = pgTable(
     'Document',
     (t) => ({
-        id: t.text().primaryKey().notNull(),
+        id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
         name: t.text().notNull(),
         documentType: documentType().notNull(),
         filePath: t.text().notNull(),
-        entityId: t.text(),
-        vehicleId: t.text(),
-        homesteadId: t.text(),
-        rentalPropertyId: t.text(),
-        bankAccountId: t.text(),
-        investmentAccountId: t.text(),
-        insurancePolicyId: t.text(),
-        personalPropertyId: t.text(),
+        entityId: bigint({ mode: 'number' }),
+        vehicleId: bigint({ mode: 'number' }),
+        homesteadId: bigint({ mode: 'number' }),
+        rentalPropertyId: bigint({ mode: 'number' }),
+        bankAccountId: bigint({ mode: 'number' }),
+        investmentAccountId: bigint({ mode: 'number' }),
+        insurancePolicyId: bigint({ mode: 'number' }),
+        personalPropertyId: bigint({ mode: 'number' }),
         documentDate: t.timestamp({
             precision: 3,
             mode: 'string',
@@ -1171,13 +1172,13 @@ export type InsertDocument = typeof document.$inferInsert
 export const transaction = pgTable(
     'Transaction',
     (t) => ({
-        id: t.text().primaryKey().notNull(),
-        vehicleId: t.text(),
-        homesteadId: t.text(),
-        rentalPropertyId: t.text(),
-        bankAccountId: t.text(),
-        investmentAccountId: t.text(),
-        insurancePolicyId: t.text(),
+        id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
+        vehicleId: bigint({ mode: 'number' }),
+        homesteadId: bigint({ mode: 'number' }),
+        rentalPropertyId: bigint({ mode: 'number' }),
+        bankAccountId: bigint({ mode: 'number' }),
+        investmentAccountId: bigint({ mode: 'number' }),
+        insurancePolicyId: bigint({ mode: 'number' }),
         transactionDate: t
             .timestamp({ precision: 3, mode: 'string', withTimezone: true })
             .notNull(),
@@ -1187,7 +1188,7 @@ export const transaction = pgTable(
         description: t.text(),
         vendor: t.text(),
         checkNumber: t.text(),
-        documentId: t.text(),
+        documentId: bigint({ mode: 'number' }),
         allocationClass: allocationClass().default('PRINCIPAL'), // Texas 116.152 - Principal vs Income
         notes: t.text(),
         createdAt: t
@@ -1276,7 +1277,7 @@ export type InsertTransaction = typeof transaction.$inferInsert
 // ============================================
 
 export const contact = pgTable('Contact', (t) => ({
-    id: t.text().primaryKey().notNull(),
+    id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
     name: t.text().notNull(),
     company: t.text(),
     role: t.text().notNull(), // Converted from enum - 'ATTORNEY', 'ACCOUNTANT', 'FINANCIAL_ADVISOR', etc.
@@ -1305,9 +1306,9 @@ export type InsertContact = typeof contact.$inferInsert
 export const contactAssociation = pgTable(
     'ContactAssociation',
     (t) => ({
-        id: t.text().primaryKey().notNull(),
-        contactId: t.text().notNull(),
-        entityId: t.text(),
+        id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
+        contactId: bigint({ mode: 'number' }).notNull(),
+        entityId: bigint({ mode: 'number' }),
         relationship: t.text(),
         createdAt: t
             .timestamp({ precision: 3, mode: 'string', withTimezone: true })
@@ -1344,7 +1345,7 @@ export type InsertContactAssociation = typeof contactAssociation.$inferInsert
 export const task = pgTable(
     'Task',
     (t) => ({
-        id: t.text().primaryKey().notNull(),
+        id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
         title: t.text().notNull(),
         category: t.text().default('OTHER').notNull(), // Converted from enum - 'INVENTORY', 'FINANCIAL', 'BENEFICIARY', etc.
         completed: t.boolean().default(false).notNull(),
@@ -1379,8 +1380,8 @@ export type InsertTask = typeof task.$inferInsert
 export const artwork = pgTable(
     'Artwork',
     (t) => ({
-        id: t.text().primaryKey().notNull(),
-        entityId: t.text().notNull(),
+        id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
+        entityId: bigint({ mode: 'number' }).notNull(),
         title: t.text().notNull(),
         artist: t.text(),
         medium: t.text(),
@@ -1433,9 +1434,9 @@ export type InsertArtwork = typeof artwork.$inferInsert
 export const trustee = pgTable(
     'Trustee',
     (t) => ({
-        id: t.text().primaryKey().notNull(),
-        entityId: t.text().notNull(),
-        contactId: t.text(),
+        id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
+        entityId: bigint({ mode: 'number' }).notNull(),
+        contactId: bigint({ mode: 'number' }),
         name: t.text().notNull(),
         email: t.text(),
         phone: t.text(),
@@ -1443,7 +1444,7 @@ export const trustee = pgTable(
         status: trusteeStatus().default('ACTIVE'),
         order: t.integer().notNull(),
         isCo: t.boolean().default(false),
-        coTrusteeId: t.text(),
+        coTrusteeId: bigint({ mode: 'number' }),
         startDate: t.timestamp({
             precision: 3,
             mode: 'string',
@@ -1501,9 +1502,9 @@ export type InsertTrustee = typeof trustee.$inferInsert
 export const specificBequest = pgTable(
     'SpecificBequest',
     (t) => ({
-        id: t.text().primaryKey().notNull(),
-        entityId: t.text().notNull(),
-        beneficiaryId: t.text(),
+        id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
+        entityId: bigint({ mode: 'number' }).notNull(),
+        beneficiaryId: bigint({ mode: 'number' }),
         description: t.text().notNull(),
         category: t.text(),
         recipientName: t.text(),
@@ -1551,8 +1552,8 @@ export type InsertSpecificBequest = typeof specificBequest.$inferInsert
 export const trustAccounting = pgTable(
     'TrustAccounting',
     (t) => ({
-        id: t.text().primaryKey().notNull(),
-        entityId: t.text().notNull(),
+        id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
+        entityId: bigint({ mode: 'number' }).notNull(),
         accountingDate: t
             .timestamp({ precision: 3, mode: 'string', withTimezone: true })
             .notNull(),
@@ -1562,8 +1563,8 @@ export const trustAccounting = pgTable(
         amount: t.numeric({ precision: 14, scale: 2 }).notNull(),
         description: t.text().notNull(),
         sourceAssetType: t.text(), // 'vehicle', 'rentalProperty', 'bankAccount', etc.
-        sourceAssetId: t.text(),
-        bankAccountId: t.text().notNull(), // Every accounting entry must trace to a bank account
+        sourceAssetId: bigint({ mode: 'number' }),
+        bankAccountId: bigint({ mode: 'number' }).notNull(), // Every accounting entry must trace to a bank account
         isPrincipal: t.boolean().default(false), // Principal vs Income distinction
         taxDeductible: t.boolean().default(false),
         documentPath: t.text(),
@@ -1584,7 +1585,7 @@ export const trustAccounting = pgTable(
             mode: 'string',
             withTimezone: true,
         }), // When conversion occurred
-        conversionEntryId: t.text(), // Links to the principal entry created during conversion
+        conversionEntryId: bigint({ mode: 'number' }), // Links to the principal entry created during conversion
         notes: t.text(),
         createdAt: t
             .timestamp({ precision: 3, mode: 'string', withTimezone: true })
@@ -1634,9 +1635,9 @@ export type InsertTrustAccounting = typeof trustAccounting.$inferInsert
 export const withdrawalRecord = pgTable(
     'WithdrawalRecord',
     (t) => ({
-        id: t.text().primaryKey().notNull(),
-        beneficiaryId: t.text().notNull(),
-        entityId: t.text().notNull(),
+        id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
+        beneficiaryId: bigint({ mode: 'number' }).notNull(),
+        entityId: bigint({ mode: 'number' }).notNull(),
         withdrawalType: t.text().notNull(), // 'AGE_25', 'AGE_30', 'FULL'
         eligibleDate: t
             .timestamp({ precision: 3, mode: 'string', withTimezone: true })
@@ -1650,7 +1651,7 @@ export const withdrawalRecord = pgTable(
             mode: 'string',
             withTimezone: true,
         }),
-        distributionId: t.text(), // Link to actual distribution if exercised
+        distributionId: bigint({ mode: 'number' }), // Link to actual distribution if exercised
         notes: t.text(),
         createdAt: t
             .timestamp({ precision: 3, mode: 'string', withTimezone: true })
@@ -1697,8 +1698,8 @@ export type InsertWithdrawalRecord = typeof withdrawalRecord.$inferInsert
 export const liability = pgTable(
     'Liability',
     (t) => ({
-        id: t.text().primaryKey().notNull(),
-        entityId: t.text().notNull(),
+        id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
+        entityId: bigint({ mode: 'number' }).notNull(),
         liabilityType: liabilityType().notNull(),
         creditor: t.text().notNull(), // Who is owed
         description: t.text(),
@@ -1727,10 +1728,10 @@ export const liability = pgTable(
         escrowMonthly: t.numeric({ precision: 12, scale: 2 }), // Monthly escrow for taxes/insurance
         isRevolvingCredit: t.boolean().default(false).notNull(), // True for credit cards (no fixed term)
         // For mortgages - link to property
-        rentalPropertyId: t.text(),
-        homesteadId: t.text(),
+        rentalPropertyId: bigint({ mode: 'number' }),
+        homesteadId: bigint({ mode: 'number' }),
         // For vehicle loans
-        vehicleId: t.text(),
+        vehicleId: bigint({ mode: 'number' }),
         status: recordStatus().default('ACTIVE').notNull(), // Consolidated status
         allocationClass: allocationClass().default('PRINCIPAL'), // Texas 116.152 - Principal vs Income
         notes: t.text(),
@@ -1794,8 +1795,8 @@ export type InsertLiability = typeof liability.$inferInsert
 export const liabilityPayment = pgTable(
     'LiabilityPayment',
     (t) => ({
-        id: t.text().primaryKey().notNull(),
-        liabilityId: t.text().notNull(),
+        id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
+        liabilityId: bigint({ mode: 'number' }).notNull(),
         paymentDate: t
             .timestamp({ precision: 3, mode: 'string', withTimezone: true })
             .notNull(),
@@ -1840,9 +1841,9 @@ export type InsertLiabilityPayment = typeof liabilityPayment.$inferInsert
 export const hemsRequest = pgTable(
     'HemsRequest',
     (t) => ({
-        id: t.text().primaryKey().notNull(),
-        beneficiaryId: t.text().notNull(),
-        entityId: t.text().notNull(),
+        id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
+        beneficiaryId: bigint({ mode: 'number' }).notNull(),
+        entityId: bigint({ mode: 'number' }).notNull(),
 
         // Request details
         category: t.text().notNull(), // Converted from enum - 'HEALTH', 'EDUCATION', 'MAINTENANCE', 'SUPPORT', etc.
@@ -1864,7 +1865,7 @@ export const hemsRequest = pgTable(
         approvedAmount: t.numeric({ precision: 14, scale: 2 }),
 
         // Link to distribution when fulfilled
-        distributionId: t.text(),
+        distributionId: bigint({ mode: 'number' }),
 
         createdAt: t
             .timestamp({ precision: 3, mode: 'string', withTimezone: true })
@@ -1918,9 +1919,9 @@ export type InsertHemsRequest = typeof hemsRequest.$inferInsert
 export const trusteeFeeSchedule = pgTable(
     'TrusteeFeeSchedule',
     (t) => ({
-        id: t.text().primaryKey().notNull(),
-        entityId: t.text().notNull(),
-        trusteeId: t.text().notNull(),
+        id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
+        entityId: bigint({ mode: 'number' }).notNull(),
+        trusteeId: bigint({ mode: 'number' }).notNull(),
 
         // Fee rates
         executorFeePercent: t
@@ -1975,10 +1976,10 @@ export type InsertTrusteeFeeSchedule = typeof trusteeFeeSchedule.$inferInsert
 export const trusteeFeeEntry = pgTable(
     'TrusteeFeeEntry',
     (t) => ({
-        id: t.text().primaryKey().notNull(),
-        entityId: t.text().notNull(),
-        trusteeId: t.text().notNull(),
-        scheduleId: t.text(),
+        id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
+        entityId: bigint({ mode: 'number' }).notNull(),
+        trusteeId: bigint({ mode: 'number' }).notNull(),
+        scheduleId: bigint({ mode: 'number' }),
 
         // Period
         periodStart: t
@@ -2071,7 +2072,7 @@ export const user = pgTable(
             .defaultNow(),
         // Custom fields
         role: userRole().notNull().default('beneficiary'),
-        beneficiaryId: t.text('beneficiary_id'),
+        beneficiaryId: bigint('beneficiary_id', { mode: 'number' }),
     }),
     (table) => [
         foreignKey({

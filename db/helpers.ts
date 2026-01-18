@@ -7,23 +7,20 @@ import { sql } from 'drizzle-orm'
 import { text, timestamp, uuid } from 'drizzle-orm/pg-core'
 
 /**
- * Generate a UUID v4 using crypto.randomUUID()
- * Use with $defaultFn() for auto-generated IDs
+ * @deprecated Use BIGINT IDENTITY columns instead.
+ * Database now generates IDs via generatedAlwaysAsIdentity().
  *
- * @example
- * id: text().primaryKey().$defaultFn(generateId)
+ * Example of new pattern:
+ * id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity()
  */
 export const generateId = () => crypto.randomUUID()
 
 /**
- * Standard ID column using text with UUID default
- * Compatible with existing schema using text IDs
+ * @deprecated Use bigint().primaryKey().generatedAlwaysAsIdentity() instead.
+ * Database now uses BIGINT IDENTITY columns for auto-generated IDs.
  *
- * @example
- * const myTable = pgTable("MyTable", {
- *   id: textId(),
- *   // other columns...
- * });
+ * Example of new pattern:
+ * id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity()
  */
 export const textId = () => text().primaryKey().$defaultFn(generateId)
 

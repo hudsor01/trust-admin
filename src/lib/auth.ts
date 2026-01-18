@@ -212,6 +212,9 @@ export const auth = betterAuth({
             secure: process.env.NODE_ENV === 'production',
             path: '/',
         },
+        database: {
+            generateId: false, // Let database generate IDs via BIGINT IDENTITY
+        },
     },
     user: {
         additionalFields: {
@@ -221,7 +224,7 @@ export const auth = betterAuth({
                 input: false,
             },
             beneficiaryId: {
-                type: 'string',
+                type: 'number', // Matches BIGINT FK to beneficiary.id
                 input: false,
             },
         },
@@ -364,7 +367,7 @@ export type User = typeof auth.$Infer.Session.user
 // Export proper user type with custom fields
 export type AppUser = typeof auth.$Infer.Session.user & {
     role: 'admin' | 'beneficiary'
-    beneficiaryId?: string
+    beneficiaryId?: number
 }
 
 // Type guards
