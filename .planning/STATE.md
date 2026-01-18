@@ -6,16 +6,16 @@ See: .planning/PROJECT.md (updated 2026-01-09)
 
 **Core value:** Reliable trust administration - The API works without silent failures, users see clear error messages, and the codebase is maintainable for ongoing development.
 
-**Current focus:** v3.0 Database Schema Improvements - Phase 24 next
+**Current focus:** v6.0 React 19.2 Platform Optimizations
 
 ## Current Position
 
-Phase: 24 of 40 (Table Naming Convention) - COMPLETE
-Plan: 01 of 01 - executed
-Status: Phase 24 complete, v3.0 milestone complete
-Last activity: 2026-01-18 - Phase 24 table naming migration executed
+Phase: 38 of 40 (cacheLife Profiles)
+Plan: Not started
+Status: Ready for planning
+Last activity: 2026-01-18 - Completed 37-01-PLAN.md
 
-Progress: ██████████░░░░░░░░░ 8/8 v3.0 plans complete
+Progress: ██████████████░░░░░ 2/5 v6.0 plans complete
 
 ## Performance Metrics
 
@@ -23,8 +23,31 @@ Progress: ██████████░░░░░░░░░ 8/8 v3.0 pla
 - v1.0 plans completed: 41
 - v2.0 plans completed: 4
 - v3.0 plans completed: 7
+- v6.0 plans completed: 2
 
 ## Accumulated Context
+
+### v6.0 Phase 37 COMPLETE (after() for Audit Logging):
+
+**37-01 Completed (Non-blocking Audit Logging):**
+- ✅ Converted recordAuthEvent() to use after() from next/server
+- ✅ Updated recordSignIn() to sync function
+- ✅ Removed await from 3 caller sites in auth.ts and middleware.ts
+- ✅ Commits: d5c2bf4, ec6c49f
+- Pattern: `after(async () => { try { await db.insert() } catch { logger.error() } })`
+- Decision: Fire-and-forget for audit logs - errors logged, not thrown
+
+### v6.0 Phase 36 COMPLETE (useOptimistic for Mutations):
+
+**36-01 Completed (useOptimistic Pattern for 3 Mutations):**
+- ✅ Added useOptimistic to liability payment recording - instant balance decrease
+- ✅ Added useOptimistic to HEMS request approval/denial - instant status badge change
+- ✅ Added useOptimistic to task completion toggle - instant checkbox fill/unfill
+- ✅ Commits: ce6c81f, 4955323, 9c0d702
+- Pattern: `const [optimisticItems, setOptimistic] = useOptimistic(items, reducer)`
+- Pattern: Call setOptimistic before mutateAsync for instant feedback
+- Pattern: Use proper TypeScript types (e.g., `HemsRequest['status']`) for type safety
+- Decision: Use useOptimistic directly, no wrapper hooks
 
 ### v3.0 Phase 24 COMPLETE (Table Naming Convention):
 
@@ -301,7 +324,7 @@ Progress: ██████████░░░░░░░░░ 8/8 v3.0 pla
 ## Session Continuity
 
 Last session: 2026-01-18
-Stopped at: Completed Phase 24-01, v3.0 milestone complete
+Stopped at: Completed Phase 37-01, Phase 37 complete
 Resume file: None
 
 ## Milestone History
@@ -313,5 +336,5 @@ Resume file: None
 | v3.0 Database Schema Improvements | 18-24 | 8 | ✅ Complete | 2026-01-18 |
 | v4.0 Smart Liability Management | 25-29 | 7 | ✅ Complete | 2026-01-17 |
 | v5.0 Developer Experience & Observability | 30-35 | 6 | ✅ Complete | 2026-01-16 |
-| v6.0 React 19.2 Platform Optimizations | 36-40 | 5 | 🔜 Pending | - |
+| v6.0 React 19.2 Platform Optimizations | 36-40 | 5 | 🔄 In Progress (1/5) | - |
 | v7.0 Codebase Consolidation | 41-46 | 6 | 📋 Planned | - |

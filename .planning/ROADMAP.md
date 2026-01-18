@@ -15,7 +15,7 @@ Trust Admin application development roadmap. v1.0 focused on code quality and re
 - ✅ [v3.0 Database Schema Improvements](milestones/v3.0-ROADMAP.md) - Phases 18-24 (shipped 2026-01-18)
 - ✅ [v4.0 Smart Liability Management](milestones/v4.0-ROADMAP.md) - Phases 25-29 (shipped 2026-01-17)
 - ✅ [v5.0 Developer Experience & Observability](milestones/v5.0-ROADMAP.md) - Phases 30-35 (shipped 2026-01-16)
-- 🔜 **v6.0 React 19.2 Platform Optimizations** - Phases 36-40 (pending)
+- 🔄 **v6.0 React 19.2 Platform Optimizations** - Phases 36-40 (in progress)
 - 📋 **v7.0 Codebase Consolidation** - Phases 41-46 (planned)
 
 ## Phases
@@ -762,7 +762,7 @@ Plans:
 
 ---
 
-### 🔜 v6.0 React 19.2 Platform Optimizations (Pending v4.0 completion)
+### 🔄 v6.0 React 19.2 Platform Optimizations (In Progress)
 
 **Milestone Goal:** Leverage React 19.2 and Next.js 16 native features to eliminate dependencies, improve UX with optimistic updates, and enhance performance with intelligent caching.
 
@@ -807,7 +807,7 @@ Plans:
 4. Apply to task completion toggle
 
 Plans:
-- [ ] 36-01: useOptimistic integration for mutations
+- [x] 36-01: useOptimistic integration for mutations ✅ (2026-01-18)
 
 ---
 
@@ -838,7 +838,7 @@ Request → Mutation → Response → Audit Log (background)
 3. Verify audit entries still capture request context (headers, user)
 
 Plans:
-- [ ] 37-01: after() for non-blocking audit logging
+- [x] 37-01: after() for non-blocking audit logging ✅ (2026-01-18)
 
 ---
 
@@ -1125,8 +1125,8 @@ Plans:
 | 33. @tanstack/react-virtual Lists | v5.0 | 1/1 | ✅ Complete | 2026-01-16 |
 | 34. cmdk Command Palette | v5.0 | 1/1 | ✅ Complete | 2026-01-16 |
 | 35. Sentry Error Monitoring | v5.0 | 1/1 | ✅ Complete | 2026-01-16 |
-| 36. useOptimistic for Mutations | v6.0 | 0/1 | Not started | - |
-| 37. after() for Audit Logging | v6.0 | 0/1 | Not started | - |
+| 36. useOptimistic for Mutations | v6.0 | 1/1 | ✅ Complete | 2026-01-18 |
+| 37. after() for Audit Logging | v6.0 | 1/1 | ✅ Complete | 2026-01-18 |
 | 38. cacheLife Profiles | v6.0 | 0/1 | Not started | - |
 | 39. cacheTag Smart Invalidation | v6.0 | 0/1 | Not started | - |
 | 40. Progressive Enhancement | v6.0 | 0/1 | Not started | - |
