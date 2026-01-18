@@ -10,12 +10,12 @@ See: .planning/PROJECT.md (updated 2026-01-09)
 
 ## Current Position
 
-Phase: 41 of 45 (Hook Extraction)
-Plan: 1 of 3 - COMPLETE
-Status: Plan 01 complete, plans 02-03 pending
-Last activity: 2026-01-18 - Completed 41-01-PLAN.md
+Phase: 42 of 45 (tRPC Router Factory)
+Plan: 1 of 1 - COMPLETE
+Status: Phase complete, ready for Phase 43
+Last activity: 2026-01-18 - Completed 42-01-PLAN.md
 
-Progress: ████░░░░░░░░░░░░░░░░ 2/6 v7.0 plans
+Progress: ██████████░░░░░░░░░░ 5/6 v7.0 plans
 
 ## Performance Metrics
 
@@ -27,7 +27,34 @@ Progress: ████░░░░░░░░░░░░░░░░ 2/6 v7.0 
 
 ## Accumulated Context
 
-### v7.0 Phase 41 IN PROGRESS (Hook Extraction):
+### v7.0 Phase 42 COMPLETE (tRPC Router Factory):
+
+**42-01 Completed (createCrudRouter Factory):**
+- Created `createCrudRouter()` factory in `src/server/trpc/index.ts`
+- Migrated 13 routers: artwork, contact, task, trustee, trusteeFeeSchedule, specificBequest, liabilityPayment, personalProperty, vehicle, bankAccount, homestead, investmentAccount, rentalProperty
+- Factory provides 5 standard procedures: list, byId, create, update, delete
+- Supports custom getById for relation queries and custom listFilterKey
+- Commits: 53fb5dd, dde440a
+- Impact: Reduced ~481 lines to ~130 lines (73% reduction)
+- Pattern: `createCrudRouter({ crud, insertSchema, updateSchema, getById?, listFilterKey? })`
+
+### v7.0 Phase 41 COMPLETE (Hook Extraction):
+
+**41-03 Completed (useCrudMutations Hook):**
+- ✅ Created `src/hooks/use-crud-mutations.ts` (48 lines)
+- ✅ Migrated 3 pilot pages: contacts, bequests, vehicles
+- ✅ Hook provides `{ create, update, delete }` with auto-invalidation
+- ✅ Commits: b7651dd, dd2e9ff
+- Pattern: `const { create, update, delete } = useCrudMutations('router')`
+- Impact: Eliminates ~10 lines per page, standardizes mutation pattern
+
+**41-02 Completed (LoginPage Component):**
+- ✅ Created `src/components/login-page.tsx` (195 lines)
+- ✅ Migrated admin and portal login pages to use shared component
+- ✅ Each page reduced from ~175 lines to ~22 lines
+- ✅ Commits: 10b0f45, 3e448d4
+- Pattern: Configurable component with props for title, icon, redirectPath, callbackURL
+- Impact: ~113 lines net savings, eliminated 308 lines of duplication
 
 **41-01 Completed (useEditableCell Hook):**
 - ✅ Created `src/hooks/use-editable-cell.ts` (118 lines)
@@ -368,7 +395,7 @@ Progress: ████░░░░░░░░░░░░░░░░ 2/6 v7.0 
 ## Session Continuity
 
 Last session: 2026-01-18
-Stopped at: Completed Phase 41-01, plans 02-03 pending
+Stopped at: Completed Phase 42 (1 plan), ready for Phase 43
 Resume file: None
 
 ## Milestone History
@@ -381,4 +408,4 @@ Resume file: None
 | v4.0 Smart Liability Management | 25-29 | 7 | ✅ Complete | 2026-01-17 |
 | v5.0 Developer Experience & Observability | 30-35 | 6 | ✅ Complete | 2026-01-16 |
 | v6.0 React 19.2 Platform Optimizations | 36-39 | 4 | ✅ Complete | 2026-01-18 |
-| v7.0 Codebase Consolidation | 40-45 | 6 | 🔄 In Progress (1/6) | - |
+| v7.0 Codebase Consolidation | 40-45 | 6 | 🔄 In Progress (5/6) | - |

@@ -827,8 +827,8 @@ Plans:
 **Plans**: 3 plans
 Plans:
 - [x] 41-01: Create useEditableCell hook and migrate 5 editable cell components
-- [ ] 41-02: Create shared LoginPage component
-- [ ] 41-03: Create useCrudMutations hook and migrate 3 pilot pages
+- [x] 41-02: Create shared LoginPage component
+- [x] 41-03: Create useCrudMutations hook and migrate 3 pilot pages
 
 **Impact:** ~400 lines consolidated
 
@@ -858,7 +858,7 @@ Plans:
 **Note:** Routers with custom logic (liability, distribution, hemsRequest, beneficiary) remain explicit.
 
 Plans:
-- [ ] 42-01: tRPC router factory implementation
+- [x] 42-01: tRPC router factory implementation
 
 ---
 
@@ -981,8 +981,8 @@ Plans:
 | 38. cacheLife Profiles | v6.0 | 1/1 | ✅ Complete | 2026-01-18 |
 | 39. Progressive Enhancement | v6.0 | 1/1 | ✅ Complete | 2026-01-18 |
 | 40. Quick Fixes | v7.0 | 1/1 | ✅ Complete | 2026-01-18 |
-| 41. Hook Extraction | v7.0 | 0/1 | Not started | - |
-| 42. tRPC Router Factory | v7.0 | 0/1 | Not started | - |
+| 41. Hook Extraction | v7.0 | 3/3 | ✅ Complete | 2026-01-18 |
+| 42. tRPC Router Factory | v7.0 | 1/1 | ✅ Complete | 2026-01-18 |
 | 43. Table Consolidation | v7.0 | 0/1 | Not started | - |
 | 44. Query Optimization | v7.0 | 0/1 | Not started | - |
 | 45. Admin Page Patterns | v7.0 | 0/1 | Not started | - |
