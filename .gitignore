@@ -1,10 +1,18 @@
 # dependencies (bun install)
 node_modules
+.serena/
+.claude/
+
 
 # output
 out
 dist
+.next
 *.tgz
+claude.md
+readme.md
+.env.example
+
 
 # code coverage
 coverage
@@ -41,3 +49,6 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 # Docker secrets - NEVER commit these
 /secrets/*
 !/secrets/.gitkeep
+
+# Planning files - private development notes
+.planning/

@@ -7,8 +7,8 @@
  * @see https://orm.drizzle.team/docs/rls
  */
 
-import { sql } from "drizzle-orm"
-import { pgPolicy, pgRole } from "drizzle-orm/pg-core"
+import { sql } from 'drizzle-orm'
+import { pgPolicy, pgRole } from 'drizzle-orm/pg-core'
 
 // =============================================================================
 // ROLE DEFINITIONS
@@ -21,31 +21,31 @@ import { pgPolicy, pgRole } from "drizzle-orm/pg-core"
  */
 
 // Admin role - full access
-export const adminRole = pgRole("admin", {
-  createRole: false,
-  createDb: false,
-  inherit: true,
+export const adminRole = pgRole('admin', {
+    createRole: false,
+    createDb: false,
+    inherit: true,
 })
 
 // Trustee role - access to assigned trusts
-export const trusteeRole = pgRole("trustee", {
-  createRole: false,
-  createDb: false,
-  inherit: true,
+export const trusteeRole = pgRole('trustee', {
+    createRole: false,
+    createDb: false,
+    inherit: true,
 })
 
 // Beneficiary role - limited read access
-export const beneficiaryRole = pgRole("beneficiary_user", {
-  createRole: false,
-  createDb: false,
-  inherit: true,
+export const beneficiaryRole = pgRole('beneficiary_user', {
+    createRole: false,
+    createDb: false,
+    inherit: true,
 })
 
 // Read-only role for auditors
-export const auditorRole = pgRole("auditor", {
-  createRole: false,
-  createDb: false,
-  inherit: true,
+export const auditorRole = pgRole('auditor', {
+    createRole: false,
+    createDb: false,
+    inherit: true,
 })
 
 // =============================================================================
@@ -58,16 +58,16 @@ export const auditorRole = pgRole("auditor", {
  * Trustees can only see entities they are assigned to.
  * Admin can see all entities.
  */
-export const entityAccessPolicy = pgPolicy("entity_access_policy", {
-  as: "permissive",
-  for: "select",
-  to: trusteeRole,
-  using: sql`
+export const entityAccessPolicy = pgPolicy('entity_access_policy', {
+    as: 'permissive',
+    for: 'select',
+    to: trusteeRole,
+    using: sql`
     EXISTS (
       SELECT 1 FROM "Trustee" t
       WHERE t."entityId" = "Entity".id
       AND t."contactId" = current_setting('app.current_user_id')::uuid
-      AND t.status = 'CURRENT'
+      AND t.status = 'ACTIVE'
     )
   `,
 })
@@ -77,11 +77,11 @@ export const entityAccessPolicy = pgPolicy("entity_access_policy", {
  *
  * Beneficiaries can only see their own records.
  */
-export const beneficiaryAccessPolicy = pgPolicy("beneficiary_self_access", {
-  as: "permissive",
-  for: "select",
-  to: beneficiaryRole,
-  using: sql`id = current_setting('app.current_user_id')::uuid`,
+export const beneficiaryAccessPolicy = pgPolicy('beneficiary_self_access', {
+    as: 'permissive',
+    for: 'select',
+    to: beneficiaryRole,
+    using: sql`id = current_setting('app.current_user_id')::uuid`,
 })
 
 /**
@@ -89,12 +89,12 @@ export const beneficiaryAccessPolicy = pgPolicy("beneficiary_self_access", {
  *
  * Admin role has unrestricted access.
  */
-export const adminFullAccessPolicy = pgPolicy("admin_full_access", {
-  as: "permissive",
-  for: "all",
-  to: adminRole,
-  using: sql`true`,
-  withCheck: sql`true`,
+export const adminFullAccessPolicy = pgPolicy('admin_full_access', {
+    as: 'permissive',
+    for: 'all',
+    to: adminRole,
+    using: sql`true`,
+    withCheck: sql`true`,
 })
 
 /**
@@ -102,11 +102,11 @@ export const adminFullAccessPolicy = pgPolicy("admin_full_access", {
  *
  * Auditors can read all data but cannot modify.
  */
-export const auditorReadOnlyPolicy = pgPolicy("auditor_read_only", {
-  as: "permissive",
-  for: "select",
-  to: auditorRole,
-  using: sql`true`,
+export const auditorReadOnlyPolicy = pgPolicy('auditor_read_only', {
+    as: 'permissive',
+    for: 'select',
+    to: auditorRole,
+    using: sql`true`,
 })
 
 // =============================================================================

@@ -1,12 +1,19 @@
-import { magicLinkClient } from "better-auth/client/plugins"
-import { createAuthClient } from "better-auth/react"
+/**
+ * Better Auth Client
+ *
+ * Client-side auth utilities for Next.js App Router.
+ */
+'use client'
 
-// In development, API runs on port 5050, frontend on 5173
-const API_URL = import.meta.env.DEV ? "http://localhost:5050" : window.location.origin
+import { magicLinkClient } from 'better-auth/client/plugins'
+import { createAuthClient } from 'better-auth/react'
 
 export const authClient = createAuthClient({
-  baseURL: API_URL,
-  plugins: [magicLinkClient()],
+    baseURL:
+        typeof window !== 'undefined'
+            ? window.location.origin
+            : 'http://localhost:3000',
+    plugins: [magicLinkClient()],
 })
 
 // Export convenience methods

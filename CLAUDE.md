@@ -1,572 +1,609 @@
-# Trust Admin - Project Context
-Trust administration application for managing the **Hudson Living Trust**, a Texas Irrevocable Trust. Built for estate settlement and ongoing trust administration with Texas Property Code compliance.
-## Tech Stack
-| Layer | Technology | Version |
-|-|||
-| Runtime | **Bun** | latest |
-| Frontend | **React** | 19.2.3 |
-| Build | **Vite** | 7.3.0 |
-| Styling | **TailwindCSS** | 4.1.18 |
-| UI Components | **Radix UI** + **shadcn/ui** | various |
-| Database | **PostgreSQL** | 15+ |
-| ORM | **Drizzle ORM** | 0.45.1 |
-| Auth | **Better Auth** (Magic Link) | 1.4.10 |
-| Email | **Resend** | 6.6.0 |
-| Testing | **Bun Test** | built-in |
-## Commands
-```bash
-# Development (launches both API and UI)
-bun run dev              # API on :5050, UI on :5173
-bun run dev:api          # API only (port 5050)
-bun run dev:ui           # Vite dev server (port 5173)
-bun run db:push          # Sync schema (DEVELOPMENT)
-bun run db:studio        # Drizzle Studio GUI
-bun run db:seed          # Seed Hudson Trust data
-bun test                 # Run all tests
-bun test --watch         # Watch mode
+# Trust Admin
+
+## What This Is
+
+A trust administration application for managing the **Hudson Living Trust**, a Texas Irrevocable Trust. The grantor (Richard Hudson) died 2024-12-28, making this an **estate settlement** followed by **ongoing trust administration**.
+
+**Two user types:**
+- **Admin (Trustee):** Manages all trust assets, liabilities, accounting, and distributions
+- **Beneficiary:** Views their share, submits HEMS requests through a portal
+
+**Key domain concepts:**
+- **HEMS:** Health, Education, Maintenance, Support - the legal standard for discretionary distributions
+- **Principal vs Income:** Texas Property Code requires tracking which money comes from trust principal vs income generated
+- **DOD Value:** Date-of-death valuation for estate tax basis step-up
+
+---
+
+## Mental Model
+
 ```
-**Important**: Use `bun run db:push` for development, NOT `db:migrate`. Push compares schema and syncs; migrate replays SQL files.
-## Project Structure
+                           ┌─────────────────────────────────────────────┐
+                           │                  ENTITY                      │
+                           │         (The Hudson Living Trust)            │
+                           └─────────────────────────────────────────────┘
+                                              │
+              ┌───────────────────────────────┼───────────────────────────────┐
+              │                               │                               │
+              ▼                               ▼                               ▼
+       ┌─────────────┐               ┌───────────────┐               ┌───────────────┐
+       │   ASSETS    │               │  LIABILITIES  │               │ BENEFICIARIES │
+       │ homestead   │               │  liability    │               │  beneficiary  │
+       │ bankAccount │               │    │          │               │      │        │
+       │ vehicle     │               │    ▼          │               │      ▼        │
+       │ ...         │               │ liabilityPay- │               │ distribution  │
+       └─────────────┘               │    ment       │               │ hemsRequest   │
+              │                      └───────────────┘               └───────────────┘
+              │                               │                               │
+              └───────────────────────────────┼───────────────────────────────┘
+                                              │
+                                              ▼
+                                    ┌─────────────────┐
+                                    │ TRUST ACCOUNTING│
+                                    │ (income/expense │
+                                    │  ledger)        │
+                                    └─────────────────┘
 ```
-trust-admin/
-├── index.ts                 # Bun.serve() API server
-├── db/
-│   ├── schema.ts
-│   ├── queries.ts
-│   ├── crud-factory.ts
-│   └── helpers.ts
-├── src/
-│   ├── pages/
-│   ├── components/
-│   │   ├── ui/             # shadcn/ui components
-│   │   └── editable-cells.tsx
-│   ├── hooks/
-│   ├── lib/
-│   │   ├── auth.ts         # Better Auth + Resend config
-│   │   ├── auth-client.ts  # React auth hooks
-│   │   ├── form-factory.ts # Form utilities
-│   │   └── constants.ts    # Status enums, options
-│   └── utils/formatters.ts # Currency, date formatters
-├── tests/                  # Bun test files
-└── drizzle/               # Generated migrations (prod only)
-```
-## Database Schema (31 Tables)
-### Core Entities
-- `entity` - Trust/estate container
-- `contact` - Professional contacts (attorneys, accountants)
-- `contactAssociation` - Links contacts to entities
-- `activityLog` - Audit trail
-### Assets
-- `homestead` - Primary residence (Texas homestead exemption fields)
-- `rentalProperty` - Income-producing properties
-- `vehicle` - Vehicle assets
-- `bankAccount` - Checking, savings, CDs
-- `investmentAccount` - Brokerage, IRA, 401k
-- `insurancePolicy` - All insurance types
-- `personalProperty` - Jewelry, collectibles
-- `artwork` - Art with provenance tracking
-### Liabilities (Texas 113.152(5))
-- `liability` - Mortgages, loans, credit cards, taxes
-- `liabilityPayment` - Payment tracking with P&I breakdown
-### Trust Accounting
-- `trustAccounting` - Income/expense entries (isPrincipal flag)
-- `transaction` - Asset transactions (allocationClass: PRINCIPAL/INCOME)
-- `valuation` - Asset valuation history
-### Beneficiaries & Distributions
-- `beneficiary` - HEMS distribution standards
-- `distribution` - Actual distributions with 1099 tracking
-- `specificBequest` - Specific bequests
-- `withdrawalRecord` - Age-based withdrawal tracking
-- `hemsRequest` - HEMS request workflow
+
+**Everything belongs to an Entity.** When querying resources, filter by `entityId`.
+
+**Money flows:**
+1. Assets generate income → trustAccounting (INCOME entries)
+2. Liabilities require payments → trustAccounting (EXPENSE entries)
+3. Beneficiaries receive distributions → distribution records
+
+---
+
+## Data Model
+
+### Core Tables
+
+| Table | Purpose | Key Fields |
+|-------|---------|------------|
+| `entity` | Trust container | `entityType`, `trustType`, `dod`, `governingLaw` |
+| `beneficiary` | Trust beneficiaries | `sharePercent`, `distributionStandard`, `withdrawalAge1/2` |
+| `trustAccounting` | Income/expense ledger | `entryType` (INCOME/EXPENSE), `isPrincipal`, `amount` |
+
+### Assets (8 tables)
+
+All have: `entityId`, `dodValue`, `dodValueDate`, `status`, `transferStatus`
+
+| Table | Extra Fields |
+|-------|-------------|
+| `homestead` | `streetAddress`, `dodAffidavitFiled`, `clerkFileNo` |
+| `rentalProperty` | `monthlyRent`, `rentalStatus`, `propertyManager` |
+| `bankAccount` | `institution`, `accountType`, `currentBalance` |
+| `investmentAccount` | `institution`, `accountType`, `costBasis` |
+| `vehicle` | `year`, `make`, `model`, `vin` |
+| `insurancePolicy` | `policyType`, `carrier`, `coverageAmount` |
+| `personalProperty` | `category`, `location` |
+| `artwork` | `artist`, `medium`, `dimensions` |
+
+### Liabilities
+
+| Table | Purpose | Key Fields |
+|-------|---------|------------|
+| `liability` | Debts owed | `creditor`, `originalAmount`, `currentBalance`, `allocationClass` |
+| `liabilityPayment` | Payment history | `principalPortion`, `interestPortion`, `escrowPortion` |
+
+**Secured debt links:** `liability.homesteadId`, `liability.rentalPropertyId`, `liability.vehicleId`
+
+### Distributions
+
+| Table | Purpose | Key Fields |
+|-------|---------|------------|
+| `hemsRequest` | Beneficiary requests | `category` (HEALTH/EDUCATION/MAINTENANCE/SUPPORT), `status`, `approvedAmount` |
+| `distribution` | Actual payouts | `distributionType`, `tax1099Issued`, `beneficiaryId` |
+| `withdrawalRecord` | Age-based withdrawals | `withdrawalType`, `eligibleAmount`, `withdrawnAmount` |
+
 ### Administration
-- `trustee` - Trustee info with succession
-- `trusteeFeeSchedule` - Fee rate structure
-- `trusteeFeeEntry` - Accrued/paid fees
-- `document` - All trust documents
-- `task` - Administrative tasks
-### Authentication (Better Auth)
-- `user` - Users with role (admin/beneficiary) and beneficiaryId
-- `session` - User sessions
-- `account` - OAuth accounts
-- `verification` - Email verification tokens
-## Texas Property Code Compliance
-### Principal vs Income (Texas 116.152)
-Fields track allocation for Form 1041 and unitrust accounting:
-- `trustAccounting.isPrincipal` - Boolean flag
-- `transaction.allocationClass` - ENUM(PRINCIPAL, INCOME)
-- `liability.allocationClass` - ENUM(PRINCIPAL, INCOME)
-### Homestead Exemption Fields
-- `homestead.dodAffidavitFiled` - Affidavit status
-- `homestead.dodAffidavitDate` - Filing date
-- `homestead.clerkFileNo` - County clerk file number
-### Date of Death (DOD) Valuation
-All asset tables include:
-- `dodValue` - Value at date of death
-- `dodValueDate` - Valuation date
-- `dodValueType` - APPRAISAL, STATEMENT, MARKET_ESTIMATE, TAX_ASSESSED
-## API Patterns
-### Route Factory (index.ts)
-Generic CRUD handler eliminates duplication for 22 resource types:
-```typescript
-const resources = {
-  "entities": { crud: entityCrud, name: "Entity", customGetById: getEntityById },
-  "liabilities": { crud: liabilityCrud, name: "Liability", filterParam: "entityId" },
-  // ... 20 more resources
-}
-```
-**Generates endpoints:**
-- `GET /api/{resource}` - List all (with optional filter)
-- `POST /api/{resource}` - Create
-- `GET /api/{resource}/{id}` - Get by ID
-- `PUT /api/{resource}/{id}` - Update
-- `DELETE /api/{resource}/{id}` - Delete
-### Special Endpoints
-- `POST /api/liabilities/{id}/record-payment` - Records payment + updates balance + creates expense
-- `GET /api/liabilities/{id}/payments` - Payment history
-- `POST /api/hems-requests/{id}/approve` - Approve HEMS request
-- `POST /api/hems-requests/{id}/deny` - Deny HEMS request
-- `GET /api/portal/me` - Authenticated beneficiary data
 
-## UI Patterns
-### Inline Editable Cells
-Primary pattern for data tables - click to edit directly:
-```typescript
-<EditableCurrencyCell
-  value={liability.currentBalance}
-  onSave={(val) => updateLiability(id, { currentBalance: val })}
-/>
-```
-**Available cell types:**
-- `EditableTextCell` - Text input
-- `EditableCurrencyCell` - Currency formatting
-- `EditableSelectCell` - Dropdown with badges
-- `EditableDateCell` - Date picker
-- `EditableNumberCell` - Numeric input
-- `EditablePercentCell` - Percentage input
+| Table | Purpose |
+|-------|---------|
+| `trustee` | Trustee info with succession order |
+| `trusteeFeeSchedule` | Fee rates (asset %, income %, hourly) |
+| `trusteeFeeEntry` | Actual fee accruals/payments |
+| `task` | Administrative tasks |
+| `contact` | Attorneys, accountants, advisors |
+| `document` | File references (upload not yet implemented) |
+| `activityLog` | Immutable audit trail |
 
-### Dialog Forms
-Complex forms use Radix Dialog with:
-- `max-h-[90vh] overflow-y-auto` for scrollable content
-- Grid layouts (2-3 columns) for related fields
-- Cancel/Save buttons at bottom
-### Page Structure
-Standard pattern:
-1. Header with title and entity selector
-2. Summary cards (3-4 metric cards)
-3. Action buttons (Add, Export)
-4. Data table with inline editing
-5. Form dialogs for create/edit
+### Auth (Better Auth)
 
-## Authentication (Better Auth + Magic Link)
-### Configuration
-- **Method**: Magic link (email-based, no passwords)
-- **Email Service**: Resend (optional - server runs without it)
-- **Session**: 7-day expiration, 24-hour refresh
-### Portal Access
-- `/portal/login` - Magic link login
-- `/portal/dashboard` - Beneficiary view
-- `GET /api/portal/me` - Authenticated beneficiary data
-### Environment Variables
-```bash
-DATABASE_URL=postgres://...
-BETTER_AUTH_SECRET=<random-string>
-RESEND_API_KEY=<optional>
-EMAIL_FROM=Trust Admin <admin@domain.com>
-```
+`user` (role: admin/beneficiary, links to `beneficiaryId`), `session`, `account`, `verification`
 
-## Issues Faced & Solutions
-### 1. Google Rate Limiting for Email
-**Problem**: Gmail/nodemailer hit rate limits quickly during development.
-**Solution**: Switched to Resend. Made API key optional so server runs without email in dev.
-### 2. TypeScript Enum Casting
-**Problem**: `paymentMethod` type 'string | null' not assignable to enum.
-**Solution**: Cast explicitly:
-```typescript
-paymentMethod: (data.paymentMethod as "CHECK" | "ACH" | "WIRE" | "CASH" | "OTHER") || null
-```
+---
 
-### 3. API Tests Failing Without Server
-**Problem**: Integration tests failed when server wasn't running.
-**Solution**: Added `serverAvailable` flag with health check in `beforeAll`:
-```typescript
-beforeAll(async () => {
-  try {
-    const response = await fetch(`${BASE_URL}/health`, { signal: AbortSignal.timeout(2000) });
-    serverAvailable = response.ok;
-  } catch { serverAvailable = false; }
-});
-```
+## Better Auth Patterns (Next.js App Router)
 
-### 4. Date Input Handling
-**Problem**: `split()[0]` on undefined date caused errors.
-**Solution**: Use nullish coalescing: `today ?? ""`
+### Two-Layer Auth Strategy
 
-## Accomplishments
-1. **Route Factory Pattern** - Single code path handles 22 CRUD resources
-2. **CRUD Factory (db/crud-factory.ts)** - Generic Drizzle operations with filtering
-3. **Inline Editable Cells** - Direct table editing without dialogs
-4. **Magic Link Auth** - Passwordless beneficiary portal access
-5. **Liability Payment Recording** - Auto-creates Trust Accounting expense entries
-6. **HEMS Workflow** - Complete request → approval → distribution flow
-7. **Texas Property Code Compliance** - Principal/income tracking, homestead fields
-8. **DOD Valuation Tracking** - Estate tax basis step-up support
+Better Auth recommends a two-layer approach for Next.js:
 
-## Pages
-### Admin Pages (14)
-| Page | Purpose |
-|||
-| Dashboard | Trust overview, tasks, accounting summary |
-| Accounts | Bank and investment accounts |
-| Properties | Homestead and rental properties |
-| Liabilities | Debts with payment recording |
-| Beneficiaries | Beneficiary profiles, withdrawals |
-| Distributions | Distribution and withdrawal tracking |
-| Accounting | Trust accounting entries |
-| Trustees | Trustee management |
-| Vehicles | Vehicle assets |
-| Bequests | Specific bequests |
-| Contacts | Professional contacts |
-| Settings | Application settings |
-| HemsQueue | HEMS request queue |
-| DistributionWizard | Multi-step distribution creation |
+| Layer | File | Purpose | Security |
+|-------|------|---------|----------|
+| 1. Optimistic | `proxy.ts` | Fast cookie-existence check for UX | ❌ Not secure alone |
+| 2. Secure | Per-page/layout | `auth.api.getSession()` validation | ✅ Secure |
 
-### Portal Pages (4)
-| Page | Purpose |
-|||
-| Login | Magic link authentication |
-| Dashboard | Beneficiary view |
-| HemsRequestForm | Submit HEMS requests |
-| Layout | Portal navigation |
+**Key insight from docs:** "We recommend handling auth checks in each page/route"
 
-## Bun-Specific Guidelines
-**DO use:**
-- `bun <file>` instead of `node <file>`
-- `bun test` instead of jest/vitest
-- `bun install` instead of npm/yarn
-- `bunx <package>` instead of npx
-- `Bun.serve()` for API server
-- `Bun.file()` over node:fs
+### Server-Side Session (REQUIRED for security)
 
-**DON'T use:**
-- express (use Bun.serve())
-- dotenv (Bun auto-loads .env)
-- pg/postgres.js for this project (using Drizzle with postgres adapter)
+Use `auth.api.getSession()` in Server Components - this is the **secure** approach:
 
-**Development:**
-- Access UI at `http://localhost:5173` (Vite with HMR)
-- API runs at `http://localhost:5050`
-- Don't use :5050 for frontend - it serves unstyled HTML
+```tsx
+// src/app/page.tsx or any Server Component
+import { auth } from "@/lib/auth"
+import { headers } from "next/headers"
+import { redirect } from "next/navigation"
 
-## Current State
-The application is functional with:
-- Complete CRUD for all 22 resource types
-- Working beneficiary portal with magic link auth
-- Liability payment recording with accounting integration
-- HEMS request workflow
-- Texas Property Code compliance fields
+export default async function ProtectedPage() {
+  const session = await auth.api.getSession({
+    headers: await headers()
+  })
 
-**Known limitations:**
-- Admin dashboard has no auth (intentional during development)
-- Email delivery requires Resend API key
-- No file upload for documents yet
+  if (!session) {
+    redirect("/login")
+  }
 
-## Code Conventions
-### Naming
-| Type | Convention | Example |
-||||
-| Files | `kebab-case.tsx` | `editable-cells.tsx` |
-| Components | `PascalCase` | `EditableCurrencyCell` |
-| Functions | `camelCase` | `handleSave`, `formatCurrency` |
-| Hooks | `use` prefix | `useLiabilities`, `useEntities` |
-| DB Tables | `camelCase` | `bankAccount`, `trustAccounting` |
-| API Routes | `kebab-case` | `/api/bank-accounts`, `/api/trust-accounting` |
+  // Access user with role
+  const user = session.user as { role?: string }
+  if (user.role === "admin") {
+    // admin-specific logic
+  }
 
-### Imports Order
-```typescript
-// 1. React
-import { useState, useEffect } from "react"
-// 2. External libraries
-import { eq } from "drizzle-orm"
-// 3. Internal components
-import { Button } from "@/components/ui/button"
-// 4. Hooks
-import { useEntities } from "@/hooks/useEntities"
-// 5. Utils/types
-import { formatCurrency } from "@/utils/formatters"
-```
-
-### Component Structure
-```typescript
-export function PageName() {
-  // 1. Hooks (useEntities, useState, etc.)
-  // 2. Derived state (useMemo, filtered lists)
-  // 3. Handlers (handleSave, handleDelete)
-  // 4. Effects (useEffect)
-  // 5. Early returns (loading, no data)
-  // 6. JSX return
+  return <div>Welcome {session.user.name}</div>
 }
 ```
 
-## Extracted Component Patterns
+**Why this pattern:**
+- Server Components can't access browser cookies directly
+- `auth.api.getSession()` reads cookies from request headers
+- No client-side JavaScript needed for auth checks
+- Redirects happen at the edge/server (faster, no flash)
 
-Three reusable patterns extracted to eliminate duplication across 13 pages:
+**Documentation source:** Better Auth docs → FAQ → "getSession not working" and Next.js guide → "How to handle auth checks in each page/route"
 
-- **ResourceDialog** - Generic form dialogs for create/edit workflows (eliminates 76 Dialog instances)
-- **SummaryCard** - Metric display cards for dashboard summaries
-- **DataTable** - Data tables with sorting, actions, and inline editing
+### Optional: Proxy for Optimistic Redirects (UX only)
 
-**See full documentation:** [docs/component-patterns.md](docs/component-patterns.md)
+```ts
+// src/proxy.ts (Next.js 16 - replaces deprecated middleware.ts)
+import { NextRequest, NextResponse } from "next/server"
+import { getSessionCookie } from "better-auth/cookies"
 
-Use these components when:
-- Creating/editing resources → ResourceDialog + useResourceForm hook
-- Displaying metrics → SummaryCard + SummaryCardGrid
-- Showing data lists → DataTable + column configuration
+export async function proxy(request: NextRequest) {
+  const sessionCookie = getSessionCookie(request, {
+    cookiePrefix: "trust-admin"  // must match auth.ts config
+  })
 
-## How-To Recipes
-### Add a New Database Table
-**Step 1: Schema** (`db/schema.ts`)
-```typescript
-export const newResource = pgTable("new_resource", {
-  id: text("id").primaryKey(),
-  entityId: text("entity_id").notNull().references(() => entity.id),
-  name: text("name").notNull(),
-  // ... other fields
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
-})
+  // Fast check - prevents flash of protected content
+  // ⚠️ NOT SECURE - anyone can create a fake cookie
+  if (!sessionCookie) {
+    return NextResponse.redirect(new URL("/", request.url))
+  }
+
+  return NextResponse.next()
+}
+
+export const config = {
+  matcher: ["/dashboard/:path*", "/portal/:path*"],
+}
 ```
 
-**Step 2: Relations** (same file, in relations section)
-```typescript
-export const newResourceRelations = relations(newResource, ({ one }) => ({
-  entity: one(entity, { fields: [newResource.entityId], references: [entity.id] }),
-}))
+**Warning from docs:** "The `getSessionCookie` function only checks for the existence of a session cookie; it does **not** validate it. Relying solely on this check for security is dangerous."
+
+### Client-Side Session (React Components)
+
+For client components that need session state:
+
+```tsx
+"use client"
+import { useSession } from "@/lib/auth-client"
+
+export function UserMenu() {
+  const { data: session, isPending } = useSession()
+
+  if (isPending) return <Spinner />
+  if (!session) return <LoginButton />
+
+  return <div>{session.user.name}</div>
+}
 ```
 
-**Step 3: Push to DB**
-```bash
-bun run db:push
+**Performance note from docs:** "For performance reasons, do not use this hook on your `layout.tsx` file. We recommend using RSC and use your server auth instance to get the session data via `auth.api.getSession`."
+
+### Auth File Locations
+
+```
+src/
+├── lib/
+│   ├── auth.ts          # Server: Better Auth instance + config
+│   └── auth-client.ts   # Client: createAuthClient + useSession
+├── app/
+│   ├── api/auth/[...all]/route.ts  # Auth API routes
+│   ├── page.tsx         # Root: auth gateway (redirects by role)
+│   ├── login/page.tsx   # Admin login (magic link)
+│   └── portal/
+│       └── login/page.tsx  # Beneficiary login
 ```
 
-### Add a New CRUD Resource
-**Step 1: CRUD Factory** (`db/queries.ts`)
-```typescript
-export const newResourceCrud = createCrud(newResource, { filterColumn: "entityId" })
+### Cookie Configuration
 
-// Export individual functions
-export const getNewResources = newResourceCrud.getAll
-export const createNewResource = newResourceCrud.create
-export const updateNewResource = newResourceCrud.update
-export const deleteNewResource = newResourceCrud.delete
-```
+From `src/lib/auth.ts`:
 
-**Step 2: API Routes** (`index.ts`)
-```typescript
-// Add to resources object
-"new-resources": {
-  crud: newResourceCrud as any,
-  name: "New Resource",
-  filterParam: "entityId",
+```ts
+advanced: {
+  cookiePrefix: "trust-admin",  // Used in getSessionCookie()
+  useSecureCookies: process.env.NODE_ENV === "production",
+  defaultCookieAttributes: {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+  },
 },
 ```
 
-Now you have: `GET/POST /api/new-resources`, `GET/PUT/DELETE /api/new-resources/:id`
+### DO NOT Use (Deprecated)
 
-**Step 2: Create Page** (`src/pages/NewResources.tsx`)
-```typescript
-import { useState } from "react"
-import { useEntities } from "@/hooks/useEntities"
-import { useNewResources } from "@/hooks/useNewResources"
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-// ... other imports
+```ts
+// ❌ WRONG - doesn't work in Server Components
+import { authClient } from "@/lib/auth-client"
+const session = await authClient.getSession()  // Can't access cookies!
 
-export function NewResourcesPage() {
-  const { entities } = useEntities()
-  const [selectedEntity, setSelectedEntity] = useState<string>("")
-  const { items, loading, create, update, remove } = useNewResources(selectedEntity)
-
-  // Set first entity on load
-  useEffect(() => {
-    if (entities.length && !selectedEntity) {
-      setSelectedEntity(entities[0].id)
-    }
-  }, [entities])
-
-  if (!selectedEntity) return <div>Select an entity</div>
-  if (loading) return <div>Loading...</div>
-
-  return (
-    <div className="p-6 space-y-6">
-      {/* Header with entity selector */}
-      {/* Summary cards */}
-      {/* Data table with inline editing */}
-      {/* Form dialog */}
-    </div>
-  )
-}
+// ✅ CORRECT - use server-side auth
+import { auth } from "@/lib/auth"
+const session = await auth.api.getSession({ headers: await headers() })
 ```
 
-**Step 3: Add Route** (`src/App.tsx`)
-```typescript
-import { NewResourcesPage } from "./pages/NewResources"
+---
 
-// In routes:
-{ path: "/new-resources", element: <NewResourcesPage /> }
-```
+## Key Workflows
 
-**Step 4: Add Sidebar Link** (`src/components/Sidebar.tsx`)
-
-## Entity Filtering Pattern
-Most resources belong to an entity (trust/estate). The pattern:
-
-**Backend**: CRUD factory accepts `filterColumn`:
-```typescript
-export const liabilityCrud = createCrud(liability, { filterColumn: "entityId" })
-```
-
-**API**: Query param filters results:
-```
-GET /api/liabilities?entityId=abc123
-```
-
-**Frontend**: Hook accepts entityId:
-```typescript
-const { items } = useLiabilities(selectedEntityId)
-```
-
-**Page**: Entity selector at top:
-```typescript
-const [selectedEntity, setSelectedEntity] = useState("")
-// Set first entity on load via useEffect
-```
-
-## Form State Pattern
-Pages with create/edit dialogs use this pattern:
+### 1. Recording a Liability Payment
 
 ```typescript
-// Separate state for form data vs which item is being edited
-const [showForm, setShowForm] = useState(false)
-const [editing, setEditing] = useState<Resource | null>(null)
-const [form, setForm] = useState(defaultForm())
+// Using tRPC mutation
+const recordPayment = trpc.liability.recordPayment.useMutation({
+  onSuccess: () => utils.liability.list.invalidate()
+})
 
-// Edit handler - populate form from existing item
-const handleEdit = (item: Resource) => {
-  setEditing(item)
-  setForm({
-    ...item,
-    // Convert dates for input fields
-    dateField: toDateInput(item.dateField),
-  })
-  setShowForm(true)
-}
-
-// Add handler - reset to defaults
-const handleAdd = () => {
-  setEditing(null)
-  setForm(defaultForm())
-  setShowForm(true)
-}
-
-// Save handler - create or update based on editing state
-const handleSave = async () => {
-  const payload = { ...form, entityId: selectedEntity }
-  if (editing) {
-    await update(editing.id, payload)
-  } else {
-    await create(payload)
-  }
-  setShowForm(false)
-}
+recordPayment.mutate({
+  liabilityId: "xxx",
+  paymentDate: "2025-01-15",
+  amount: "1500.00",
+  principalPortion: "1200.00",
+  interestPortion: "300.00",
+  paymentMethod: "CHECK"
+})
 ```
 
-**Date conversion** (`src/lib/form-factory.ts`):
+**What happens:**
+1. Creates `liabilityPayment` record
+2. Subtracts from `liability.currentBalance`
+3. Auto-creates `trustAccounting` EXPENSE entry
+4. Returns updated liability
+
+### 2. HEMS Request Flow
+
+```
+[Beneficiary]                    [Admin]                         [System]
+     │                              │                                │
+     │ trpc.hemsRequest.submit()    │                                │
+     │ (category, amount,           │                                │
+     │  justification)              │                                │
+     │─────────────────────────────►│                                │
+     │                              │                                │
+     │                              │ trpc.hemsRequest.pending()     │
+     │                              │◄───────────────────────────────│
+     │                              │                                │
+     │                              │ trpc.hemsRequest.approve()     │
+     │                              │ (approvedAmount, reviewNotes)  │
+     │                              │───────────────────────────────►│
+     │                              │                                │
+     │                              │ Create distribution record     │
+     │                              │ Link hemsRequest.distributionId│
+     │                              │ Set status=DISTRIBUTED         │
+```
+
+### 3. Entity Filtering Pattern
+
+**Every resource query should include entityId:**
+
 ```typescript
-// ISO string → input value
-export const toDateInput = (iso?: string | null) =>
-  iso ? iso.split("T")[0] : ""
+// tRPC query with entityId filter
+const { data } = trpc.liability.list.useQuery({ entityId })
+
+// tRPC mutation with entityId
+const create = trpc.liability.create.useMutation()
+create.mutate({ entityId, creditor: "...", amount: "..." })
+
+// CRUD factory (how it's configured)
+createCrud(liability, { filterColumn: "entityId" })
 ```
 
-## ID Generation
-**Always use `generateId()`** from `db/helpers.ts` - never raw UUIDs:
+---
+
+## Architecture
+
+### Stack
+
+| Layer | Technology |
+|-------|------------|
+| Runtime | Bun |
+| Framework | Next.js 16 (App Router) |
+| API | tRPC + Next.js API routes |
+| Database | PostgreSQL (Neon serverless) |
+| ORM | Drizzle ORM |
+| Validation | Zod (via drizzle-zod) |
+| Frontend | React 19 + TailwindCSS |
+| UI | Radix UI + shadcn/ui |
+| Data Fetching | tRPC + TanStack Query |
+| Auth | Better Auth (magic link, no passwords) |
+| Email | Resend |
+| Deployment | Railway (backend) + Vercel (frontend) |
+
+### File Structure
+
+```
+trust-admin/
+├── db/
+│   ├── schema.ts         # 34 Drizzle tables + enums + type guards
+│   ├── relations.ts      # Drizzle relations
+│   ├── validation.ts     # Zod schemas from drizzle-zod
+│   ├── queries.ts        # CRUD instances + custom queries
+│   └── crud-factory.ts   # Generic CRUD with filtering + pagination
+├── src/
+│   ├── app/                        # Next.js App Router
+│   │   ├── page.tsx                # Root: auth gateway (redirects by role)
+│   │   ├── layout.tsx              # Root layout with TRPCProvider
+│   │   ├── login/page.tsx          # Admin login
+│   │   ├── (admin)/                # Admin route group (with sidebar layout)
+│   │   │   ├── layout.tsx          # Admin layout with AppSidebar
+│   │   │   ├── dashboard/page.tsx  # Admin dashboard
+│   │   │   ├── accounts/page.tsx
+│   │   │   ├── beneficiaries/page.tsx
+│   │   │   └── ...                 # Other admin pages
+│   │   ├── portal/                 # Beneficiary portal
+│   │   │   ├── page.tsx            # Portal dashboard
+│   │   │   └── login/page.tsx      # Beneficiary login
+│   │   └── api/
+│   │       ├── auth/[...all]/route.ts  # Better Auth API
+│   │       └── trpc/[trpc]/route.ts    # tRPC API
+│   ├── server/
+│   │   └── trpc/
+│   │       ├── index.ts            # tRPC init + procedures
+│   │       └── routers/            # tRPC routers by resource
+│   ├── components/
+│   │   ├── ui/                     # shadcn/ui
+│   │   └── app-sidebar.tsx         # Admin navigation
+│   └── lib/
+│       ├── auth.ts                 # Better Auth server config
+│       ├── auth-client.ts          # Better Auth client
+│       ├── trpc.ts                 # tRPC client hooks
+│       ├── trpc-provider.tsx       # TRPCProvider component
+│       └── middleware.ts           # requireAdmin(), requireBeneficiary()
+```
+
+### API Pattern (tRPC)
+
+**tRPC routers** in `src/server/trpc/routers/` - type-safe API:
 
 ```typescript
-import { generateId } from "./helpers"
-// In queries.ts or anywhere creating records
-const id = generateId() // Returns nanoid-style ID
+// src/server/trpc/routers/liability.ts
+export const liabilityRouter = createTRPCRouter({
+  list: protectedProcedure.query(async () => {
+    return liabilityCrud.findAll()
+  }),
+  get: protectedProcedure
+    .input(z.object({ id: z.string() }))
+    .query(async ({ input }) => {
+      return liabilityCrud.findById(input.id)
+    }),
+  create: adminProcedure
+    .input(insertLiabilitySchema)
+    .mutation(async ({ input }) => {
+      return liabilityCrud.create(input)
+    }),
+  update: adminProcedure
+    .input(z.object({ id: z.string(), data: updateLiabilitySchema }))
+    .mutation(async ({ input }) => {
+      return liabilityCrud.update(input.id, input.data)
+    }),
+})
 ```
 
-The CRUD factory handles this automatically for `create()`, but manual inserts need it.
+**Procedure types:**
+- `publicProcedure` - No auth required
+- `protectedProcedure` - Any authenticated user
+- `adminProcedure` - Admin role required
+- `beneficiaryProcedure` - Beneficiary role required
 
-## Required Fields by Resource Type
-### All Resources
-- `id` - Use `generateId()`
-- `createdAt` - Auto-set by defaultNow()
-- `updatedAt` - Auto-set, update on changes
-### Assets (vehicles, properties, accounts, etc.)
-- `entityId` - Required FK to entity
-- `name` or identifying field
-### Liabilities
-- `entityId` - Required
-- `creditor` - Who is owed
-- `liabilityType` - MORTGAGE, LOAN, CREDIT_CARD, TAX_OWED, etc.
-- `originalAmount` - Starting balance
-- `currentBalance` - Current balance
-### Trust Accounting
-- `entityId` - Required
-- `accountingDate` - When it occurred
-- `entryType` - "INCOME" or "EXPENSE"
-- `amount` - Decimal value
-- `isPrincipal` - Principal vs income classification
-### Beneficiaries
-- `entityId` - Required
-- `name` - Full name
-- `relationship` - To grantor
-- `sharePercentage` - Decimal (0.25 = 25%)
+### Frontend Pattern (tRPC)
 
-## Common Gotchas
-### 1. Entity ID Required
-Most create operations need `entityId`. The form should include:
+**Data fetching** - tRPC hooks (auto-generated from routers):
 ```typescript
-const payload = { ...form, entityId: selectedEntity }
+// In any component
+import { trpc } from "@/lib/trpc"
+
+const { data, isLoading } = trpc.liability.list.useQuery()
+const update = trpc.liability.update.useMutation({
+  onSuccess: () => utils.liability.list.invalidate()
+})
+update.mutate({ id, data: { currentBalance: "5000" } })
 ```
 
-### 2. Date Input Conversion
-HTML date inputs return `YYYY-MM-DD`. Store as ISO:
+**Inline editing** - click cell to edit:
 ```typescript
-// Form → API: Already correct format
-// API → Form: Use toDateInput() to strip time
+<EditableCurrencyCell
+  value={item.currentBalance}
+  onSave={(val) => update.mutateAsync({ id, data: { currentBalance: val } })}
+/>
 ```
 
-### 3. Enum Type Casting
-Drizzle enums need explicit casting from form strings:
-```typescript
-paymentMethod: (form.paymentMethod as "CHECK" | "ACH" | "WIRE") || null
+---
+
+## Development
+
+### Commands
+
+```bash
+bun run dev          # Next.js dev server on :3000 (Turbopack)
+bun run build        # Production build
+bun run start        # Start production server
+bun run db:push      # Sync schema to DB (dev only, not db:migrate)
+bun run db:studio    # Drizzle Studio GUI
+bun run db:seed      # Seed Hudson Trust test data
+bun run typecheck    # TypeScript type check
+bun run lint         # Biome lint check
+bun test             # Run tests
 ```
 
-### 4. Numeric Fields
-Form inputs are strings. Convert for API:
+**Always use `bun`** - not npm/node/npx. Bun auto-loads `.env`.
+
+### Adding a New Resource
+
+1. **Schema** (`db/schema.ts`): Add pgTable with indexes + FKs
+2. **Relations** (`db/relations.ts`): Add relations
+3. **Validation** (`db/validation.ts`): Add insert/update Zod schemas
+4. **CRUD** (`db/queries.ts`): `export const newCrud = createCrud(table, { filterColumn: "entityId" })`
+5. **tRPC Router** (`src/server/trpc/routers/new.ts`): Create router with procedures
+6. **Register** (`src/server/trpc/index.ts`): Add router to `appRouter`
+7. **Push**: `bun run db:push`
+
+### Common Patterns
+
+**Error handling:**
 ```typescript
-amount: parseFloat(form.amount) || 0
+throw ApiError.notFound("Liability", id)
+throw ApiError.validationError("Invalid", { field: "message" })
+const data = validateWithSchema(schema, body)  // Throws on invalid
 ```
 
-### 5. Optimistic Updates
-Inline cells update local state immediately, then persist:
+**Auth middleware:**
 ```typescript
-onSave={async (val) => {
-  await update(id, { field: val }) // This updates local state via hook
-}}
+await requireAdmin(req)        // Throws if not admin
+await requireBeneficiary(req)  // Throws if not beneficiary
 ```
 
-### 6. Loading States
-Always check loading before rendering data:
+**Type guards for enums:**
 ```typescript
-if (loading) return <LoadingSpinner />
-if (!items.length) return <EmptyState />
+import { isPaymentMethod } from "@/db/schema"
+if (isPaymentMethod(value)) { /* value is typed */ }
 ```
 
-### 7. Dialog Scroll
-Large forms need scroll handling:
+### Numbers Are Strings
+
+Database stores all money/decimal fields as strings (`"1500.00"` not `1500`). This is intentional for precision.
+
 ```typescript
-<DialogContent className="max-h-[90vh] overflow-y-auto">
+// Display: use formatters
+formatCurrency(liability.currentBalance)  // "$1,500.00"
+
+// Math: parse first
+const total = parseFloat(a) + parseFloat(b)
+
+// Save: send as string
+update.mutate({ id, data: { currentBalance: "1500.00" } })
 ```
+
+### Gotchas
+
+| Issue | Solution |
+|-------|----------|
+| Mutations missing entityId | Most creates need `entityId` in payload |
+| Date input issues | Form→API: `new Date(val).toISOString()`, API→Form: `iso.split("T")[0]` |
+| Enum type errors | Cast: `paymentMethod as "CHECK" \| "ACH"` or use type guards |
+| Stale data after related update | `queryClient.invalidateQueries({ queryKey: ["other-resource"] })` |
+
+---
+
+## Reference
+
+### All 34 Tables
+
+**Core:** entity, contact, contactAssociation, activityLog
+
+**Assets:** homestead, rentalProperty, vehicle, bankAccount, investmentAccount, insurancePolicy, personalProperty, artwork
+
+**Liabilities:** liability, liabilityPayment
+
+**Accounting:** trustAccounting, transaction, valuation, document
+
+**Beneficiaries:** beneficiary, distribution, specificBequest, withdrawalRecord, hemsRequest
+
+**Administration:** trustee, trusteeFeeSchedule, trusteeFeeEntry, task
+
+**Auth:** user, session, account, verification
+
+### All Pages
+
+| Route | Purpose |
+|-------|---------|
+| `/` | Auth gateway - redirects to `/dashboard` (admin) or `/portal` (beneficiary) |
+| `/login` | Admin login (magic link) |
+| `/dashboard` | Admin dashboard - overview, tasks, accounting summary |
+| `/accounts` | Bank + investment accounts |
+| `/properties` | Homestead + rental properties |
+| `/liabilities` | Debts with payment recording |
+| `/beneficiaries` | Profiles, withdrawal status |
+| `/hems` | Distribution history |
+| `/hems-queue` | Pending HEMS request review |
+| `/accounting` | Trust accounting ledger |
+| `/trustees` | Trustee management |
+| `/vehicles` | Vehicle assets |
+| `/bequests` | Specific bequests |
+| `/contacts` | Professional contacts |
+| `/activity-log` | Audit trail |
+| `/settings` | App settings |
+| `/portal` | Beneficiary portal dashboard |
+| `/portal/login` | Beneficiary login (magic link) |
+
+### Key Enums
+
+| Enum | Values |
+|------|--------|
+| `RecordStatus` | ACTIVE, INACTIVE, PENDING, CLOSED, PAID_OFF, SOLD, TRANSFERRED... |
+| `LiabilityType` | MORTGAGE, LOAN, CREDIT_CARD, TAX_OWED, ACCOUNTS_PAYABLE, LEGAL_JUDGMENT, OTHER |
+| `PaymentMethod` | CHECK, ACH, WIRE, CASH, OTHER |
+| `AllocationClass` | PRINCIPAL, INCOME |
+| `HemsRequestStatus` | PENDING, APPROVED, DENIED, DISTRIBUTED, CANCELLED |
+| `DistributionType` | INCOME, PRINCIPAL, CAPITAL_GAIN, EXPENSE_REIMBURSEMENT, OTHER |
+| `DistributionStandard` | HEMS, HEMS_PLUS_WITHDRAWAL, BROADER, WITHDRAWAL_ONLY |
+
+### Environment Variables
+
+```bash
+DATABASE_URL=postgres://...           # Required (Neon PostgreSQL)
+BETTER_AUTH_SECRET=<random-string>    # Required (min 32 chars)
+RESEND_API_KEY=<key>                  # Optional in dev (logs to console)
+TRUSTED_ORIGINS=http://localhost:3000 # Comma-separated for multiple
+```
+
+### Seed Data
+
+`bun run db:seed` creates **The Hudson Living Trust**:
+- Grantor: Richard Hudson (DOD: 2024-12-28)
+- ~20 beneficiaries with HEMS + withdrawal rights
+- Children: Richard Jr (8.5%), Ashley (4.5%), Wendy (4.5%)
+- Stepchildren: Ricky, Timothy, Alicia (4.5% each)
+- Other: Luis Fernando (15%), Lois Greer (5%)
+- Grandchildren: various shares
+
+---
+
+## Current State
+
+**Stack:** Next.js 16.1 (App Router) + tRPC v11 + Drizzle ORM + Better Auth + Neon PostgreSQL
+
+**Working:**
+- 24 tRPC routers for all resources
+- Admin auth + beneficiary portal (magic link)
+- Payment recording with auto-accounting
+- HEMS workflow (request → approve → distribute)
+- Year-end income-to-principal conversion (Section 7.10(c))
+- Beneficiary death handling with share redistribution (Section 7.01)
+- Texas compliance fields (principal/income allocation)
+- Activity log audit trail
+- Inline editable cells with optimistic updates
+
+**Not implemented:** File upload, email notifications in prod, reporting/export, multi-entity support

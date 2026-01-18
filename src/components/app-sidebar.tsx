@@ -1,279 +1,307 @@
-"use client"
+'use client'
 
-import { ChevronRight } from "lucide-react"
-import { useState } from "react"
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { ChevronRight } from 'lucide-react'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { useState } from 'react'
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarGroup,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
-} from "@/components/ui/sidebar"
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from '@/components/ui/collapsible'
+import {
+    Sidebar,
+    SidebarContent,
+    SidebarFooter,
+    SidebarGroup,
+    SidebarGroupLabel,
+    SidebarHeader,
+    SidebarMenu,
+    SidebarMenuButton,
+    SidebarMenuItem,
+    SidebarMenuSub,
+    SidebarMenuSubButton,
+    SidebarMenuSubItem,
+} from '@/components/ui/sidebar'
 
-type Route =
-  | "/"
-  | "/trustees"
-  | "/beneficiaries"
-  | "/contacts"
-  | "/hems"
-  | "/hems-queue"
-  | "/distribution-wizard"
-  | "/bequests"
-  | "/accounting"
-  | "/properties"
-  | "/accounts"
-  | "/vehicles"
-  | "/liabilities"
-  | "/activity-log"
-  | "/settings"
-  | "/forms"
+export function AppSidebar() {
+    const pathname = usePathname()
+    const [distributionsOpen, setDistributionsOpen] = useState(true)
+    const [assetsOpen, setAssetsOpen] = useState(true)
 
-interface AppSidebarProps {
-  currentRoute: Route
-  onNavigate: (route: Route) => void
-}
+    const isInDistributions = ['/hems', '/hems-queue', '/bequests'].includes(
+        pathname,
+    )
+    const isInAssets = ['/properties', '/accounts', '/vehicles'].includes(
+        pathname,
+    )
 
-export function AppSidebar({ currentRoute, onNavigate }: AppSidebarProps) {
-  const [distributionsOpen, setDistributionsOpen] = useState(true)
-  const [assetsOpen, setAssetsOpen] = useState(true)
+    return (
+        <Sidebar collapsible="icon">
+            <SidebarHeader>
+                <SidebarMenu>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton
+                            size="lg"
+                            className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                        >
+                            <div className="flex aspect-square size-8 items-center justify-center rounded-md bg-foreground text-background font-semibold text-sm">
+                                TA
+                            </div>
+                            <div className="grid flex-1 text-left text-sm leading-tight">
+                                <span className="truncate font-semibold">
+                                    Trust Admin
+                                </span>
+                                <span className="truncate text-xs text-muted-foreground">
+                                    Estate Administration
+                                </span>
+                            </div>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                </SidebarMenu>
+            </SidebarHeader>
 
-  const isInDistributions = ["/hems", "/hems-queue", "/distribution-wizard", "/bequests"].includes(
-    currentRoute,
-  )
-  const isInAssets = ["/properties", "/accounts", "/vehicles"].includes(currentRoute)
+            <SidebarContent>
+                {/* Dashboard */}
+                <SidebarGroup>
+                    <SidebarMenu>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton
+                                asChild
+                                isActive={pathname === '/dashboard'}
+                                tooltip="Dashboard"
+                            >
+                                <Link href="/dashboard">
+                                    <span>Dashboard</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    </SidebarMenu>
+                </SidebarGroup>
 
-  return (
-    <Sidebar collapsible="icon">
-      <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              size="lg"
-              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-            >
-              <div className="flex aspect-square size-8 items-center justify-center rounded-md bg-foreground text-background font-semibold text-sm">
-                TA
-              </div>
-              <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-semibold">Trust Admin</span>
-                <span className="truncate text-xs text-muted-foreground">
-                  Estate Administration
-                </span>
-              </div>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarHeader>
+                {/* Administration - flat list of people */}
+                <SidebarGroup>
+                    <SidebarGroupLabel>Administration</SidebarGroupLabel>
+                    <SidebarMenu className="pl-2">
+                        <SidebarMenuItem>
+                            <SidebarMenuButton
+                                asChild
+                                isActive={pathname === '/trustees'}
+                                tooltip="Trustees"
+                            >
+                                <Link href="/trustees">
+                                    <span>Trustees</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
 
-      <SidebarContent>
-        {/* Dashboard */}
-        <SidebarGroup>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                onClick={() => onNavigate("/")}
-                isActive={currentRoute === "/"}
-                tooltip="Dashboard"
-              >
-                <span>Dashboard</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarGroup>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton
+                                asChild
+                                isActive={pathname === '/beneficiaries'}
+                                tooltip="Beneficiaries"
+                            >
+                                <Link href="/beneficiaries">
+                                    <span>Beneficiaries</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
 
-        {/* Administration - flat list of people */}
-        <SidebarGroup>
-          <SidebarGroupLabel>Administration</SidebarGroupLabel>
-          <SidebarMenu className="pl-2">
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                onClick={() => onNavigate("/trustees")}
-                isActive={currentRoute === "/trustees"}
-                tooltip="Trustees"
-              >
-                <span>Trustees</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton
+                                asChild
+                                isActive={pathname === '/contacts'}
+                                tooltip="Contacts"
+                            >
+                                <Link href="/contacts">
+                                    <span>Contacts</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
 
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                onClick={() => onNavigate("/beneficiaries")}
-                isActive={currentRoute === "/beneficiaries"}
-                tooltip="Beneficiaries"
-              >
-                <span>Beneficiaries</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
+                        {/* Distributions - collapsed submenu for distribution actions */}
+                        <Collapsible
+                            open={distributionsOpen}
+                            onOpenChange={setDistributionsOpen}
+                            className="group/collapsible"
+                        >
+                            <SidebarMenuItem>
+                                <CollapsibleTrigger asChild>
+                                    <SidebarMenuButton
+                                        tooltip="Distributions"
+                                        isActive={
+                                            isInDistributions &&
+                                            !distributionsOpen
+                                        }
+                                    >
+                                        <span>Distributions</span>
+                                        <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                                    </SidebarMenuButton>
+                                </CollapsibleTrigger>
+                                <CollapsibleContent>
+                                    <SidebarMenuSub>
+                                        <SidebarMenuSubItem>
+                                            <SidebarMenuSubButton
+                                                asChild
+                                                isActive={
+                                                    pathname === '/hems-queue'
+                                                }
+                                            >
+                                                <Link href="/hems-queue">
+                                                    <span>Review Queue</span>
+                                                </Link>
+                                            </SidebarMenuSubButton>
+                                        </SidebarMenuSubItem>
+                                        <SidebarMenuSubItem>
+                                            <SidebarMenuSubButton
+                                                asChild
+                                                isActive={pathname === '/hems'}
+                                            >
+                                                <Link href="/hems">
+                                                    <span>
+                                                        Distribution History
+                                                    </span>
+                                                </Link>
+                                            </SidebarMenuSubButton>
+                                        </SidebarMenuSubItem>
+                                        <SidebarMenuSubItem>
+                                            <SidebarMenuSubButton
+                                                asChild
+                                                isActive={
+                                                    pathname === '/bequests'
+                                                }
+                                            >
+                                                <Link href="/bequests">
+                                                    <span>
+                                                        Specific Bequests
+                                                    </span>
+                                                </Link>
+                                            </SidebarMenuSubButton>
+                                        </SidebarMenuSubItem>
+                                    </SidebarMenuSub>
+                                </CollapsibleContent>
+                            </SidebarMenuItem>
+                        </Collapsible>
+                    </SidebarMenu>
+                </SidebarGroup>
 
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                onClick={() => onNavigate("/contacts")}
-                isActive={currentRoute === "/contacts"}
-                tooltip="Contacts"
-              >
-                <span>Contacts</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
+                {/* Financial */}
+                <SidebarGroup>
+                    <SidebarGroupLabel>Financial</SidebarGroupLabel>
+                    <SidebarMenu className="pl-2">
+                        <SidebarMenuItem>
+                            <SidebarMenuButton
+                                asChild
+                                isActive={pathname === '/accounting'}
+                                tooltip="Trust Accounting"
+                            >
+                                <Link href="/accounting">
+                                    <span>Trust Accounting</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
 
-            {/* Distributions - collapsed submenu for distribution actions */}
-            <Collapsible
-              open={distributionsOpen}
-              onOpenChange={setDistributionsOpen}
-              className="group/collapsible"
-            >
-              <SidebarMenuItem>
-                <CollapsibleTrigger asChild>
-                  <SidebarMenuButton
-                    tooltip="Distributions"
-                    isActive={isInDistributions && !distributionsOpen}
-                  >
-                    <span>Distributions</span>
-                    <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                  </SidebarMenuButton>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <SidebarMenuSub>
-                    <SidebarMenuSubItem>
-                      <SidebarMenuSubButton
-                        onClick={() => onNavigate("/hems-queue")}
-                        isActive={currentRoute === "/hems-queue"}
-                      >
-                        <span>Review Queue</span>
-                      </SidebarMenuSubButton>
-                    </SidebarMenuSubItem>
-                    <SidebarMenuSubItem>
-                      <SidebarMenuSubButton
-                        onClick={() => onNavigate("/distribution-wizard")}
-                        isActive={currentRoute === "/distribution-wizard"}
-                      >
-                        <span>Income Distribution</span>
-                      </SidebarMenuSubButton>
-                    </SidebarMenuSubItem>
-                    <SidebarMenuSubItem>
-                      <SidebarMenuSubButton
-                        onClick={() => onNavigate("/hems")}
-                        isActive={currentRoute === "/hems"}
-                      >
-                        <span>Distribution History</span>
-                      </SidebarMenuSubButton>
-                    </SidebarMenuSubItem>
-                    <SidebarMenuSubItem>
-                      <SidebarMenuSubButton
-                        onClick={() => onNavigate("/bequests")}
-                        isActive={currentRoute === "/bequests"}
-                      >
-                        <span>Specific Bequests</span>
-                      </SidebarMenuSubButton>
-                    </SidebarMenuSubItem>
-                  </SidebarMenuSub>
-                </CollapsibleContent>
-              </SidebarMenuItem>
-            </Collapsible>
-          </SidebarMenu>
-        </SidebarGroup>
+                        {/* Assets */}
+                        <Collapsible
+                            open={assetsOpen}
+                            onOpenChange={setAssetsOpen}
+                            className="group/collapsible"
+                        >
+                            <SidebarMenuItem>
+                                <CollapsibleTrigger asChild>
+                                    <SidebarMenuButton
+                                        tooltip="Assets"
+                                        isActive={isInAssets && !assetsOpen}
+                                    >
+                                        <span>Assets</span>
+                                        <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                                    </SidebarMenuButton>
+                                </CollapsibleTrigger>
+                                <CollapsibleContent>
+                                    <SidebarMenuSub>
+                                        <SidebarMenuSubItem>
+                                            <SidebarMenuSubButton
+                                                asChild
+                                                isActive={
+                                                    pathname === '/properties'
+                                                }
+                                            >
+                                                <Link href="/properties">
+                                                    <span>Properties</span>
+                                                </Link>
+                                            </SidebarMenuSubButton>
+                                        </SidebarMenuSubItem>
+                                        <SidebarMenuSubItem>
+                                            <SidebarMenuSubButton
+                                                asChild
+                                                isActive={
+                                                    pathname === '/accounts'
+                                                }
+                                            >
+                                                <Link href="/accounts">
+                                                    <span>Accounts</span>
+                                                </Link>
+                                            </SidebarMenuSubButton>
+                                        </SidebarMenuSubItem>
+                                        <SidebarMenuSubItem>
+                                            <SidebarMenuSubButton
+                                                asChild
+                                                isActive={
+                                                    pathname === '/vehicles'
+                                                }
+                                            >
+                                                <Link href="/vehicles">
+                                                    <span>Vehicles</span>
+                                                </Link>
+                                            </SidebarMenuSubButton>
+                                        </SidebarMenuSubItem>
+                                    </SidebarMenuSub>
+                                </CollapsibleContent>
+                            </SidebarMenuItem>
+                        </Collapsible>
 
-        {/* Financial */}
-        <SidebarGroup>
-          <SidebarGroupLabel>Financial</SidebarGroupLabel>
-          <SidebarMenu className="pl-2">
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                onClick={() => onNavigate("/accounting")}
-                isActive={currentRoute === "/accounting"}
-                tooltip="Trust Accounting"
-              >
-                <span>Trust Accounting</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton
+                                asChild
+                                isActive={pathname === '/liabilities'}
+                                tooltip="Liabilities"
+                            >
+                                <Link href="/liabilities">
+                                    <span>Liabilities</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
 
-            {/* Assets */}
-            <Collapsible
-              open={assetsOpen}
-              onOpenChange={setAssetsOpen}
-              className="group/collapsible"
-            >
-              <SidebarMenuItem>
-                <CollapsibleTrigger asChild>
-                  <SidebarMenuButton tooltip="Assets" isActive={isInAssets && !assetsOpen}>
-                    <span>Assets</span>
-                    <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                  </SidebarMenuButton>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <SidebarMenuSub>
-                    <SidebarMenuSubItem>
-                      <SidebarMenuSubButton
-                        onClick={() => onNavigate("/properties")}
-                        isActive={currentRoute === "/properties"}
-                      >
-                        <span>Properties</span>
-                      </SidebarMenuSubButton>
-                    </SidebarMenuSubItem>
-                    <SidebarMenuSubItem>
-                      <SidebarMenuSubButton
-                        onClick={() => onNavigate("/accounts")}
-                        isActive={currentRoute === "/accounts"}
-                      >
-                        <span>Accounts</span>
-                      </SidebarMenuSubButton>
-                    </SidebarMenuSubItem>
-                    <SidebarMenuSubItem>
-                      <SidebarMenuSubButton
-                        onClick={() => onNavigate("/vehicles")}
-                        isActive={currentRoute === "/vehicles"}
-                      >
-                        <span>Vehicles</span>
-                      </SidebarMenuSubButton>
-                    </SidebarMenuSubItem>
-                  </SidebarMenuSub>
-                </CollapsibleContent>
-              </SidebarMenuItem>
-            </Collapsible>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton
+                                asChild
+                                isActive={pathname === '/activity-log'}
+                                tooltip="Activity Log"
+                            >
+                                <Link href="/activity-log">
+                                    <span>Activity Log</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    </SidebarMenu>
+                </SidebarGroup>
+            </SidebarContent>
 
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                onClick={() => onNavigate("/liabilities")}
-                isActive={currentRoute === "/liabilities"}
-                tooltip="Liabilities"
-              >
-                <span>Liabilities</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                onClick={() => onNavigate("/activity-log")}
-                isActive={currentRoute === "/activity-log"}
-                tooltip="Activity Log"
-              >
-                <span>Activity Log</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarGroup>
-      </SidebarContent>
-
-      <SidebarFooter>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              onClick={() => onNavigate("/settings")}
-              isActive={currentRoute === "/settings"}
-              tooltip="Settings"
-            >
-              <span>Settings</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
-    </Sidebar>
-  )
+            <SidebarFooter>
+                <SidebarMenu>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton
+                            asChild
+                            isActive={pathname === '/settings'}
+                            tooltip="Settings"
+                        >
+                            <Link href="/settings">
+                                <span>Settings</span>
+                            </Link>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                </SidebarMenu>
+            </SidebarFooter>
+        </Sidebar>
+    )
 }

@@ -4,7 +4,7 @@
  */
 
 // Set test environment
-process.env.NODE_ENV = "test"
+process.env.NODE_ENV = 'test'
 
 // Suppress console output during tests if needed
 // const originalConsole = console.log;

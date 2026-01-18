@@ -3,27 +3,24 @@
  *
  * Based on best practices from https://orm.drizzle.team/docs/column-types/pg
  */
-import { sql } from "drizzle-orm"
-import { text, timestamp, uuid } from "drizzle-orm/pg-core"
+import { sql } from 'drizzle-orm'
+import { text, timestamp, uuid } from 'drizzle-orm/pg-core'
 
 /**
- * Generate a UUID v4 using crypto.randomUUID()
- * Use with $defaultFn() for auto-generated IDs
+ * @deprecated Use BIGINT IDENTITY columns instead.
+ * Database now generates IDs via generatedAlwaysAsIdentity().
  *
- * @example
- * id: text().primaryKey().$defaultFn(generateId)
+ * Example of new pattern:
+ * id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity()
  */
 export const generateId = () => crypto.randomUUID()
 
 /**
- * Standard ID column using text with UUID default
- * Compatible with existing schema using text IDs
+ * @deprecated Use bigint().primaryKey().generatedAlwaysAsIdentity() instead.
+ * Database now uses BIGINT IDENTITY columns for auto-generated IDs.
  *
- * @example
- * const myTable = pgTable("MyTable", {
- *   id: textId(),
- *   // other columns...
- * });
+ * Example of new pattern:
+ * id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity()
  */
 export const textId = () => text().primaryKey().$defaultFn(generateId)
 
@@ -51,12 +48,12 @@ export const uuidId = () => uuid().primaryKey().defaultRandom()
  * });
  */
 export const timestamps = () => ({
-  createdAt: timestamp({ precision: 3, mode: "string" as const })
-    .default(sql`CURRENT_TIMESTAMP`)
-    .notNull(),
-  updatedAt: timestamp({ precision: 3, mode: "string" as const })
-    .notNull()
-    .$onUpdateFn(() => new Date().toISOString()),
+    createdAt: timestamp({ precision: 3, mode: 'string' as const })
+        .default(sql`CURRENT_TIMESTAMP`)
+        .notNull(),
+    updatedAt: timestamp({ precision: 3, mode: 'string' as const })
+        .notNull()
+        .$onUpdateFn(() => new Date().toISOString()),
 })
 
 /**
@@ -67,4 +64,4 @@ export const timestamps = () => ({
  * eventDate: timestampWithTz()
  */
 export const timestampWithTz = () =>
-  timestamp({ precision: 3, mode: "string" as const, withTimezone: true })
+    timestamp({ precision: 3, mode: 'string' as const, withTimezone: true })

@@ -29,5 +29,11 @@ jobs:
       - name: TypeScript type check
         run: bun run typecheck
 
+      - name: Build Next.js application
+        run: bun run build
+        env:
+          # Placeholder URL for build - database is lazy-loaded and not accessed during static build
+          DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://placeholder:placeholder@localhost:5432/placeholder' }}
+
       - name: Run unit tests
         run: bun run test:unit
