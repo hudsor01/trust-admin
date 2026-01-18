@@ -12,7 +12,7 @@ import {
     isPrincipalTransaction,
 } from '../src/lib/classification-rules'
 import { createCrud } from './crud-factory'
-import { generateId } from './helpers'
+// generateId removed - using database IDENTITY columns
 import { db } from './index'
 import {
     activityLog,
@@ -40,7 +40,7 @@ import {
     withdrawalRecord,
 } from './schema'
 
-export { generateId }
+// generateId export removed - IDs now database-generated
 
 // Re-export all Drizzle-inferred types for use in components
 export type * from './schema'
@@ -117,7 +117,7 @@ export const createEntity = entityCrud.create
 export const updateEntity = entityCrud.update
 export const deleteEntity = entityCrud.delete
 
-export async function getEntityById(id: string) {
+export async function getEntityById(id: number) {
     return db.query.entity.findFirst({
         where: eq(entity.id, id),
         with: {
@@ -142,7 +142,7 @@ export const createBeneficiary = beneficiaryCrud.create
 export const updateBeneficiary = beneficiaryCrud.update
 export const deleteBeneficiary = beneficiaryCrud.delete
 
-export async function getBeneficiaryById(id: string) {
+export async function getBeneficiaryById(id: number) {
     return db.query.beneficiary.findFirst({
         where: eq(beneficiary.id, id),
         with: {
@@ -153,7 +153,7 @@ export async function getBeneficiaryById(id: string) {
     })
 }
 
-export async function getBeneficiariesWithDistributions(entityId?: string) {
+export async function getBeneficiariesWithDistributions(entityId?: number) {
     return db.query.beneficiary.findMany({
         where: entityId ? eq(beneficiary.entityId, entityId) : undefined,
         with: {
@@ -186,7 +186,7 @@ export const createVehicle = vehicleCrud.create
 export const updateVehicle = vehicleCrud.update
 export const deleteVehicle = vehicleCrud.delete
 
-export async function getVehicleById(id: string) {
+export async function getVehicleById(id: number) {
     return db.query.vehicle.findFirst({
         where: eq(vehicle.id, id),
         with: {
@@ -207,7 +207,7 @@ export const createHomestead = homesteadCrud.create
 export const updateHomestead = homesteadCrud.update
 export const deleteHomestead = homesteadCrud.delete
 
-export async function getHomesteadById(id: string) {
+export async function getHomesteadById(id: number) {
     return db.query.homestead.findFirst({
         where: eq(homestead.id, id),
         with: { entity: true, valuations: true, documents: true },
@@ -223,7 +223,7 @@ export const createRentalProperty = rentalPropertyCrud.create
 export const updateRentalProperty = rentalPropertyCrud.update
 export const deleteRentalProperty = rentalPropertyCrud.delete
 
-export async function getRentalPropertyById(id: string) {
+export async function getRentalPropertyById(id: number) {
     return db.query.rentalProperty.findFirst({
         where: eq(rentalProperty.id, id),
         with: {
@@ -244,7 +244,7 @@ export const createBankAccount = bankAccountCrud.create
 export const updateBankAccount = bankAccountCrud.update
 export const deleteBankAccount = bankAccountCrud.delete
 
-export async function getBankAccountById(id: string) {
+export async function getBankAccountById(id: number) {
     return db.query.bankAccount.findFirst({
         where: eq(bankAccount.id, id),
         with: {
@@ -283,7 +283,7 @@ export const createValuation = valuationCrud.create
 
 export async function getValuationsForAsset(
     assetType: string,
-    assetId: string,
+    assetId: number,
 ) {
     const columnMap = {
         vehicle: valuation.vehicleId,
@@ -402,7 +402,7 @@ export const createHemsRequest = hemsRequestCrud.create
 export const updateHemsRequest = hemsRequestCrud.update
 export const deleteHemsRequest = hemsRequestCrud.delete
 
-export async function getHemsRequestsWithBeneficiary(filterValue?: string) {
+export async function getHemsRequestsWithBeneficiary(filterValue?: number) {
     return db.query.hemsRequest.findMany({
         where: filterValue
             ? eq(hemsRequest.beneficiaryId, filterValue)
@@ -436,7 +436,7 @@ export const createTrusteeFeeEntry = trusteeFeeEntryCrud.create
 export const updateTrusteeFeeEntry = trusteeFeeEntryCrud.update
 export const deleteTrusteeFeeEntry = trusteeFeeEntryCrud.delete
 
-export async function getTrusteeFeeEntriesWithSchedule(entityId?: string) {
+export async function getTrusteeFeeEntriesWithSchedule(entityId?: number) {
     return db.query.trusteeFeeEntry.findMany({
         where: entityId ? eq(trusteeFeeEntry.entityId, entityId) : undefined,
         with: { schedule: true, trustee: true },
@@ -449,10 +449,10 @@ export async function getTrusteeFeeEntriesWithSchedule(entityId?: string) {
 // =============================================================================
 
 interface RecordPaymentData {
-    liabilityId: string
+    liabilityId: number
     paymentDate: string
     amount: string
-    bankAccountId: string // Required: which account the payment came from
+    bankAccountId: number // Required: which account the payment came from
     principalPortion?: string | null
     interestPortion?: string | null
     escrowPortion?: string | null
@@ -473,8 +473,6 @@ export async function recordLiabilityPayment(data: RecordPaymentData) {
     if (!liabilityRecord) {
         throw new Error('Liability not found')
     }
-
-    const paymentId = generateId()
 
     // 2. Auto-calculate principal/interest split if applicable
     // Conditions: has interest rate, not revolving credit, user didn't provide portions
@@ -517,8 +515,7 @@ export async function recordLiabilityPayment(data: RecordPaymentData) {
         : Math.max(0, currentBalance - paymentAmount)
 
     // 3. Create the payment record
-    await db.insert(liabilityPayment).values({
-        id: paymentId,
+    const [payment] = await db.insert(liabilityPayment).values({
         liabilityId: data.liabilityId,
         paymentDate: data.paymentDate,
         amount: data.amount,
@@ -529,7 +526,8 @@ export async function recordLiabilityPayment(data: RecordPaymentData) {
         checkNumber: data.checkNumber || null,
         confirmationNumber: data.confirmationNumber || null,
         notes: data.notes || null,
-    })
+    }).returning()
+    if (!payment) throw new Error('Failed to create payment record')
 
     // 3. Update the liability's current balance
     await db
@@ -541,9 +539,8 @@ export async function recordLiabilityPayment(data: RecordPaymentData) {
         .where(eq(liability.id, data.liabilityId))
 
     // 4. Optionally create a trust accounting expense entry
-    let accountingEntry = null
+    let accountingEntry: { id: number } | null = null
     if (data.createExpenseEntry !== false) {
-        const accountingId = generateId()
         const expenseDescription = `${liabilityRecord.liabilityType.replace(/_/g, ' ')} payment to ${liabilityRecord.creditor}`
 
         // Determine if principal based on payment's allocation class (or fallback to liability's)
@@ -557,8 +554,7 @@ export async function recordLiabilityPayment(data: RecordPaymentData) {
         const expenseType =
             liabilityRecord.liabilityType === 'TAX_OWED' ? 'TAX' : 'OTHER'
 
-        await db.insert(trustAccounting).values({
-            id: accountingId,
+        const [entry] = await db.insert(trustAccounting).values({
             entityId: liabilityRecord.entityId,
             accountingDate: data.paymentDate,
             entryType: 'EXPENSE',
@@ -575,15 +571,16 @@ export async function recordLiabilityPayment(data: RecordPaymentData) {
             sourceAssetType: 'LIABILITY',
             sourceAssetId: data.liabilityId,
             updatedAt: new Date().toISOString(),
-        })
+        }).returning()
+        if (!entry) throw new Error('Failed to create accounting entry')
 
-        accountingEntry = { id: accountingId }
+        accountingEntry = { id: entry.id }
     }
 
     // Return the payment with updated liability info and calculated split
     return {
         payment: {
-            id: paymentId,
+            id: payment.id,
             ...data,
             principalPortion,
             interestPortion,
@@ -605,7 +602,7 @@ export async function recordLiabilityPayment(data: RecordPaymentData) {
     }
 }
 
-export async function getLiabilityPayments(liabilityId: string) {
+export async function getLiabilityPayments(liabilityId: number) {
     return db.query.liabilityPayment.findMany({
         where: eq(liabilityPayment.liabilityId, liabilityId),
         orderBy: (p, { desc }) => [desc(p.paymentDate)],
@@ -670,7 +667,7 @@ export async function getActivityLogWithChanges(recordId: string) {
 // =============================================================================
 
 interface MarkDeceasedData {
-    beneficiaryId: string
+    beneficiaryId: number
     deceasedDate: string
 }
 
@@ -710,8 +707,8 @@ export async function markBeneficiaryDeceased(data: MarkDeceasedData) {
  * living beneficiaries based on their current share percentages.
  */
 export async function recalculateBeneficiaryShares(
-    entityId: string,
-    excludeBeneficiaryId: string,
+    entityId: number,
+    excludeBeneficiaryId: number,
 ) {
     // Get all beneficiaries for this entity
     const allBeneficiaries = await db.query.beneficiary.findMany({
@@ -744,7 +741,7 @@ export async function recalculateBeneficiaryShares(
     }
 
     // Distribute deceased's share pro-rata
-    const updates: { id: string; newShare: string }[] = []
+    const updates: { id: number; newShare: string }[] = []
 
     for (const b of living) {
         const currentShare = parseFloat(b.sharePercent || '0') || 0
@@ -793,9 +790,9 @@ export async function recalculateBeneficiaryShares(
  * converted and creates corresponding principal entries.
  */
 export async function convertIncomeToPrincipal(
-    entityId: string,
+    entityId: number,
     fiscalYear: number,
-    bankAccountId: string,
+    bankAccountId: number,
 ) {
     // 1. Find all unconverted income entries for the fiscal year
     const incomeEntries = await db.query.trustAccounting.findMany({
@@ -827,9 +824,7 @@ export async function convertIncomeToPrincipal(
     const now = new Date().toISOString()
 
     // 3. Create a principal entry for the converted income
-    const principalEntryId = generateId()
-    await db.insert(trustAccounting).values({
-        id: principalEntryId,
+    const [principalEntry] = await db.insert(trustAccounting).values({
         entityId,
         accountingDate: now,
         entryType: 'INCOME', // It's still income, but now classified as principal
@@ -841,17 +836,18 @@ export async function convertIncomeToPrincipal(
         fiscalYear,
         notes: `Converted ${incomeEntries.length} income entries totaling $${totalIncome.toFixed(2)}`,
         updatedAt: now,
-    })
+    }).returning()
+    if (!principalEntry) throw new Error('Failed to create principal entry')
 
     // 4. Mark all the original income entries as converted
-    const convertedIds: string[] = []
+    const convertedIds: number[] = []
     for (const entry of incomeEntries) {
         await db
             .update(trustAccounting)
             .set({
                 convertedToPrincipal: true,
                 conversionDate: now,
-                conversionEntryId: principalEntryId,
+                conversionEntryId: principalEntry.id,
                 updatedAt: now,
             })
             .where(eq(trustAccounting.id, entry.id))
@@ -862,7 +858,7 @@ export async function convertIncomeToPrincipal(
         success: true,
         converted: incomeEntries.length,
         totalAmount: totalIncome.toFixed(2),
-        principalEntryId,
+        principalEntryId: principalEntry.id,
         convertedIds,
     }
 }
@@ -870,7 +866,7 @@ export async function convertIncomeToPrincipal(
 /**
  * Get summary of unconverted income by fiscal year
  */
-export async function getUnconvertedIncomeSummary(entityId: string) {
+export async function getUnconvertedIncomeSummary(entityId: number) {
     const entries = await db.query.trustAccounting.findMany({
         where: (ta, { and, eq: eqOp }) =>
             and(
