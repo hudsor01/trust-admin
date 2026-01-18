@@ -337,7 +337,7 @@ export const entity = pgTable(
         foreignKey({
             columns: [table.parentEntityId],
             foreignColumns: [table.id],
-            name: 'Entity_parentEntityId_fkey',
+            name: 'entity_parent_entity_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('set null'),
@@ -398,7 +398,7 @@ export const vehicle = pgTable(
         foreignKey({
             columns: [table.entityId],
             foreignColumns: [entity.id],
-            name: 'Vehicle_entityId_fkey',
+            name: 'vehicle_entity_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('restrict'),
@@ -467,7 +467,7 @@ export const homestead = pgTable(
         foreignKey({
             columns: [table.entityId],
             foreignColumns: [entity.id],
-            name: 'Homestead_entityId_fkey',
+            name: 'homestead_entity_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('restrict'),
@@ -549,7 +549,7 @@ export const rentalProperty = pgTable(
         foreignKey({
             columns: [table.entityId],
             foreignColumns: [entity.id],
-            name: 'RentalProperty_entityId_fkey',
+            name: 'rental_property_entity_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('restrict'),
@@ -602,7 +602,7 @@ export const bankAccount = pgTable(
         foreignKey({
             columns: [table.entityId],
             foreignColumns: [entity.id],
-            name: 'BankAccount_entityId_fkey',
+            name: 'bank_account_entity_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('restrict'),
@@ -655,7 +655,7 @@ export const investmentAccount = pgTable(
         foreignKey({
             columns: [table.entityId],
             foreignColumns: [entity.id],
-            name: 'InvestmentAccount_entityId_fkey',
+            name: 'investment_account_entity_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('restrict'),
@@ -708,7 +708,7 @@ export const insurancePolicy = pgTable(
         foreignKey({
             columns: [table.entityId],
             foreignColumns: [entity.id],
-            name: 'InsurancePolicy_entityId_fkey',
+            name: 'insurance_policy_entity_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('restrict'),
@@ -792,14 +792,14 @@ export const beneficiary = pgTable(
         foreignKey({
             columns: [table.entityId],
             foreignColumns: [entity.id],
-            name: 'Beneficiary_entityId_fkey',
+            name: 'beneficiary_entity_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('set null'),
         foreignKey({
             columns: [table.parentId],
             foreignColumns: [table.id],
-            name: 'Beneficiary_parentId_fkey',
+            name: 'beneficiary_parent_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('set null'),
@@ -860,14 +860,14 @@ export const distribution = pgTable(
         foreignKey({
             columns: [table.beneficiaryId],
             foreignColumns: [beneficiary.id],
-            name: 'Distribution_beneficiaryId_fkey',
+            name: 'distribution_beneficiary_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('restrict'),
         foreignKey({
             columns: [table.entityId],
             foreignColumns: [entity.id],
-            name: 'Distribution_entityId_fkey',
+            name: 'distribution_entity_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('set null'),
@@ -920,49 +920,49 @@ export const valuation = pgTable(
         foreignKey({
             columns: [table.vehicleId],
             foreignColumns: [vehicle.id],
-            name: 'Valuation_vehicleId_fkey',
+            name: 'valuation_vehicle_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('set null'),
         foreignKey({
             columns: [table.homesteadId],
             foreignColumns: [homestead.id],
-            name: 'Valuation_homesteadId_fkey',
+            name: 'valuation_homestead_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('set null'),
         foreignKey({
             columns: [table.rentalPropertyId],
             foreignColumns: [rentalProperty.id],
-            name: 'Valuation_rentalPropertyId_fkey',
+            name: 'valuation_rental_property_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('set null'),
         foreignKey({
             columns: [table.bankAccountId],
             foreignColumns: [bankAccount.id],
-            name: 'Valuation_bankAccountId_fkey',
+            name: 'valuation_bank_account_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('set null'),
         foreignKey({
             columns: [table.investmentAccountId],
             foreignColumns: [investmentAccount.id],
-            name: 'Valuation_investmentAccountId_fkey',
+            name: 'valuation_investment_account_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('set null'),
         foreignKey({
             columns: [table.personalPropertyId],
             foreignColumns: [personalProperty.id],
-            name: 'Valuation_personalPropertyId_fkey',
+            name: 'valuation_personal_property_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('set null'),
         foreignKey({
             columns: [table.artworkId],
             foreignColumns: [artwork.id],
-            name: 'Valuation_artworkId_fkey',
+            name: 'valuation_artwork_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('set null'),
@@ -1029,7 +1029,7 @@ export const personalProperty = pgTable(
         foreignKey({
             columns: [table.entityId],
             foreignColumns: [entity.id],
-            name: 'PersonalProperty_entityId_fkey',
+            name: 'personal_property_entity_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('restrict'),
@@ -1091,56 +1091,56 @@ export const document = pgTable(
         foreignKey({
             columns: [table.entityId],
             foreignColumns: [entity.id],
-            name: 'Document_entityId_fkey',
+            name: 'document_entity_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('set null'),
         foreignKey({
             columns: [table.vehicleId],
             foreignColumns: [vehicle.id],
-            name: 'Document_vehicleId_fkey',
+            name: 'document_vehicle_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('set null'),
         foreignKey({
             columns: [table.homesteadId],
             foreignColumns: [homestead.id],
-            name: 'Document_homesteadId_fkey',
+            name: 'document_homestead_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('set null'),
         foreignKey({
             columns: [table.rentalPropertyId],
             foreignColumns: [rentalProperty.id],
-            name: 'Document_rentalPropertyId_fkey',
+            name: 'document_rental_property_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('set null'),
         foreignKey({
             columns: [table.bankAccountId],
             foreignColumns: [bankAccount.id],
-            name: 'Document_bankAccountId_fkey',
+            name: 'document_bank_account_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('set null'),
         foreignKey({
             columns: [table.investmentAccountId],
             foreignColumns: [investmentAccount.id],
-            name: 'Document_investmentAccountId_fkey',
+            name: 'document_investment_account_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('set null'),
         foreignKey({
             columns: [table.insurancePolicyId],
             foreignColumns: [insurancePolicy.id],
-            name: 'Document_insurancePolicyId_fkey',
+            name: 'document_insurance_policy_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('set null'),
         foreignKey({
             columns: [table.personalPropertyId],
             foreignColumns: [personalProperty.id],
-            name: 'Document_personalPropertyId_fkey',
+            name: 'document_personal_property_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('set null'),
@@ -1214,42 +1214,42 @@ export const transaction = pgTable(
         foreignKey({
             columns: [table.vehicleId],
             foreignColumns: [vehicle.id],
-            name: 'Transaction_vehicleId_fkey',
+            name: 'transaction_vehicle_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('set null'),
         foreignKey({
             columns: [table.homesteadId],
             foreignColumns: [homestead.id],
-            name: 'Transaction_homesteadId_fkey',
+            name: 'transaction_homestead_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('set null'),
         foreignKey({
             columns: [table.rentalPropertyId],
             foreignColumns: [rentalProperty.id],
-            name: 'Transaction_rentalPropertyId_fkey',
+            name: 'transaction_rental_property_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('set null'),
         foreignKey({
             columns: [table.bankAccountId],
             foreignColumns: [bankAccount.id],
-            name: 'Transaction_bankAccountId_fkey',
+            name: 'transaction_bank_account_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('set null'),
         foreignKey({
             columns: [table.investmentAccountId],
             foreignColumns: [investmentAccount.id],
-            name: 'Transaction_investmentAccountId_fkey',
+            name: 'transaction_investment_account_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('set null'),
         foreignKey({
             columns: [table.insurancePolicyId],
             foreignColumns: [insurancePolicy.id],
-            name: 'Transaction_insurancePolicyId_fkey',
+            name: 'transaction_insurance_policy_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('set null'),
@@ -1321,14 +1321,14 @@ export const contactAssociation = pgTable(
         foreignKey({
             columns: [table.contactId],
             foreignColumns: [contact.id],
-            name: 'ContactAssociation_contactId_fkey',
+            name: 'contact_association_contact_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('restrict'),
         foreignKey({
             columns: [table.entityId],
             foreignColumns: [entity.id],
-            name: 'ContactAssociation_entityId_fkey',
+            name: 'contact_association_entity_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('set null'),
@@ -1417,7 +1417,7 @@ export const artwork = pgTable(
         foreignKey({
             columns: [table.entityId],
             foreignColumns: [entity.id],
-            name: 'Artwork_entityId_fkey',
+            name: 'artwork_entity_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('restrict'),
@@ -1471,21 +1471,21 @@ export const trustee = pgTable(
         foreignKey({
             columns: [table.entityId],
             foreignColumns: [entity.id],
-            name: 'Trustee_entityId_fkey',
+            name: 'trustee_entity_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('restrict'),
         foreignKey({
             columns: [table.contactId],
             foreignColumns: [contact.id],
-            name: 'Trustee_contactId_fkey',
+            name: 'trustee_contact_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('set null'),
         foreignKey({
             columns: [table.coTrusteeId],
             foreignColumns: [table.id],
-            name: 'Trustee_coTrusteeId_fkey',
+            name: 'trustee_co_trustee_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('set null'),
@@ -1528,14 +1528,14 @@ export const specificBequest = pgTable(
         foreignKey({
             columns: [table.entityId],
             foreignColumns: [entity.id],
-            name: 'SpecificBequest_entityId_fkey',
+            name: 'specific_bequest_entity_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('restrict'),
         foreignKey({
             columns: [table.beneficiaryId],
             foreignColumns: [beneficiary.id],
-            name: 'SpecificBequest_beneficiaryId_fkey',
+            name: 'specific_bequest_beneficiary_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('set null'),
@@ -1610,7 +1610,7 @@ export const trustAccounting = pgTable(
         foreignKey({
             columns: [table.entityId],
             foreignColumns: [entity.id],
-            name: 'TrustAccounting_entityId_fkey',
+            name: 'trust_accounting_entity_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('restrict'),
@@ -1618,7 +1618,7 @@ export const trustAccounting = pgTable(
         foreignKey({
             columns: [table.bankAccountId],
             foreignColumns: [bankAccount.id],
-            name: 'TrustAccounting_bankAccountId_fkey',
+            name: 'trust_accounting_bank_account_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('restrict'),
@@ -1667,21 +1667,21 @@ export const withdrawalRecord = pgTable(
         foreignKey({
             columns: [table.beneficiaryId],
             foreignColumns: [beneficiary.id],
-            name: 'WithdrawalRecord_beneficiaryId_fkey',
+            name: 'withdrawal_record_beneficiary_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('restrict'),
         foreignKey({
             columns: [table.entityId],
             foreignColumns: [entity.id],
-            name: 'WithdrawalRecord_entityId_fkey',
+            name: 'withdrawal_record_entity_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('restrict'),
         foreignKey({
             columns: [table.distributionId],
             foreignColumns: [distribution.id],
-            name: 'WithdrawalRecord_distributionId_fkey',
+            name: 'withdrawal_record_distribution_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('set null'),
@@ -1757,28 +1757,28 @@ export const liability = pgTable(
         foreignKey({
             columns: [table.entityId],
             foreignColumns: [entity.id],
-            name: 'Liability_entityId_fkey',
+            name: 'liability_entity_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('restrict'),
         foreignKey({
             columns: [table.rentalPropertyId],
             foreignColumns: [rentalProperty.id],
-            name: 'Liability_rentalPropertyId_fkey',
+            name: 'liability_rental_property_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('set null'),
         foreignKey({
             columns: [table.homesteadId],
             foreignColumns: [homestead.id],
-            name: 'Liability_homesteadId_fkey',
+            name: 'liability_homestead_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('set null'),
         foreignKey({
             columns: [table.vehicleId],
             foreignColumns: [vehicle.id],
-            name: 'Liability_vehicleId_fkey',
+            name: 'liability_vehicle_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('set null'),
@@ -1824,7 +1824,7 @@ export const liabilityPayment = pgTable(
         foreignKey({
             columns: [table.liabilityId],
             foreignColumns: [liability.id],
-            name: 'LiabilityPayment_liabilityId_fkey',
+            name: 'liability_payment_liability_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('restrict'),
@@ -1888,21 +1888,21 @@ export const hemsRequest = pgTable(
         foreignKey({
             columns: [table.beneficiaryId],
             foreignColumns: [beneficiary.id],
-            name: 'HemsRequest_beneficiaryId_fkey',
+            name: 'hems_request_beneficiary_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('restrict'),
         foreignKey({
             columns: [table.entityId],
             foreignColumns: [entity.id],
-            name: 'HemsRequest_entityId_fkey',
+            name: 'hems_request_entity_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('restrict'),
         foreignKey({
             columns: [table.distributionId],
             foreignColumns: [distribution.id],
-            name: 'HemsRequest_distributionId_fkey',
+            name: 'hems_request_distribution_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('set null'),
@@ -1952,14 +1952,14 @@ export const trusteeFeeSchedule = pgTable(
         foreignKey({
             columns: [table.entityId],
             foreignColumns: [entity.id],
-            name: 'TrusteeFeeSchedule_entityId_fkey',
+            name: 'trustee_fee_schedule_entity_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('restrict'),
         foreignKey({
             columns: [table.trusteeId],
             foreignColumns: [trustee.id],
-            name: 'TrusteeFeeSchedule_trusteeId_fkey',
+            name: 'trustee_fee_schedule_trustee_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('restrict'),
@@ -2026,21 +2026,21 @@ export const trusteeFeeEntry = pgTable(
         foreignKey({
             columns: [table.entityId],
             foreignColumns: [entity.id],
-            name: 'TrusteeFeeEntry_entityId_fkey',
+            name: 'trustee_fee_entry_entity_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('restrict'),
         foreignKey({
             columns: [table.trusteeId],
             foreignColumns: [trustee.id],
-            name: 'TrusteeFeeEntry_trusteeId_fkey',
+            name: 'trustee_fee_entry_trustee_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('restrict'),
         foreignKey({
             columns: [table.scheduleId],
             foreignColumns: [trusteeFeeSchedule.id],
-            name: 'TrusteeFeeEntry_scheduleId_fkey',
+            name: 'trustee_fee_entry_schedule_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('set null'),
@@ -2078,7 +2078,7 @@ export const user = pgTable(
         foreignKey({
             columns: [table.beneficiaryId],
             foreignColumns: [beneficiary.id],
-            name: 'user_beneficiaryId_fkey',
+            name: 'user_beneficiary_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('set null'),
@@ -2113,7 +2113,7 @@ export const session = pgTable(
         foreignKey({
             columns: [table.userId],
             foreignColumns: [user.id],
-            name: 'session_userId_fkey',
+            name: 'session_user_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('cascade'),
@@ -2154,7 +2154,7 @@ export const account = pgTable(
         foreignKey({
             columns: [table.userId],
             foreignColumns: [user.id],
-            name: 'account_userId_fkey',
+            name: 'account_user_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('cascade'),
