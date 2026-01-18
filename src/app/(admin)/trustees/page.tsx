@@ -174,7 +174,10 @@ export default function TrusteesPage() {
                             ))}
                         </SelectContent>
                     </Select>
-                    <Button onClick={() => trusteeForm.open()}>
+                    <Button
+                        onClick={() => trusteeForm.open()}
+                        disabled={!selectedEntity}
+                    >
                         <Plus className="h-4 w-4 mr-2" />
                         Add Trustee
                     </Button>

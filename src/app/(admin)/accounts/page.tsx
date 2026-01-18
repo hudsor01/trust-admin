@@ -599,7 +599,10 @@ export default function AccountsPage() {
 
                     <TabsContent value="bank" className="space-y-4">
                         <div className="flex justify-end">
-                            <Button onClick={() => bankForm.open()}>
+                            <Button
+                                onClick={() => bankForm.open()}
+                                disabled={!selectedEntity}
+                            >
                                 <Plus className="h-4 w-4 mr-2" />
                                 Add Bank Account
                             </Button>
@@ -615,7 +618,10 @@ export default function AccountsPage() {
 
                     <TabsContent value="investment" className="space-y-4">
                         <div className="flex justify-end">
-                            <Button onClick={() => investmentForm.open()}>
+                            <Button
+                                onClick={() => investmentForm.open()}
+                                disabled={!selectedEntity}
+                            >
                                 <Plus className="h-4 w-4 mr-2" />
                                 Add Investment Account
                             </Button>

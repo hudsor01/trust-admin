@@ -771,6 +771,7 @@ export default function PropertiesPage() {
                                     </p>
                                     <Button
                                         onClick={() => homesteadForm.open()}
+                                        disabled={!selectedEntity}
                                     >
                                         <Plus className="mr-2 h-4 w-4" />
                                         Add Homestead
@@ -782,7 +783,10 @@ export default function PropertiesPage() {
 
                     <TabsContent value="rentals" className="mt-6">
                         <div className="mb-4 flex justify-end">
-                            <Button onClick={() => rentalForm.open()}>
+                            <Button
+                                onClick={() => rentalForm.open()}
+                                disabled={!selectedEntity}
+                            >
                                 <Plus className="mr-2 h-4 w-4" />
                                 Add Rental Property
                             </Button>

@@ -632,7 +632,10 @@ export default function DistributionsPage() {
                                     distributions
                                 </CardDescription>
                             </div>
-                            <Button onClick={() => hemsForm.open()}>
+                            <Button
+                                onClick={() => hemsForm.open()}
+                                disabled={!selectedEntity}
+                            >
                                 <Plus className="mr-2 h-4 w-4" />
                                 New HEMS Request
                             </Button>

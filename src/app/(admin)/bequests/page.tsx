@@ -203,7 +203,10 @@ export default function BequestsPage() {
                             ))}
                         </SelectContent>
                     </Select>
-                    <Button onClick={() => bequestForm.open()}>
+                    <Button
+                        onClick={() => bequestForm.open()}
+                        disabled={!selectedEntity}
+                    >
                         <Plus className="h-4 w-4 mr-2" />
                         Add Bequest
                     </Button>

@@ -936,7 +936,10 @@ export default function LiabilitiesPage() {
                             )}
                         </Button>
                         {!bulkMode && (
-                            <Button onClick={() => liabilityForm.open()}>
+                            <Button
+                                onClick={() => liabilityForm.open()}
+                                disabled={!selectedEntity}
+                            >
                                 <Plus className="h-4 w-4 mr-2" />
                                 Add Liability
                             </Button>
