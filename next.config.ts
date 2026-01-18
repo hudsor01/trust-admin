@@ -45,30 +45,17 @@ const nextConfig: NextConfig = {
     // See: https://github.com/radix-ui/primitives/issues/3675
     reactStrictMode: false,
 
-    // Enable "use cache" directive support (stable in Next.js 16)
-    cacheComponents: true,
-
-    // Custom cacheLife profiles for trust administration data tiers
-    cacheLife: {
-        // Tier 1: Financial data - fresh is critical (balances, liabilities)
-        financial: {
-            stale: 30, // 30 seconds
-            revalidate: 60, // 1 minute
-            expire: 300, // 5 minutes
-        },
-        // Tier 3: Reference data - changes infrequently (beneficiaries, trustees)
-        reference: {
-            stale: 300, // 5 minutes
-            revalidate: 600, // 10 minutes
-            expire: 3600, // 1 hour
-        },
-        // Tier 4: Configuration - essentially static (entity settings)
-        config: {
-            stale: 600, // 10 minutes
-            revalidate: 3600, // 1 hour
-            expire: 86400, // 1 day
-        },
-    },
+    // NOTE: cacheComponents is NOT enabled because this app uses tRPC with client-side
+    // data fetching. Enabling cacheComponents requires either:
+    // 1. Adding `export const dynamic = 'force-dynamic'` to all pages, or
+    // 2. Wrapping data-fetching components in Suspense boundaries
+    // The current architecture benefits more from TanStack Query's client-side caching
+    // (tuned in trpc-provider.tsx) than server-side "use cache" directives.
+    //
+    // Custom cacheLife profiles for future use if server-side caching is adopted:
+    // financial: { stale: 30, revalidate: 60, expire: 300 }      // 30s/1m/5m
+    // reference: { stale: 300, revalidate: 600, expire: 3600 }   // 5m/10m/1h
+    // config: { stale: 600, revalidate: 3600, expire: 86400 }    // 10m/1h/1d
 
     // Security headers for all routes
     async headers() {

@@ -26,7 +26,11 @@ export function TRPCProvider({ children }: { children: React.ReactNode }) {
             new QueryClient({
                 defaultOptions: {
                     queries: {
-                        staleTime: 5 * 1000, // 5 seconds
+                        // 30 seconds - balances financial freshness with reduced refetches
+                        staleTime: 1000 * 30,
+                        // 10 minutes - keep cached data longer for navigation performance
+                        gcTime: 1000 * 60 * 10,
+                        // Already disabled - prevent refetches on window focus
                         refetchOnWindowFocus: false,
                     },
                 },
