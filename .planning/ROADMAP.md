@@ -983,6 +983,6 @@ Plans:
 | 40. Quick Fixes | v7.0 | 1/1 | ✅ Complete | 2026-01-18 |
 | 41. Hook Extraction | v7.0 | 3/3 | ✅ Complete | 2026-01-18 |
 | 42. tRPC Router Factory | v7.0 | 1/1 | ✅ Complete | 2026-01-18 |
-| 43. Table Consolidation | v7.0 | 0/1 | Not started | - |
-| 44. Query Optimization | v7.0 | 0/1 | Not started | - |
+| 43. Table Consolidation | v7.0 | 1/1 | ✅ Complete | 2026-01-18 |
+| 44. Query Optimization | v7.0 | 1/1 | ✅ Complete | 2026-01-18 |
 | 45. Admin Page Patterns | v7.0 | 0/1 | Not started | - |

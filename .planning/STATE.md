@@ -10,12 +10,12 @@ See: .planning/PROJECT.md (updated 2026-01-09)
 
 ## Current Position
 
-Phase: 42 of 45 (tRPC Router Factory)
+Phase: 44 of 45 (Query Optimization)
 Plan: 1 of 1 - COMPLETE
-Status: Phase complete, ready for Phase 43
-Last activity: 2026-01-18 - Completed 42-01-PLAN.md
+Status: Phase complete, ready for Phase 45
+Last activity: 2026-01-18 - Completed 44-01-PLAN.md
 
-Progress: ██████████░░░░░░░░░░ 5/6 v7.0 plans
+Progress: ██████████████░░░░░░ 7/8 v7.0 plans
 
 ## Performance Metrics
 
@@ -26,6 +26,28 @@ Progress: ██████████░░░░░░░░░░ 5/6 v7.0 
 - v6.0 plans completed: 4
 
 ## Accumulated Context
+
+### v7.0 Phase 44 COMPLETE (Query Optimization):
+
+**44-01 Completed (Query Optimization):**
+- Fixed in-memory filtering in distribution router - queries now filter at database level
+- Added `getDistributions(entityId?)` with optional entityId parameter
+- Added `getDistributionsByBeneficiary(beneficiaryId)` for beneficiary portal
+- Documented hemsRequest entityId filter tradeoff (intentional in-memory for small dataset)
+- Added custom getById functions for investmentAccount, personalProperty, artwork
+- Updated getHomesteadById to include transactions relation
+- Commits: b48ef00, 0cfe03d, 14def18
+- Pattern: Database-level filtering preferred; in-memory acceptable for small datasets with rare query paths
+
+### v7.0 Phase 43 COMPLETE (Table Consolidation):
+
+**43-01 Completed (Dead Code Removal):**
+- Deleted `src/components/tanstack-table.tsx` (255 lines, 0 imports)
+- Deleted `src/components/ui/data-table.tsx` (331 lines, 0 imports)
+- Confirmed `data-table.tsx` is already TanStack-based (no migration needed)
+- Commits: 2853e79, 3e0120e
+- Impact: ~586 lines of dead code removed
+- Pattern: Single table implementation = `data-table.tsx` + `virtualized-table.tsx`
 
 ### v7.0 Phase 42 COMPLETE (tRPC Router Factory):
 
@@ -395,7 +417,7 @@ Progress: ██████████░░░░░░░░░░ 5/6 v7.0 
 ## Session Continuity
 
 Last session: 2026-01-18
-Stopped at: Completed Phase 42 (1 plan), ready for Phase 43
+Stopped at: Completed Phase 44 (1 plan), ready for Phase 45
 Resume file: None
 
 ## Milestone History
@@ -408,4 +430,4 @@ Resume file: None
 | v4.0 Smart Liability Management | 25-29 | 7 | ✅ Complete | 2026-01-17 |
 | v5.0 Developer Experience & Observability | 30-35 | 6 | ✅ Complete | 2026-01-16 |
 | v6.0 React 19.2 Platform Optimizations | 36-39 | 4 | ✅ Complete | 2026-01-18 |
-| v7.0 Codebase Consolidation | 40-45 | 6 | 🔄 In Progress (5/6) | - |
+| v7.0 Codebase Consolidation | 40-45 | 7 | 🔄 In Progress (6/7) | - |
