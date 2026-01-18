@@ -1138,6 +1138,21 @@ export const document = pgTable(
         })
             .onUpdate('cascade')
             .onDelete('set null'),
+        // Polymorphic constraint: exactly one owner FK must be set
+        check(
+            'document_single_owner_check',
+            sql`(
+                (CASE WHEN ${table.entityId} IS NOT NULL THEN 1 ELSE 0 END +
+                 CASE WHEN ${table.vehicleId} IS NOT NULL THEN 1 ELSE 0 END +
+                 CASE WHEN ${table.homesteadId} IS NOT NULL THEN 1 ELSE 0 END +
+                 CASE WHEN ${table.rentalPropertyId} IS NOT NULL THEN 1 ELSE 0 END +
+                 CASE WHEN ${table.bankAccountId} IS NOT NULL THEN 1 ELSE 0 END +
+                 CASE WHEN ${table.investmentAccountId} IS NOT NULL THEN 1 ELSE 0 END +
+                 CASE WHEN ${table.insurancePolicyId} IS NOT NULL THEN 1 ELSE 0 END +
+                 CASE WHEN ${table.personalPropertyId} IS NOT NULL THEN 1 ELSE 0 END
+                ) = 1
+            )`,
+        ),
     ],
 )
 
@@ -1232,6 +1247,19 @@ export const transaction = pgTable(
         })
             .onUpdate('cascade')
             .onDelete('set null'),
+        // Polymorphic constraint: exactly one asset FK must be set
+        check(
+            'transaction_single_asset_check',
+            sql`(
+                (CASE WHEN ${table.vehicleId} IS NOT NULL THEN 1 ELSE 0 END +
+                 CASE WHEN ${table.homesteadId} IS NOT NULL THEN 1 ELSE 0 END +
+                 CASE WHEN ${table.rentalPropertyId} IS NOT NULL THEN 1 ELSE 0 END +
+                 CASE WHEN ${table.bankAccountId} IS NOT NULL THEN 1 ELSE 0 END +
+                 CASE WHEN ${table.investmentAccountId} IS NOT NULL THEN 1 ELSE 0 END +
+                 CASE WHEN ${table.insurancePolicyId} IS NOT NULL THEN 1 ELSE 0 END
+                ) = 1
+            )`,
+        ),
     ],
 )
 
