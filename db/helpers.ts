@@ -3,8 +3,8 @@
  *
  * Based on best practices from https://orm.drizzle.team/docs/column-types/pg
  */
-import { sql } from "drizzle-orm"
-import { text, timestamp, uuid } from "drizzle-orm/pg-core"
+import { sql } from 'drizzle-orm'
+import { text, timestamp, uuid } from 'drizzle-orm/pg-core'
 
 /**
  * Generate a UUID v4 using crypto.randomUUID()
@@ -51,12 +51,12 @@ export const uuidId = () => uuid().primaryKey().defaultRandom()
  * });
  */
 export const timestamps = () => ({
-  createdAt: timestamp({ precision: 3, mode: "string" as const })
-    .default(sql`CURRENT_TIMESTAMP`)
-    .notNull(),
-  updatedAt: timestamp({ precision: 3, mode: "string" as const })
-    .notNull()
-    .$onUpdateFn(() => new Date().toISOString()),
+    createdAt: timestamp({ precision: 3, mode: 'string' as const })
+        .default(sql`CURRENT_TIMESTAMP`)
+        .notNull(),
+    updatedAt: timestamp({ precision: 3, mode: 'string' as const })
+        .notNull()
+        .$onUpdateFn(() => new Date().toISOString()),
 })
 
 /**
@@ -67,4 +67,4 @@ export const timestamps = () => ({
  * eventDate: timestampWithTz()
  */
 export const timestampWithTz = () =>
-  timestamp({ precision: 3, mode: "string" as const, withTimezone: true })
+    timestamp({ precision: 3, mode: 'string' as const, withTimezone: true })

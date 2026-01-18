@@ -178,6 +178,55 @@ export const transferStatus = pgEnum('TransferStatus', [
     'COMPLETE',
 ])
 
+// Trust accounting enums
+export const accountingEntryType = pgEnum('AccountingEntryType', [
+    'INCOME',
+    'EXPENSE',
+])
+export const incomeType = pgEnum('IncomeType', [
+    'DIVIDEND',
+    'INTEREST',
+    'RENT',
+    'ROYALTY',
+    'CAPITAL_GAIN',
+    'SALE_PROCEEDS',
+    'DISTRIBUTION',
+    'INCOME_TO_PRINCIPAL_CONVERSION',
+    'OTHER',
+])
+export const expenseType = pgEnum('ExpenseType', [
+    'TAX',
+    'INSURANCE',
+    'MAINTENANCE',
+    'REPAIR',
+    'PROFESSIONAL_FEE',
+    'TRUSTEE_FEE',
+    'FILING_FEE',
+    'UTILITY',
+    'LEGAL',
+    'OTHER',
+])
+
+// Personal property enum
+export const personalPropertyCategory = pgEnum('PersonalPropertyCategory', [
+    'JEWELRY',
+    'ART',
+    'COLLECTIBLES',
+    'ELECTRONICS',
+    'FURNITURE',
+    'OTHER',
+])
+
+// Document enum
+export const documentType = pgEnum('DocumentType', [
+    'DEED',
+    'TITLE',
+    'STATEMENT',
+    'CONTRACT',
+    'LEGAL',
+    'OTHER',
+])
+
 // Auth and logging enums
 export const logAction = pgEnum('LogAction', [
     'INSERT',
@@ -927,7 +976,7 @@ export const personalProperty = pgTable(
         entityId: t.text().notNull(),
         name: t.text().notNull(),
         description: t.text(),
-        category: t.text().notNull(), // Converted from enum - 'JEWELRY', 'ART', 'COLLECTIBLES', etc.
+        category: personalPropertyCategory().notNull(),
         location: t.text(),
         acquisitionDate: t.timestamp({
             precision: 3,
@@ -978,7 +1027,7 @@ export const document = pgTable(
     (t) => ({
         id: t.text().primaryKey().notNull(),
         name: t.text().notNull(),
-        documentType: t.text().notNull(), // Converted from enum - 'DEED', 'TITLE', 'STATEMENT', etc.
+        documentType: documentType().notNull(),
         filePath: t.text().notNull(),
         entityId: t.text(),
         vehicleId: t.text(),
@@ -1459,9 +1508,9 @@ export const trustAccounting = pgTable(
         accountingDate: t
             .timestamp({ precision: 3, mode: 'string', withTimezone: true })
             .notNull(),
-        entryType: t.text().notNull(), // 'INCOME' or 'EXPENSE'
-        incomeType: t.text(), // Converted from enum - 'DIVIDEND', 'INTEREST', 'RENT', etc.
-        expenseType: t.text(), // Converted from enum - 'TAX', 'INSURANCE', 'MAINTENANCE', etc.
+        entryType: accountingEntryType().notNull(),
+        incomeType: incomeType(),
+        expenseType: expenseType(),
         amount: t.numeric({ precision: 14, scale: 2 }).notNull(),
         description: t.text().notNull(),
         sourceAssetType: t.text(), // 'vehicle', 'rentalProperty', 'bankAccount', etc.
@@ -2191,6 +2240,42 @@ export type HemsRequestStatusEnum =
     | 'DENIED'
     | 'DISTRIBUTED'
     | 'CANCELLED'
+export type AccountingEntryTypeEnum = 'INCOME' | 'EXPENSE'
+export type IncomeTypeEnum =
+    | 'DIVIDEND'
+    | 'INTEREST'
+    | 'RENT'
+    | 'ROYALTY'
+    | 'CAPITAL_GAIN'
+    | 'SALE_PROCEEDS'
+    | 'DISTRIBUTION'
+    | 'INCOME_TO_PRINCIPAL_CONVERSION'
+    | 'OTHER'
+export type ExpenseTypeEnum =
+    | 'TAX'
+    | 'INSURANCE'
+    | 'MAINTENANCE'
+    | 'REPAIR'
+    | 'PROFESSIONAL_FEE'
+    | 'TRUSTEE_FEE'
+    | 'FILING_FEE'
+    | 'UTILITY'
+    | 'LEGAL'
+    | 'OTHER'
+export type PersonalPropertyCategoryEnum =
+    | 'JEWELRY'
+    | 'ART'
+    | 'COLLECTIBLES'
+    | 'ELECTRONICS'
+    | 'FURNITURE'
+    | 'OTHER'
+export type DocumentTypeEnum =
+    | 'DEED'
+    | 'TITLE'
+    | 'STATEMENT'
+    | 'CONTRACT'
+    | 'LEGAL'
+    | 'OTHER'
 
 // Commonly used combined types
 export type TrustAccountingEntryType = 'INCOME' | 'EXPENSE'
@@ -2314,5 +2399,92 @@ export function isHemsRequestStatus(
     return (
         typeof value === 'string' &&
         valid.includes(value as HemsRequestStatusEnum)
+    )
+}
+
+/**
+ * Type guard for AccountingEntryType enum
+ */
+export function isAccountingEntryType(
+    value: unknown,
+): value is AccountingEntryTypeEnum {
+    const valid: AccountingEntryTypeEnum[] = ['INCOME', 'EXPENSE']
+    return (
+        typeof value === 'string' &&
+        valid.includes(value as AccountingEntryTypeEnum)
+    )
+}
+
+/**
+ * Type guard for IncomeType enum
+ */
+export function isIncomeType(value: unknown): value is IncomeTypeEnum {
+    const valid: IncomeTypeEnum[] = [
+        'DIVIDEND',
+        'INTEREST',
+        'RENT',
+        'ROYALTY',
+        'CAPITAL_GAIN',
+        'SALE_PROCEEDS',
+        'DISTRIBUTION',
+        'INCOME_TO_PRINCIPAL_CONVERSION',
+        'OTHER',
+    ]
+    return typeof value === 'string' && valid.includes(value as IncomeTypeEnum)
+}
+
+/**
+ * Type guard for ExpenseType enum
+ */
+export function isExpenseType(value: unknown): value is ExpenseTypeEnum {
+    const valid: ExpenseTypeEnum[] = [
+        'TAX',
+        'INSURANCE',
+        'MAINTENANCE',
+        'REPAIR',
+        'PROFESSIONAL_FEE',
+        'TRUSTEE_FEE',
+        'FILING_FEE',
+        'UTILITY',
+        'LEGAL',
+        'OTHER',
+    ]
+    return typeof value === 'string' && valid.includes(value as ExpenseTypeEnum)
+}
+
+/**
+ * Type guard for PersonalPropertyCategory enum
+ */
+export function isPersonalPropertyCategory(
+    value: unknown,
+): value is PersonalPropertyCategoryEnum {
+    const valid: PersonalPropertyCategoryEnum[] = [
+        'JEWELRY',
+        'ART',
+        'COLLECTIBLES',
+        'ELECTRONICS',
+        'FURNITURE',
+        'OTHER',
+    ]
+    return (
+        typeof value === 'string' &&
+        valid.includes(value as PersonalPropertyCategoryEnum)
+    )
+}
+
+/**
+ * Type guard for DocumentType enum
+ */
+export function isDocumentType(value: unknown): value is DocumentTypeEnum {
+    const valid: DocumentTypeEnum[] = [
+        'DEED',
+        'TITLE',
+        'STATEMENT',
+        'CONTRACT',
+        'LEGAL',
+        'OTHER',
+    ]
+    return (
+        typeof value === 'string' && valid.includes(value as DocumentTypeEnum)
     )
 }

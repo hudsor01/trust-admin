@@ -16,6 +16,7 @@ Trust Admin application development roadmap. v1.0 focused on code quality and re
 - ✅ [v4.0 Smart Liability Management](milestones/v4.0-ROADMAP.md) - Phases 25-29 (shipped 2026-01-17)
 - ✅ [v5.0 Developer Experience & Observability](milestones/v5.0-ROADMAP.md) - Phases 30-35 (shipped 2026-01-16)
 - 🔜 **v6.0 React 19.2 Platform Optimizations** - Phases 36-40 (pending)
+- 📋 **v7.0 Codebase Consolidation** - Phases 41-46 (planned)
 
 ## Phases
 
@@ -431,7 +432,7 @@ Plans:
 **Impact**: Non-breaking for application code (dates stored as strings)
 
 Plans:
-- [ ] 18-01: Timestamp to timestamptz migration
+- [x] 18-01: Timestamp to timestamptz migration
 
 ---
 
@@ -1197,6 +1198,158 @@ Plans:
 
 ---
 
+### 📋 v7.0 Codebase Consolidation (Planned)
+
+**Milestone Goal:** Eliminate ~1,800+ lines of duplicate code identified in codebase audit. Consolidate patterns, extract reusable hooks/factories, and improve maintainability.
+
+**Why This Matters:**
+- 13 tRPC routers with identical CRUD boilerplate (~400 lines)
+- 10+ admin pages repeating mutation setup patterns (~1,000+ lines)
+- Two parallel table implementations with overlapping functionality
+- 6 editable cell components with duplicated state logic
+- In-memory filtering causing performance issues
+
+**Phases:**
+
+---
+
+#### Phase 41: Quick Fixes
+**Goal**: Remove duplicate type definition, replace hardcoded enums with constants, add `getAllArray()` helper to CRUD factory
+
+**Depends on**: Can start anytime (no dependencies)
+
+**Research**: Unlikely (internal patterns, trivial changes)
+
+**Plans**: 1 plan (3 tasks)
+
+**Tasks:**
+1. Remove duplicate `AllocationClass` type from `src/lib/classification-rules.ts` (import from `type-utils.ts`)
+2. Replace hardcoded enum values in `src/server/trpc/routers/liability.ts` with `PAYMENT_METHOD_VALUES` and `ALLOCATION_CLASS_VALUES`
+3. Add `getAllArray()` method to `db/crud-factory.ts` that always returns `Select[]` (eliminates 20+ type guards)
+
+**Files:**
+- `src/lib/classification-rules.ts`
+- `src/server/trpc/routers/liability.ts`
+- `db/crud-factory.ts`
+
+Plans:
+- [ ] 41-01: Quick fixes for type and enum duplication
+
+---
+
+#### Phase 42: Hook Extraction
+**Goal**: Extract reusable hooks for editable cells and CRUD mutations, create shared login page component
+
+**Depends on**: Phase 41
+
+**Research**: Unlikely (established React patterns)
+
+**Plans**: 1 plan (3 tasks)
+
+**Tasks:**
+1. Create `useEditableCell(value, onSave)` hook in `src/hooks/use-editable-cell.ts` - handles editing state, save logic, loading state
+2. Create `useCrudMutations(trpc.resource)` hook - returns `{create, update, delete}` with auto-invalidation
+3. Create shared `<LoginPage>` component accepting `{title, icon, redirectPath, callbackURL}` - consolidate `src/app/login/page.tsx` and `src/app/portal/login/page.tsx`
+
+**Impact:** ~400 lines consolidated
+
+Plans:
+- [ ] 42-01: Hook extraction and login page consolidation
+
+---
+
+#### Phase 43: tRPC Router Factory
+**Goal**: Create `createCrudRouter()` factory to eliminate boilerplate in 13 simple routers
+
+**Depends on**: Phase 41
+
+**Research**: Unlikely (internal tRPC patterns)
+
+**Plans**: 1 plan (2 tasks)
+
+**Tasks:**
+1. Create `createCrudRouter()` factory in `src/server/trpc/index.ts` that generates standard list/byId/create/update/delete procedures given a CRUD instance and schemas
+2. Migrate these 13 routers to use the factory:
+   - artwork, contact, vehicle, bankAccount, homestead, investmentAccount
+   - rentalProperty, personalProperty, task, trustee, trusteeFeeSchedule
+   - specificBequest, liabilityPayment
+
+**Impact:** ~400 lines eliminated
+
+**Note:** Routers with custom logic (liability, distribution, hemsRequest, beneficiary) remain explicit.
+
+Plans:
+- [ ] 43-01: tRPC router factory implementation
+
+---
+
+#### Phase 44: Table Consolidation
+**Goal**: Migrate all pages to TanStack Table, remove deprecated `data-table.tsx`
+
+**Depends on**: Phase 42
+
+**Research**: Unlikely (migration work, TanStack Table already in use)
+
+**Plans**: 1 plan (3 tasks)
+
+**Tasks:**
+1. Audit all pages using `data-table.tsx` vs `tanstack-table.tsx`
+2. Migrate remaining pages to use `tanstack-table.tsx` (VirtualizedTable for large lists)
+3. Remove `src/components/data-table.tsx` after migration complete
+
+**Impact:** ~300 lines removed, single table implementation
+
+Plans:
+- [ ] 44-01: Table implementation consolidation
+
+---
+
+#### Phase 45: Query Optimization
+**Goal**: Fix in-memory filtering, standardize `getById` relations across asset queries
+
+**Depends on**: Phase 43
+
+**Research**: Unlikely (internal query patterns)
+
+**Plans**: 1 plan (2 tasks)
+
+**Tasks:**
+1. Fix in-memory filtering:
+   - Update `getDistributions()` in `db/queries.ts` to accept optional `entityId` parameter
+   - Update `hemsRequest` router to filter `entityId` at database level
+2. Standardize `getById` relations:
+   - Ensure all 8 asset `getById` functions include consistent relations (`entity`, `valuations`, `documents`)
+   - Document pattern in code comments
+
+**Impact:** Performance improvement for large datasets
+
+Plans:
+- [ ] 45-01: Query optimization and relation standardization
+
+---
+
+#### Phase 46: Admin Page Patterns
+**Goal**: Create column definition factory and FormField wrapper to reduce page boilerplate
+
+**Depends on**: Phases 42, 44
+
+**Research**: Unlikely (UI patterns established)
+
+**Plans**: 1 plan (2 tasks)
+
+**Tasks:**
+1. Create `createColumns(config)` utility that accepts column configuration objects and returns column definitions with consistent formatting, edit cells, and action buttons
+2. Create `<FormField name label required>` wrapper component that consolidates Label + Input + error display pattern
+
+**Impact:** ~500+ lines consolidated across 10 admin pages
+
+**Note:** This phase is optional but provides significant long-term maintainability benefits.
+
+Plans:
+- [ ] 46-01: Admin page pattern extraction
+
+---
+
 ## Progress
 
 **Execution Order:**
@@ -1205,6 +1358,7 @@ Plans:
 - v4.0: 25 → 26 → 27 → 28 → 29
 - v5.0: 30 → 31 → 32 → 33 → 34 → 35
 - v6.0: 36 → 37 → 38 → 39 → 40
+- v7.0: 41 → 42 → 43 → 44 → 45 → 46
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -1225,7 +1379,7 @@ Plans:
 | 15. Page Migration | v2.0 | 1/1 | ✅ Complete | 2026-01-15 |
 | 16. Testing & Verification | v2.0 | 1/1 | ✅ Complete | 2026-01-16 |
 | 17. Cleanup | v2.0 | 1/1 | ✅ Complete | 2026-01-16 |
-| 18. Timestamp Migration to TIMESTAMPTZ | v3.0 | 0/1 | Not started | - |
+| 18. Timestamp Migration to TIMESTAMPTZ | v3.0 | 1/1 | ✅ Complete | 2026-01-17 |
 | 19. Enum Type Corrections | v3.0 | 0/1 | Not started | - |
 | 20. Polymorphic Constraint Enforcement | v3.0 | 0/1 | Not started | - |
 | 21. Composite Index Optimization | v3.0 | 0/1 | Not started | - |
@@ -1248,3 +1402,9 @@ Plans:
 | 38. cacheLife Profiles | v6.0 | 0/1 | Not started | - |
 | 39. cacheTag Smart Invalidation | v6.0 | 0/1 | Not started | - |
 | 40. Progressive Enhancement | v6.0 | 0/1 | Not started | - |
+| 41. Quick Fixes | v7.0 | 0/1 | Not started | - |
+| 42. Hook Extraction | v7.0 | 0/1 | Not started | - |
+| 43. tRPC Router Factory | v7.0 | 0/1 | Not started | - |
+| 44. Table Consolidation | v7.0 | 0/1 | Not started | - |
+| 45. Query Optimization | v7.0 | 0/1 | Not started | - |
+| 46. Admin Page Patterns | v7.0 | 0/1 | Not started | - |

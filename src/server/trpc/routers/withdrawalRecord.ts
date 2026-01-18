@@ -1,0 +1,38 @@
+import { z } from 'zod'
+import { withdrawalRecordCrud } from '../../../../db/queries'
+import {
+    insertWithdrawalRecordSchema,
+    updateWithdrawalRecordSchema,
+} from '../../../../db/validation'
+import { adminProcedure, createTRPCRouter } from '../index'
+
+export const withdrawalRecordRouter = createTRPCRouter({
+    list: adminProcedure
+        .input(z.object({ beneficiaryId: z.string().optional() }).optional())
+        .query(async ({ input }) => {
+            const result = await withdrawalRecordCrud.getAll(
+                input?.beneficiaryId,
+            )
+            return Array.isArray(result) ? result : result.data
+        }),
+
+    byId: adminProcedure.input(z.string()).query(async ({ input }) => {
+        return withdrawalRecordCrud.getById(input)
+    }),
+
+    create: adminProcedure
+        .input(insertWithdrawalRecordSchema)
+        .mutation(async ({ input }) => {
+            return withdrawalRecordCrud.create(input)
+        }),
+
+    update: adminProcedure
+        .input(z.object({ id: z.string(), data: updateWithdrawalRecordSchema }))
+        .mutation(async ({ input }) => {
+            return withdrawalRecordCrud.update(input.id, input.data)
+        }),
+
+    delete: adminProcedure.input(z.string()).mutation(async ({ input }) => {
+        return withdrawalRecordCrud.delete(input)
+    }),
+})

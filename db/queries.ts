@@ -460,6 +460,7 @@ interface RecordPaymentData {
     confirmationNumber?: string | null
     notes?: string | null
     createExpenseEntry?: boolean // Whether to auto-create trust accounting entry
+    allocationClass?: 'PRINCIPAL' | 'INCOME' | null // For trust accounting
 }
 
 export async function recordLiabilityPayment(data: RecordPaymentData) {
@@ -544,8 +545,12 @@ export async function recordLiabilityPayment(data: RecordPaymentData) {
         const accountingId = generateId()
         const expenseDescription = `${liabilityRecord.liabilityType.replace(/_/g, ' ')} payment to ${liabilityRecord.creditor}`
 
-        // Determine if principal based on liability's allocation class
-        const isPrincipal = liabilityRecord.allocationClass === 'PRINCIPAL'
+        // Determine if principal based on payment's allocation class (or fallback to liability's)
+        const effectiveAllocation =
+            data.allocationClass ||
+            liabilityRecord.allocationClass ||
+            'PRINCIPAL'
+        const isPrincipal = effectiveAllocation === 'PRINCIPAL'
 
         // Determine expense type based on liability type
         const expenseType =

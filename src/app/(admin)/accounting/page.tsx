@@ -30,7 +30,12 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from '@/components/ui/tooltip'
-import type { TrustAccounting } from '@/db/schema'
+import type {
+    AccountingEntryTypeEnum,
+    ExpenseTypeEnum,
+    IncomeTypeEnum,
+    TrustAccounting,
+} from '@/db/schema'
 import { useEntityFilter } from '@/hooks/use-entity-filter'
 import { useResourceForm } from '@/hooks/use-resource-form'
 import { isNegative, subtractMoney, sumStrings } from '@/lib/money'
@@ -63,7 +68,7 @@ const EXPENSE_TYPES = [
 
 interface AccountingFormData {
     accountingDate: string
-    entryType: string
+    entryType: 'INCOME' | 'EXPENSE'
     incomeType: string
     expenseType: string
     amount: string
@@ -173,11 +178,15 @@ export default function AccountingPage() {
             const payload = {
                 entityId: selectedEntity,
                 accountingDate: data.accountingDate,
-                entryType: data.entryType,
+                entryType: data.entryType as AccountingEntryTypeEnum,
                 incomeType:
-                    data.entryType === 'INCOME' ? data.incomeType : undefined,
+                    data.entryType === 'INCOME'
+                        ? (data.incomeType as IncomeTypeEnum)
+                        : undefined,
                 expenseType:
-                    data.entryType === 'EXPENSE' ? data.expenseType : undefined,
+                    data.entryType === 'EXPENSE'
+                        ? (data.expenseType as ExpenseTypeEnum)
+                        : undefined,
                 amount: data.amount,
                 description: data.description || '',
                 isPrincipal: data.isPrincipal,
@@ -853,7 +862,11 @@ export default function AccountingPage() {
                                 <Label htmlFor="entryType">Entry Type</Label>
                                 <Select
                                     value={field.state.value}
-                                    onValueChange={(v) => field.handleChange(v)}
+                                    onValueChange={(v) =>
+                                        field.handleChange(
+                                            v as 'INCOME' | 'EXPENSE',
+                                        )
+                                    }
                                 >
                                     <SelectTrigger id="entryType">
                                         <SelectValue />

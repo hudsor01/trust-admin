@@ -7,91 +7,101 @@
  * Usage: bun scripts/seed-beneficiary-users.ts
  */
 
-import { eq } from "drizzle-orm"
-import { db } from "../db"
-import { generateId } from "../db/helpers"
-import { account, beneficiary, user } from "../db/schema"
+import { eq } from 'drizzle-orm'
+import { db } from '../db'
+import { generateId } from '../db/helpers'
+import { account, beneficiary, user } from '../db/schema'
 
 async function seedBeneficiaryUsers() {
-  console.log("Seeding beneficiary users for magic link authentication...")
-  console.log("")
+    console.log('Seeding beneficiary users for magic link authentication...')
+    console.log('')
 
-  // Get all beneficiaries with email addresses
-  const beneficiaries = await db.select().from(beneficiary)
+    // Get all beneficiaries with email addresses
+    const beneficiaries = await db.select().from(beneficiary)
 
-  const beneficiariesWithEmail = beneficiaries.filter((b) => b.email)
+    const beneficiariesWithEmail = beneficiaries.filter((b) => b.email)
 
-  console.log(`Found ${beneficiariesWithEmail.length} beneficiaries with email addresses`)
-  console.log("")
+    console.log(
+        `Found ${beneficiariesWithEmail.length} beneficiaries with email addresses`,
+    )
+    console.log('')
 
-  let created = 0
-  let skipped = 0
-  let errors = 0
+    let created = 0
+    let skipped = 0
+    let errors = 0
 
-  for (const ben of beneficiariesWithEmail) {
-    if (!ben.email) continue
+    for (const ben of beneficiariesWithEmail) {
+        if (!ben.email) continue
 
-    // Check if user already exists with this email
-    const existingUser = await db.select().from(user).where(eq(user.email, ben.email)).limit(1)
+        // Check if user already exists with this email
+        const existingUser = await db
+            .select()
+            .from(user)
+            .where(eq(user.email, ben.email))
+            .limit(1)
 
-    if (existingUser.length > 0) {
-      console.log(`  [SKIP] ${ben.firstName} ${ben.lastName} - user already exists`)
-      skipped++
-      continue
+        if (existingUser.length > 0) {
+            console.log(
+                `  [SKIP] ${ben.firstName} ${ben.lastName} - user already exists`,
+            )
+            skipped++
+            continue
+        }
+
+        try {
+            const userId = generateId()
+            const now = new Date()
+
+            // Create user directly in database
+            await db.insert(user).values({
+                id: userId,
+                name: `${ben.firstName} ${ben.lastName}`,
+                email: ben.email,
+                emailVerified: true, // Magic link verifies email on first login
+                role: 'beneficiary',
+                beneficiaryId: ben.id,
+                createdAt: now,
+                updatedAt: now,
+            })
+
+            // Create magic link account (no password field needed)
+            await db.insert(account).values({
+                id: generateId(),
+                accountId: ben.email,
+                providerId: 'magic-link',
+                userId: userId,
+                createdAt: now,
+                updatedAt: now,
+            })
+
+            console.log(
+                `  [CREATE] ${ben.firstName} ${ben.lastName} (${ben.email})`,
+            )
+            created++
+        } catch (err) {
+            console.log(
+                `  [ERROR] ${ben.firstName} ${ben.lastName} - ${err instanceof Error ? err.message : 'Unknown error'}`,
+            )
+            errors++
+        }
     }
 
-    try {
-      const userId = generateId()
-      const now = new Date()
+    console.log('')
+    console.log('=== Summary ===')
+    console.log(`Created: ${created}`)
+    console.log(`Skipped: ${skipped}`)
+    console.log(`Errors: ${errors}`)
+    console.log('')
 
-      // Create user directly in database
-      await db.insert(user).values({
-        id: userId,
-        name: `${ben.firstName} ${ben.lastName}`,
-        email: ben.email,
-        emailVerified: true, // Magic link verifies email on first login
-        role: "beneficiary",
-        beneficiaryId: ben.id,
-        createdAt: now,
-        updatedAt: now,
-      })
-
-      // Create magic link account (no password field needed)
-      await db.insert(account).values({
-        id: generateId(),
-        accountId: ben.email,
-        providerId: "magic-link",
-        userId: userId,
-        createdAt: now,
-        updatedAt: now,
-      })
-
-      console.log(`  [CREATE] ${ben.firstName} ${ben.lastName} (${ben.email})`)
-      created++
-    } catch (err) {
-      console.log(
-        `  [ERROR] ${ben.firstName} ${ben.lastName} - ${err instanceof Error ? err.message : "Unknown error"}`,
-      )
-      errors++
+    if (created > 0) {
+        console.log('Beneficiaries can now log in at: /portal')
+        console.log('They will receive a magic link via email to sign in.')
     }
-  }
 
-  console.log("")
-  console.log("=== Summary ===")
-  console.log(`Created: ${created}`)
-  console.log(`Skipped: ${skipped}`)
-  console.log(`Errors: ${errors}`)
-  console.log("")
-
-  if (created > 0) {
-    console.log("Beneficiaries can now log in at: /portal")
-    console.log("They will receive a magic link via email to sign in.")
-  }
-
-  process.exit(0)
+    process.exit(0)
 }
 
 seedBeneficiaryUsers().catch((error) => {
-  console.error("Error seeding beneficiary users:", error)
-  process.exit(1)
+    console.error('Error seeding beneficiary users:', error)
+    process.exit(1)
 })

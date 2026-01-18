@@ -1,0 +1,36 @@
+import { z } from 'zod'
+import { contactCrud } from '../../../../db/queries'
+import {
+    insertContactSchema,
+    updateContactSchema,
+} from '../../../../db/validation'
+import { adminProcedure, createTRPCRouter } from '../index'
+
+export const contactRouter = createTRPCRouter({
+    list: adminProcedure
+        .input(z.object({ entityId: z.string().optional() }).optional())
+        .query(async ({ input }) => {
+            const result = await contactCrud.getAll(input?.entityId)
+            return Array.isArray(result) ? result : result.data
+        }),
+
+    byId: adminProcedure.input(z.string()).query(async ({ input }) => {
+        return contactCrud.getById(input)
+    }),
+
+    create: adminProcedure
+        .input(insertContactSchema)
+        .mutation(async ({ input }) => {
+            return contactCrud.create(input)
+        }),
+
+    update: adminProcedure
+        .input(z.object({ id: z.string(), data: updateContactSchema }))
+        .mutation(async ({ input }) => {
+            return contactCrud.update(input.id, input.data)
+        }),
+
+    delete: adminProcedure.input(z.string()).mutation(async ({ input }) => {
+        return contactCrud.delete(input)
+    }),
+})

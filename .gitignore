@@ -1,11 +1,18 @@
 # dependencies (bun install)
 node_modules
+.serena/
+.claude/
+
 
 # output
 out
 dist
 .next
 *.tgz
+claude.md
+readme.md
+.env.example
+
 
 # code coverage
 coverage

@@ -1,7 +1,7 @@
 # Trust Document Audit - Remaining Gaps
 
 Audit of Hudson Living Trust (Articles 4-8) against codebase.
-Date: 2025-01-04
+Last Updated: 2026-01-15
 
 ## Fixed (Critical)
 
@@ -9,60 +9,59 @@ Date: 2025-01-04
 |-------|--------|
 | Grandchildren had `WITHDRAWAL_ONLY` but trust grants HEMS + withdrawals | FIXED - now `HEMS_PLUS_WITHDRAWAL` |
 
-## Medium Priority Gaps
+## Implemented
 
-### 1. Testamentary Limited Power of Appointment (LPOA)
-**Trust Reference:** Sections 7.02(d), 7.10(d), etc.
-
-Every beneficiary has the right to direct remaining trust assets at their death via will. This needs tracking:
-- `hasLPOA: boolean` on beneficiary (always true per trust)
-- `lpoaExercised: boolean`
-- `lpoaDocumentPath: text` (link to their will if exercised)
-
-**Impact:** If beneficiary dies, we need to know if they exercised LPOA before distributing pro-rata.
-
-### 2. Undistributed Income → Principal Annually
+### 1. Undistributed Income → Principal Annually
 **Trust Reference:** Section 7.10(c)
 
 "All income not distributed shall be added to principal at least annually."
 
-**Implementation needed:**
-- Year-end job that moves undistributed income to principal
-- Or automatic classification in trust accounting
+**Implementation:**
+- `TrustAccounting.convertedToPrincipal` - marks income entries as converted
+- `TrustAccounting.conversionDate` - when conversion occurred
+- `TrustAccounting.conversionEntryId` - links to principal entry created
+- tRPC: `trustAccounting.convertIncomeToPrincipal(entityId, fiscalYear)` - runs conversion
+- tRPC: `trustAccounting.unconvertedIncomeSummary(entityId)` - shows pending conversions
+- UI: "Year-End Conversion" card on Accounting page with per-year conversion buttons
 
-### 3. Pro-Rata Distribution on Beneficiary Death
+### 2. Pro-Rata Distribution on Beneficiary Death
 **Trust Reference:** Section 7.01
 
-If a beneficiary dies before complete distribution and doesn't exercise LPOA, their share goes pro-rata to other beneficiaries.
+If a beneficiary dies before complete distribution, their share goes pro-rata to other beneficiaries.
 
-**Implementation needed:**
-- `deceasedDate: timestamp` on beneficiary
-- Logic to recalculate shares when beneficiary dies
-- Handle LPOA exercise vs pro-rata fallback
+**Implementation:**
+- `Beneficiary.deceasedDate` - date of death
+- tRPC: `beneficiary.markDeceased(beneficiaryId, deceasedDate)` - marks deceased and auto-recalculates shares
+- tRPC: `beneficiary.recalculateShares(entityId, excludeBeneficiaryId)` - manual share recalculation
+- UI: "Mark as Deceased" button in beneficiary detail dialog with date picker and confirmation
 
-## Low Priority Gaps
+## Not Implementing (By Design)
 
-### 4. "Consider Other Resources" Guideline
+### 1. LPOA Tracking
+**Trust Reference:** Sections 7.02(d), 7.10(d)
+
+Every beneficiary has LPOA right to direct remaining trust assets at death via will.
+
+**Decision:** Not implementing separate tracking. All beneficiaries in this system are named in the trust/will. The will document itself serves as the LPOA record and can be made available as a static document in the app.
+
+### 2. "Consider Other Resources" Guideline
 **Trust Reference:** Sections 7.02(a), 7.10(a)
 
-Trustee should "consider other resources reasonably available" when making HEMS decisions.
+**Decision:** Not implementing. Distributions go to all beneficiaries equally. No need for per-request resource assessment.
 
-**Status:** Advisory only. Could add a checkbox/note field on HEMS request form, but not blocking.
+## Low Priority (Manual Handling)
 
-### 5. Co-Trustee Independent Action
+### Co-Trustee Independent Action
 **Trust Reference:** Section 9.04
 
 "Any one of Co-Trustees may take any action authorized under this agreement."
 
-**Status:** Current system allows either trustee to approve. Already implicit in workflow.
+**Status:** Already implicit in workflow - either trustee can approve.
 
-### 6. Trustee Removal/Resignation Process
+### Trustee Removal/Resignation Process
 **Trust Reference:** Sections 9.02-9.03
 
-- Trustee can resign with 30-day written notice
-- Beneficiaries can remove trustee by majority vote
-
-**Status:** Edge case. Can be handled manually with notes field for now.
+**Status:** Edge case. Can be handled manually with notes field.
 
 ## Correctly Implemented
 
@@ -79,11 +78,5 @@ Trustee should "consider other resources reasonably available" when making HEMS 
 | HEMS request workflow | 7.02(a) | Done |
 | Principal/Income classification | Texas 116 | Done |
 | Trustee fee structure | 9.06 | Done |
-
-## Recommendations
-
-1. **Phase 1 (Now):** All critical functionality works. Grandchildren can request HEMS AND exercise withdrawals.
-
-2. **Phase 2 (When needed):** Add LPOA tracking when a beneficiary's health becomes a concern.
-
-3. **Phase 3 (Year-end):** Implement income-to-principal annual rollover before first fiscal year end.
+| Income-to-principal conversion | 7.10(c) | Done |
+| Beneficiary death handling | 7.01 | Done |

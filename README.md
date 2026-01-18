@@ -1,15 +1,31 @@
-# trust-admin
+# Trust Admin
 
-To install dependencies:
+A trust administration application for managing the Hudson Living Trust, built with Next.js 16.1 + tRPC v11.
+
+## Quick Start
 
 ```bash
+# Install dependencies
 bun install
+
+# Run development server
+bun run dev
+
+# Build for production
+bun run build
+
+# Start production server
+bun run start
 ```
 
-To run:
+## Stack
 
-```bash
-bun run index.ts
-```
+- **Framework**: Next.js 16.1 (App Router)
+- **API**: tRPC v11
+- **Database**: PostgreSQL (Neon) with Drizzle ORM
+- **Auth**: Better Auth (magic link)
+- **UI**: React 19 + shadcn/ui + Tailwind CSS
 
-This project was created using `bun init` in bun v1.3.4. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.
+## Documentation
+
+See `CLAUDE.md` for comprehensive project documentation.
