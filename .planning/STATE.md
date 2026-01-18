@@ -11,11 +11,11 @@ See: .planning/PROJECT.md (updated 2026-01-09)
 ## Current Position
 
 Phase: 38 of 40 (cacheLife Profiles)
-Plan: Not started
-Status: Ready for planning
-Last activity: 2026-01-18 - Completed 37-01-PLAN.md
+Plan: 38-01 (1 plan) - COMPLETE
+Status: Phase complete
+Last activity: 2026-01-18 - Completed 38-01 (cacheLife profiles)
 
-Progress: ██████████████░░░░░ 2/5 v6.0 plans complete
+Progress: ███████████████░░░░ 3/5 v6.0 plans complete
 
 ## Performance Metrics
 
@@ -23,9 +23,20 @@ Progress: ██████████████░░░░░ 2/5 v6.0 pla
 - v1.0 plans completed: 41
 - v2.0 plans completed: 4
 - v3.0 plans completed: 7
-- v6.0 plans completed: 2
+- v6.0 plans completed: 3
 
 ## Accumulated Context
+
+### v6.0 Phase 38 COMPLETE (cacheLife Profiles):
+
+**38-01 Completed (Caching Configuration):**
+- ✅ Tuned TanStack Query staleTime from 5s to 30s for financial freshness balance
+- ✅ Added gcTime of 10 minutes for navigation performance
+- ✅ Documented cacheLife profiles (financial/reference/config tiers) for future server-side caching
+- ⚠️ cacheComponents: true NOT enabled - incompatible with tRPC client-side architecture
+- Commits: 7136640 (chore), fa6aecf (perf)
+- Pattern: TanStack Query client-side caching preferred over server-side "use cache" for tRPC apps
+- Decision: Document profiles for future Phase 39 adoption when architecture supports it
 
 ### v6.0 Phase 37 COMPLETE (after() for Audit Logging):
 
@@ -324,7 +335,7 @@ Progress: ██████████████░░░░░ 2/5 v6.0 pla
 ## Session Continuity
 
 Last session: 2026-01-18
-Stopped at: Completed Phase 37-01, Phase 37 complete
+Stopped at: Completed Phase 38-01, Phase 38 complete
 Resume file: None
 
 ## Milestone History
