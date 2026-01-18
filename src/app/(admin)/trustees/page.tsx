@@ -46,8 +46,8 @@ import {
 import { formatDate } from '@/utils/formatters'
 
 type Trustee = {
-    id: string
-    entityId: string
+    id: number
+    entityId: number
     name: string
     email: string | null
     phone: string | null
@@ -55,7 +55,7 @@ type Trustee = {
     status: string
     order: number
     isCo: boolean | null
-    coTrusteeId: string | null
+    coTrusteeId: number | null
     startDate: string | null
     endDate: string | null
 }
@@ -70,7 +70,7 @@ export default function TrusteesPage() {
     const { data: entities = [], isLoading: entitiesLoading } =
         trpc.entity.list.useQuery()
     const [entityId, setEntityId] = useEntityFilter()
-    const selectedEntity = entityId || entities[0]?.id
+    const selectedEntity = entityId ? Number(entityId) : entities[0]?.id
 
     const { data: trustees = [], isLoading: trusteesLoading } =
         trpc.trustee.list.useQuery(
@@ -102,7 +102,7 @@ export default function TrusteesPage() {
     })
 
     const trusteeForm = useResourceForm<Trustee>({
-        initialData: { ...trusteeFormDefaults(), id: '' } as Trustee,
+        initialData: { ...trusteeFormDefaults(), id: 0 } as Trustee,
         onSubmit: async (data) => {
             if (!selectedEntity) return
             const payload = {
@@ -130,7 +130,7 @@ export default function TrusteesPage() {
 
     const { formInstance } = trusteeForm
 
-    const deleteTrustee = async (id: string) => {
+    const deleteTrustee = async (id: number) => {
         if (!confirm('Are you sure you want to delete this trustee?')) return
         try {
             await deleteTrusteeMutation.mutateAsync(id)
@@ -160,7 +160,7 @@ export default function TrusteesPage() {
                 </div>
                 <div className="flex items-center gap-3">
                     <Select
-                        value={selectedEntity || undefined}
+                        value={selectedEntity?.toString() ?? undefined}
                         onValueChange={(val) => setEntityId(val || null)}
                     >
                         <SelectTrigger className="w-[250px]">
@@ -168,7 +168,7 @@ export default function TrusteesPage() {
                         </SelectTrigger>
                         <SelectContent>
                             {entities.map((e) => (
-                                <SelectItem key={e.id} value={e.id}>
+                                <SelectItem key={e.id} value={String(e.id)}>
                                     {e.name}
                                 </SelectItem>
                             ))}

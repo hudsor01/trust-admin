@@ -103,7 +103,9 @@ export default function DistributionsPage() {
     const { data: entities = [], isLoading: entitiesLoading } =
         trpc.entity.list.useQuery()
     const [entityId, setEntityId] = useEntityFilter()
-    const selectedEntity = entityId || entities[0]?.id
+    const selectedEntity = entityId
+        ? Number(entityId)
+        : (entities[0]?.id ?? null)
 
     const { data: beneficiaries = [], isLoading: beneficiariesLoading } =
         trpc.beneficiary.list.useQuery(
@@ -157,8 +159,8 @@ export default function DistributionsPage() {
             if (!selectedEntity) return
             const amount = parseFloat(data.amount.replace(/[,$]/g, ''))
             await createDistributionMutation.mutateAsync({
-                beneficiaryId: data.beneficiaryId,
-                entityId: selectedEntity,
+                beneficiaryId: Number(data.beneficiaryId),
+                entityId: selectedEntity!,
                 distributionDate: new Date().toISOString(),
                 amount: amount.toString(),
                 distributionType: 'PRINCIPAL',
@@ -223,7 +225,7 @@ export default function DistributionsPage() {
     }
 
     const updateDistribution = async (
-        id: string,
+        id: number,
         updates: Partial<Distribution>,
     ) => {
         await updateDistributionMutation.mutateAsync({ id, data: updates })
@@ -542,7 +544,7 @@ export default function DistributionsPage() {
                     </p>
                 </div>
                 <Select
-                    value={selectedEntity || ''}
+                    value={selectedEntity?.toString() || ''}
                     onValueChange={(val) => setEntityId(val || null)}
                 >
                     <SelectTrigger className="w-[250px]">
@@ -550,7 +552,7 @@ export default function DistributionsPage() {
                     </SelectTrigger>
                     <SelectContent>
                         {entities.map((e) => (
-                            <SelectItem key={e.id} value={e.id}>
+                            <SelectItem key={e.id} value={e.id.toString()}>
                                 {e.name}
                             </SelectItem>
                         ))}
@@ -739,7 +741,10 @@ export default function DistributionsPage() {
                                     </SelectTrigger>
                                     <SelectContent>
                                         {hemsBeneficiaries.map((b) => (
-                                            <SelectItem key={b.id} value={b.id}>
+                                            <SelectItem
+                                                key={b.id}
+                                                value={b.id.toString()}
+                                            >
                                                 {b.firstName} {b.lastName}
                                             </SelectItem>
                                         ))}

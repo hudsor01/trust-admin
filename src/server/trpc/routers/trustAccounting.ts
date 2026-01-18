@@ -56,14 +56,21 @@ export const trustAccountingRouter = createTRPCRouter({
         }),
 
     update: adminProcedure
-        .input(z.object({ id: z.coerce.number(), data: updateTrustAccountingSchema }))
+        .input(
+            z.object({
+                id: z.coerce.number(),
+                data: updateTrustAccountingSchema,
+            }),
+        )
         .mutation(async ({ input }) => {
             return trustAccountingCrud.update(input.id, input.data)
         }),
 
-    delete: adminProcedure.input(z.coerce.number()).mutation(async ({ input }) => {
-        return trustAccountingCrud.delete(input)
-    }),
+    delete: adminProcedure
+        .input(z.coerce.number())
+        .mutation(async ({ input }) => {
+            return trustAccountingCrud.delete(input)
+        }),
 
     // =========================================================================
     // INCOME TO PRINCIPAL CONVERSION - Trust Section 7.10(c)

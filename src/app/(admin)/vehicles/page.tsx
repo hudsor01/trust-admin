@@ -68,8 +68,8 @@ export default function VehiclesPage() {
 
     const { data: entities = [], isLoading: entitiesLoading } =
         trpc.entity.list.useQuery()
-    const [entityId, setEntityId] = useEntityFilter()
-    const selectedEntity = entityId || entities[0]?.id
+    const [entityIdStr, setEntityIdStr] = useEntityFilter()
+    const selectedEntity = entityIdStr ? Number(entityIdStr) : entities[0]?.id
 
     const { data: vehicles = [], isLoading: vehiclesLoading } =
         trpc.vehicle.list.useQuery(
@@ -145,7 +145,7 @@ export default function VehiclesPage() {
         })
     }
 
-    const handleDelete = async (id: string) => {
+    const handleDelete = async (id: number) => {
         if (!confirm('Are you sure you want to delete this vehicle?')) return
         try {
             await deleteVehicleMutation.mutateAsync(id)
@@ -155,7 +155,7 @@ export default function VehiclesPage() {
     }
 
     const handleInlineUpdate = async (
-        id: string,
+        id: number,
         updates: Partial<Vehicle>,
     ) => {
         try {
@@ -196,15 +196,15 @@ export default function VehiclesPage() {
                         ` - Total DOD Value: ${formatCurrency(totalValue)}`}
                 </p>
                 <Select
-                    value={selectedEntity || undefined}
-                    onValueChange={(val) => setEntityId(val || null)}
+                    value={selectedEntity?.toString() ?? undefined}
+                    onValueChange={(val) => setEntityIdStr(val || null)}
                 >
                     <SelectTrigger className="w-70">
                         <SelectValue placeholder="Select entity" />
                     </SelectTrigger>
                     <SelectContent>
                         {entities.map((e) => (
-                            <SelectItem key={e.id} value={e.id}>
+                            <SelectItem key={e.id} value={e.id.toString()}>
                                 {e.name}
                             </SelectItem>
                         ))}

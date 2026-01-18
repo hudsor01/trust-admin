@@ -30,7 +30,9 @@ export const artworkRouter = createTRPCRouter({
             return artworkCrud.update(input.id, input.data)
         }),
 
-    delete: adminProcedure.input(z.coerce.number()).mutation(async ({ input }) => {
-        return artworkCrud.delete(input)
-    }),
+    delete: adminProcedure
+        .input(z.coerce.number())
+        .mutation(async ({ input }) => {
+            return artworkCrud.delete(input)
+        }),
 })

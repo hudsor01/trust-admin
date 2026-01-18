@@ -25,12 +25,19 @@ export const specificBequestRouter = createTRPCRouter({
         }),
 
     update: adminProcedure
-        .input(z.object({ id: z.coerce.number(), data: updateSpecificBequestSchema }))
+        .input(
+            z.object({
+                id: z.coerce.number(),
+                data: updateSpecificBequestSchema,
+            }),
+        )
         .mutation(async ({ input }) => {
             return specificBequestCrud.update(input.id, input.data)
         }),
 
-    delete: adminProcedure.input(z.coerce.number()).mutation(async ({ input }) => {
-        return specificBequestCrud.delete(input)
-    }),
+    delete: adminProcedure
+        .input(z.coerce.number())
+        .mutation(async ({ input }) => {
+            return specificBequestCrud.delete(input)
+        }),
 })

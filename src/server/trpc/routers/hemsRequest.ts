@@ -35,7 +35,11 @@ export const hemsRequestRouter = createTRPCRouter({
 
     // List with beneficiary info
     listWithBeneficiary: adminProcedure
-        .input(z.object({ beneficiaryId: z.coerce.number().optional() }).optional())
+        .input(
+            z
+                .object({ beneficiaryId: z.coerce.number().optional() })
+                .optional(),
+        )
         .query(async ({ input }) => {
             return getHemsRequestsWithBeneficiary(input?.beneficiaryId)
         }),
@@ -56,14 +60,18 @@ export const hemsRequestRouter = createTRPCRouter({
         }),
 
     update: adminProcedure
-        .input(z.object({ id: z.coerce.number(), data: updateHemsRequestSchema }))
+        .input(
+            z.object({ id: z.coerce.number(), data: updateHemsRequestSchema }),
+        )
         .mutation(async ({ input }) => {
             return hemsRequestCrud.update(input.id, input.data)
         }),
 
-    delete: adminProcedure.input(z.coerce.number()).mutation(async ({ input }) => {
-        return hemsRequestCrud.delete(input)
-    }),
+    delete: adminProcedure
+        .input(z.coerce.number())
+        .mutation(async ({ input }) => {
+            return hemsRequestCrud.delete(input)
+        }),
 
     // Special: Approve HEMS request
     approve: adminProcedure

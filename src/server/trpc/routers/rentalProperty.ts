@@ -28,12 +28,19 @@ export const rentalPropertyRouter = createTRPCRouter({
         }),
 
     update: adminProcedure
-        .input(z.object({ id: z.coerce.number(), data: updateRentalPropertySchema }))
+        .input(
+            z.object({
+                id: z.coerce.number(),
+                data: updateRentalPropertySchema,
+            }),
+        )
         .mutation(async ({ input }) => {
             return rentalPropertyCrud.update(input.id, input.data)
         }),
 
-    delete: adminProcedure.input(z.coerce.number()).mutation(async ({ input }) => {
-        return rentalPropertyCrud.delete(input)
-    }),
+    delete: adminProcedure
+        .input(z.coerce.number())
+        .mutation(async ({ input }) => {
+            return rentalPropertyCrud.delete(input)
+        }),
 })

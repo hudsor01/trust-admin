@@ -27,7 +27,9 @@ export const taskRouter = createTRPCRouter({
             return taskCrud.update(input.id, input.data)
         }),
 
-    delete: adminProcedure.input(z.coerce.number()).mutation(async ({ input }) => {
-        return taskCrud.delete(input)
-    }),
+    delete: adminProcedure
+        .input(z.coerce.number())
+        .mutation(async ({ input }) => {
+            return taskCrud.delete(input)
+        }),
 })

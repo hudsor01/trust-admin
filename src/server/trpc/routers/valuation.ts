@@ -40,7 +40,9 @@ export const valuationRouter = createTRPCRouter({
             return valuationCrud.update(input.id, input.data)
         }),
 
-    delete: adminProcedure.input(z.coerce.number()).mutation(async ({ input }) => {
-        return valuationCrud.delete(input)
-    }),
+    delete: adminProcedure
+        .input(z.coerce.number())
+        .mutation(async ({ input }) => {
+            return valuationCrud.delete(input)
+        }),
 })

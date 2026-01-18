@@ -277,7 +277,7 @@ export default function SettingsPage() {
                             </CardDescription>
                         </div>
                         <Select
-                            value={selectedEntity}
+                            value={selectedEntity?.toString()}
                             onValueChange={(val) => setEntityId(val || null)}
                         >
                             <SelectTrigger className="w-[250px]">
@@ -285,7 +285,10 @@ export default function SettingsPage() {
                             </SelectTrigger>
                             <SelectContent>
                                 {entities.map((e) => (
-                                    <SelectItem key={e.id} value={e.id}>
+                                    <SelectItem
+                                        key={e.id}
+                                        value={e.id.toString()}
+                                    >
                                         {e.name}
                                     </SelectItem>
                                 ))}

@@ -262,7 +262,7 @@ export default function HemsQueuePage() {
                     <SelectContent>
                         <SelectItem value="all">All Entities</SelectItem>
                         {entities.map((e) => (
-                            <SelectItem key={e.id} value={e.id}>
+                            <SelectItem key={e.id} value={e.id.toString()}>
                                 {e.name}
                             </SelectItem>
                         ))}

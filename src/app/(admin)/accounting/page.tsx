@@ -138,7 +138,7 @@ export default function AccountingPage() {
 
     const [activeTab, setActiveTab] = useState('all')
     const [generatingReport, setGeneratingReport] = useState(false)
-    const [editingId, setEditingId] = useState<string | null>(null)
+    const [editingId, setEditingId] = useState<number | null>(null)
     const [convertingYear, setConvertingYear] = useState<number | null>(null)
     const loading = entitiesLoading || entriesLoading
 
@@ -191,9 +191,11 @@ export default function AccountingPage() {
     } = useResourceForm<AccountingFormData>({
         initialData: defaultFormData,
         onSubmit: async (data) => {
-            if (!selectedEntity) return
+            if (!numericEntityId) return
+            if (!data.bankAccountId) return // bankAccountId is required
+            const bankAccountIdNum = Number.parseInt(data.bankAccountId, 10)
             const payload = {
-                entityId: selectedEntity,
+                entityId: numericEntityId,
                 accountingDate: data.accountingDate,
                 entryType: data.entryType as AccountingEntryTypeEnum,
                 incomeType:
@@ -206,7 +208,7 @@ export default function AccountingPage() {
                         : undefined,
                 amount: data.amount,
                 description: data.description || '',
-                bankAccountId: data.bankAccountId,
+                bankAccountId: bankAccountIdNum,
                 isPrincipal: data.isPrincipal,
                 taxDeductible: data.taxDeductible,
                 checkNumber: data.checkNumber || undefined,
@@ -235,7 +237,14 @@ export default function AccountingPage() {
         [setEntityId],
     )
 
-    const deleteEntry = async (id: string) => {
+    // Convert string entityId from URL to number for API calls
+    const numericEntityId = selectedEntity
+        ? typeof selectedEntity === 'string'
+            ? Number.parseInt(selectedEntity, 10)
+            : selectedEntity
+        : undefined
+
+    const deleteEntry = async (id: number) => {
         if (!confirm('Are you sure you want to delete this entry?')) return
         try {
             await deleteEntryMutation.mutateAsync(id)
@@ -245,7 +254,7 @@ export default function AccountingPage() {
     }
 
     const updateEntry = async (
-        id: string,
+        id: number,
         updates: Partial<TrustAccounting>,
     ) => {
         await updateEntryMutation.mutateAsync({ id, data: updates })
@@ -414,7 +423,7 @@ export default function AccountingPage() {
             expenseType: entry.expenseType || 'PROFESSIONAL_FEE',
             amount: entry.amount,
             description: entry.description || '',
-            bankAccountId: entry.bankAccountId || '',
+            bankAccountId: entry.bankAccountId?.toString() || '',
             isPrincipal: entry.isPrincipal ?? false,
             taxDeductible: entry.taxDeductible ?? false,
             checkNumber: entry.checkNumber || '',
@@ -553,7 +562,7 @@ export default function AccountingPage() {
                 </div>
                 <div className="flex items-center gap-3">
                     <Select
-                        value={selectedEntity}
+                        value={selectedEntity?.toString()}
                         onValueChange={handleEntityChange}
                     >
                         <SelectTrigger className="w-62.5">
@@ -561,7 +570,7 @@ export default function AccountingPage() {
                         </SelectTrigger>
                         <SelectContent>
                             {entities.map((e) => (
-                                <SelectItem key={e.id} value={e.id}>
+                                <SelectItem key={e.id} value={e.id.toString()}>
                                     {e.name}
                                 </SelectItem>
                             ))}
@@ -1011,7 +1020,7 @@ export default function AccountingPage() {
                                         {bankAccounts.map((account) => (
                                             <SelectItem
                                                 key={account.id}
-                                                value={account.id}
+                                                value={account.id.toString()}
                                             >
                                                 {account.institution} -{' '}
                                                 {account.accountName}

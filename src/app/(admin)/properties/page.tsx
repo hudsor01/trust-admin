@@ -184,7 +184,7 @@ export default function PropertiesPage() {
     const { data: entities = [], isLoading: entitiesLoading } =
         trpc.entity.list.useQuery()
     const [entityId, setEntityId] = useEntityFilter()
-    const selectedEntity = entityId || entities[0]?.id
+    const selectedEntity = entityId ? Number(entityId) : entities[0]?.id
     const [activeTab, setActiveTab] = useState('homestead')
 
     const queryEnabled = !!selectedEntity
@@ -222,15 +222,15 @@ export default function PropertiesPage() {
     })
 
     // Wrapper functions for inline edits
-    const updateRental = async (id: string, data: Partial<RentalProperty>) => {
+    const updateRental = async (id: number, data: Partial<RentalProperty>) => {
         await updateRentalMutation.mutateAsync({ id, data })
     }
 
     // Track editing IDs
-    const [editingHomesteadId, setEditingHomesteadId] = useState<string | null>(
+    const [editingHomesteadId, setEditingHomesteadId] = useState<number | null>(
         null,
     )
-    const [editingRentalId, setEditingRentalId] = useState<string | null>(null)
+    const [editingRentalId, setEditingRentalId] = useState<number | null>(null)
 
     // Homestead form
     const homesteadForm = useResourceForm<HomesteadFormData>({
@@ -406,7 +406,7 @@ export default function PropertiesPage() {
 
     const loading = entitiesLoading || homesteadsLoading || rentalsLoading
 
-    const handleDeleteHomestead = async (id: string) => {
+    const handleDeleteHomestead = async (id: number) => {
         if (!confirm('Are you sure you want to delete this homestead?')) return
         try {
             await deleteHomesteadMutation.mutateAsync(id)
@@ -415,7 +415,7 @@ export default function PropertiesPage() {
         }
     }
 
-    const handleDeleteRental = async (id: string) => {
+    const handleDeleteRental = async (id: number) => {
         if (!confirm('Are you sure you want to delete this rental property?'))
             return
         try {
@@ -546,7 +546,7 @@ export default function PropertiesPage() {
                     </p>
                 </div>
                 <Select
-                    value={selectedEntity}
+                    value={selectedEntity?.toString()}
                     onValueChange={(val) => setEntityId(val || null)}
                 >
                     <SelectTrigger className="w-[280px]">
@@ -554,7 +554,7 @@ export default function PropertiesPage() {
                     </SelectTrigger>
                     <SelectContent>
                         {entities.map((e) => (
-                            <SelectItem key={e.id} value={e.id}>
+                            <SelectItem key={e.id} value={e.id.toString()}>
                                 {e.name}
                             </SelectItem>
                         ))}

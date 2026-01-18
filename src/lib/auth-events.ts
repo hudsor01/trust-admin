@@ -1,5 +1,4 @@
 import { db } from '../../db'
-import { generateId } from '../../db/helpers'
 import { activityLog } from '../../db/schema'
 import { logger } from './logger'
 
@@ -18,7 +17,6 @@ export async function recordAuthEvent(
 ): Promise<void> {
     try {
         await db.insert(activityLog).values({
-            id: generateId(),
             tableName: 'session',
             recordId: userId || 'anonymous',
             action,

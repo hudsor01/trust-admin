@@ -1,6 +1,5 @@
 import { eq, type InferInsertModel } from 'drizzle-orm'
 import { db } from './index'
-import { generateId } from './queries'
 import {
     beneficiary,
     entity,
@@ -19,24 +18,27 @@ async function seed() {
     console.log('Seeding Hudson Living Trust data...')
 
     // 1. Create the Trust Entity
-    const trustId = generateId()
-    await db.insert(entity).values({
-        id: trustId,
-        name: 'The Hudson Living Trust',
-        entityType: 'TRUST',
-        trustType: 'IRREVOCABLE', // Became irrevocable upon death
-        grantorName: 'Richard Hudson',
-        decedent: 'Richard Hudson',
-        dod: GRANTOR_DOD,
-        originalDate: TRUST_DATE,
-        governingLaw: 'Texas',
-        stateOfFormation: 'Texas',
-        hasNoContestClause: true,
-        hasSpendthriftProvision: true,
-        status: 'ACTIVE',
-        notes: 'Prepared by Livens & Reed, PLLC. Grantor deceased 12/28/2024.',
-        updatedAt: new Date().toISOString(),
-    })
+    const [createdEntity] = await db
+        .insert(entity)
+        .values({
+            name: 'The Hudson Living Trust',
+            entityType: 'TRUST',
+            trustType: 'IRREVOCABLE', // Became irrevocable upon death
+            grantorName: 'Richard Hudson',
+            decedent: 'Richard Hudson',
+            dod: GRANTOR_DOD,
+            originalDate: TRUST_DATE,
+            governingLaw: 'Texas',
+            stateOfFormation: 'Texas',
+            hasNoContestClause: true,
+            hasSpendthriftProvision: true,
+            status: 'ACTIVE',
+            notes: 'Prepared by Livens & Reed, PLLC. Grantor deceased 12/28/2024.',
+            updatedAt: new Date().toISOString(),
+        })
+        .returning()
+    if (!createdEntity) throw new Error('Failed to create trust entity')
+    const trustId = createdEntity.id
     console.log('Created trust entity:', trustId)
 
     // 2. Create Beneficiaries - Per Section 7.01 Division of Remaining Trust Property
@@ -183,18 +185,15 @@ async function seed() {
         },
     ]
 
-    const beneficiaryIds: Record<string, string> = {}
+    const beneficiaryIds: Record<string, number> = {}
 
     // Insert non-grandchildren first
     for (const b of beneficiaries.filter((b) => b.type !== 'GRANDCHILD')) {
         const nameParts = b.name.split(' ')
         const firstName = nameParts[0] ?? b.name
         const lastName = nameParts.slice(1).join(' ') || firstName
-        const id = generateId()
-        beneficiaryIds[b.name] = id
 
-        const insertData: NewBeneficiary = {
-            id,
+        const insertData: Omit<NewBeneficiary, 'id'> = {
             entityId: trustId,
             firstName,
             lastName,
@@ -208,7 +207,12 @@ async function seed() {
             releaseSigned: false,
             updatedAt: new Date().toISOString(),
         }
-        await db.insert(beneficiary).values(insertData)
+        const [created] = await db
+            .insert(beneficiary)
+            .values(insertData)
+            .returning()
+        if (!created) throw new Error(`Failed to create beneficiary: ${b.name}`)
+        beneficiaryIds[b.name] = created.id
     }
 
     // Insert grandchildren with parent references
@@ -216,14 +220,11 @@ async function seed() {
         const nameParts = b.name.split(' ')
         const firstName = nameParts[0] ?? b.name
         const lastName = nameParts.slice(1).join(' ') || firstName
-        const id = generateId()
-        beneficiaryIds[b.name] = id
         const parentId = b.parent ? (beneficiaryIds[b.parent] ?? null) : null
 
         // Grandchildren get HEMS distributions PLUS age-based withdrawal rights
         // Per Sections 7.10-7.20: HEMS for living expenses + 50% at 25, 50% at 30
-        const insertData: NewBeneficiary = {
-            id,
+        const insertData: Omit<NewBeneficiary, 'id'> = {
             entityId: trustId,
             firstName,
             lastName,
@@ -243,7 +244,12 @@ async function seed() {
             hasSupplementalNeedsTrust: false,
             updatedAt: new Date().toISOString(),
         }
-        await db.insert(beneficiary).values(insertData)
+        const [created] = await db
+            .insert(beneficiary)
+            .values(insertData)
+            .returning()
+        if (!created) throw new Error(`Failed to create beneficiary: ${b.name}`)
+        beneficiaryIds[b.name] = created.id
     }
     console.log('Created', Object.keys(beneficiaryIds).length, 'beneficiaries')
 
@@ -254,44 +260,46 @@ async function seed() {
     )
 
     // 4. Create Trustees (insert first, then update co-trustee references)
-    const richardTrusteeId = generateId()
-    const rickyTrusteeId = generateId()
-
     // Insert co-trustees without references first
-    await db.insert(trustee).values({
-        id: richardTrusteeId,
-        entityId: trustId,
-        name: 'Richard Wayne Hudson Jr.',
-        status: 'ACTIVE',
-        order: 1,
-        isCo: true,
-        startDate: GRANTOR_DOD,
-        updatedAt: new Date().toISOString(),
-    })
+    const [richardTrustee] = await db
+        .insert(trustee)
+        .values({
+            entityId: trustId,
+            name: 'Richard Wayne Hudson Jr.',
+            status: 'ACTIVE',
+            order: 1,
+            isCo: true,
+            startDate: GRANTOR_DOD,
+            updatedAt: new Date().toISOString(),
+        })
+        .returning()
+    if (!richardTrustee) throw new Error('Failed to create trustee: Richard')
 
-    await db.insert(trustee).values({
-        id: rickyTrusteeId,
-        entityId: trustId,
-        name: 'Ricky Thomas Brown',
-        status: 'ACTIVE',
-        order: 1,
-        isCo: true,
-        startDate: GRANTOR_DOD,
-        updatedAt: new Date().toISOString(),
-    })
+    const [rickyTrustee] = await db
+        .insert(trustee)
+        .values({
+            entityId: trustId,
+            name: 'Ricky Thomas Brown',
+            status: 'ACTIVE',
+            order: 1,
+            isCo: true,
+            startDate: GRANTOR_DOD,
+            updatedAt: new Date().toISOString(),
+        })
+        .returning()
+    if (!rickyTrustee) throw new Error('Failed to create trustee: Ricky')
 
     // Now update with co-trustee references
     await db
         .update(trustee)
-        .set({ coTrusteeId: rickyTrusteeId })
-        .where(eq(trustee.id, richardTrusteeId))
+        .set({ coTrusteeId: rickyTrustee.id })
+        .where(eq(trustee.id, richardTrustee.id))
     await db
         .update(trustee)
-        .set({ coTrusteeId: richardTrusteeId })
-        .where(eq(trustee.id, rickyTrusteeId))
+        .set({ coTrusteeId: richardTrustee.id })
+        .where(eq(trustee.id, rickyTrustee.id))
 
     await db.insert(trustee).values({
-        id: generateId(),
         entityId: trustId,
         name: 'Ashley Leighann Govea',
         status: 'SUCCESSOR',
@@ -303,7 +311,6 @@ async function seed() {
 
     // 5. Specific Bequests - Per Section 6.01 (Tangible Personal Property)
     await db.insert(specificBequest).values({
-        id: generateId(),
         entityId: trustId,
         description: 'Dog named Bandit',
         category: 'PET',
@@ -317,7 +324,6 @@ async function seed() {
 
     // 6. Create Homestead Property
     await db.insert(homestead).values({
-        id: generateId(),
         entityId: trustId,
         streetAddress: '1301 Cherry Hill Ln',
         city: 'Lewisville',
@@ -536,7 +542,6 @@ async function seed() {
         dueDate.setDate(dueDate.getDate() + t.days)
 
         await db.insert(task).values({
-            id: generateId(),
             title: t.title,
             category: t.category,
             completed: false,

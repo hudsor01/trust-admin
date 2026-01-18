@@ -26,13 +26,18 @@ export const trusteeFeeScheduleRouter = createTRPCRouter({
 
     update: adminProcedure
         .input(
-            z.object({ id: z.coerce.number(), data: updateTrusteeFeeScheduleSchema }),
+            z.object({
+                id: z.coerce.number(),
+                data: updateTrusteeFeeScheduleSchema,
+            }),
         )
         .mutation(async ({ input }) => {
             return trusteeFeeScheduleCrud.update(input.id, input.data)
         }),
 
-    delete: adminProcedure.input(z.coerce.number()).mutation(async ({ input }) => {
-        return trusteeFeeScheduleCrud.delete(input)
-    }),
+    delete: adminProcedure
+        .input(z.coerce.number())
+        .mutation(async ({ input }) => {
+            return trusteeFeeScheduleCrud.delete(input)
+        }),
 })

@@ -30,7 +30,9 @@ export const homesteadRouter = createTRPCRouter({
             return homesteadCrud.update(input.id, input.data)
         }),
 
-    delete: adminProcedure.input(z.coerce.number()).mutation(async ({ input }) => {
-        return homesteadCrud.delete(input)
-    }),
+    delete: adminProcedure
+        .input(z.coerce.number())
+        .mutation(async ({ input }) => {
+            return homesteadCrud.delete(input)
+        }),
 })

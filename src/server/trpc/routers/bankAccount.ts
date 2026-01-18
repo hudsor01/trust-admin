@@ -25,12 +25,16 @@ export const bankAccountRouter = createTRPCRouter({
         }),
 
     update: adminProcedure
-        .input(z.object({ id: z.coerce.number(), data: updateBankAccountSchema }))
+        .input(
+            z.object({ id: z.coerce.number(), data: updateBankAccountSchema }),
+        )
         .mutation(async ({ input }) => {
             return bankAccountCrud.update(input.id, input.data)
         }),
 
-    delete: adminProcedure.input(z.coerce.number()).mutation(async ({ input }) => {
-        return bankAccountCrud.delete(input)
-    }),
+    delete: adminProcedure
+        .input(z.coerce.number())
+        .mutation(async ({ input }) => {
+            return bankAccountCrud.delete(input)
+        }),
 })

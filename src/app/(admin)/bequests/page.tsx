@@ -57,8 +57,8 @@ export default function BequestsPage() {
 
     const { data: entities = [], isLoading: entitiesLoading } =
         trpc.entity.list.useQuery()
-    const [entityId, setEntityId] = useEntityFilter()
-    const selectedEntity = entityId || entities[0]?.id
+    const [entityIdStr, setEntityIdStr] = useEntityFilter()
+    const selectedEntity = entityIdStr ? Number(entityIdStr) : entities[0]?.id
 
     const { data: beneficiaries = [] } = trpc.beneficiary.list.useQuery(
         { entityId: selectedEntity! },
@@ -83,7 +83,7 @@ export default function BequestsPage() {
     const loading = entitiesLoading || bequestsLoading
 
     // Track which bequest is being edited
-    const [editingBequestId, setEditingBequestId] = useState<string | null>(
+    const [editingBequestId, setEditingBequestId] = useState<number | null>(
         null,
     )
 
@@ -110,10 +110,12 @@ export default function BequestsPage() {
         onSubmit: async (data) => {
             if (!selectedEntity) return
             const payload = {
-                entityId: selectedEntity,
+                entityId: selectedEntity!,
                 description: data.description,
                 category: data.category || 'OTHER',
-                beneficiaryId: data.beneficiaryId || undefined,
+                beneficiaryId: data.beneficiaryId
+                    ? Number(data.beneficiaryId)
+                    : undefined,
                 recipientName: data.recipientName || undefined,
                 dateDistributed: data.dateDistributed || undefined,
                 notes: data.notes || undefined,
@@ -132,7 +134,7 @@ export default function BequestsPage() {
 
     const { formInstance } = bequestForm
 
-    const deleteBequest = async (id: string) => {
+    const deleteBequest = async (id: number) => {
         if (!confirm('Are you sure you want to delete this bequest?')) return
 
         try {
@@ -143,7 +145,7 @@ export default function BequestsPage() {
     }
 
     const updateBequest = async (
-        id: string,
+        id: number,
         updates: Partial<SpecificBequest>,
     ) => {
         await updateBequestMutation.mutateAsync({ id, data: updates })
@@ -165,7 +167,9 @@ export default function BequestsPage() {
         bequestForm.handleEdit({
             description: bequest.description,
             category: bequest.category || 'OTHER',
-            beneficiaryId: bequest.beneficiaryId || '',
+            beneficiaryId: bequest.beneficiaryId
+                ? String(bequest.beneficiaryId)
+                : '',
             recipientName: bequest.recipientName || '',
             dateDistributed: bequest.dateDistributed?.split('T')[0] || '',
             notes: bequest.notes || '',
@@ -190,15 +194,15 @@ export default function BequestsPage() {
                 </div>
                 <div className="flex items-center gap-2">
                     <Select
-                        value={selectedEntity || ''}
-                        onValueChange={(val) => setEntityId(val || null)}
+                        value={selectedEntity ? String(selectedEntity) : ''}
+                        onValueChange={(val) => setEntityIdStr(val || null)}
                     >
                         <SelectTrigger className="w-[250px]">
                             <SelectValue placeholder="Select Trust" />
                         </SelectTrigger>
                         <SelectContent>
                             {entities.map((e) => (
-                                <SelectItem key={e.id} value={e.id}>
+                                <SelectItem key={e.id} value={String(e.id)}>
                                     {e.name}
                                 </SelectItem>
                             ))}
@@ -557,7 +561,10 @@ export default function BequestsPage() {
                                             None
                                         </SelectItem>
                                         {beneficiaries.map((b) => (
-                                            <SelectItem key={b.id} value={b.id}>
+                                            <SelectItem
+                                                key={b.id}
+                                                value={String(b.id)}
+                                            >
                                                 {b.firstName} {b.lastName}
                                             </SelectItem>
                                         ))}

@@ -63,7 +63,7 @@ import { cn } from '@/lib/utils'
 import { calculateAge, formatCurrency, formatDate } from '@/utils/formatters'
 
 interface Distribution {
-    id: string
+    id: number
     distributionDate: string
     amount: string
     paymentMethod: string
@@ -172,7 +172,7 @@ export default function BeneficiariesPage() {
     })
 
     const updateBeneficiary = async (
-        id: string,
+        id: number,
         data: Partial<Beneficiary>,
     ) => {
         return await updateBeneficiaryMutation.mutateAsync({ id, data })
@@ -626,7 +626,7 @@ function BeneficiaryDialogContent({
 }: {
     beneficiary: BeneficiaryWithDistributions
     updateBeneficiary: (
-        id: string,
+        id: number,
         data: Partial<Beneficiary>,
     ) => Promise<unknown>
     setSelectedBeneficiary: (b: BeneficiaryWithDistributions | null) => void

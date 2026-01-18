@@ -124,12 +124,13 @@ export async function getAuthenticatedSession(email: string): Promise<{
 
 /**
  * Create a test user in the database
+ * Note: Better Auth user table still uses TEXT ids
  */
 export async function createTestUser(options: {
     email: string
     name: string
     role: 'admin' | 'beneficiary'
-    beneficiaryId?: string
+    beneficiaryId?: number
 }) {
     const userId = generateId()
 
@@ -167,29 +168,32 @@ export async function createTestSession(userId: string) {
 
 /**
  * Create a test beneficiary in the database
+ * Note: beneficiary table now uses BIGINT IDENTITY for id
  */
 export async function createTestBeneficiary(options: {
-    entityId: string
+    entityId: number
     firstName: string
     lastName: string
     email: string
 }) {
-    const beneficiaryId = generateId()
     const now = new Date().toISOString()
 
-    await db.insert(beneficiary).values({
-        id: beneficiaryId,
-        entityId: options.entityId,
-        firstName: options.firstName,
-        lastName: options.lastName,
-        email: options.email,
-        relationship: 'CHILD',
-        sharePercent: '0.25',
-        updatedAt: now,
-        // createdAt has default
-    })
+    const [created] = await db
+        .insert(beneficiary)
+        .values({
+            entityId: options.entityId,
+            firstName: options.firstName,
+            lastName: options.lastName,
+            email: options.email,
+            relationship: 'CHILD',
+            sharePercent: '0.25',
+            updatedAt: now,
+            // createdAt has default, id is auto-generated
+        })
+        .returning()
 
-    return beneficiaryId
+    if (!created) throw new Error('Failed to create test beneficiary')
+    return created.id
 }
 
 /**
@@ -221,7 +225,7 @@ export async function cleanupTestAuth(userIds: string[]) {
 /**
  * Clean up test beneficiaries
  */
-export async function cleanupTestBeneficiaries(beneficiaryIds: string[]) {
+export async function cleanupTestBeneficiaries(beneficiaryIds: number[]) {
     if (beneficiaryIds.length === 0) return
 
     for (const beneficiaryId of beneficiaryIds) {

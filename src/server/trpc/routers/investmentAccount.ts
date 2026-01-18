@@ -26,13 +26,18 @@ export const investmentAccountRouter = createTRPCRouter({
 
     update: adminProcedure
         .input(
-            z.object({ id: z.coerce.number(), data: updateInvestmentAccountSchema }),
+            z.object({
+                id: z.coerce.number(),
+                data: updateInvestmentAccountSchema,
+            }),
         )
         .mutation(async ({ input }) => {
             return investmentAccountCrud.update(input.id, input.data)
         }),
 
-    delete: adminProcedure.input(z.coerce.number()).mutation(async ({ input }) => {
-        return investmentAccountCrud.delete(input)
-    }),
+    delete: adminProcedure
+        .input(z.coerce.number())
+        .mutation(async ({ input }) => {
+            return investmentAccountCrud.delete(input)
+        }),
 })

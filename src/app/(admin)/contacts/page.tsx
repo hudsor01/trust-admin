@@ -118,7 +118,7 @@ export default function ContactsPage() {
     const [selectedContact, setSelectedContact] = useState<Contact | null>(null)
 
     const contactForm = useResourceForm<Contact>({
-        initialData: { ...contactFormDefaults(), id: '', dob: null } as Contact,
+        initialData: { ...contactFormDefaults(), id: 0, dob: null } as Contact,
         onSubmit: async (data) => {
             const payload = {
                 name: data.name,

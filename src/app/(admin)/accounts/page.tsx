@@ -97,10 +97,10 @@ function maskAccountNumber(num: string | null): string {
 // Bank Accounts column configuration
 const createBankAccountColumns = (
     updateBankAccount: (
-        id: string,
+        id: number,
         data: Partial<BankAccount>,
     ) => Promise<void>,
-    handleDeleteBank: (id: string) => void,
+    handleDeleteBank: (id: number) => void,
 ): ColumnDef<BankAccount>[] => [
     {
         key: 'institution',
@@ -214,10 +214,10 @@ const createBankAccountColumns = (
 // Investment Accounts column configuration
 const createInvestmentAccountColumns = (
     updateInvestmentAccount: (
-        id: string,
+        id: number,
         data: Partial<InvestmentAccount>,
     ) => Promise<void>,
-    handleDeleteInvestment: (id: string) => void,
+    handleDeleteInvestment: (id: number) => void,
 ): ColumnDef<InvestmentAccount>[] => [
     {
         key: 'institution',
@@ -350,8 +350,8 @@ export default function AccountsPage() {
     // Use tRPC for data fetching
     const { data: entities = [], isLoading: entitiesLoading } =
         trpc.entity.list.useQuery()
-    const [entityId, setEntityId] = useEntityFilter()
-    const selectedEntity = entityId || entities[0]?.id
+    const [entityIdStr, setEntityIdStr] = useEntityFilter()
+    const selectedEntity = entityIdStr ? Number(entityIdStr) : entities[0]?.id
     const [activeTab, setActiveTab] = useState('bank')
 
     const queryEnabled = !!selectedEntity
@@ -392,20 +392,20 @@ export default function AccountsPage() {
 
     // Wrapper functions to match inline cell API
     const updateBankAccount = async (
-        id: string,
+        id: number,
         data: Partial<BankAccount>,
     ) => {
         await updateBankAccountMutation.mutateAsync({ id, data })
     }
     const updateInvestmentAccount = async (
-        id: string,
+        id: number,
         data: Partial<InvestmentAccount>,
     ) => {
         await updateInvestmentAccountMutation.mutateAsync({ id, data })
     }
 
     // Bank Account Dialog - useResourceForm hook
-    const [editingBankId, setEditingBankId] = useState<string | null>(null)
+    const [editingBankId, setEditingBankId] = useState<number | null>(null)
 
     const bankForm = useResourceForm<BankFormData>({
         initialData: bankAccountFormDefaults(),
@@ -438,7 +438,7 @@ export default function AccountsPage() {
 
     // Investment Account Dialog - useResourceForm hook
     const [editingInvestmentId, setEditingInvestmentId] = useState<
-        string | null
+        number | null
     >(null)
 
     const investmentForm = useResourceForm<InvestmentFormData>({
@@ -510,7 +510,7 @@ export default function AccountsPage() {
         })
     }
 
-    const handleDeleteBank = async (id: string) => {
+    const handleDeleteBank = async (id: number) => {
         if (!confirm('Are you sure you want to delete this bank account?'))
             return
         try {
@@ -520,7 +520,7 @@ export default function AccountsPage() {
         }
     }
 
-    const handleDeleteInvestment = async (id: string) => {
+    const handleDeleteInvestment = async (id: number) => {
         if (
             !confirm('Are you sure you want to delete this investment account?')
         )
@@ -568,15 +568,15 @@ export default function AccountsPage() {
                     </p>
                 </div>
                 <Select
-                    value={selectedEntity || undefined}
-                    onValueChange={(val) => setEntityId(val || null)}
+                    value={selectedEntity?.toString() || undefined}
+                    onValueChange={(val) => setEntityIdStr(val || null)}
                 >
                     <SelectTrigger className="w-[280px]">
                         <SelectValue placeholder="Select entity" />
                     </SelectTrigger>
                     <SelectContent>
                         {entities.map((e) => (
-                            <SelectItem key={e.id} value={e.id}>
+                            <SelectItem key={e.id} value={e.id.toString()}>
                                 {e.name}
                             </SelectItem>
                         ))}

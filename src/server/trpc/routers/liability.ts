@@ -67,9 +67,11 @@ export const liabilityRouter = createTRPCRouter({
             return liabilityCrud.update(input.id, input.data)
         }),
 
-    delete: adminProcedure.input(z.coerce.number()).mutation(async ({ input }) => {
-        return liabilityCrud.delete(input)
-    }),
+    delete: adminProcedure
+        .input(z.coerce.number())
+        .mutation(async ({ input }) => {
+            return liabilityCrud.delete(input)
+        }),
 
     // Special: Bulk create multiple liabilities at once
     bulkCreate: adminProcedure
@@ -120,9 +122,11 @@ export const liabilityRouter = createTRPCRouter({
         }),
 
     // Special: Get payments for a liability
-    getPayments: adminProcedure.input(z.coerce.number()).query(async ({ input }) => {
-        return getLiabilityPayments(input)
-    }),
+    getPayments: adminProcedure
+        .input(z.coerce.number())
+        .query(async ({ input }) => {
+            return getLiabilityPayments(input)
+        }),
 
     // Special: Get payoff projection for a liability
     getPayoffProjection: adminProcedure

@@ -110,7 +110,7 @@ export default function DashboardPage() {
     // Local UI state
     const [newTaskTitle, setNewTaskTitle] = useState('')
     const [newTaskCategory, setNewTaskCategory] = useState('OTHER')
-    const [expandedTask, setExpandedTask] = useState<string | null>(null)
+    const [expandedTask, setExpandedTask] = useState<number | null>(null)
 
     const toggleTask = async (task: (typeof tasks)[number]) => {
         try {
@@ -138,7 +138,7 @@ export default function DashboardPage() {
         }
     }
 
-    const updateTaskNotes = async (taskId: string, notes: string) => {
+    const updateTaskNotes = async (taskId: number, notes: string) => {
         try {
             await updateTaskMutation.mutateAsync({
                 id: taskId,

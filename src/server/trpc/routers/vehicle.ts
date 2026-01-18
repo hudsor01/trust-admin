@@ -30,7 +30,9 @@ export const vehicleRouter = createTRPCRouter({
             return vehicleCrud.update(input.id, input.data)
         }),
 
-    delete: adminProcedure.input(z.coerce.number()).mutation(async ({ input }) => {
-        return vehicleCrud.delete(input)
-    }),
+    delete: adminProcedure
+        .input(z.coerce.number())
+        .mutation(async ({ input }) => {
+            return vehicleCrud.delete(input)
+        }),
 })

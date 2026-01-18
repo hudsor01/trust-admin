@@ -134,7 +134,7 @@ export const selectContactSchema = createSelectSchema(contact)
 export const insertContactAssociationSchema = createInsertSchema(
     contactAssociation,
     {
-            createdAt: (schema) => schema.optional(),
+        createdAt: (schema) => schema.optional(),
     },
 )
 export const selectContactAssociationSchema =
@@ -187,7 +187,7 @@ export const selectInsurancePolicySchema = createSelectSchema(insurancePolicy)
 export const insertInvestmentAccountSchema = createInsertSchema(
     investmentAccount,
     {
-            createdAt: (schema) => schema.optional(),
+        createdAt: (schema) => schema.optional(),
         updatedAt: (schema) => schema.optional(),
     },
 )
@@ -223,7 +223,7 @@ export const selectLiabilitySchema = createSelectSchema(liability)
 export const insertLiabilityPaymentSchema = createInsertSchema(
     liabilityPayment,
     {
-            createdAt: (schema) => schema.optional(),
+        createdAt: (schema) => schema.optional(),
     },
 )
 export const selectLiabilityPaymentSchema = createSelectSchema(liabilityPayment)
@@ -231,7 +231,7 @@ export const selectLiabilityPaymentSchema = createSelectSchema(liabilityPayment)
 export const insertPersonalPropertySchema = createInsertSchema(
     personalProperty,
     {
-            createdAt: (schema) => schema.optional(),
+        createdAt: (schema) => schema.optional(),
         updatedAt: (schema) => schema.optional(),
     },
 )
@@ -289,7 +289,7 @@ export const selectTrusteeFeeEntrySchema = createSelectSchema(trusteeFeeEntry)
 export const insertTrusteeFeeScheduleSchema = createInsertSchema(
     trusteeFeeSchedule,
     {
-            createdAt: (schema) => schema.optional(),
+        createdAt: (schema) => schema.optional(),
     },
 )
 export const selectTrusteeFeeScheduleSchema =
@@ -312,7 +312,7 @@ export const selectVehicleSchema = createSelectSchema(vehicle)
 export const insertWithdrawalRecordSchema = createInsertSchema(
     withdrawalRecord,
     {
-            createdAt: (schema) => schema.optional(),
+        createdAt: (schema) => schema.optional(),
         updatedAt: (schema) => schema.optional(),
     },
 )

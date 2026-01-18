@@ -188,7 +188,7 @@ export function CommandPalette() {
                                             )
                                             url.searchParams.set(
                                                 'entity',
-                                                entity.id,
+                                                entity.id.toString(),
                                             )
                                             router.push(
                                                 url.pathname + url.search,

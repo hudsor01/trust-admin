@@ -34,7 +34,9 @@ export const documentRouter = createTRPCRouter({
             return documentCrud.update(input.id, input.data)
         }),
 
-    delete: adminProcedure.input(z.coerce.number()).mutation(async ({ input }) => {
-        return documentCrud.delete(input)
-    }),
+    delete: adminProcedure
+        .input(z.coerce.number())
+        .mutation(async ({ input }) => {
+            return documentCrud.delete(input)
+        }),
 })

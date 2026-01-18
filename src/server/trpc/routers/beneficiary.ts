@@ -42,14 +42,18 @@ export const beneficiaryRouter = createTRPCRouter({
         }),
 
     update: adminProcedure
-        .input(z.object({ id: z.coerce.number(), data: updateBeneficiarySchema }))
+        .input(
+            z.object({ id: z.coerce.number(), data: updateBeneficiarySchema }),
+        )
         .mutation(async ({ input }) => {
             return beneficiaryCrud.update(input.id, input.data)
         }),
 
-    delete: adminProcedure.input(z.coerce.number()).mutation(async ({ input }) => {
-        return beneficiaryCrud.delete(input)
-    }),
+    delete: adminProcedure
+        .input(z.coerce.number())
+        .mutation(async ({ input }) => {
+            return beneficiaryCrud.delete(input)
+        }),
 
     // Portal: Get own beneficiary data
     me: beneficiaryProcedure.query(async ({ ctx }) => {

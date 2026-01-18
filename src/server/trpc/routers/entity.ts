@@ -28,7 +28,9 @@ export const entityRouter = createTRPCRouter({
             return entityCrud.update(input.id, input.data)
         }),
 
-    delete: adminProcedure.input(z.coerce.number()).mutation(async ({ input }) => {
-        return entityCrud.delete(input)
-    }),
+    delete: adminProcedure
+        .input(z.coerce.number())
+        .mutation(async ({ input }) => {
+            return entityCrud.delete(input)
+        }),
 })

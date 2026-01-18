@@ -34,8 +34,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { trpc } from '@/lib/trpc'
 
 interface HemsRequestFormProps {
-    beneficiaryId: string
-    entityId: string
+    beneficiaryId: number
+    entityId: number
     onSuccess: () => void
     onCancel: () => void
 }

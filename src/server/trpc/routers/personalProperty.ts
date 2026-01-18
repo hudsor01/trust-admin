@@ -25,12 +25,19 @@ export const personalPropertyRouter = createTRPCRouter({
         }),
 
     update: adminProcedure
-        .input(z.object({ id: z.coerce.number(), data: updatePersonalPropertySchema }))
+        .input(
+            z.object({
+                id: z.coerce.number(),
+                data: updatePersonalPropertySchema,
+            }),
+        )
         .mutation(async ({ input }) => {
             return personalPropertyCrud.update(input.id, input.data)
         }),
 
-    delete: adminProcedure.input(z.coerce.number()).mutation(async ({ input }) => {
-        return personalPropertyCrud.delete(input)
-    }),
+    delete: adminProcedure
+        .input(z.coerce.number())
+        .mutation(async ({ input }) => {
+            return personalPropertyCrud.delete(input)
+        }),
 })

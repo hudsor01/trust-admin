@@ -515,18 +515,21 @@ export async function recordLiabilityPayment(data: RecordPaymentData) {
         : Math.max(0, currentBalance - paymentAmount)
 
     // 3. Create the payment record
-    const [payment] = await db.insert(liabilityPayment).values({
-        liabilityId: data.liabilityId,
-        paymentDate: data.paymentDate,
-        amount: data.amount,
-        principalPortion,
-        interestPortion,
-        escrowPortion,
-        paymentMethod: data.paymentMethod || null,
-        checkNumber: data.checkNumber || null,
-        confirmationNumber: data.confirmationNumber || null,
-        notes: data.notes || null,
-    }).returning()
+    const [payment] = await db
+        .insert(liabilityPayment)
+        .values({
+            liabilityId: data.liabilityId,
+            paymentDate: data.paymentDate,
+            amount: data.amount,
+            principalPortion,
+            interestPortion,
+            escrowPortion,
+            paymentMethod: data.paymentMethod || null,
+            checkNumber: data.checkNumber || null,
+            confirmationNumber: data.confirmationNumber || null,
+            notes: data.notes || null,
+        })
+        .returning()
     if (!payment) throw new Error('Failed to create payment record')
 
     // 3. Update the liability's current balance
@@ -554,24 +557,28 @@ export async function recordLiabilityPayment(data: RecordPaymentData) {
         const expenseType =
             liabilityRecord.liabilityType === 'TAX_OWED' ? 'TAX' : 'OTHER'
 
-        const [entry] = await db.insert(trustAccounting).values({
-            entityId: liabilityRecord.entityId,
-            accountingDate: data.paymentDate,
-            entryType: 'EXPENSE',
-            expenseType,
-            amount: data.amount,
-            description: expenseDescription,
-            bankAccountId: data.bankAccountId,
-            isPrincipal,
-            taxDeductible:
-                liabilityRecord.liabilityType === 'MORTGAGE' ||
-                liabilityRecord.liabilityType === 'TAX_OWED',
-            checkNumber: data.checkNumber || data.confirmationNumber || null,
-            fiscalYear: new Date(data.paymentDate).getFullYear(),
-            sourceAssetType: 'LIABILITY',
-            sourceAssetId: data.liabilityId,
-            updatedAt: new Date().toISOString(),
-        }).returning()
+        const [entry] = await db
+            .insert(trustAccounting)
+            .values({
+                entityId: liabilityRecord.entityId,
+                accountingDate: data.paymentDate,
+                entryType: 'EXPENSE',
+                expenseType,
+                amount: data.amount,
+                description: expenseDescription,
+                bankAccountId: data.bankAccountId,
+                isPrincipal,
+                taxDeductible:
+                    liabilityRecord.liabilityType === 'MORTGAGE' ||
+                    liabilityRecord.liabilityType === 'TAX_OWED',
+                checkNumber:
+                    data.checkNumber || data.confirmationNumber || null,
+                fiscalYear: new Date(data.paymentDate).getFullYear(),
+                sourceAssetType: 'LIABILITY',
+                sourceAssetId: data.liabilityId,
+                updatedAt: new Date().toISOString(),
+            })
+            .returning()
         if (!entry) throw new Error('Failed to create accounting entry')
 
         accountingEntry = { id: entry.id }
@@ -824,19 +831,22 @@ export async function convertIncomeToPrincipal(
     const now = new Date().toISOString()
 
     // 3. Create a principal entry for the converted income
-    const [principalEntry] = await db.insert(trustAccounting).values({
-        entityId,
-        accountingDate: now,
-        entryType: 'INCOME', // It's still income, but now classified as principal
-        incomeType: 'INCOME_TO_PRINCIPAL_CONVERSION',
-        amount: totalIncome.toFixed(2),
-        description: `FY${fiscalYear} undistributed income added to principal per Trust Section 7.10(c)`,
-        bankAccountId,
-        isPrincipal: true, // Now treated as principal
-        fiscalYear,
-        notes: `Converted ${incomeEntries.length} income entries totaling $${totalIncome.toFixed(2)}`,
-        updatedAt: now,
-    }).returning()
+    const [principalEntry] = await db
+        .insert(trustAccounting)
+        .values({
+            entityId,
+            accountingDate: now,
+            entryType: 'INCOME', // It's still income, but now classified as principal
+            incomeType: 'INCOME_TO_PRINCIPAL_CONVERSION',
+            amount: totalIncome.toFixed(2),
+            description: `FY${fiscalYear} undistributed income added to principal per Trust Section 7.10(c)`,
+            bankAccountId,
+            isPrincipal: true, // Now treated as principal
+            fiscalYear,
+            notes: `Converted ${incomeEntries.length} income entries totaling $${totalIncome.toFixed(2)}`,
+            updatedAt: now,
+        })
+        .returning()
     if (!principalEntry) throw new Error('Failed to create principal entry')
 
     // 4. Mark all the original income entries as converted

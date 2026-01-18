@@ -30,7 +30,9 @@ export const trusteeRouter = createTRPCRouter({
             return trusteeCrud.update(input.id, input.data)
         }),
 
-    delete: adminProcedure.input(z.coerce.number()).mutation(async ({ input }) => {
-        return trusteeCrud.delete(input)
-    }),
+    delete: adminProcedure
+        .input(z.coerce.number())
+        .mutation(async ({ input }) => {
+            return trusteeCrud.delete(input)
+        }),
 })

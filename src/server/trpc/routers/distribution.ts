@@ -32,14 +32,18 @@ export const distributionRouter = createTRPCRouter({
         }),
 
     update: adminProcedure
-        .input(z.object({ id: z.coerce.number(), data: updateDistributionSchema }))
+        .input(
+            z.object({ id: z.coerce.number(), data: updateDistributionSchema }),
+        )
         .mutation(async ({ input }) => {
             return distributionCrud.update(input.id, input.data)
         }),
 
-    delete: adminProcedure.input(z.coerce.number()).mutation(async ({ input }) => {
-        return distributionCrud.delete(input)
-    }),
+    delete: adminProcedure
+        .input(z.coerce.number())
+        .mutation(async ({ input }) => {
+            return distributionCrud.delete(input)
+        }),
 
     // Portal: Beneficiary views their distributions
     myDistributions: beneficiaryProcedure.query(async ({ ctx }) => {

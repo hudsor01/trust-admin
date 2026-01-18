@@ -11,9 +11,9 @@ See: .planning/PROJECT.md (updated 2026-01-09)
 ## Current Position
 
 Phase: 23 of 40 (PK Type Migration)
-Plan: 01 complete
-Status: Ready for Phase 23-02 (Validation Layer)
-Last activity: 2026-01-17 - Phase 23-01 completed (BIGINT IDENTITY PKs)
+Plan: 02 complete
+Status: Ready for Phase 23-03 (Application Layer)
+Last activity: 2026-01-17 - Phase 23-02 completed (Validation Layer)
 
 Progress: █████████░░░░░░░░░░ 6/7 v3.0 plans complete
 
@@ -38,6 +38,15 @@ Progress: █████████░░░░░░░░░░ 6/7 v3.0 pla
 - Pattern: FKs must match PK type - `bigint({ mode: 'number' })` for all
 - Decision: recordId in ActivityLog stays text (polymorphic to Better Auth tables)
 - Note: 303 TypeScript errors expected - to be fixed in subsequent plans
+
+**23-02 Completed (Validation Layer):**
+- ✅ Removed 27 id refinements from insert schemas (IDENTITY auto-excludes)
+- ✅ Updated all tRPC router inputs to z.coerce.number() for IDs
+- ✅ Converted FK inputs: entityId, beneficiaryId, liabilityId, bankAccountId
+- ✅ Commit: 924f0c8
+- ✅ Reduced TypeScript errors from 303 to 278
+- Pattern: z.coerce.number() handles string→number conversion for URL params
+- Note: Remaining errors in CRUD layer (23-03 scope)
 
 ### v3.0 Phase 22 COMPLETE (Nullable FK Business Logic Review):
 
@@ -276,7 +285,7 @@ Progress: █████████░░░░░░░░░░ 6/7 v3.0 pla
 ## Session Continuity
 
 Last session: 2026-01-17
-Stopped at: Completed Phase 23-01 (BIGINT IDENTITY PKs)
+Stopped at: Completed Phase 23-02 (Validation Layer)
 Resume file: None
 
 ## Milestone History

@@ -402,8 +402,9 @@ export default function LiabilitiesPage() {
 
     const { data: entities = [], isLoading: entitiesLoading } =
         trpc.entity.list.useQuery()
-    const [entityId, setEntityId] = useEntityFilter()
-    const selectedEntity = entityId || entities[0]?.id
+    const [entityIdStr, setEntityIdStr] = useEntityFilter()
+    // Convert string entityId from URL to number for API calls
+    const selectedEntity = entityIdStr ? Number(entityIdStr) : entities[0]?.id
 
     const queryEnabled = !!selectedEntity
 
@@ -460,11 +461,11 @@ export default function LiabilitiesPage() {
     })
 
     // Wrapper function to match inline cell API
-    const updateLiability = async (id: string, data: Partial<Liability>) => {
+    const updateLiability = async (id: number, data: Partial<Liability>) => {
         await updateLiabilityMutation.mutateAsync({ id, data })
     }
 
-    const [editingLiabilityId, setEditingLiabilityId] = useState<string | null>(
+    const [editingLiabilityId, setEditingLiabilityId] = useState<number | null>(
         null,
     )
     const [bulkMode, setBulkMode] = useState(false)
@@ -521,7 +522,7 @@ export default function LiabilitiesPage() {
 
     const { formInstance: liabilityFormInstance } = liabilityForm
 
-    const [payingLiabilityId, setPayingLiabilityId] = useState<string | null>(
+    const [payingLiabilityId, setPayingLiabilityId] = useState<number | null>(
         null,
     )
 
@@ -580,7 +581,7 @@ export default function LiabilitiesPage() {
         })
     }
 
-    const handleDelete = async (id: string) => {
+    const handleDelete = async (id: number) => {
         if (!confirm('Are you sure you want to delete this liability?')) return
         try {
             await deleteLiabilityMutation.mutateAsync(id)
@@ -592,7 +593,7 @@ export default function LiabilitiesPage() {
     const openPaymentDialog = (l: Liability) => {
         setPayingLiabilityId(l.id)
         // Default to first bank account if available
-        const defaultBankAccountId = bankAccounts[0]?.id || ''
+        const defaultBankAccountId = bankAccounts[0]?.id?.toString() || ''
         paymentForm.handleEdit({
             paymentDate: new Date().toISOString().split('T')[0] ?? '',
             amount: l.monthlyPayment?.toString() || '',
@@ -825,15 +826,15 @@ export default function LiabilitiesPage() {
                     </p>
                 </div>
                 <Select
-                    value={selectedEntity || undefined}
-                    onValueChange={(val) => setEntityId(val || null)}
+                    value={selectedEntity?.toString() || undefined}
+                    onValueChange={(val) => setEntityIdStr(val || null)}
                 >
                     <SelectTrigger className="w-[280px]">
                         <SelectValue placeholder="Select entity" />
                     </SelectTrigger>
                     <SelectContent>
                         {entities.map((e) => (
-                            <SelectItem key={e.id} value={e.id}>
+                            <SelectItem key={e.id} value={e.id.toString()}>
                                 {e.name}
                             </SelectItem>
                         ))}
@@ -1650,9 +1651,7 @@ export default function LiabilitiesPage() {
                                                                     key={
                                                                         account.id
                                                                     }
-                                                                    value={
-                                                                        account.id
-                                                                    }
+                                                                    value={account.id.toString()}
                                                                 >
                                                                     {
                                                                         account.institution
