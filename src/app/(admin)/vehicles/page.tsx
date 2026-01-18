@@ -35,6 +35,7 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip'
 import type { Vehicle } from '@/db/schema'
+import { useCrudMutations } from '@/hooks/use-crud-mutations'
 import { useEntityFilter } from '@/hooks/use-entity-filter'
 import { useResourceForm } from '@/hooks/use-resource-form'
 import {
@@ -64,8 +65,6 @@ const ASSET_STATUS = enumToOptions(RECORD_STATUS_VALUES, (v) =>
 )
 
 export default function VehiclesPage() {
-    const utils = trpc.useUtils()
-
     const { data: entities = [], isLoading: entitiesLoading } =
         trpc.entity.list.useQuery()
     const [entityIdStr, setEntityIdStr] = useEntityFilter()
@@ -77,15 +76,11 @@ export default function VehiclesPage() {
             { enabled: !!selectedEntity },
         )
 
-    const createVehicleMutation = trpc.vehicle.create.useMutation({
-        onSuccess: () => utils.vehicle.list.invalidate(),
-    })
-    const updateVehicleMutation = trpc.vehicle.update.useMutation({
-        onSuccess: () => utils.vehicle.list.invalidate(),
-    })
-    const deleteVehicleMutation = trpc.vehicle.delete.useMutation({
-        onSuccess: () => utils.vehicle.list.invalidate(),
-    })
+    const {
+        create: createVehicleMutation,
+        update: updateVehicleMutation,
+        delete: deleteVehicleMutation,
+    } = useCrudMutations('vehicle')
 
     const [searchQuery, setSearchQuery] = useState('')
 

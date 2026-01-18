@@ -35,6 +35,7 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip'
 import type { SpecificBequest } from '@/db/schema'
+import { useCrudMutations } from '@/hooks/use-crud-mutations'
 import { useEntityFilter } from '@/hooks/use-entity-filter'
 import { useResourceForm } from '@/hooks/use-resource-form'
 import { trpc } from '@/lib/trpc'
@@ -53,8 +54,6 @@ const BEQUEST_CATEGORIES = [
 ]
 
 export default function BequestsPage() {
-    const utils = trpc.useUtils()
-
     const { data: entities = [], isLoading: entitiesLoading } =
         trpc.entity.list.useQuery()
     const [entityIdStr, setEntityIdStr] = useEntityFilter()
@@ -70,15 +69,11 @@ export default function BequestsPage() {
             { enabled: !!selectedEntity },
         )
 
-    const createBequestMutation = trpc.specificBequest.create.useMutation({
-        onSuccess: () => utils.specificBequest.list.invalidate(),
-    })
-    const updateBequestMutation = trpc.specificBequest.update.useMutation({
-        onSuccess: () => utils.specificBequest.list.invalidate(),
-    })
-    const deleteBequestMutation = trpc.specificBequest.delete.useMutation({
-        onSuccess: () => utils.specificBequest.list.invalidate(),
-    })
+    const {
+        create: createBequestMutation,
+        update: updateBequestMutation,
+        delete: deleteBequestMutation,
+    } = useCrudMutations('specificBequest')
 
     const loading = entitiesLoading || bequestsLoading
 

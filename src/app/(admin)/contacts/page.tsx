@@ -56,6 +56,7 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip'
 import type { Contact } from '@/db/schema'
+import { useCrudMutations } from '@/hooks/use-crud-mutations'
 import { useResourceForm } from '@/hooks/use-resource-form'
 import { exportTablesInContainer } from '@/lib/csv'
 import { contactFormDefaults } from '@/lib/form-factory'
@@ -96,22 +97,14 @@ const ROLE_LABELS: Record<string, string> = {
 }
 
 export default function ContactsPage() {
-    const utils = trpc.useUtils()
-
     // Use tRPC hooks for data fetching
     const { data: contacts = [], isLoading } = trpc.contact.list.useQuery()
 
-    const createContactMutation = trpc.contact.create.useMutation({
-        onSuccess: () => utils.contact.list.invalidate(),
-    })
-
-    const updateContactMutation = trpc.contact.update.useMutation({
-        onSuccess: () => utils.contact.list.invalidate(),
-    })
-
-    const deleteContactMutation = trpc.contact.delete.useMutation({
-        onSuccess: () => utils.contact.list.invalidate(),
-    })
+    const {
+        create: createContactMutation,
+        update: updateContactMutation,
+        delete: deleteContactMutation,
+    } = useCrudMutations('contact')
 
     const [filter, setFilter] = useState<RoleFilter>('all')
     const [search, setSearch] = useState('')
