@@ -265,6 +265,11 @@ export const activityLog = pgTable(
         index('idx_activity_log_record_id').on(table.recordId),
         index('idx_activity_log_action').on(table.action),
         index('idx_activity_log_created_at').on(table.createdAt.desc()),
+        // Composite index for audit lookups by table+record
+        index('idx_activity_log_table_record').on(
+            table.tableName,
+            table.recordId,
+        ),
         // BRIN index for append-only sequential data
         index('idx_activity_log_created_at_brin').using(
             'brin',
@@ -1801,6 +1806,11 @@ export const liabilityPayment = pgTable(
     (table) => [
         index('idx_liability_payment_liability_id').on(table.liabilityId),
         index('idx_liability_payment_date').on(table.paymentDate.desc()),
+        // Composite index for payment history by liability
+        index('idx_liability_payment_liability_date').on(
+            table.liabilityId,
+            table.paymentDate.desc(),
+        ),
         foreignKey({
             columns: [table.liabilityId],
             foreignColumns: [liability.id],
@@ -1860,6 +1870,11 @@ export const hemsRequest = pgTable(
         index('idx_hems_request_entity_id').on(table.entityId),
         index('idx_hems_request_status').on(table.status),
         index('idx_hems_request_distribution_id').on(table.distributionId),
+        // Composite index for requests by beneficiary and status
+        index('idx_hems_request_beneficiary_status').on(
+            table.beneficiaryId,
+            table.status,
+        ),
         foreignKey({
             columns: [table.beneficiaryId],
             foreignColumns: [beneficiary.id],
