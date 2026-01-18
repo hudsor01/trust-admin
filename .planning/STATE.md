@@ -6,16 +6,16 @@ See: .planning/PROJECT.md (updated 2026-01-09)
 
 **Core value:** Reliable trust administration - The API works without silent failures, users see clear error messages, and the codebase is maintainable for ongoing development.
 
-**Current focus:** v4.0 Smart Liability Management - Phase 27 complete, Phase 28 next
+**Current focus:** v3.0 Database Schema Improvements - Phase 18 (Timestamp Migration)
 
 ## Current Position
 
-Phase: 28 of 29 (v4.0 Smart Liability Management)
-Plan: 1 of 1 in current phase
-Status: Phase complete
-Last activity: 2026-01-17 - Completed Phase 28 (progress visualization)
+Phase: 18 of 40 (Timestamp Migration to TIMESTAMPTZ)
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-01-17 - v4.0 milestone archived
 
-Progress: ██████████████░ 6/7 v4.0 plans complete (Phase 29 remaining)
+Progress: █████░░░░░░░░░░░░░░ 0/7 v3.0 plans complete
 
 ## Performance Metrics
 
@@ -24,6 +24,19 @@ Progress: ██████████████░ 6/7 v4.0 plans complete 
 - v2.0 plans completed: 4
 
 ## Accumulated Context
+
+### v4.0 Phase 29 COMPLETE (Payment Recording Integration):
+
+**29-01 Completed (Payment Recording UX Enhancement):**
+- ✅ Created `PaymentImpactPreview` component (~100 lines)
+- ✅ Real-time principal/interest/escrow breakdown using `calculatePaymentSplit()`
+- ✅ Estimated payoff date projection using `estimatePayoffDate()`
+- ✅ Contextual warnings: yellow (partial), green (extra), red (negative principal)
+- ✅ Enhanced post-save toast shows new balance
+- ✅ Skips calculation preview for revolving credit (credit cards)
+- Pattern: useDeferredValue + useMemo for smooth real-time calculation
+- Pattern: Interest rate conversion - DB stores "6.5", calculations need "0.065"
+- Pattern: 90% threshold for partial payment warning
 
 ### v4.0 Phase 28 COMPLETE (Progress Visualization):
 
@@ -203,7 +216,7 @@ Progress: ██████████████░ 6/7 v4.0 plans complete 
 ## Session Continuity
 
 Last session: 2026-01-17
-Stopped at: Completed Phase 28 (progress visualization), ready for Phase 29
+Stopped at: Completed Phase 29 (payment recording integration) - v4.0 MILESTONE COMPLETE
 Resume file: None
 
 ## Milestone History
@@ -212,6 +225,7 @@ Resume file: None
 |-----------|--------|-------|--------|---------|
 | v1.0 Code Quality & Reliability | 1-11 | 41 | ✅ Complete | 2026-01-09 |
 | v2.0 Next.js + tRPC Migration | 12-17 | 6 | ✅ Complete | 2026-01-16 |
-| v3.0 Database Schema Improvements | 18-24 | 7 | 🔜 Pending | - |
-| v4.0 Smart Liability Management | 25-29 | 5 | 🔜 Pending | - |
+| v3.0 Database Schema Improvements | 18-24 | 7 | 🚧 In Progress | - |
+| v4.0 Smart Liability Management | 25-29 | 7 | ✅ Complete | 2026-01-17 |
 | v5.0 Developer Experience & Observability | 30-35 | 6 | ✅ Complete | 2026-01-16 |
+| v6.0 React 19.2 Platform Optimizations | 36-40 | 5 | 🔜 Pending | - |

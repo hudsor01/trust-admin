@@ -10,11 +10,11 @@ Trust Admin application development roadmap. v1.0 focused on code quality and re
 
 ## Milestones
 
-- ✅ **v1.0 Code Quality & Reliability** - Phases 1-11 (shipped 2026-01-09)
-- ✅ **v2.0 Next.js + tRPC Migration** - Phases 12-17 (shipped 2026-01-16)
-- 🔜 **v3.0 Database Schema Improvements** - Phases 18-24 (pending)
-- 🔜 **v4.0 Smart Liability Management** - Phases 25-29 (pending)
-- ✅ **v5.0 Developer Experience & Observability** - Phases 30-35 (shipped 2026-01-16)
+- ✅ [v1.0 Code Quality & Reliability](milestones/v1.0-ROADMAP.md) - Phases 1-11 (shipped 2026-01-09)
+- ✅ [v2.0 Next.js + tRPC Migration](milestones/v2.0-ROADMAP.md) - Phases 12-17 (shipped 2026-01-16)
+- 🚧 **v3.0 Database Schema Improvements** - Phases 18-24 (in progress)
+- ✅ [v4.0 Smart Liability Management](milestones/v4.0-ROADMAP.md) - Phases 25-29 (shipped 2026-01-17)
+- ✅ [v5.0 Developer Experience & Observability](milestones/v5.0-ROADMAP.md) - Phases 30-35 (shipped 2026-01-16)
 - 🔜 **v6.0 React 19.2 Platform Optimizations** - Phases 36-40 (pending)
 
 ## Phases
@@ -702,24 +702,23 @@ These files can be copied directly with minimal changes:
 
 ---
 
-### 🔜 v4.0 Smart Liability Management (Pending v2.0 completion)
+<details>
+<summary>✅ v4.0 Smart Liability Management (Phases 25-29) - SHIPPED 2026-01-17</summary>
 
-**Milestone Goal:** Transform liability tracking from simple balance recording to intelligent loan management with automatic amortization calculations, payment tracking, and payoff projections. Make it easy to enter initial loan terms and have the system handle all calculations automatically.
+**Milestone Goal:** Transform liability tracking to intelligent loan management with automatic amortization calculations.
 
-**Why This Matters:**
-- Users currently have to manually calculate principal/interest splits
-- No visibility into loan progress or payoff timelines
-- Initial data entry is tedious for multiple liabilities
-- No differentiation between liability types (mortgage vs credit card vs auto loan)
+- [x] Phase 25: Loan Terms Schema & Calculation Engine (3/3 plans) - completed 2026-01-17
+- [x] Phase 26: Type-Aware Liability Form (1/1 plan) - completed 2026-01-17
+- [x] Phase 27: Bulk Entry Mode (1/1 plan) - completed 2026-01-17
+- [x] Phase 28: Progress Visualization & Dashboard (1/1 plan) - completed 2026-01-17
+- [x] Phase 29: Payment Recording Integration (1/1 plan) - completed 2026-01-17
 
-**User Experience Goals:**
-- Enter loan terms once, system calculates everything thereafter
-- Type-aware forms that show relevant fields only
-- Real-time feedback as data is entered
-- Visual progress indicators for each liability
-- Bulk entry mode for initial inventory
+See [v4.0 Archive](milestones/v4.0-ROADMAP.md) for full details.
 
----
+</details>
+
+<!--
+ARCHIVED: v4.0 Phase details moved to milestones/v4.0-ROADMAP.md
 
 #### Phase 25: Loan Terms Schema & Calculation Engine
 **Goal**: Add schema fields for loan terms and build backend amortization calculation logic
@@ -883,33 +882,30 @@ Plans:
 3. Handle edge cases (extra payments, partial, etc.)
 
 Plans:
-- [ ] 29-01: Payment recording integration
+- [x] 29-01: Payment recording integration
+
+-->
 
 ---
 
-### 🔜 v5.0 Developer Experience & Observability (Pending v2.0 completion)
+<details>
+<summary>✅ v5.0 Developer Experience & Observability (Phases 30-35) - SHIPPED 2026-01-16</summary>
 
-**Milestone Goal:** Add modern DX packages to improve URL state management, money calculations, data visualization, list performance, navigation UX, and error monitoring.
+**Milestone Goal:** Add modern DX packages for URL state, charts, virtualization, command palette, and error monitoring.
 
-**Why This Matters:**
-- Entity selection doesn't persist in URL (can't share links, back button doesn't work)
-- Money calculations use parseFloat() which causes floating point errors
-- Dashboard lacks visual insights (no charts for asset allocation, trends)
-- Large lists (accounting, activity log) could benefit from virtualization
-- No quick navigation for power users (⌘K command palette)
-- No production error monitoring after Sentry was removed
+- [x] Phase 30: nuqs URL State Management (1/1 plan) - completed 2026-01-16
+- [x] Phase 31: dinero.js Money Calculations (1/1 plan) - completed 2026-01-16
+- [x] Phase 32: recharts Dashboard Charts (1/1 plan) - completed 2026-01-16
+- [x] Phase 33: @tanstack/react-virtual List Virtualization (1/1 plan) - completed 2026-01-16
+- [x] Phase 34: cmdk Command Palette (1/1 plan) - completed 2026-01-16
+- [x] Phase 35: @sentry/nextjs Error Monitoring (1/1 plan) - completed 2026-01-16
 
-**Packages:**
-| Package | Purpose | Bundle Impact |
-|---------|---------|---------------|
-| nuqs | Type-safe URL state for Next.js | ~3KB |
-| dinero.js | Precise money calculations | ~5KB |
-| recharts | React charting library | ~40KB (tree-shakeable) |
-| @tanstack/react-virtual | List virtualization | ~10KB |
-| cmdk | Command palette (shadcn) | ~8KB |
-| @sentry/nextjs | Error monitoring | ~30KB |
+See [v5.0 Archive](milestones/v5.0-ROADMAP.md) for full details.
 
----
+</details>
+
+<!--
+ARCHIVED: v5.0 Phase details moved to milestones/v5.0-ROADMAP.md
 
 #### Phase 30: nuqs URL State Management
 **Goal**: Replace useState with URL-based state for entity selection across all admin pages
@@ -1032,6 +1028,8 @@ Plans:
 
 Plans:
 - [x] 35-01: Sentry error monitoring setup (completed 2026-01-16)
+
+-->
 
 ---
 
@@ -1238,7 +1236,7 @@ Plans:
 | 26. Type-Aware Liability Form | v4.0 | 1/1 | ✅ Complete | 2026-01-17 |
 | 27. Bulk Entry Mode | v4.0 | 1/1 | ✅ Complete | 2026-01-17 |
 | 28. Progress Visualization & Dashboard | v4.0 | 1/1 | ✅ Complete | 2026-01-17 |
-| 29. Payment Recording Integration | v4.0 | 0/1 | Not started | - |
+| 29. Payment Recording Integration | v4.0 | 1/1 | ✅ Complete | 2026-01-17 |
 | 30. nuqs URL State Management | v5.0 | 1/1 | ✅ Complete | 2026-01-16 |
 | 31. dinero.js Money Calculations | v5.0 | 1/1 | ✅ Complete | 2026-01-16 |
 | 32. recharts Dashboard Charts | v5.0 | 1/1 | ✅ Complete | 2026-01-16 |
