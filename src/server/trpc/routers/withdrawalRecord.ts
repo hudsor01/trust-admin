@@ -14,10 +14,7 @@ export const withdrawalRecordRouter = createTRPCRouter({
                 .optional(),
         )
         .query(async ({ input }) => {
-            const result = await withdrawalRecordCrud.getAll(
-                input?.beneficiaryId,
-            )
-            return Array.isArray(result) ? result : result.data
+            return withdrawalRecordCrud.getAllArray(input?.beneficiaryId)
         }),
 
     byId: adminProcedure.input(z.coerce.number()).query(async ({ input }) => {

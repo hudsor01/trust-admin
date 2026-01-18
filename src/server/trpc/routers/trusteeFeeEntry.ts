@@ -13,8 +13,7 @@ export const trusteeFeeEntryRouter = createTRPCRouter({
     list: adminProcedure
         .input(z.object({ entityId: z.coerce.number().optional() }).optional())
         .query(async ({ input }) => {
-            const result = await trusteeFeeEntryCrud.getAll(input?.entityId)
-            return Array.isArray(result) ? result : result.data
+            return trusteeFeeEntryCrud.getAllArray(input?.entityId)
         }),
 
     // List with schedule info

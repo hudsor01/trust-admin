@@ -14,8 +14,7 @@ export const documentRouter = createTRPCRouter({
     list: adminProcedure
         .input(z.object({ entityId: z.coerce.number().optional() }).optional())
         .query(async ({ input }) => {
-            const result = await documentCrud.getAll(input?.entityId)
-            return Array.isArray(result) ? result : result.data
+            return documentCrud.getAllArray(input?.entityId)
         }),
 
     byId: adminProcedure.input(z.coerce.number()).query(async ({ input }) => {

@@ -8,8 +8,7 @@ import { adminProcedure, createTRPCRouter } from '../index'
 
 export const entityRouter = createTRPCRouter({
     list: adminProcedure.query(async () => {
-        const result = await entityCrud.getAll()
-        return Array.isArray(result) ? result : result.data
+        return entityCrud.getAllArray()
     }),
 
     byId: adminProcedure.input(z.coerce.number()).query(async ({ input }) => {

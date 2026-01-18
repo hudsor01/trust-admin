@@ -8,8 +8,7 @@ import { adminProcedure, createTRPCRouter } from '../index'
 
 export const valuationRouter = createTRPCRouter({
     list: adminProcedure.query(async () => {
-        const result = await valuationCrud.getAll()
-        return Array.isArray(result) ? result : result.data
+        return valuationCrud.getAllArray()
     }),
 
     byId: adminProcedure.input(z.coerce.number()).query(async ({ input }) => {

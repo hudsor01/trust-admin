@@ -29,8 +29,7 @@ export const activityLogRouter = createTRPCRouter({
                 })
                 return Array.isArray(result) ? result : result.data
             }
-            const result = await activityLogCrud.getAll()
-            return Array.isArray(result) ? result : result.data
+            return activityLogCrud.getAllArray()
         }),
 
     byId: adminProcedure.input(z.coerce.number()).query(async ({ input }) => {

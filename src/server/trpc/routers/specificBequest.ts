@@ -10,8 +10,7 @@ export const specificBequestRouter = createTRPCRouter({
     list: adminProcedure
         .input(z.object({ entityId: z.coerce.number().optional() }).optional())
         .query(async ({ input }) => {
-            const result = await specificBequestCrud.getAll(input?.entityId)
-            return Array.isArray(result) ? result : result.data
+            return specificBequestCrud.getAllArray(input?.entityId)
         }),
 
     byId: adminProcedure.input(z.coerce.number()).query(async ({ input }) => {

@@ -12,8 +12,7 @@ export const liabilityPaymentRouter = createTRPCRouter({
             z.object({ liabilityId: z.coerce.number().optional() }).optional(),
         )
         .query(async ({ input }) => {
-            const result = await liabilityPaymentCrud.getAll(input?.liabilityId)
-            return Array.isArray(result) ? result : result.data
+            return liabilityPaymentCrud.getAllArray(input?.liabilityId)
         }),
 
     byId: adminProcedure.input(z.coerce.number()).query(async ({ input }) => {

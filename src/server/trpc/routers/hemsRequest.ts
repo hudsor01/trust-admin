@@ -25,8 +25,7 @@ export const hemsRequestRouter = createTRPCRouter({
                 .optional(),
         )
         .query(async ({ input }) => {
-            const result = await hemsRequestCrud.getAll(input?.beneficiaryId)
-            const data = Array.isArray(result) ? result : result.data
+            const data = await hemsRequestCrud.getAllArray(input?.beneficiaryId)
             if (input?.entityId) {
                 return data.filter((r) => r.entityId === input.entityId)
             }
@@ -127,7 +126,6 @@ export const hemsRequestRouter = createTRPCRouter({
         if (!ctx.user.beneficiaryId) {
             return []
         }
-        const result = await hemsRequestCrud.getAll(ctx.user.beneficiaryId)
-        return Array.isArray(result) ? result : result.data
+        return hemsRequestCrud.getAllArray(ctx.user.beneficiaryId)
     }),
 })

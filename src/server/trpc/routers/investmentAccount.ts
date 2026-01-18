@@ -10,8 +10,7 @@ export const investmentAccountRouter = createTRPCRouter({
     list: adminProcedure
         .input(z.object({ entityId: z.coerce.number().optional() }).optional())
         .query(async ({ input }) => {
-            const result = await investmentAccountCrud.getAll(input?.entityId)
-            return Array.isArray(result) ? result : result.data
+            return investmentAccountCrud.getAllArray(input?.entityId)
         }),
 
     byId: adminProcedure.input(z.coerce.number()).query(async ({ input }) => {

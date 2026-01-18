@@ -20,8 +20,7 @@ export const beneficiaryRouter = createTRPCRouter({
     list: adminProcedure
         .input(z.object({ entityId: z.coerce.number().optional() }).optional())
         .query(async ({ input }) => {
-            const result = await beneficiaryCrud.getAll(input?.entityId)
-            return Array.isArray(result) ? result : result.data
+            return beneficiaryCrud.getAllArray(input?.entityId)
         }),
 
     // Optimized query that includes distributions in a single query (avoids N+1)
