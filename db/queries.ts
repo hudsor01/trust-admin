@@ -219,7 +219,12 @@ export const deleteHomestead = homesteadCrud.delete
 export async function getHomesteadById(id: number) {
     return db.query.homestead.findFirst({
         where: eq(homestead.id, id),
-        with: { entity: true, valuations: true, documents: true },
+        with: {
+            entity: true,
+            valuations: true,
+            documents: true,
+            transactions: true,
+        },
     })
 }
 
@@ -266,23 +271,44 @@ export async function getBankAccountById(id: number) {
 }
 
 // =============================================================================
-// INVESTMENT ACCOUNT QUERIES
+// INVESTMENT ACCOUNT QUERIES (with custom getById for relations)
 // =============================================================================
 
 export const getInvestmentAccounts = investmentAccountCrud.getAll
-export const getInvestmentAccountById = investmentAccountCrud.getById
 export const createInvestmentAccount = investmentAccountCrud.create
 export const updateInvestmentAccount = investmentAccountCrud.update
 export const deleteInvestmentAccount = investmentAccountCrud.delete
 
+export async function getInvestmentAccountById(id: number) {
+    return db.query.investmentAccount.findFirst({
+        where: eq(investmentAccount.id, id),
+        with: {
+            entity: true,
+            valuations: true,
+            documents: true,
+        },
+    })
+}
+
 // =============================================================================
-// PERSONAL PROPERTY QUERIES
+// PERSONAL PROPERTY QUERIES (with custom getById for relations)
 // =============================================================================
 
 export const getPersonalProperties = personalPropertyCrud.getAll
 export const createPersonalProperty = personalPropertyCrud.create
 export const updatePersonalProperty = personalPropertyCrud.update
 export const deletePersonalProperty = personalPropertyCrud.delete
+
+export async function getPersonalPropertyById(id: number) {
+    return db.query.personalProperty.findFirst({
+        where: eq(personalProperty.id, id),
+        with: {
+            entity: true,
+            valuations: true,
+            documents: true,
+        },
+    })
+}
 
 // =============================================================================
 // VALUATION QUERIES
@@ -331,13 +357,24 @@ export const updateTask = taskCrud.update
 export const deleteTask = taskCrud.delete
 
 // =============================================================================
-// ARTWORK QUERIES
+// ARTWORK QUERIES (with custom getById for relations)
 // =============================================================================
 
 export const getArtworks = artworkCrud.getAll
 export const createArtwork = artworkCrud.create
 export const updateArtwork = artworkCrud.update
 export const deleteArtwork = artworkCrud.delete
+
+export async function getArtworkById(id: number) {
+    return db.query.artwork.findFirst({
+        where: eq(artwork.id, id),
+        with: {
+            entity: true,
+            valuations: true,
+            // Note: artwork doesn't have documents relation in schema
+        },
+    })
+}
 
 // =============================================================================
 // TRUSTEE QUERIES
