@@ -1,34 +1,9 @@
-import { z } from 'zod'
 import { taskCrud } from '../../../../db/queries'
 import { insertTaskSchema, updateTaskSchema } from '../../../../db/validation'
-import { adminProcedure, createTRPCRouter } from '../index'
+import { createCrudRouter } from '../index'
 
-export const taskRouter = createTRPCRouter({
-    list: adminProcedure
-        .input(z.object({ entityId: z.coerce.number().optional() }).optional())
-        .query(async ({ input }) => {
-            return taskCrud.getAllArray(input?.entityId)
-        }),
-
-    byId: adminProcedure.input(z.coerce.number()).query(async ({ input }) => {
-        return taskCrud.getById(input)
-    }),
-
-    create: adminProcedure
-        .input(insertTaskSchema)
-        .mutation(async ({ input }) => {
-            return taskCrud.create(input)
-        }),
-
-    update: adminProcedure
-        .input(z.object({ id: z.coerce.number(), data: updateTaskSchema }))
-        .mutation(async ({ input }) => {
-            return taskCrud.update(input.id, input.data)
-        }),
-
-    delete: adminProcedure
-        .input(z.coerce.number())
-        .mutation(async ({ input }) => {
-            return taskCrud.delete(input)
-        }),
+export const taskRouter = createCrudRouter({
+    crud: taskCrud,
+    insertSchema: insertTaskSchema,
+    updateSchema: updateTaskSchema,
 })

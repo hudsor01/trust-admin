@@ -117,29 +117,36 @@ export const beneficiaryProcedure = protectedProcedure.use(
  * - update: Update an existing record
  * - delete: Delete a record
  *
+ * Type inference works by passing the crud instance - TypeScript infers all types
+ * from the CRUD methods automatically.
+ *
  * @param config.crud - CRUD instance with getAllArray, getById, create, update, delete
  * @param config.insertSchema - Zod schema for create input validation
  * @param config.updateSchema - Zod schema for update input validation
  * @param config.getById - Optional custom getById function (for queries with relations)
  * @param config.listFilterKey - Optional custom filter key (default: 'entityId')
  */
-interface CrudRouterConfig<TInsert, TUpdate> {
+export function createCrudRouter<
+    TModel,
+    TInsert,
+    TUpdate,
+    TGetById = TModel | undefined,
+>(config: {
     crud: {
-        getAllArray: (filterId?: number) => Promise<unknown[]>
-        getById: (id: number) => Promise<unknown>
-        create: (data: TInsert) => Promise<unknown>
-        update: (id: number, data: TUpdate) => Promise<unknown>
-        delete: (id: number) => Promise<unknown>
+        getAllArray: (filterId?: number) => Promise<TModel[]>
+        getById: (id: number) => Promise<TModel | undefined>
+        create: (data: TInsert) => Promise<TModel>
+        update: (
+            id: number,
+            data: Partial<TInsert>,
+        ) => Promise<TModel | undefined>
+        delete: (id: number) => Promise<TModel | undefined>
     }
     insertSchema: z.ZodType<TInsert>
     updateSchema: z.ZodType<TUpdate>
-    getById?: (id: number) => Promise<unknown>
+    getById?: (id: number) => Promise<TGetById>
     listFilterKey?: string
-}
-
-export function createCrudRouter<TInsert, TUpdate>(
-    config: CrudRouterConfig<TInsert, TUpdate>,
-) {
+}) {
     const {
         crud,
         insertSchema,
@@ -165,7 +172,9 @@ export function createCrudRouter<TInsert, TUpdate>(
 
         byId: adminProcedure
             .input(z.coerce.number())
-            .query(async ({ input }) => (getById ?? crud.getById)(input)),
+            .query(async ({ input }) =>
+                getById ? getById(input) : crud.getById(input),
+            ),
 
         create: adminProcedure
             .input(insertSchema)
@@ -173,7 +182,9 @@ export function createCrudRouter<TInsert, TUpdate>(
 
         update: adminProcedure
             .input(z.object({ id: z.coerce.number(), data: updateSchema }))
-            .mutation(async ({ input }) => crud.update(input.id, input.data)),
+            .mutation(async ({ input }) =>
+                crud.update(input.id, input.data as Partial<TInsert>),
+            ),
 
         delete: adminProcedure
             .input(z.coerce.number())
