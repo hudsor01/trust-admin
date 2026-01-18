@@ -11,7 +11,7 @@ import {
     Plus,
 } from 'lucide-react'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useOptimistic, useState } from 'react'
 import { AssetAllocationChart } from '@/components/charts/asset-allocation-chart'
 import { NetWorthChart } from '@/components/charts/net-worth-chart'
 import { type ColumnDef, DataTable } from '@/components/data-table'
@@ -57,6 +57,16 @@ export default function DashboardPage() {
         trpc.entity.list.useQuery()
     const { data: tasks = [], isLoading: tasksLoading } =
         trpc.task.list.useQuery()
+
+    // Optimistic state for instant UI updates on task completion toggle
+    const [optimisticTasks, setOptimisticTask] = useOptimistic(
+        tasks,
+        (current, update: { id: number; completed: boolean }) =>
+            current.map((t) =>
+                t.id === update.id ? { ...t, completed: update.completed } : t,
+            ),
+    )
+
     const { data: beneficiaries = [], isLoading: beneficiariesLoading } =
         trpc.beneficiary.list.useQuery()
     const {
@@ -112,7 +122,9 @@ export default function DashboardPage() {
     const [newTaskCategory, setNewTaskCategory] = useState('OTHER')
     const [expandedTask, setExpandedTask] = useState<number | null>(null)
 
-    const toggleTask = async (task: (typeof tasks)[number]) => {
+    const toggleTask = async (task: (typeof optimisticTasks)[number]) => {
+        // Optimistic update - toggles instantly
+        setOptimisticTask({ id: task.id, completed: !task.completed })
         try {
             await updateTaskMutation.mutateAsync({
                 id: task.id,
@@ -130,7 +142,7 @@ export default function DashboardPage() {
             await createTaskMutation.mutateAsync({
                 title: newTaskTitle,
                 category: newTaskCategory,
-                sortOrder: tasks.length,
+                sortOrder: optimisticTasks.length,
             })
             setNewTaskTitle('')
         } catch (error) {
@@ -150,14 +162,14 @@ export default function DashboardPage() {
     }
 
     // Calculate task stats
-    const completedCount = tasks.filter((t) => t.completed).length
-    const totalCount = tasks.length
+    const completedCount = optimisticTasks.filter((t) => t.completed).length
+    const totalCount = optimisticTasks.length
     const progressPercent =
         totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0
 
     // Calculate overdue tasks
     const today = new Date()
-    const overdueTasks = tasks.filter((t) => {
+    const overdueTasks = optimisticTasks.filter((t) => {
         if (t.completed || !t.dueDate) return false
         return new Date(t.dueDate) < today
     })
@@ -165,7 +177,7 @@ export default function DashboardPage() {
     // Group tasks by category
     const groupedTasks = CATEGORIES.map((cat) => ({
         ...cat,
-        tasks: tasks
+        tasks: optimisticTasks
             .filter((t) => t.category === cat.value)
             .sort((a, b) => {
                 if (a.dueDate && b.dueDate) {
