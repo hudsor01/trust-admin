@@ -9,7 +9,7 @@ import {
     Table2,
     Trash2,
 } from 'lucide-react'
-import { useDeferredValue, useMemo, useState } from 'react'
+import { useDeferredValue, useMemo, useOptimistic, useState } from 'react'
 import { toast } from 'sonner'
 import {
     BulkEntryTable,
@@ -414,6 +414,17 @@ export default function LiabilitiesPage() {
             { enabled: queryEnabled },
         )
 
+    // Optimistic state for instant UI updates on payment recording
+    const [optimisticLiabilities, setOptimisticLiability] = useOptimistic(
+        liabilities,
+        (current, update: { id: number; newBalance: string }) =>
+            current.map((l) =>
+                l.id === update.id
+                    ? { ...l, currentBalance: update.newBalance }
+                    : l,
+            ),
+    )
+
     // Fetch bank accounts for payment form
     const { data: bankAccounts = [] } = trpc.bankAccount.list.useQuery(
         { entityId: selectedEntity },
@@ -531,6 +542,23 @@ export default function LiabilitiesPage() {
         onSubmit: async (data) => {
             if (!payingLiabilityId) return
 
+            // Calculate optimistic new balance
+            const liability = optimisticLiabilities.find(
+                (l) => l.id === payingLiabilityId,
+            )
+            if (liability) {
+                const currentBalance = parseFloat(
+                    liability.currentBalance ?? '0',
+                )
+                const paymentAmount = parseFloat(data.amount)
+                const newBalance = Math.max(
+                    0,
+                    currentBalance - paymentAmount,
+                ).toFixed(2)
+                // Optimistic update - shows instantly
+                setOptimisticLiability({ id: payingLiabilityId, newBalance })
+            }
+
             // Map CREDIT_CARD to OTHER since tRPC schema doesn't include it
             const paymentMethod =
                 data.paymentMethod === 'CREDIT_CARD'
@@ -623,10 +651,12 @@ export default function LiabilitiesPage() {
     }
 
     const totalLiabilities = sumStrings(
-        liabilities.map((l) => l.currentBalance),
+        optimisticLiabilities.map((l) => l.currentBalance),
     )
 
-    const activeLiabilities = liabilities.filter((l) => l.status === 'ACTIVE')
+    const activeLiabilities = optimisticLiabilities.filter(
+        (l) => l.status === 'ACTIVE',
+    )
     const totalActive = sumStrings(
         activeLiabilities.map((l) => l.currentBalance),
     )
@@ -881,7 +911,7 @@ export default function LiabilitiesPage() {
                                     Total Records
                                 </div>
                                 <div className="text-2xl font-bold">
-                                    {liabilities.length}
+                                    {optimisticLiabilities.length}
                                 </div>
                             </CardContent>
                         </Card>
@@ -942,7 +972,7 @@ export default function LiabilitiesPage() {
                             <div className="flex justify-center py-12">
                                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                             </div>
-                        ) : liabilities.length === 0 ? (
+                        ) : optimisticLiabilities.length === 0 ? (
                             <Card>
                                 <CardContent className="py-12">
                                     <p className="text-center text-muted-foreground">
@@ -954,7 +984,7 @@ export default function LiabilitiesPage() {
                         ) : (
                             <DataTable
                                 columns={liabilityColumns}
-                                data={liabilities}
+                                data={optimisticLiabilities}
                             />
                         ))}
                 </>
@@ -1519,7 +1549,7 @@ export default function LiabilitiesPage() {
             >
                 {payingLiabilityId &&
                     (() => {
-                        const payingLiability = liabilities.find(
+                        const payingLiability = optimisticLiabilities.find(
                             (l) => l.id === payingLiabilityId,
                         )
                         if (!payingLiability) return null
