@@ -1,5 +1,6 @@
 import { type SQL, sql } from 'drizzle-orm'
 import {
+    check,
     foreignKey,
     index,
     pgEnum,
@@ -959,6 +960,20 @@ export const valuation = pgTable(
         })
             .onUpdate('cascade')
             .onDelete('set null'),
+        // Polymorphic constraint: exactly one FK must be set
+        check(
+            'valuation_single_asset_check',
+            sql`(
+                (CASE WHEN ${table.vehicleId} IS NOT NULL THEN 1 ELSE 0 END +
+                 CASE WHEN ${table.homesteadId} IS NOT NULL THEN 1 ELSE 0 END +
+                 CASE WHEN ${table.rentalPropertyId} IS NOT NULL THEN 1 ELSE 0 END +
+                 CASE WHEN ${table.bankAccountId} IS NOT NULL THEN 1 ELSE 0 END +
+                 CASE WHEN ${table.investmentAccountId} IS NOT NULL THEN 1 ELSE 0 END +
+                 CASE WHEN ${table.personalPropertyId} IS NOT NULL THEN 1 ELSE 0 END +
+                 CASE WHEN ${table.artworkId} IS NOT NULL THEN 1 ELSE 0 END
+                ) = 1
+            )`,
+        ),
     ],
 )
 
