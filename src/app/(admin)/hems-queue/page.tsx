@@ -14,7 +14,7 @@ import {
     Loader2,
     XCircle,
 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useMemo, useOptimistic, useState } from 'react'
 import { type ColumnDef, DataTable } from '@/components/data-table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -90,6 +90,29 @@ export default function HemsQueuePage() {
     const requestsWithBeneficiary =
         requests as unknown as HemsRequestWithBeneficiary[]
 
+    // Optimistic state for instant UI updates on approval/denial
+    const [optimisticRequests, setOptimisticRequest] = useOptimistic(
+        requestsWithBeneficiary,
+        (
+            current,
+            update: {
+                id: number
+                status: HemsRequest['status']
+                approvedAmount?: string
+            },
+        ) =>
+            current.map((r) =>
+                r.id === update.id
+                    ? {
+                          ...r,
+                          status: update.status,
+                          approvedAmount:
+                              update.approvedAmount ?? r.amountRequested,
+                      }
+                    : r,
+            ),
+    )
+
     const approveRequestMutation = trpc.hemsRequest.approve.useMutation({
         onSuccess: () => utils.hemsRequest.list.invalidate(),
     })
@@ -108,12 +131,12 @@ export default function HemsQueuePage() {
     const [submitting, setSubmitting] = useState(false)
 
     const pendingRequests = useMemo(
-        () => requestsWithBeneficiary.filter((r) => r.status === 'PENDING'),
-        [requestsWithBeneficiary],
+        () => optimisticRequests.filter((r) => r.status === 'PENDING'),
+        [optimisticRequests],
     )
     const reviewedRequests = useMemo(
-        () => requestsWithBeneficiary.filter((r) => r.status !== 'PENDING'),
-        [requestsWithBeneficiary],
+        () => optimisticRequests.filter((r) => r.status !== 'PENDING'),
+        [optimisticRequests],
     )
 
     const displayedRequests =
@@ -200,13 +223,19 @@ export default function HemsQueuePage() {
     const handleApprove = async () => {
         if (!reviewingRequest) return
         setSubmitting(true)
+        // Optimistic update - shows instantly
+        setOptimisticRequest({
+            id: reviewingRequest.id,
+            status: 'APPROVED',
+            approvedAmount,
+        })
+        setReviewingRequest(null)
         try {
             await approveRequestMutation.mutateAsync({
                 id: reviewingRequest.id,
                 approvedAmount,
                 reviewNotes,
             })
-            setReviewingRequest(null)
         } catch (err) {
             console.error('Failed to approve request:', err)
         } finally {
@@ -217,12 +246,17 @@ export default function HemsQueuePage() {
     const handleDeny = async () => {
         if (!reviewingRequest) return
         setSubmitting(true)
+        // Optimistic update - shows instantly
+        setOptimisticRequest({
+            id: reviewingRequest.id,
+            status: 'DENIED',
+        })
+        setReviewingRequest(null)
         try {
             await denyRequestMutation.mutateAsync({
                 id: reviewingRequest.id,
                 reviewNotes,
             })
-            setReviewingRequest(null)
         } catch (err) {
             console.error('Failed to deny request:', err)
         } finally {
@@ -325,7 +359,7 @@ export default function HemsQueuePage() {
                     <CardContent>
                         <div className="text-2xl font-bold">
                             {
-                                requestsWithBeneficiary.filter(
+                                optimisticRequests.filter(
                                     (r) =>
                                         r.status === 'APPROVED' ||
                                         r.status === 'DISTRIBUTED',
