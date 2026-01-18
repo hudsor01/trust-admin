@@ -84,7 +84,9 @@ export default withSentryConfig(nextConfig, {
     },
 
     // Automatically tree-shake Sentry logger statements to reduce bundle size
-    disableLogger: true,
+    bundleSizeOptimizations: {
+        excludeDebugStatements: true,
+    },
 
     // Prevents the build from failing if Sentry CLI is not configured
     silent: !process.env.SENTRY_AUTH_TOKEN,

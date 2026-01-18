@@ -59,6 +59,15 @@
                     }
                 }
             }
+        },
+        {
+            "includes": ["next-env.d.ts"],
+            "formatter": {
+                "enabled": false
+            },
+            "linter": {
+                "enabled": false
+            }
         }
     ]
 }
