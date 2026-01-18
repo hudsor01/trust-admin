@@ -45,6 +45,31 @@ const nextConfig: NextConfig = {
     // See: https://github.com/radix-ui/primitives/issues/3675
     reactStrictMode: false,
 
+    // Enable "use cache" directive support (stable in Next.js 16)
+    cacheComponents: true,
+
+    // Custom cacheLife profiles for trust administration data tiers
+    cacheLife: {
+        // Tier 1: Financial data - fresh is critical (balances, liabilities)
+        financial: {
+            stale: 30, // 30 seconds
+            revalidate: 60, // 1 minute
+            expire: 300, // 5 minutes
+        },
+        // Tier 3: Reference data - changes infrequently (beneficiaries, trustees)
+        reference: {
+            stale: 300, // 5 minutes
+            revalidate: 600, // 10 minutes
+            expire: 3600, // 1 hour
+        },
+        // Tier 4: Configuration - essentially static (entity settings)
+        config: {
+            stale: 600, // 10 minutes
+            revalidate: 3600, // 1 hour
+            expire: 86400, // 1 day
+        },
+    },
+
     // Security headers for all routes
     async headers() {
         return [
