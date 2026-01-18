@@ -7,7 +7,14 @@
  * - Role-based access control
  * - Magic link generation
  */
-import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
+import {
+    afterAll,
+    afterEach,
+    beforeAll,
+    describe,
+    expect,
+    test,
+} from 'bun:test'
 import { eq } from 'drizzle-orm'
 import { db } from '../db'
 import { generateId } from '../db/helpers'
@@ -15,10 +22,10 @@ import { entity } from '../db/schema'
 import {
     cleanupTestAuth,
     cleanupTestBeneficiaries,
+    clearCapturedMagicLinkToken,
     createTestBeneficiary,
-    createTestSession,
     createTestUser,
-    getAuthHeaders,
+    getAuthenticatedSession,
     isServerAvailable,
 } from './helpers/auth'
 
@@ -52,6 +59,11 @@ describe('Authentication', () => {
         })
     })
 
+    afterEach(() => {
+        // Clear captured magic link token between tests
+        clearCapturedMagicLinkToken()
+    })
+
     afterAll(async () => {
         if (!serverAvailable) return
 
@@ -76,75 +88,72 @@ describe('Authentication', () => {
         expect(data.error).toContain('Unauthorized')
     })
 
-    test.skip('should allow authenticated beneficiary requests with valid session', async () => {
-        // NOTE: This test is skipped because Better Auth uses its own session mechanism
-        // that requires proper authentication flow. Manually inserting sessions into the
-        // database doesn't create valid Better Auth sessions. To properly test this,
-        // we would need to:
-        // 1. Use the magic link API to generate a token
-        // 2. Use the callback URL to create a session
-        // 3. Extract the session cookie
-        // This is beyond the scope of basic integration tests.
-        // Manual UAT testing covers authenticated access scenarios.
-
+    test('should allow authenticated beneficiary requests with valid session', async () => {
+        // Uses proper Better Auth magic link flow to create valid sessions
         if (!serverAvailable) return
 
-        // Create test beneficiary
+        const testEmail = `testben-${Date.now()}@example.com`
+
+        // Create test beneficiary first
         const beneficiaryId = await createTestBeneficiary({
             entityId: testEntityId,
             firstName: 'Test',
             lastName: 'Beneficiary',
-            email: 'testben@example.com',
+            email: testEmail,
         })
         testBeneficiaryIds.push(beneficiaryId)
 
         // Create test user linked to beneficiary
         const userId = await createTestUser({
-            email: 'testben@example.com',
+            email: testEmail,
             name: 'Test Beneficiary',
             role: 'beneficiary',
             beneficiaryId,
         })
         testUserIds.push(userId)
 
-        // Create session
-        const sessionId = await createTestSession(userId)
+        // Get authenticated session through magic link flow
+        const session = await getAuthenticatedSession(testEmail)
+        expect(session).not.toBeNull()
+        if (!session) return
 
-        // Make authenticated request
+        // Make authenticated request with session cookies
         const res = await fetch(`${BASE_URL}/api/portal/me`, {
-            headers: getAuthHeaders(`test_session_${sessionId}`),
+            headers: { Cookie: session.cookies },
         })
 
         expect(res.status).toBe(200)
 
         const data = await res.json()
         expect(data.user).toBeDefined()
-        expect(data.user.id).toBe(userId)
         expect(data.user.role).toBe('beneficiary')
         expect(data.beneficiary).toBeDefined()
         expect(data.beneficiary.id).toBe(beneficiaryId)
     })
 
-    test.skip('should return 403 for user without beneficiary account', async () => {
-        // NOTE: Skipped for same reason as authenticated session test above
-        // Better Auth requires proper authentication flow to create valid sessions
-
+    test('should return 403 for user without beneficiary account', async () => {
+        // Uses proper Better Auth magic link flow to create valid sessions
         if (!serverAvailable) return
 
-        // Create test user WITHOUT beneficiaryId
-        const userId = await createTestUser({
-            email: 'testadmin@example.com',
+        const testEmail = `testadmin-${Date.now()}@example.com`
+
+        // Create test user WITHOUT beneficiaryId (admin role)
+        await createTestUser({
+            email: testEmail,
             name: 'Test Admin',
             role: 'admin',
         })
-        testUserIds.push(userId)
 
-        // Create session
-        const sessionId = await createTestSession(userId)
+        // Get authenticated session through magic link flow
+        const session = await getAuthenticatedSession(testEmail)
+        expect(session).not.toBeNull()
+        if (!session) return
 
-        // Make authenticated request
+        testUserIds.push(session.userId)
+
+        // Make authenticated request to beneficiary-only endpoint
         const res = await fetch(`${BASE_URL}/api/portal/me`, {
-            headers: getAuthHeaders(`test_session_${sessionId}`),
+            headers: { Cookie: session.cookies },
         })
 
         expect(res.status).toBe(403)
@@ -185,40 +194,49 @@ describe('Authentication', () => {
         expect(res.status).not.toBe(404)
     })
 
-    test.skip('should validate session expiry', async () => {
-        // NOTE: Skipped for same reason as authenticated session test above
-        // Better Auth requires proper authentication flow to create valid sessions
-
+    test('should validate session expiry', async () => {
+        // Uses proper Better Auth flow then expires the session
         if (!serverAvailable) return
 
-        // Create user with expired session
-        const userId = await createTestUser({
-            email: 'expired@example.com',
-            name: 'Expired User',
+        const testEmail = `expired-${Date.now()}@example.com`
+
+        // Create test user
+        await createTestUser({
+            email: testEmail,
+            name: 'Expiring User',
             role: 'beneficiary',
         })
-        testUserIds.push(userId)
 
-        // Create expired session (past date)
-        const sessionId = generateId()
+        // Get a valid authenticated session
+        const validSession = await getAuthenticatedSession(testEmail)
+        expect(validSession).not.toBeNull()
+        if (!validSession) return
+
+        testUserIds.push(validSession.userId)
+
+        // Verify session works initially
+        const initialRes = await fetch(`${BASE_URL}/api/portal/me`, {
+            headers: { Cookie: validSession.cookies },
+        })
+        // Session should work (either 200 or 403 depending on beneficiary setup)
+        expect([200, 403]).toContain(initialRes.status)
+
+        // Now expire the session by updating expiresAt in database
+        const { session } = await import('../db/schema')
         const expiredDate = new Date()
         expiredDate.setDate(expiredDate.getDate() - 1) // Yesterday
 
-        const { session } = await import('../db/schema')
-        await db.insert(session).values({
-            id: sessionId,
-            userId,
-            token: `expired_session_${sessionId}`,
-            expiresAt: expiredDate,
-            // createdAt and updatedAt have defaults
+        await db
+            .update(session)
+            .set({ expiresAt: expiredDate })
+            .where(eq(session.userId, validSession.userId))
+
+        // Try to use the now-expired session
+        const expiredRes = await fetch(`${BASE_URL}/api/portal/me`, {
+            headers: { Cookie: validSession.cookies },
         })
 
-        // Try to use expired session
-        const res = await fetch(`${BASE_URL}/api/portal/me`, {
-            headers: getAuthHeaders(`expired_session_${sessionId}`),
-        })
-
-        expect(res.status).toBe(401)
+        expect(expiredRes.status).toBe(401)
     })
 })
 

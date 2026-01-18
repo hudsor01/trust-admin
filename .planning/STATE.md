@@ -6,16 +6,16 @@ See: .planning/PROJECT.md (updated 2026-01-09)
 
 **Core value:** Reliable trust administration - The API works without silent failures, users see clear error messages, and the codebase is maintainable for ongoing development.
 
-**Current focus:** v3.0 Database Schema Improvements - Phase 18 (Timestamp Migration)
+**Current focus:** v3.0 Database Schema Improvements - Phase 19 (Enum Type Corrections)
 
 ## Current Position
 
-Phase: 18 of 40 (Timestamp Migration to TIMESTAMPTZ)
+Phase: 19 of 40 (Enum Type Corrections)
 Plan: 01 complete
-Status: Ready for Phase 19
-Last activity: 2026-01-17 - Phase 18-01 completed (timestamp migration)
+Status: Ready for Phase 20
+Last activity: 2026-01-17 - Phase 19-01 completed (TEXT to pgEnum conversion)
 
-Progress: █████▌░░░░░░░░░░░░░ 1/7 v3.0 plans complete
+Progress: ██████░░░░░░░░░░░░░ 2/7 v3.0 plans complete
 
 ## Performance Metrics
 
@@ -24,6 +24,17 @@ Progress: █████▌░░░░░░░░░░░░░ 1/7 v3.0 pla
 - v2.0 plans completed: 4
 
 ## Accumulated Context
+
+### v3.0 Phase 19 COMPLETE (Enum Type Corrections):
+
+**19-01 Completed (TEXT to pgEnum Conversion):**
+- ✅ Defined 5 new pgEnums: accountingEntryType, incomeType, expenseType, personalPropertyCategory, documentType
+- ✅ Converted 5 TEXT columns to use pgEnum types
+- ✅ Added type aliases and type guard functions for all new enums
+- ✅ Applied database migration via `bun drizzle-kit push --force`
+- ✅ Fixed accounting page form types for enum compatibility
+- Pattern: Expand enums to match actual UI usage (not minimal spec)
+- Pattern: Use `as EnumType` casts in form payloads for Select components
 
 ### v4.0 Phase 29 COMPLETE (Payment Recording Integration):
 

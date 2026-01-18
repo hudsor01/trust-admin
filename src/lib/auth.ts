@@ -228,8 +228,18 @@ export const auth = betterAuth({
     },
     plugins: [
         magicLink({
-            sendMagicLink: async ({ email, url, token: _token }, _request) => {
+            sendMagicLink: async ({ email, url, token }, _request) => {
                 log.info('Sending magic link', { email })
+
+                // Test mode: capture token for programmatic verification
+                if (process.env.NODE_ENV === 'test') {
+                    const { captureMagicLinkToken } = await import(
+                        '../../tests/helpers/auth'
+                    )
+                    captureMagicLinkToken(email, token)
+                    log.info('Test mode - magic link token captured', { email })
+                    return // Don't send email or check rate limits in tests
+                }
 
                 // Check rate limit BEFORE sending email
                 checkMagicLinkRateLimit(email)

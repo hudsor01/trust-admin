@@ -468,7 +468,7 @@ Plans:
 **Impact**: Non-breaking (values already match expected patterns)
 
 Plans:
-- [ ] 19-01: Text to enum type conversions
+- [x] 19-01: Text to enum type conversions
 
 ---
 
