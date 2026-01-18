@@ -8,13 +8,13 @@ import { adminProcedure, createTRPCRouter } from '../index'
 
 export const contactRouter = createTRPCRouter({
     list: adminProcedure
-        .input(z.object({ entityId: z.string().optional() }).optional())
+        .input(z.object({ entityId: z.coerce.number().optional() }).optional())
         .query(async ({ input }) => {
             const result = await contactCrud.getAll(input?.entityId)
             return Array.isArray(result) ? result : result.data
         }),
 
-    byId: adminProcedure.input(z.string()).query(async ({ input }) => {
+    byId: adminProcedure.input(z.coerce.number()).query(async ({ input }) => {
         return contactCrud.getById(input)
     }),
 
@@ -25,12 +25,12 @@ export const contactRouter = createTRPCRouter({
         }),
 
     update: adminProcedure
-        .input(z.object({ id: z.string(), data: updateContactSchema }))
+        .input(z.object({ id: z.coerce.number(), data: updateContactSchema }))
         .mutation(async ({ input }) => {
             return contactCrud.update(input.id, input.data)
         }),
 
-    delete: adminProcedure.input(z.string()).mutation(async ({ input }) => {
+    delete: adminProcedure.input(z.coerce.number()).mutation(async ({ input }) => {
         return contactCrud.delete(input)
     }),
 })

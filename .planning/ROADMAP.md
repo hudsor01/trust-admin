@@ -630,7 +630,7 @@ Plans:
 **Impact**: BREAKING - Major change requiring coordinated deployment
 
 Plans:
-- [ ] 23-01: Primary key type migration
+- [x] 23-01: Primary key type migration (completed 2026-01-17)
 
 ---
 

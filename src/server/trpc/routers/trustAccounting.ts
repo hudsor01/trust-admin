@@ -13,7 +13,7 @@ import { adminProcedure, createTRPCRouter } from '../index'
 
 export const trustAccountingRouter = createTRPCRouter({
     list: adminProcedure
-        .input(z.object({ entityId: z.string().optional() }).optional())
+        .input(z.object({ entityId: z.coerce.number().optional() }).optional())
         .query(async ({ input }) => {
             const result = await trustAccountingCrud.getAll(input?.entityId)
             return Array.isArray(result) ? result : result.data
@@ -22,7 +22,7 @@ export const trustAccountingRouter = createTRPCRouter({
     listPaginated: adminProcedure
         .input(
             z.object({
-                entityId: z.string().optional(),
+                entityId: z.coerce.number().optional(),
                 limit: z.number().optional(),
                 offset: z.number().optional(),
             }),
@@ -38,7 +38,7 @@ export const trustAccountingRouter = createTRPCRouter({
                 : result
         }),
 
-    byId: adminProcedure.input(z.string()).query(async ({ input }) => {
+    byId: adminProcedure.input(z.coerce.number()).query(async ({ input }) => {
         return trustAccountingCrud.getById(input)
     }),
 
@@ -56,12 +56,12 @@ export const trustAccountingRouter = createTRPCRouter({
         }),
 
     update: adminProcedure
-        .input(z.object({ id: z.string(), data: updateTrustAccountingSchema }))
+        .input(z.object({ id: z.coerce.number(), data: updateTrustAccountingSchema }))
         .mutation(async ({ input }) => {
             return trustAccountingCrud.update(input.id, input.data)
         }),
 
-    delete: adminProcedure.input(z.string()).mutation(async ({ input }) => {
+    delete: adminProcedure.input(z.coerce.number()).mutation(async ({ input }) => {
         return trustAccountingCrud.delete(input)
     }),
 
@@ -77,7 +77,7 @@ export const trustAccountingRouter = createTRPCRouter({
      * for each fiscal year.
      */
     unconvertedIncomeSummary: adminProcedure
-        .input(z.object({ entityId: z.string() }))
+        .input(z.object({ entityId: z.coerce.number() }))
         .query(async ({ input }) => {
             return getUnconvertedIncomeSummary(input.entityId)
         }),
@@ -97,9 +97,9 @@ export const trustAccountingRouter = createTRPCRouter({
     convertIncomeToPrincipal: adminProcedure
         .input(
             z.object({
-                entityId: z.string(),
+                entityId: z.coerce.number(),
                 fiscalYear: z.number(),
-                bankAccountId: z.string(),
+                bankAccountId: z.coerce.number(),
             }),
         )
         .mutation(async ({ input }) => {

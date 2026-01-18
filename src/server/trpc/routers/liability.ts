@@ -28,10 +28,10 @@ const bulkLiabilityRowSchema = z.object({
 })
 
 const recordPaymentSchema = z.object({
-    liabilityId: z.string(),
+    liabilityId: z.coerce.number(),
     paymentDate: z.string(),
     amount: z.string(),
-    bankAccountId: z.string(), // Required: which account the payment came from
+    bankAccountId: z.coerce.number(), // Required: which account the payment came from
     principalPortion: z.string().optional(),
     interestPortion: z.string().optional(),
     escrowPortion: z.string().optional(),
@@ -45,13 +45,13 @@ const recordPaymentSchema = z.object({
 
 export const liabilityRouter = createTRPCRouter({
     list: adminProcedure
-        .input(z.object({ entityId: z.string().optional() }).optional())
+        .input(z.object({ entityId: z.coerce.number().optional() }).optional())
         .query(async ({ input }) => {
             const result = await liabilityCrud.getAll(input?.entityId)
             return Array.isArray(result) ? result : result.data
         }),
 
-    byId: adminProcedure.input(z.string()).query(async ({ input }) => {
+    byId: adminProcedure.input(z.coerce.number()).query(async ({ input }) => {
         return liabilityCrud.getById(input)
     }),
 
@@ -62,12 +62,12 @@ export const liabilityRouter = createTRPCRouter({
         }),
 
     update: adminProcedure
-        .input(z.object({ id: z.string(), data: updateLiabilitySchema }))
+        .input(z.object({ id: z.coerce.number(), data: updateLiabilitySchema }))
         .mutation(async ({ input }) => {
             return liabilityCrud.update(input.id, input.data)
         }),
 
-    delete: adminProcedure.input(z.string()).mutation(async ({ input }) => {
+    delete: adminProcedure.input(z.coerce.number()).mutation(async ({ input }) => {
         return liabilityCrud.delete(input)
     }),
 
@@ -75,7 +75,7 @@ export const liabilityRouter = createTRPCRouter({
     bulkCreate: adminProcedure
         .input(
             z.object({
-                entityId: z.string(),
+                entityId: z.coerce.number(),
                 liabilities: z.array(bulkLiabilityRowSchema),
             }),
         )
@@ -120,13 +120,13 @@ export const liabilityRouter = createTRPCRouter({
         }),
 
     // Special: Get payments for a liability
-    getPayments: adminProcedure.input(z.string()).query(async ({ input }) => {
+    getPayments: adminProcedure.input(z.coerce.number()).query(async ({ input }) => {
         return getLiabilityPayments(input)
     }),
 
     // Special: Get payoff projection for a liability
     getPayoffProjection: adminProcedure
-        .input(z.string())
+        .input(z.coerce.number())
         .query(async ({ input }) => {
             const liabilityRecord = await liabilityCrud.getById(input)
             if (

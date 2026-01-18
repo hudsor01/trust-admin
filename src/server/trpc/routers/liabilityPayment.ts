@@ -8,13 +8,13 @@ import { adminProcedure, createTRPCRouter } from '../index'
 
 export const liabilityPaymentRouter = createTRPCRouter({
     list: adminProcedure
-        .input(z.object({ liabilityId: z.string().optional() }).optional())
+        .input(z.object({ liabilityId: z.coerce.number().optional() }).optional())
         .query(async ({ input }) => {
             const result = await liabilityPaymentCrud.getAll(input?.liabilityId)
             return Array.isArray(result) ? result : result.data
         }),
 
-    byId: adminProcedure.input(z.string()).query(async ({ input }) => {
+    byId: adminProcedure.input(z.coerce.number()).query(async ({ input }) => {
         return liabilityPaymentCrud.getById(input)
     }),
 
@@ -25,12 +25,12 @@ export const liabilityPaymentRouter = createTRPCRouter({
         }),
 
     update: adminProcedure
-        .input(z.object({ id: z.string(), data: updateLiabilityPaymentSchema }))
+        .input(z.object({ id: z.coerce.number(), data: updateLiabilityPaymentSchema }))
         .mutation(async ({ input }) => {
             return liabilityPaymentCrud.update(input.id, input.data)
         }),
 
-    delete: adminProcedure.input(z.string()).mutation(async ({ input }) => {
+    delete: adminProcedure.input(z.coerce.number()).mutation(async ({ input }) => {
         return liabilityPaymentCrud.delete(input)
     }),
 })

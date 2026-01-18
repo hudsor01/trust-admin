@@ -11,7 +11,7 @@ import { adminProcedure, createTRPCRouter } from '../index'
 
 export const trusteeFeeEntryRouter = createTRPCRouter({
     list: adminProcedure
-        .input(z.object({ entityId: z.string().optional() }).optional())
+        .input(z.object({ entityId: z.coerce.number().optional() }).optional())
         .query(async ({ input }) => {
             const result = await trusteeFeeEntryCrud.getAll(input?.entityId)
             return Array.isArray(result) ? result : result.data
@@ -19,12 +19,12 @@ export const trusteeFeeEntryRouter = createTRPCRouter({
 
     // List with schedule info
     listWithSchedule: adminProcedure
-        .input(z.object({ entityId: z.string().optional() }).optional())
+        .input(z.object({ entityId: z.coerce.number().optional() }).optional())
         .query(async ({ input }) => {
             return getTrusteeFeeEntriesWithSchedule(input?.entityId)
         }),
 
-    byId: adminProcedure.input(z.string()).query(async ({ input }) => {
+    byId: adminProcedure.input(z.coerce.number()).query(async ({ input }) => {
         return trusteeFeeEntryCrud.getById(input)
     }),
 
@@ -35,12 +35,12 @@ export const trusteeFeeEntryRouter = createTRPCRouter({
         }),
 
     update: adminProcedure
-        .input(z.object({ id: z.string(), data: updateTrusteeFeeEntrySchema }))
+        .input(z.object({ id: z.coerce.number(), data: updateTrusteeFeeEntrySchema }))
         .mutation(async ({ input }) => {
             return trusteeFeeEntryCrud.update(input.id, input.data)
         }),
 
-    delete: adminProcedure.input(z.string()).mutation(async ({ input }) => {
+    delete: adminProcedure.input(z.coerce.number()).mutation(async ({ input }) => {
         return trusteeFeeEntryCrud.delete(input)
     }),
 })

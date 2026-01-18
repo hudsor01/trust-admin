@@ -19,8 +19,8 @@ export const hemsRequestRouter = createTRPCRouter({
         .input(
             z
                 .object({
-                    beneficiaryId: z.string().optional(),
-                    entityId: z.string().optional(),
+                    beneficiaryId: z.coerce.number().optional(),
+                    entityId: z.coerce.number().optional(),
                 })
                 .optional(),
         )
@@ -35,7 +35,7 @@ export const hemsRequestRouter = createTRPCRouter({
 
     // List with beneficiary info
     listWithBeneficiary: adminProcedure
-        .input(z.object({ beneficiaryId: z.string().optional() }).optional())
+        .input(z.object({ beneficiaryId: z.coerce.number().optional() }).optional())
         .query(async ({ input }) => {
             return getHemsRequestsWithBeneficiary(input?.beneficiaryId)
         }),
@@ -45,7 +45,7 @@ export const hemsRequestRouter = createTRPCRouter({
         return getPendingHemsRequests()
     }),
 
-    byId: adminProcedure.input(z.string()).query(async ({ input }) => {
+    byId: adminProcedure.input(z.coerce.number()).query(async ({ input }) => {
         return hemsRequestCrud.getById(input)
     }),
 
@@ -56,12 +56,12 @@ export const hemsRequestRouter = createTRPCRouter({
         }),
 
     update: adminProcedure
-        .input(z.object({ id: z.string(), data: updateHemsRequestSchema }))
+        .input(z.object({ id: z.coerce.number(), data: updateHemsRequestSchema }))
         .mutation(async ({ input }) => {
             return hemsRequestCrud.update(input.id, input.data)
         }),
 
-    delete: adminProcedure.input(z.string()).mutation(async ({ input }) => {
+    delete: adminProcedure.input(z.coerce.number()).mutation(async ({ input }) => {
         return hemsRequestCrud.delete(input)
     }),
 
@@ -69,7 +69,7 @@ export const hemsRequestRouter = createTRPCRouter({
     approve: adminProcedure
         .input(
             z.object({
-                id: z.string(),
+                id: z.coerce.number(),
                 approvedAmount: z.string().optional(),
                 reviewNotes: z.string().optional(),
             }),
@@ -87,7 +87,7 @@ export const hemsRequestRouter = createTRPCRouter({
     deny: adminProcedure
         .input(
             z.object({
-                id: z.string(),
+                id: z.coerce.number(),
                 reviewNotes: z.string().optional(),
             }),
         )

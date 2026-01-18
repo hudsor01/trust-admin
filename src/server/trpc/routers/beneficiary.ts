@@ -18,7 +18,7 @@ import {
 
 export const beneficiaryRouter = createTRPCRouter({
     list: adminProcedure
-        .input(z.object({ entityId: z.string().optional() }).optional())
+        .input(z.object({ entityId: z.coerce.number().optional() }).optional())
         .query(async ({ input }) => {
             const result = await beneficiaryCrud.getAll(input?.entityId)
             return Array.isArray(result) ? result : result.data
@@ -26,12 +26,12 @@ export const beneficiaryRouter = createTRPCRouter({
 
     // Optimized query that includes distributions in a single query (avoids N+1)
     listWithDistributions: adminProcedure
-        .input(z.object({ entityId: z.string().optional() }).optional())
+        .input(z.object({ entityId: z.coerce.number().optional() }).optional())
         .query(async ({ input }) => {
             return getBeneficiariesWithDistributions(input?.entityId)
         }),
 
-    byId: adminProcedure.input(z.string()).query(async ({ input }) => {
+    byId: adminProcedure.input(z.coerce.number()).query(async ({ input }) => {
         return getBeneficiaryById(input)
     }),
 
@@ -42,12 +42,12 @@ export const beneficiaryRouter = createTRPCRouter({
         }),
 
     update: adminProcedure
-        .input(z.object({ id: z.string(), data: updateBeneficiarySchema }))
+        .input(z.object({ id: z.coerce.number(), data: updateBeneficiarySchema }))
         .mutation(async ({ input }) => {
             return beneficiaryCrud.update(input.id, input.data)
         }),
 
-    delete: adminProcedure.input(z.string()).mutation(async ({ input }) => {
+    delete: adminProcedure.input(z.coerce.number()).mutation(async ({ input }) => {
         return beneficiaryCrud.delete(input)
     }),
 
@@ -73,7 +73,7 @@ export const beneficiaryRouter = createTRPCRouter({
     markDeceased: adminProcedure
         .input(
             z.object({
-                beneficiaryId: z.string(),
+                beneficiaryId: z.coerce.number(),
                 deceasedDate: z.string(),
             }),
         )
@@ -87,8 +87,8 @@ export const beneficiaryRouter = createTRPCRouter({
     recalculateShares: adminProcedure
         .input(
             z.object({
-                entityId: z.string(),
-                excludeBeneficiaryId: z.string(),
+                entityId: z.coerce.number(),
+                excludeBeneficiaryId: z.coerce.number(),
             }),
         )
         .mutation(async ({ input }) => {

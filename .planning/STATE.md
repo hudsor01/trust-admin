@@ -6,16 +6,16 @@ See: .planning/PROJECT.md (updated 2026-01-09)
 
 **Core value:** Reliable trust administration - The API works without silent failures, users see clear error messages, and the codebase is maintainable for ongoing development.
 
-**Current focus:** v3.0 Database Schema Improvements - Phase 22 (Nullable FK Review)
+**Current focus:** v3.0 Database Schema Improvements - Phase 23 (PK Type Migration)
 
 ## Current Position
 
-Phase: 22 of 40 (Nullable FK Business Logic Review)
+Phase: 23 of 40 (PK Type Migration)
 Plan: 01 complete
-Status: Ready for Phase 23
-Last activity: 2026-01-18 - Phase 22-01 completed (bankAccountId FK on trustAccounting)
+Status: Ready for Phase 23-02 (Validation Layer)
+Last activity: 2026-01-17 - Phase 23-01 completed (BIGINT IDENTITY PKs)
 
-Progress: ████████░░░░░░░░░░░ 5/7 v3.0 plans complete
+Progress: █████████░░░░░░░░░░ 6/7 v3.0 plans complete
 
 ## Performance Metrics
 
@@ -24,6 +24,20 @@ Progress: ████████░░░░░░░░░░░ 5/7 v3.0 pla
 - v2.0 plans completed: 4
 
 ## Accumulated Context
+
+### v3.0 Phase 23 IN PROGRESS (PK Type Migration):
+
+**23-01 Completed (BIGINT IDENTITY PKs):**
+- ✅ Migrated 27 application tables from TEXT to BIGINT IDENTITY PKs
+- ✅ Updated ~50 FK columns to `bigint({ mode: 'number' })` type
+- ✅ Configured Better Auth with `database.generateId: false`
+- ✅ Updated beneficiaryId type from string to number in auth.ts
+- ✅ Deprecated generateId/textId helpers in helpers.ts
+- ✅ Commit: 44d4a9c
+- Pattern: `bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity()` for PKs
+- Pattern: FKs must match PK type - `bigint({ mode: 'number' })` for all
+- Decision: recordId in ActivityLog stays text (polymorphic to Better Auth tables)
+- Note: 303 TypeScript errors expected - to be fixed in subsequent plans
 
 ### v3.0 Phase 22 COMPLETE (Nullable FK Business Logic Review):
 
@@ -261,8 +275,8 @@ Progress: ████████░░░░░░░░░░░ 5/7 v3.0 pla
 
 ## Session Continuity
 
-Last session: 2026-01-18
-Stopped at: Completed Phase 22-01 (bankAccountId FK on trustAccounting)
+Last session: 2026-01-17
+Stopped at: Completed Phase 23-01 (BIGINT IDENTITY PKs)
 Resume file: None
 
 ## Milestone History

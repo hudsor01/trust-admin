@@ -96,27 +96,23 @@ const requiredZipValidation = z
     .regex(/^\d{5}(-\d{4})?$/, 'Invalid ZIP code format')
 
 export const insertActivityLogSchema = createInsertSchema(activityLog, {
-    id: (schema) => schema.optional(),
     createdAt: (schema) => schema.optional(),
 })
 export const selectActivityLogSchema = createSelectSchema(activityLog)
 
 export const insertArtworkSchema = createInsertSchema(artwork, {
-    id: (schema) => schema.optional(),
     createdAt: (schema) => schema.optional(),
     updatedAt: (schema) => schema.optional(),
 })
 export const selectArtworkSchema = createSelectSchema(artwork)
 
 export const insertBankAccountSchema = createInsertSchema(bankAccount, {
-    id: (schema) => schema.optional(),
     createdAt: (schema) => schema.optional(),
     updatedAt: (schema) => schema.optional(),
 })
 export const selectBankAccountSchema = createSelectSchema(bankAccount)
 
 export const insertBeneficiarySchema = createInsertSchema(beneficiary, {
-    id: (schema) => schema.optional(),
     createdAt: (schema) => schema.optional(),
     updatedAt: (schema) => schema.optional(),
     email: () => emailValidation,
@@ -127,7 +123,6 @@ export const insertBeneficiarySchema = createInsertSchema(beneficiary, {
 export const selectBeneficiarySchema = createSelectSchema(beneficiary)
 
 export const insertContactSchema = createInsertSchema(contact, {
-    id: (schema) => schema.optional(),
     createdAt: (schema) => schema.optional(),
     updatedAt: (schema) => schema.optional(),
     email: () => emailValidation,
@@ -139,15 +134,13 @@ export const selectContactSchema = createSelectSchema(contact)
 export const insertContactAssociationSchema = createInsertSchema(
     contactAssociation,
     {
-        id: (schema) => schema.optional(),
-        createdAt: (schema) => schema.optional(),
+            createdAt: (schema) => schema.optional(),
     },
 )
 export const selectContactAssociationSchema =
     createSelectSchema(contactAssociation)
 
 export const insertDistributionSchema = createInsertSchema(distribution, {
-    id: (schema) => schema.optional(),
     createdAt: (schema) => schema.optional(),
     updatedAt: (schema) => schema.optional(),
     amount: (schema) =>
@@ -159,28 +152,24 @@ export const insertDistributionSchema = createInsertSchema(distribution, {
 export const selectDistributionSchema = createSelectSchema(distribution)
 
 export const insertDocumentSchema = createInsertSchema(document, {
-    id: (schema) => schema.optional(),
     createdAt: (schema) => schema.optional(),
     updatedAt: (schema) => schema.optional(),
 })
 export const selectDocumentSchema = createSelectSchema(document)
 
 export const insertEntitySchema = createInsertSchema(entity, {
-    id: (schema) => schema.optional(),
     createdAt: (schema) => schema.optional(),
     updatedAt: (schema) => schema.optional(),
 })
 export const selectEntitySchema = createSelectSchema(entity)
 
 export const insertHemsRequestSchema = createInsertSchema(hemsRequest, {
-    id: (schema) => schema.optional(),
     createdAt: (schema) => schema.optional(),
     updatedAt: (schema) => schema.optional(),
 })
 export const selectHemsRequestSchema = createSelectSchema(hemsRequest)
 
 export const insertHomesteadSchema = createInsertSchema(homestead, {
-    id: (schema) => schema.optional(),
     createdAt: (schema) => schema.optional(),
     updatedAt: (schema) => schema.optional(),
     zip: () => requiredZipValidation,
@@ -190,7 +179,6 @@ export const insertHomesteadSchema = createInsertSchema(homestead, {
 export const selectHomesteadSchema = createSelectSchema(homestead)
 
 export const insertInsurancePolicySchema = createInsertSchema(insurancePolicy, {
-    id: (schema) => schema.optional(),
     createdAt: (schema) => schema.optional(),
     updatedAt: (schema) => schema.optional(),
 })
@@ -199,8 +187,7 @@ export const selectInsurancePolicySchema = createSelectSchema(insurancePolicy)
 export const insertInvestmentAccountSchema = createInsertSchema(
     investmentAccount,
     {
-        id: (schema) => schema.optional(),
-        createdAt: (schema) => schema.optional(),
+            createdAt: (schema) => schema.optional(),
         updatedAt: (schema) => schema.optional(),
     },
 )
@@ -208,7 +195,6 @@ export const selectInvestmentAccountSchema =
     createSelectSchema(investmentAccount)
 
 export const insertLiabilitySchema = createInsertSchema(liability, {
-    id: (schema) => schema.optional(),
     createdAt: (schema) => schema.optional(),
     updatedAt: (schema) => schema.optional(),
     originalAmount: (schema) =>
@@ -237,8 +223,7 @@ export const selectLiabilitySchema = createSelectSchema(liability)
 export const insertLiabilityPaymentSchema = createInsertSchema(
     liabilityPayment,
     {
-        id: (schema) => schema.optional(),
-        createdAt: (schema) => schema.optional(),
+            createdAt: (schema) => schema.optional(),
     },
 )
 export const selectLiabilityPaymentSchema = createSelectSchema(liabilityPayment)
@@ -246,15 +231,13 @@ export const selectLiabilityPaymentSchema = createSelectSchema(liabilityPayment)
 export const insertPersonalPropertySchema = createInsertSchema(
     personalProperty,
     {
-        id: (schema) => schema.optional(),
-        createdAt: (schema) => schema.optional(),
+            createdAt: (schema) => schema.optional(),
         updatedAt: (schema) => schema.optional(),
     },
 )
 export const selectPersonalPropertySchema = createSelectSchema(personalProperty)
 
 export const insertRentalPropertySchema = createInsertSchema(rentalProperty, {
-    id: (schema) => schema.optional(),
     createdAt: (schema) => schema.optional(),
     updatedAt: (schema) => schema.optional(),
     zip: () => requiredZipValidation,
@@ -266,28 +249,24 @@ export const insertRentalPropertySchema = createInsertSchema(rentalProperty, {
 export const selectRentalPropertySchema = createSelectSchema(rentalProperty)
 
 export const insertSpecificBequestSchema = createInsertSchema(specificBequest, {
-    id: (schema) => schema.optional(),
     createdAt: (schema) => schema.optional(),
     updatedAt: (schema) => schema.optional(),
 })
 export const selectSpecificBequestSchema = createSelectSchema(specificBequest)
 
 export const insertTaskSchema = createInsertSchema(task, {
-    id: (schema) => schema.optional(),
     createdAt: (schema) => schema.optional(),
     updatedAt: (schema) => schema.optional(),
 })
 export const selectTaskSchema = createSelectSchema(task)
 
 export const insertTransactionSchema = createInsertSchema(transaction, {
-    id: (schema) => schema.optional(),
     createdAt: (schema) => schema.optional(),
     updatedAt: (schema) => schema.optional(),
 })
 export const selectTransactionSchema = createSelectSchema(transaction)
 
 export const insertTrustAccountingSchema = createInsertSchema(trustAccounting, {
-    id: (schema) => schema.optional(),
     createdAt: (schema) => schema.optional(),
     updatedAt: (schema) => schema.optional(),
     amount: (schema) =>
@@ -296,14 +275,12 @@ export const insertTrustAccountingSchema = createInsertSchema(trustAccounting, {
 export const selectTrustAccountingSchema = createSelectSchema(trustAccounting)
 
 export const insertTrusteeSchema = createInsertSchema(trustee, {
-    id: (schema) => schema.optional(),
     createdAt: (schema) => schema.optional(),
     updatedAt: (schema) => schema.optional(),
 })
 export const selectTrusteeSchema = createSelectSchema(trustee)
 
 export const insertTrusteeFeeEntrySchema = createInsertSchema(trusteeFeeEntry, {
-    id: (schema) => schema.optional(),
     createdAt: (schema) => schema.optional(),
     updatedAt: (schema) => schema.optional(),
 })
@@ -312,21 +289,18 @@ export const selectTrusteeFeeEntrySchema = createSelectSchema(trusteeFeeEntry)
 export const insertTrusteeFeeScheduleSchema = createInsertSchema(
     trusteeFeeSchedule,
     {
-        id: (schema) => schema.optional(),
-        createdAt: (schema) => schema.optional(),
+            createdAt: (schema) => schema.optional(),
     },
 )
 export const selectTrusteeFeeScheduleSchema =
     createSelectSchema(trusteeFeeSchedule)
 
 export const insertValuationSchema = createInsertSchema(valuation, {
-    id: (schema) => schema.optional(),
     createdAt: (schema) => schema.optional(),
 })
 export const selectValuationSchema = createSelectSchema(valuation)
 
 export const insertVehicleSchema = createInsertSchema(vehicle, {
-    id: (schema) => schema.optional(),
     createdAt: (schema) => schema.optional(),
     updatedAt: (schema) => schema.optional(),
     vin: () => vinValidation,
@@ -338,8 +312,7 @@ export const selectVehicleSchema = createSelectSchema(vehicle)
 export const insertWithdrawalRecordSchema = createInsertSchema(
     withdrawalRecord,
     {
-        id: (schema) => schema.optional(),
-        createdAt: (schema) => schema.optional(),
+            createdAt: (schema) => schema.optional(),
         updatedAt: (schema) => schema.optional(),
     },
 )

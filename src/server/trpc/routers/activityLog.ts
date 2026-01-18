@@ -33,12 +33,12 @@ export const activityLogRouter = createTRPCRouter({
             return Array.isArray(result) ? result : result.data
         }),
 
-    byId: adminProcedure.input(z.string()).query(async ({ input }) => {
+    byId: adminProcedure.input(z.coerce.number()).query(async ({ input }) => {
         return activityLogCrud.getById(input)
     }),
 
     // Get activity log with parsed changes
-    withChanges: adminProcedure.input(z.string()).query(async ({ input }) => {
+    withChanges: adminProcedure.input(z.coerce.number()).query(async ({ input }) => {
         return getActivityLogWithChanges(input)
     }),
 

@@ -8,13 +8,13 @@ import { adminProcedure, createTRPCRouter } from '../index'
 
 export const trusteeFeeScheduleRouter = createTRPCRouter({
     list: adminProcedure
-        .input(z.object({ entityId: z.string().optional() }).optional())
+        .input(z.object({ entityId: z.coerce.number().optional() }).optional())
         .query(async ({ input }) => {
             const result = await trusteeFeeScheduleCrud.getAll(input?.entityId)
             return Array.isArray(result) ? result : result.data
         }),
 
-    byId: adminProcedure.input(z.string()).query(async ({ input }) => {
+    byId: adminProcedure.input(z.coerce.number()).query(async ({ input }) => {
         return trusteeFeeScheduleCrud.getById(input)
     }),
 
@@ -26,13 +26,13 @@ export const trusteeFeeScheduleRouter = createTRPCRouter({
 
     update: adminProcedure
         .input(
-            z.object({ id: z.string(), data: updateTrusteeFeeScheduleSchema }),
+            z.object({ id: z.coerce.number(), data: updateTrusteeFeeScheduleSchema }),
         )
         .mutation(async ({ input }) => {
             return trusteeFeeScheduleCrud.update(input.id, input.data)
         }),
 
-    delete: adminProcedure.input(z.string()).mutation(async ({ input }) => {
+    delete: adminProcedure.input(z.coerce.number()).mutation(async ({ input }) => {
         return trusteeFeeScheduleCrud.delete(input)
     }),
 })

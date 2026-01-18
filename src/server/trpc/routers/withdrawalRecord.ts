@@ -8,7 +8,7 @@ import { adminProcedure, createTRPCRouter } from '../index'
 
 export const withdrawalRecordRouter = createTRPCRouter({
     list: adminProcedure
-        .input(z.object({ beneficiaryId: z.string().optional() }).optional())
+        .input(z.object({ beneficiaryId: z.coerce.number().optional() }).optional())
         .query(async ({ input }) => {
             const result = await withdrawalRecordCrud.getAll(
                 input?.beneficiaryId,
@@ -16,7 +16,7 @@ export const withdrawalRecordRouter = createTRPCRouter({
             return Array.isArray(result) ? result : result.data
         }),
 
-    byId: adminProcedure.input(z.string()).query(async ({ input }) => {
+    byId: adminProcedure.input(z.coerce.number()).query(async ({ input }) => {
         return withdrawalRecordCrud.getById(input)
     }),
 
@@ -27,12 +27,12 @@ export const withdrawalRecordRouter = createTRPCRouter({
         }),
 
     update: adminProcedure
-        .input(z.object({ id: z.string(), data: updateWithdrawalRecordSchema }))
+        .input(z.object({ id: z.coerce.number(), data: updateWithdrawalRecordSchema }))
         .mutation(async ({ input }) => {
             return withdrawalRecordCrud.update(input.id, input.data)
         }),
 
-    delete: adminProcedure.input(z.string()).mutation(async ({ input }) => {
+    delete: adminProcedure.input(z.coerce.number()).mutation(async ({ input }) => {
         return withdrawalRecordCrud.delete(input)
     }),
 })
