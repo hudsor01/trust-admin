@@ -13,6 +13,7 @@ import { useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
+import { useEditableCell } from '@/hooks/use-editable-cell'
 import { cn } from '@/lib/utils'
 import { formatCurrency, formatDate } from '@/utils/formatters'
 
@@ -31,37 +32,29 @@ export function EditableTextCell({
     onSave,
     placeholder = '—',
 }: EditableTextCellProps) {
-    const [editing, setEditing] = useState(false)
-    const [editValue, setEditValue] = useState(value || '')
-    const [saving, setSaving] = useState(false)
-
-    const handleSave = async () => {
-        if (editValue === (value || '')) {
-            setEditing(false)
-            return
-        }
-        setSaving(true)
-        try {
-            await onSave(editValue || null)
-            setEditing(false)
-        } catch (e) {
-            console.error('Save failed:', e)
-        } finally {
-            setSaving(false)
-        }
-    }
+    const {
+        editing,
+        editValue,
+        saving,
+        startEditing,
+        handleChange,
+        handleSave,
+        handleKeyDown,
+    } = useEditableCell({
+        value,
+        onSave,
+        formatForEdit: (v) => v || '',
+        parseFromEdit: (v) => v || null,
+    })
 
     if (editing) {
         return (
             <div className="relative">
                 <Input
                     value={editValue}
-                    onChange={(e) => setEditValue(e.target.value)}
+                    onChange={(e) => handleChange(e.target.value)}
                     onBlur={handleSave}
-                    onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleSave()
-                        if (e.key === 'Escape') setEditing(false)
-                    }}
+                    onKeyDown={handleKeyDown}
                     className="h-7 text-sm"
                     autoFocus
                 />
@@ -74,10 +67,7 @@ export function EditableTextCell({
 
     return (
         <div
-            onClick={() => {
-                setEditValue(value || '')
-                setEditing(true)
-            }}
+            onClick={startEditing}
             className="cursor-pointer rounded px-2 py-1 -mx-2 -my-1 hover:bg-muted/50 min-h-7 flex items-center"
         >
             <span className={cn('text-sm', !value && 'text-muted-foreground')}>
@@ -100,37 +90,29 @@ export function EditableCurrencyCell({
     value,
     onSave,
 }: EditableCurrencyCellProps) {
-    const [editing, setEditing] = useState(false)
-    const [editValue, setEditValue] = useState(value || '')
-    const [saving, setSaving] = useState(false)
-
-    const handleSave = async () => {
-        if (editValue === (value || '')) {
-            setEditing(false)
-            return
-        }
-        setSaving(true)
-        try {
-            await onSave(editValue || null)
-            setEditing(false)
-        } catch (e) {
-            console.error('Save failed:', e)
-        } finally {
-            setSaving(false)
-        }
-    }
+    const {
+        editing,
+        editValue,
+        saving,
+        startEditing,
+        handleChange,
+        handleSave,
+        handleKeyDown,
+    } = useEditableCell({
+        value,
+        onSave,
+        formatForEdit: (v) => v || '',
+        parseFromEdit: (v) => v || null,
+    })
 
     if (editing) {
         return (
             <div className="relative">
                 <Input
                     value={editValue}
-                    onChange={(e) => setEditValue(e.target.value)}
+                    onChange={(e) => handleChange(e.target.value)}
                     onBlur={handleSave}
-                    onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleSave()
-                        if (e.key === 'Escape') setEditing(false)
-                    }}
+                    onKeyDown={handleKeyDown}
                     className="h-7 text-sm"
                     placeholder="$0.00"
                     autoFocus
@@ -144,10 +126,7 @@ export function EditableCurrencyCell({
 
     return (
         <div
-            onClick={() => {
-                setEditValue(value || '')
-                setEditing(true)
-            }}
+            onClick={startEditing}
             className="cursor-pointer rounded px-2 py-1 -mx-2 -my-1 hover:bg-muted/50 min-h-7 flex items-center"
         >
             <span
@@ -257,26 +236,20 @@ export function EditableDateCell({
     onSave,
     placeholder = '—',
 }: EditableDateCellProps) {
-    const [editing, setEditing] = useState(false)
-    const [editValue, setEditValue] = useState(value ? value.split('T')[0] : '')
-    const [saving, setSaving] = useState(false)
-
-    const handleSave = async () => {
-        const newVal = editValue ? new Date(editValue).toISOString() : null
-        if (newVal === value) {
-            setEditing(false)
-            return
-        }
-        setSaving(true)
-        try {
-            await onSave(newVal)
-            setEditing(false)
-        } catch (e) {
-            console.error('Save failed:', e)
-        } finally {
-            setSaving(false)
-        }
-    }
+    const {
+        editing,
+        editValue,
+        saving,
+        startEditing,
+        handleChange,
+        handleSave,
+        handleKeyDown,
+    } = useEditableCell({
+        value,
+        onSave,
+        formatForEdit: (v) => (v ? (v.split('T')[0] ?? '') : ''),
+        parseFromEdit: (v) => (v ? new Date(v).toISOString() : null),
+    })
 
     if (editing) {
         return (
@@ -284,12 +257,9 @@ export function EditableDateCell({
                 <Input
                     type="date"
                     value={editValue}
-                    onChange={(e) => setEditValue(e.target.value)}
+                    onChange={(e) => handleChange(e.target.value)}
                     onBlur={handleSave}
-                    onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleSave()
-                        if (e.key === 'Escape') setEditing(false)
-                    }}
+                    onKeyDown={handleKeyDown}
                     className="h-7 text-sm w-35"
                     autoFocus
                 />
@@ -302,10 +272,7 @@ export function EditableDateCell({
 
     return (
         <div
-            onClick={() => {
-                setEditValue(value ? value.split('T')[0] : '')
-                setEditing(true)
-            }}
+            onClick={startEditing}
             className="cursor-pointer rounded px-2 py-1 -mx-2 -my-1 hover:bg-muted/50 min-h-7 flex items-center"
         >
             <span className={cn('text-sm', !value && 'text-muted-foreground')}>
@@ -334,28 +301,23 @@ export function EditableNumberCell({
     max = 10,
     placeholder = '—',
 }: EditableNumberCellProps) {
-    const [editing, setEditing] = useState(false)
-    const [editValue, setEditValue] = useState(value?.toString() || '')
-    const [saving, setSaving] = useState(false)
-
-    const handleSave = async () => {
-        const numVal = editValue ? parseInt(editValue, 10) : null
-        if (numVal === value) {
-            setEditing(false)
-            return
-        }
-        setSaving(true)
-        try {
-            const bounded =
-                numVal !== null ? Math.max(min, Math.min(max, numVal)) : null
-            await onSave(bounded)
-            setEditing(false)
-        } catch (e) {
-            console.error('Save failed:', e)
-        } finally {
-            setSaving(false)
-        }
-    }
+    const {
+        editing,
+        editValue,
+        saving,
+        startEditing,
+        handleChange,
+        handleSave,
+        handleKeyDown,
+    } = useEditableCell({
+        value,
+        onSave,
+        formatForEdit: (v) => v?.toString() || '',
+        parseFromEdit: (v) => {
+            const n = Number.parseInt(v, 10)
+            return Number.isNaN(n) ? null : Math.max(min, Math.min(max, n))
+        },
+    })
 
     if (editing) {
         return (
@@ -365,12 +327,9 @@ export function EditableNumberCell({
                     min={min}
                     max={max}
                     value={editValue}
-                    onChange={(e) => setEditValue(e.target.value)}
+                    onChange={(e) => handleChange(e.target.value)}
                     onBlur={handleSave}
-                    onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleSave()
-                        if (e.key === 'Escape') setEditing(false)
-                    }}
+                    onKeyDown={handleKeyDown}
                     className="h-7 text-sm w-16"
                     autoFocus
                 />
@@ -383,10 +342,7 @@ export function EditableNumberCell({
 
     return (
         <div
-            onClick={() => {
-                setEditValue(value?.toString() || '')
-                setEditing(true)
-            }}
+            onClick={startEditing}
             className="cursor-pointer rounded px-2 py-1 -mx-2 -my-1 hover:bg-muted/50 min-h-7 flex items-center"
         >
             <span
@@ -414,37 +370,29 @@ export function EditablePercentCell({
     value,
     onSave,
 }: EditablePercentCellProps) {
-    const [editing, setEditing] = useState(false)
-    const [editValue, setEditValue] = useState(value || '')
-    const [saving, setSaving] = useState(false)
-
-    const handleSave = async () => {
-        if (editValue === (value || '')) {
-            setEditing(false)
-            return
-        }
-        setSaving(true)
-        try {
-            await onSave(editValue || null)
-            setEditing(false)
-        } catch (e) {
-            console.error('Save failed:', e)
-        } finally {
-            setSaving(false)
-        }
-    }
+    const {
+        editing,
+        editValue,
+        saving,
+        startEditing,
+        handleChange,
+        handleSave,
+        handleKeyDown,
+    } = useEditableCell({
+        value,
+        onSave,
+        formatForEdit: (v) => v || '',
+        parseFromEdit: (v) => v || null,
+    })
 
     if (editing) {
         return (
             <div className="relative">
                 <Input
                     value={editValue}
-                    onChange={(e) => setEditValue(e.target.value)}
+                    onChange={(e) => handleChange(e.target.value)}
                     onBlur={handleSave}
-                    onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleSave()
-                        if (e.key === 'Escape') setEditing(false)
-                    }}
+                    onKeyDown={handleKeyDown}
                     className="h-7 text-sm w-20"
                     placeholder="0.00"
                     autoFocus
@@ -456,14 +404,11 @@ export function EditablePercentCell({
         )
     }
 
-    const display = value ? `${parseFloat(value).toFixed(2)}%` : '—'
+    const display = value ? `${Number.parseFloat(value).toFixed(2)}%` : '—'
 
     return (
         <div
-            onClick={() => {
-                setEditValue(value || '')
-                setEditing(true)
-            }}
+            onClick={startEditing}
             className="cursor-pointer rounded px-2 py-1 -mx-2 -my-1 hover:bg-muted/50 min-h-7 flex items-center"
         >
             <span
