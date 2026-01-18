@@ -26,6 +26,8 @@ export const hemsRequestRouter = createTRPCRouter({
         )
         .query(async ({ input }) => {
             const data = await hemsRequestCrud.getAllArray(input?.beneficiaryId)
+            // Note: entityId filtering done in-memory as HEMS requests are typically <100 records
+            // and entityId filter path is rare (most filtering is by beneficiaryId at DB level)
             if (input?.entityId) {
                 return data.filter((r) => r.entityId === input.entityId)
             }
