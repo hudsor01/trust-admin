@@ -6,11 +6,12 @@
  * Allows beneficiaries to submit requests for distributions under the
  * Health, Education, Maintenance, Support standard.
  *
- * Uses tRPC for type-safe mutations.
+ * Uses React 19 useActionState + Server Action for progressive enhancement.
+ * Form works even before JavaScript loads.
  */
 
 import { ArrowLeft, Loader2, Send } from 'lucide-react'
-import { useState } from 'react'
+import { useActionState, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -31,7 +32,10 @@ import {
     SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { trpc } from '@/lib/trpc'
+import {
+    type HemsFormState,
+    submitHemsRequest,
+} from '../_actions/submitHemsRequest'
 
 interface HemsRequestFormProps {
     beneficiaryId: number
@@ -69,56 +73,27 @@ export function HemsRequestForm({
     onSuccess,
     onCancel,
 }: HemsRequestFormProps) {
+    // Track category separately since Radix Select doesn't use native select
     const [category, setCategory] = useState('')
-    const [amount, setAmount] = useState('')
-    const [justification, setJustification] = useState('')
-    const [error, setError] = useState<string | null>(null)
-    const [success, setSuccess] = useState(false)
 
-    // tRPC mutation for submitting HEMS request
-    const submitMutation = trpc.hemsRequest.submit.useMutation({
-        onSuccess: () => {
-            setSuccess(true)
+    // React 19 useActionState for Server Action
+    const [state, formAction, isPending] = useActionState<
+        HemsFormState,
+        FormData
+    >(submitHemsRequest, { error: null, success: false })
+
+    // Handle success callback
+    useEffect(() => {
+        if (state.success) {
             toast.success('Request submitted successfully')
-            setTimeout(() => {
+            const timeout = setTimeout(() => {
                 onSuccess()
             }, 2000)
-        },
-        onError: (err) => {
-            setError(err.message || 'Failed to submit request')
-            toast.error(err.message || 'Failed to submit request')
-        },
-    })
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault()
-        setError(null)
-
-        if (!category || !amount || !justification) {
-            setError('Please fill in all required fields')
-            return
+            return () => clearTimeout(timeout)
         }
+    }, [state.success, onSuccess])
 
-        const amountNum = parseFloat(amount)
-        if (Number.isNaN(amountNum) || amountNum <= 0) {
-            setError('Please enter a valid amount')
-            return
-        }
-
-        submitMutation.mutate({
-            beneficiaryId,
-            entityId,
-            category: category as
-                | 'HEALTH'
-                | 'EDUCATION'
-                | 'MAINTENANCE'
-                | 'SUPPORT',
-            amountRequested: amount,
-            justification,
-        })
-    }
-
-    if (success) {
+    if (state.success) {
         return (
             <Card className="max-w-lg mx-auto">
                 <CardContent className="pt-6">
@@ -156,17 +131,32 @@ export function HemsRequestForm({
                 </div>
             </CardHeader>
             <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    {error && (
+                <form action={formAction} className="space-y-6">
+                    {/* Hidden inputs for IDs */}
+                    <input
+                        type="hidden"
+                        name="beneficiaryId"
+                        value={beneficiaryId}
+                    />
+                    <input type="hidden" name="entityId" value={entityId} />
+
+                    {/* Hidden input for category (synced with Radix Select) */}
+                    <input type="hidden" name="category" value={category} />
+
+                    {state.error && (
                         <Alert variant="destructive">
-                            <AlertDescription>{error}</AlertDescription>
+                            <AlertDescription>{state.error}</AlertDescription>
                         </Alert>
                     )}
 
                     {/* Category */}
                     <div className="space-y-2">
                         <Label htmlFor="category">Category *</Label>
-                        <Select value={category} onValueChange={setCategory}>
+                        <Select
+                            value={category}
+                            onValueChange={setCategory}
+                            disabled={isPending}
+                        >
                             <SelectTrigger>
                                 <SelectValue placeholder="Select a category" />
                             </SelectTrigger>
@@ -192,20 +182,23 @@ export function HemsRequestForm({
 
                     {/* Amount */}
                     <div className="space-y-2">
-                        <Label htmlFor="amount">Amount Requested *</Label>
+                        <Label htmlFor="amountRequested">
+                            Amount Requested *
+                        </Label>
                         <div className="relative">
                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
                                 $
                             </span>
                             <Input
-                                id="amount"
+                                id="amountRequested"
+                                name="amountRequested"
                                 type="number"
                                 step="0.01"
                                 min="0"
-                                value={amount}
-                                onChange={(e) => setAmount(e.target.value)}
                                 placeholder="0.00"
                                 className="pl-7"
+                                disabled={isPending}
+                                required
                             />
                         </div>
                     </div>
@@ -215,10 +208,11 @@ export function HemsRequestForm({
                         <Label htmlFor="justification">Justification *</Label>
                         <Textarea
                             id="justification"
-                            value={justification}
-                            onChange={(e) => setJustification(e.target.value)}
+                            name="justification"
                             placeholder="Please explain the purpose of this request and how it relates to health, education, maintenance, or support..."
                             rows={4}
+                            disabled={isPending}
+                            required
                         />
                         <p className="text-xs text-muted-foreground">
                             Provide details to help the trustee understand your
@@ -249,17 +243,17 @@ export function HemsRequestForm({
                             type="button"
                             variant="outline"
                             onClick={onCancel}
-                            disabled={submitMutation.isPending}
+                            disabled={isPending}
                             className="flex-1"
                         >
                             Cancel
                         </Button>
                         <Button
                             type="submit"
-                            disabled={submitMutation.isPending}
+                            disabled={isPending}
                             className="flex-1"
                         >
-                            {submitMutation.isPending ? (
+                            {isPending ? (
                                 <>
                                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                                     Submitting...
