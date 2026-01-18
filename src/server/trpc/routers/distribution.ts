@@ -1,5 +1,9 @@
 import { z } from 'zod'
-import { distributionCrud, getDistributions } from '../../../../db/queries'
+import {
+    distributionCrud,
+    getDistributions,
+    getDistributionsByBeneficiary,
+} from '../../../../db/queries'
 import {
     insertDistributionSchema,
     updateDistributionSchema,
@@ -14,11 +18,7 @@ export const distributionRouter = createTRPCRouter({
     list: adminProcedure
         .input(z.object({ entityId: z.coerce.number().optional() }).optional())
         .query(async ({ input }) => {
-            const all = await getDistributions()
-            if (input?.entityId) {
-                return all.filter((d) => d.entityId === input.entityId)
-            }
-            return all
+            return getDistributions(input?.entityId)
         }),
 
     byId: adminProcedure.input(z.coerce.number()).query(async ({ input }) => {
@@ -45,13 +45,11 @@ export const distributionRouter = createTRPCRouter({
             return distributionCrud.delete(input)
         }),
 
-    // Portal: Beneficiary views their distributions
+    // Portal: Beneficiary views their distributions (database-level filtering)
     myDistributions: beneficiaryProcedure.query(async ({ ctx }) => {
         if (!ctx.user.beneficiaryId) {
             return []
         }
-        // Filter by beneficiaryId - need to implement this filter
-        const all = await getDistributions()
-        return all.filter((d) => d.beneficiaryId === ctx.user.beneficiaryId)
+        return getDistributionsByBeneficiary(ctx.user.beneficiaryId)
     }),
 })

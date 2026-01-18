@@ -168,8 +168,17 @@ export async function getBeneficiariesWithDistributions(entityId?: number) {
 // DISTRIBUTION QUERIES
 // =============================================================================
 
-export async function getDistributions() {
+export async function getDistributions(entityId?: number) {
     return db.query.distribution.findMany({
+        where: entityId ? eq(distribution.entityId, entityId) : undefined,
+        with: { beneficiary: true },
+        orderBy: (d, { desc }) => [desc(d.distributionDate)],
+    })
+}
+
+export async function getDistributionsByBeneficiary(beneficiaryId: number) {
+    return db.query.distribution.findMany({
+        where: eq(distribution.beneficiaryId, beneficiaryId),
         with: { beneficiary: true },
         orderBy: (d, { desc }) => [desc(d.distributionDate)],
     })
