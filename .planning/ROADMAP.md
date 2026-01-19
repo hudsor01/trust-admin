@@ -822,10 +822,10 @@ Plans:
 **Goal**: Create `/forms` route with multi-item submission form, photo upload to local filesystem, AI-assisted field population
 **Depends on**: Phase 46
 **Research**: Unlikely (internal patterns - forms, file upload)
-**Plans**: TBD
+**Plans**: 1 plan (5 tasks)
 
 Plans:
-- [ ] 47-01: TBD
+- [ ] 47-01: Public inventory form with photo upload and AI integration
 
 #### Phase 48: Admin Inventory Queue
 **Goal**: Admin interface to review pending inventory items, approve/reject/edit, link items to entity
