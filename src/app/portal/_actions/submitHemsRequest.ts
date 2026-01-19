@@ -8,7 +8,8 @@
  */
 
 import { z } from 'zod'
-import { hemsRequestCrud } from '@/db/queries'
+import { db } from '../../../../db'
+import { hemsRequest } from '../../../../db/schema'
 
 const schema = z.object({
     beneficiaryId: z.coerce.number().positive(),
@@ -49,13 +50,14 @@ export async function submitHemsRequest(
     }
 
     try {
-        await hemsRequestCrud.create({
+        await db.insert(hemsRequest).values({
             beneficiaryId: parsed.data.beneficiaryId,
             entityId: parsed.data.entityId,
             category: parsed.data.category,
             amountRequested: parsed.data.amountRequested,
             justification: parsed.data.justification,
             status: 'PENDING',
+            updatedAt: new Date().toISOString(),
         })
         return { error: null, success: true }
     } catch (e) {

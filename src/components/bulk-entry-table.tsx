@@ -14,7 +14,12 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Plus, Save, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useFieldArray, useForm, useWatch } from 'react-hook-form'
+import {
+    type UseFormReturn,
+    useFieldArray,
+    useForm,
+    useWatch,
+} from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'
@@ -337,8 +342,7 @@ export function BulkEntryTable({
 
 interface BulkEntryRowProps {
     index: number
-    // biome-ignore lint/suspicious/noExplicitAny: React Hook Form complex generics
-    form: any
+    form: UseFormReturn<BulkEntryForm>
     onRemove: () => void
     showLoanTermFields: boolean
     isRevolving: boolean
@@ -370,8 +374,12 @@ function BulkEntryRow({
             <td className="px-1 py-1" data-row={index} data-col={0}>
                 <Select
                     value={liabilityType}
-                    onValueChange={(v) =>
-                        setValue(`liabilities.${index}.liabilityType`, v)
+                    onValueChange={(v: string) =>
+                        // Cast is safe: Select options are all valid LiabilityType values
+                        setValue(
+                            `liabilities.${index}.liabilityType`,
+                            v as LiabilityType,
+                        )
                     }
                 >
                     <SelectTrigger className="h-8 text-xs border-0 shadow-none focus:ring-0">

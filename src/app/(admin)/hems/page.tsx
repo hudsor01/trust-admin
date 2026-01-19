@@ -81,7 +81,7 @@ const PAYMENT_METHODS = enumToOptions(PAYMENT_METHOD_VALUES, (v) =>
     ['CHECK', 'ACH', 'WIRE'].includes(v),
 )
 
-const hemsFormSchema = z.object({
+const _hemsFormSchema = z.object({
     beneficiaryId: z.string().min(1, 'Beneficiary is required'),
     amount: z.string().min(1, 'Amount is required'),
     hemsCategory: z.string(),
@@ -90,7 +90,7 @@ const hemsFormSchema = z.object({
     notes: z.string().optional(),
 })
 
-const withdrawalFormSchema = z.object({
+const _withdrawalFormSchema = z.object({
     amount: z.string().min(1, 'Amount is required'),
     paymentMethod: z.string(),
     notes: z.string().optional(),
@@ -154,7 +154,6 @@ export default function DistributionsPage() {
             paymentMethod: 'CHECK',
             notes: '',
         },
-        schema: hemsFormSchema,
         onSubmit: async (data) => {
             if (!selectedEntity) return
             const amount = parseFloat(data.amount.replace(/[,$]/g, ''))
@@ -182,7 +181,6 @@ export default function DistributionsPage() {
             paymentMethod: 'CHECK',
             notes: '',
         },
-        schema: withdrawalFormSchema,
         onSubmit: async (data) => {
             if (!selectedWithdrawal) return
             const amount = parseFloat(data.amount.replace(/[,$]/g, ''))
@@ -201,6 +199,10 @@ export default function DistributionsPage() {
                     data.notes ||
                     `${selectedWithdrawal?.withdrawalType} withdrawal`,
             })
+
+            if (!distData) {
+                throw new Error('Failed to create distribution')
+            }
 
             // Then update the withdrawal record
             await updateWithdrawalRecordMutation.mutateAsync({

@@ -2,6 +2,11 @@
 node_modules
 .serena/
 .claude/
+*.md
+.planning/
+config/
+public/
+
 
 
 # output
@@ -9,8 +14,6 @@ out
 dist
 .next
 *.tgz
-claude.md
-readme.md
 .env.example
 
 
@@ -29,6 +32,7 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 .env.test.local
 .env.production.local
 .env.local
+.env.example
 
 # caches
 .eslintcache
@@ -51,4 +55,6 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 !/secrets/.gitkeep
 
 # Planning files - private development notes
-.planning/
+.vercel
+.vercel/
+.env*.local

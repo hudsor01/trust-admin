@@ -340,7 +340,7 @@ createCrud(liability, { filterColumn: "entityId" })
 | Data Fetching | tRPC + TanStack Query |
 | Auth | Better Auth (magic link, no passwords) |
 | Email | Resend |
-| Deployment | Railway (backend) + Vercel (frontend) |
+| Deployment | Vercel (with Neon Postgres integration) |
 
 ### File Structure
 

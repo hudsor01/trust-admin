@@ -1,11 +1,13 @@
+import { eq } from 'drizzle-orm'
 import { z } from 'zod'
+import { db } from '../../../../db'
 import {
-    beneficiaryCrud,
     getBeneficiariesWithDistributions,
     getBeneficiaryById,
     markBeneficiaryDeceased,
     recalculateBeneficiaryShares,
 } from '../../../../db/queries'
+import { beneficiary } from '../../../../db/schema'
 import {
     insertBeneficiarySchema,
     updateBeneficiarySchema,
@@ -20,7 +22,13 @@ export const beneficiaryRouter = createTRPCRouter({
     list: adminProcedure
         .input(z.object({ entityId: z.coerce.number().optional() }).optional())
         .query(async ({ input }) => {
-            return beneficiaryCrud.getAllArray(input?.entityId)
+            if (input?.entityId) {
+                return db
+                    .select()
+                    .from(beneficiary)
+                    .where(eq(beneficiary.entityId, input.entityId))
+            }
+            return db.select().from(beneficiary)
         }),
 
     // Optimized query that includes distributions in a single query (avoids N+1)
@@ -37,7 +45,11 @@ export const beneficiaryRouter = createTRPCRouter({
     create: adminProcedure
         .input(insertBeneficiarySchema)
         .mutation(async ({ input }) => {
-            return beneficiaryCrud.create(input)
+            const [created] = await db
+                .insert(beneficiary)
+                .values({ ...input, updatedAt: new Date().toISOString() })
+                .returning()
+            return created
         }),
 
     update: adminProcedure
@@ -45,13 +57,22 @@ export const beneficiaryRouter = createTRPCRouter({
             z.object({ id: z.coerce.number(), data: updateBeneficiarySchema }),
         )
         .mutation(async ({ input }) => {
-            return beneficiaryCrud.update(input.id, input.data)
+            const [updated] = await db
+                .update(beneficiary)
+                .set({ ...input.data, updatedAt: new Date().toISOString() })
+                .where(eq(beneficiary.id, input.id))
+                .returning()
+            return updated
         }),
 
     delete: adminProcedure
         .input(z.coerce.number())
         .mutation(async ({ input }) => {
-            return beneficiaryCrud.delete(input)
+            const [deleted] = await db
+                .delete(beneficiary)
+                .where(eq(beneficiary.id, input))
+                .returning()
+            return deleted
         }),
 
     // Portal: Get own beneficiary data

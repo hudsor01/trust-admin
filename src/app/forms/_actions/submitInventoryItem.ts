@@ -1,0 +1,113 @@
+'use server'
+
+import { z } from 'zod'
+import { db } from '../../../../db'
+import { pendingInventoryItem } from '../../../../db/schema'
+
+const formSchema = z.object({
+    name: z.string().min(1, 'Item name is required'),
+    category: z.enum([
+        'JEWELRY',
+        'ART',
+        'COLLECTIBLES',
+        'ELECTRONICS',
+        'FURNITURE',
+        'OTHER',
+    ]),
+    description: z.string().optional(),
+    estimatedValue: z.string().optional(),
+    condition: z.enum(['excellent', 'good', 'fair', 'poor']),
+    photoPath1: z.string().optional(),
+    photoPath2: z.string().optional(),
+    photoPath3: z.string().optional(),
+    photoPath4: z.string().optional(),
+    photoPath5: z.string().optional(),
+    aiConfidence: z.string().optional(),
+    aiSuggested: z.coerce.boolean().optional(),
+    submitterName: z.string().optional(),
+    submitterEmail: z.string().email().optional().or(z.literal('')),
+    submitterPhone: z.string().optional(),
+})
+
+export type InventoryFormState = {
+    success: boolean
+    error?: string
+    errors?: Record<string, string[]>
+    itemId?: number
+}
+
+export async function submitInventoryItem(
+    _prevState: InventoryFormState,
+    formData: FormData,
+): Promise<InventoryFormState> {
+    const raw = {
+        name: formData.get('name'),
+        category: formData.get('category'),
+        description: formData.get('description') || undefined,
+        estimatedValue: formData.get('estimatedValue') || undefined,
+        condition: formData.get('condition'),
+        photoPath1: formData.get('photoPath1') || undefined,
+        photoPath2: formData.get('photoPath2') || undefined,
+        photoPath3: formData.get('photoPath3') || undefined,
+        photoPath4: formData.get('photoPath4') || undefined,
+        photoPath5: formData.get('photoPath5') || undefined,
+        aiConfidence: formData.get('aiConfidence') || undefined,
+        aiSuggested: formData.get('aiSuggested') === 'true',
+        submitterName: formData.get('submitterName') || undefined,
+        submitterEmail: formData.get('submitterEmail') || undefined,
+        submitterPhone: formData.get('submitterPhone') || undefined,
+    }
+
+    const result = formSchema.safeParse(raw)
+
+    if (!result.success) {
+        return {
+            success: false,
+            error: 'Validation failed',
+            errors: result.error.flatten().fieldErrors as Record<
+                string,
+                string[]
+            >,
+        }
+    }
+
+    try {
+        const [item] = await db
+            .insert(pendingInventoryItem)
+            .values({
+                name: result.data.name,
+                category: result.data.category,
+                description: result.data.description || null,
+                estimatedValue: result.data.estimatedValue || null,
+                condition: result.data.condition,
+                photoPath1: result.data.photoPath1 || null,
+                photoPath2: result.data.photoPath2 || null,
+                photoPath3: result.data.photoPath3 || null,
+                photoPath4: result.data.photoPath4 || null,
+                photoPath5: result.data.photoPath5 || null,
+                aiConfidence: result.data.aiConfidence || null,
+                aiSuggested: result.data.aiSuggested || false,
+                submitterName: result.data.submitterName || null,
+                submitterEmail: result.data.submitterEmail || null,
+                submitterPhone: result.data.submitterPhone || null,
+                status: 'PENDING',
+                updatedAt: new Date().toISOString(),
+            })
+            .returning()
+
+        if (!item) {
+            throw new Error('Failed to create item')
+        }
+
+        return {
+            success: true,
+            itemId: item.id,
+        }
+    } catch (error) {
+        console.error('Failed to create inventory item:', error)
+        return {
+            success: false,
+            error: 'Failed to submit item. Please try again.',
+        }
+    }
+}

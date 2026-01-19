@@ -1,5 +1,7 @@
+import { eq } from 'drizzle-orm'
 import { z } from 'zod'
-import { withdrawalRecordCrud } from '../../../../db/queries'
+import { db } from '../../../../db'
+import { withdrawalRecord } from '../../../../db/schema'
 import {
     insertWithdrawalRecordSchema,
     updateWithdrawalRecordSchema,
@@ -14,17 +16,31 @@ export const withdrawalRecordRouter = createTRPCRouter({
                 .optional(),
         )
         .query(async ({ input }) => {
-            return withdrawalRecordCrud.getAllArray(input?.beneficiaryId)
+            if (input?.beneficiaryId) {
+                return db
+                    .select()
+                    .from(withdrawalRecord)
+                    .where(
+                        eq(withdrawalRecord.beneficiaryId, input.beneficiaryId),
+                    )
+            }
+            return db.select().from(withdrawalRecord)
         }),
 
     byId: adminProcedure.input(z.coerce.number()).query(async ({ input }) => {
-        return withdrawalRecordCrud.getById(input)
+        return db.query.withdrawalRecord.findFirst({
+            where: eq(withdrawalRecord.id, input),
+        })
     }),
 
     create: adminProcedure
         .input(insertWithdrawalRecordSchema)
         .mutation(async ({ input }) => {
-            return withdrawalRecordCrud.create(input)
+            const [created] = await db
+                .insert(withdrawalRecord)
+                .values({ ...input, updatedAt: new Date().toISOString() })
+                .returning()
+            return created
         }),
 
     update: adminProcedure
@@ -35,12 +51,21 @@ export const withdrawalRecordRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ input }) => {
-            return withdrawalRecordCrud.update(input.id, input.data)
+            const [updated] = await db
+                .update(withdrawalRecord)
+                .set({ ...input.data, updatedAt: new Date().toISOString() })
+                .where(eq(withdrawalRecord.id, input.id))
+                .returning()
+            return updated
         }),
 
     delete: adminProcedure
         .input(z.coerce.number())
         .mutation(async ({ input }) => {
-            return withdrawalRecordCrud.delete(input)
+            const [deleted] = await db
+                .delete(withdrawalRecord)
+                .where(eq(withdrawalRecord.id, input))
+                .returning()
+            return deleted
         }),
 })

@@ -32,7 +32,6 @@ import {
     TableRow,
 } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { insertContactSchema } from '@/db/validation'
 import { useEntityFilter } from '@/hooks/use-entity-filter'
 import { useResourceForm } from '@/hooks/use-resource-form'
 import { trpc } from '@/lib/trpc'
@@ -206,7 +205,6 @@ export default function SettingsPage() {
             email: '',
             phone: '',
         },
-        schema: insertContactSchema,
         onSubmit: async (data) => {
             await createContactMutation.mutateAsync({
                 name: data.name.trim(),

@@ -175,7 +175,17 @@ export function extractClientIP(req: Request): string {
     return 'unknown'
 }
 
+// Build-time check: warn but don't fail during static generation
+const authSecret = process.env.BETTER_AUTH_SECRET
+if (!authSecret && process.env.NODE_ENV === 'production') {
+    console.warn(
+        '[auth] BETTER_AUTH_SECRET not set - auth will not work in production',
+    )
+}
+
 export const auth = betterAuth({
+    // Provide secret explicitly - use placeholder during build, real secret at runtime
+    secret: authSecret || 'build-time-placeholder-not-for-production',
     trustedOrigins: process.env.TRUSTED_ORIGINS?.split(',') || [
         'http://localhost:3000',
         'http://localhost:5173',

@@ -1,9 +1,11 @@
+import { eq } from 'drizzle-orm'
 import { z } from 'zod'
+import { db } from '../../../../db'
 import {
-    distributionCrud,
     getDistributions,
     getDistributionsByBeneficiary,
 } from '../../../../db/queries'
+import { distribution } from '../../../../db/schema'
 import {
     insertDistributionSchema,
     updateDistributionSchema,
@@ -22,13 +24,19 @@ export const distributionRouter = createTRPCRouter({
         }),
 
     byId: adminProcedure.input(z.coerce.number()).query(async ({ input }) => {
-        return distributionCrud.getById(input)
+        return db.query.distribution.findFirst({
+            where: eq(distribution.id, input),
+        })
     }),
 
     create: adminProcedure
         .input(insertDistributionSchema)
         .mutation(async ({ input }) => {
-            return distributionCrud.create(input)
+            const [created] = await db
+                .insert(distribution)
+                .values({ ...input, updatedAt: new Date().toISOString() })
+                .returning()
+            return created
         }),
 
     update: adminProcedure
@@ -36,13 +44,22 @@ export const distributionRouter = createTRPCRouter({
             z.object({ id: z.coerce.number(), data: updateDistributionSchema }),
         )
         .mutation(async ({ input }) => {
-            return distributionCrud.update(input.id, input.data)
+            const [updated] = await db
+                .update(distribution)
+                .set({ ...input.data, updatedAt: new Date().toISOString() })
+                .where(eq(distribution.id, input.id))
+                .returning()
+            return updated
         }),
 
     delete: adminProcedure
         .input(z.coerce.number())
         .mutation(async ({ input }) => {
-            return distributionCrud.delete(input)
+            const [deleted] = await db
+                .delete(distribution)
+                .where(eq(distribution.id, input))
+                .returning()
+            return deleted
         }),
 
     // Portal: Beneficiary views their distributions (database-level filtering)

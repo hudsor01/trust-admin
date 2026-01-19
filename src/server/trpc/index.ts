@@ -142,16 +142,20 @@ export function createCrudRouter<
         ) => Promise<TModel | undefined>
         delete: (id: number) => Promise<TModel | undefined>
     }
+    selectSchema: z.ZodType<TModel>
     insertSchema: z.ZodType<TInsert>
     updateSchema: z.ZodType<TUpdate>
     getById?: (id: number) => Promise<TGetById>
+    getByIdSchema?: z.ZodType<TGetById>
     listFilterKey?: string
 }) {
     const {
         crud,
+        selectSchema,
         insertSchema,
         updateSchema,
         getById,
+        getByIdSchema,
         listFilterKey = 'entityId',
     } = config
 
@@ -162,6 +166,7 @@ export function createCrudRouter<
                     .object({ [listFilterKey]: z.coerce.number().optional() })
                     .optional(),
             )
+            .output(z.array(selectSchema))
             .query(async ({ input }) =>
                 crud.getAllArray(
                     input?.[listFilterKey as keyof typeof input] as
@@ -172,22 +177,26 @@ export function createCrudRouter<
 
         byId: adminProcedure
             .input(z.coerce.number())
+            .output(getByIdSchema ?? selectSchema.nullable())
             .query(async ({ input }) =>
                 getById ? getById(input) : crud.getById(input),
             ),
 
         create: adminProcedure
             .input(insertSchema)
+            .output(selectSchema)
             .mutation(async ({ input }) => crud.create(input as TInsert)),
 
         update: adminProcedure
             .input(z.object({ id: z.coerce.number(), data: updateSchema }))
+            .output(selectSchema.nullable())
             .mutation(async ({ input }) =>
                 crud.update(input.id, input.data as Partial<TInsert>),
             ),
 
         delete: adminProcedure
             .input(z.coerce.number())
+            .output(selectSchema.nullable())
             .mutation(async ({ input }) => crud.delete(input)),
     })
 }

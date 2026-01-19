@@ -20,6 +20,7 @@ import { homesteadRouter } from './routers/homestead'
 import { investmentAccountRouter } from './routers/investmentAccount'
 import { liabilityRouter } from './routers/liability'
 import { liabilityPaymentRouter } from './routers/liabilityPayment'
+import { pendingInventoryItemRouter } from './routers/pendingInventoryItem'
 import { personalPropertyRouter } from './routers/personalProperty'
 import { rentalPropertyRouter } from './routers/rentalProperty'
 import { specificBequestRouter } from './routers/specificBequest'
@@ -78,6 +79,9 @@ export const appRouter = createTRPCRouter({
     // Documents & Audit
     document: documentRouter,
     activityLog: activityLogRouter,
+
+    // Inventory Queue
+    pendingInventoryItem: pendingInventoryItemRouter,
 })
 
 // Export type for client-side inference

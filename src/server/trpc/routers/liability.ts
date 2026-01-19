@@ -1,9 +1,11 @@
+import { eq } from 'drizzle-orm'
 import { z } from 'zod'
+import { db } from '../../../../db'
 import {
     getLiabilityPayments,
-    liabilityCrud,
     recordLiabilityPayment,
 } from '../../../../db/queries'
+import { liability } from '../../../../db/schema'
 import {
     insertLiabilitySchema,
     updateLiabilitySchema,
@@ -47,29 +49,54 @@ export const liabilityRouter = createTRPCRouter({
     list: adminProcedure
         .input(z.object({ entityId: z.coerce.number().optional() }).optional())
         .query(async ({ input }) => {
-            return liabilityCrud.getAllArray(input?.entityId)
+            if (input?.entityId) {
+                return db
+                    .select()
+                    .from(liability)
+                    .where(eq(liability.entityId, input.entityId))
+            }
+            return db.select().from(liability)
         }),
 
     byId: adminProcedure.input(z.coerce.number()).query(async ({ input }) => {
-        return liabilityCrud.getById(input)
+        return db.query.liability.findFirst({
+            where: eq(liability.id, input),
+            with: {
+                entity: true,
+                payments: true,
+            },
+        })
     }),
 
     create: adminProcedure
         .input(insertLiabilitySchema)
         .mutation(async ({ input }) => {
-            return liabilityCrud.create(input)
+            const [created] = await db
+                .insert(liability)
+                .values({ ...input, updatedAt: new Date().toISOString() })
+                .returning()
+            return created
         }),
 
     update: adminProcedure
         .input(z.object({ id: z.coerce.number(), data: updateLiabilitySchema }))
         .mutation(async ({ input }) => {
-            return liabilityCrud.update(input.id, input.data)
+            const [updated] = await db
+                .update(liability)
+                .set({ ...input.data, updatedAt: new Date().toISOString() })
+                .where(eq(liability.id, input.id))
+                .returning()
+            return updated
         }),
 
     delete: adminProcedure
         .input(z.coerce.number())
         .mutation(async ({ input }) => {
-            return liabilityCrud.delete(input)
+            const [deleted] = await db
+                .delete(liability)
+                .where(eq(liability.id, input))
+                .returning()
+            return deleted
         }),
 
     // Special: Bulk create multiple liabilities at once
@@ -95,19 +122,25 @@ export const liabilityRouter = createTRPCRouter({
                         ? parseInt(row.loanTermMonths, 10)
                         : null
 
-                    return liabilityCrud.create({
-                        entityId: input.entityId,
-                        liabilityType: row.liabilityType,
-                        creditor: row.creditor,
-                        originalAmount: cleanBalance, // Use current balance as original for new entries
-                        currentBalance: cleanBalance,
-                        interestRate: cleanRate,
-                        monthlyPayment: cleanPayment,
-                        escrowMonthly: cleanEscrow,
-                        loanTermMonths: cleanTerm,
-                        isRevolvingCredit: row.liabilityType === 'CREDIT_CARD',
-                        status: 'ACTIVE',
-                    })
+                    return db
+                        .insert(liability)
+                        .values({
+                            entityId: input.entityId,
+                            liabilityType: row.liabilityType,
+                            creditor: row.creditor,
+                            originalAmount: cleanBalance, // Use current balance as original for new entries
+                            currentBalance: cleanBalance,
+                            interestRate: cleanRate,
+                            monthlyPayment: cleanPayment,
+                            escrowMonthly: cleanEscrow,
+                            loanTermMonths: cleanTerm,
+                            isRevolvingCredit:
+                                row.liabilityType === 'CREDIT_CARD',
+                            status: 'ACTIVE',
+                            updatedAt: new Date().toISOString(),
+                        })
+                        .returning()
+                        .then(([created]) => created)
                 }),
             )
             return results
@@ -131,7 +164,9 @@ export const liabilityRouter = createTRPCRouter({
     getPayoffProjection: adminProcedure
         .input(z.coerce.number())
         .query(async ({ input }) => {
-            const liabilityRecord = await liabilityCrud.getById(input)
+            const liabilityRecord = await db.query.liability.findFirst({
+                where: eq(liability.id, input),
+            })
             if (
                 !liabilityRecord ||
                 !liabilityRecord.interestRate ||

@@ -1,17 +1,19 @@
+import { desc, eq } from 'drizzle-orm'
 import { z } from 'zod'
+import { db } from '../../../../db'
 import {
-    activityLogCrud,
     getActivityLogWithChanges,
     SEARCHABLE_ACTIVITY_LOG_FIELDS,
     searchActivityLogByField,
 } from '../../../../db/queries'
+import { activityLog } from '../../../../db/schema'
 import { adminProcedure, createTRPCRouter } from '../index'
 
 // Zod enum for searchable fields - enforces allowlist at API level
 const searchableFieldSchema = z.enum(SEARCHABLE_ACTIVITY_LOG_FIELDS)
 
 export const activityLogRouter = createTRPCRouter({
-    // List all activity logs (paginated via CRUD)
+    // List all activity logs (with optional pagination)
     list: adminProcedure
         .input(
             z
@@ -22,18 +24,23 @@ export const activityLogRouter = createTRPCRouter({
                 .optional(),
         )
         .query(async ({ input }) => {
-            if (input?.limit || input?.offset) {
-                const result = await activityLogCrud.getAll(undefined, {
-                    limit: input.limit,
-                    offset: input.offset,
-                })
-                return Array.isArray(result) ? result : result.data
+            const query = db
+                .select()
+                .from(activityLog)
+                .orderBy(desc(activityLog.createdAt))
+            if (input?.limit) {
+                query.limit(input.limit)
             }
-            return activityLogCrud.getAllArray()
+            if (input?.offset) {
+                query.offset(input.offset)
+            }
+            return query
         }),
 
     byId: adminProcedure.input(z.coerce.number()).query(async ({ input }) => {
-        return activityLogCrud.getById(input)
+        return db.query.activityLog.findFirst({
+            where: eq(activityLog.id, input),
+        })
     }),
 
     // Get activity log with parsed changes (by recordId which is text/polymorphic)

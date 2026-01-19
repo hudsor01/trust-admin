@@ -16,7 +16,8 @@ Trust Admin application development roadmap. v1.0 focused on code quality and re
 - ✅ [v4.0 Smart Liability Management](milestones/v4.0-ROADMAP.md) - Phases 25-29 (shipped 2026-01-17)
 - ✅ [v5.0 Developer Experience & Observability](milestones/v5.0-ROADMAP.md) - Phases 30-35 (shipped 2026-01-16)
 - ✅ [v6.0 React 19.2 Platform Optimizations](milestones/v6.0-ROADMAP.md) - Phases 36-39 (shipped 2026-01-18)
-- 📋 **v7.0 Codebase Consolidation** - Phases 40-45 (planned)
+- ✅ **v7.0 Codebase Consolidation** - Phases 40-45 (shipped 2026-01-18)
+- ✅ **v8.0 Public Inventory Form** - Phases 46-48 (shipped 2026-01-18)
 
 ## Phases
 
@@ -778,154 +779,48 @@ See [v6.0 Archive](milestones/v6.0-ROADMAP.md) for full details.
 
 ---
 
-### 📋 v7.0 Codebase Consolidation (Planned)
+<details>
+<summary>✅ v7.0 Codebase Consolidation (Phases 40-45) — SHIPPED 2026-01-18</summary>
 
-**Milestone Goal:** Eliminate ~1,800+ lines of duplicate code identified in codebase audit. Consolidate patterns, extract reusable hooks/factories, and improve maintainability.
+See: [milestones/v7.0-ROADMAP.md](milestones/v7.0-ROADMAP.md) for full details.
 
-**Why This Matters:**
-- 13 tRPC routers with identical CRUD boilerplate (~400 lines)
-- 10+ admin pages repeating mutation setup patterns (~1,000+ lines)
-- Two parallel table implementations with overlapping functionality
-- 6 editable cell components with duplicated state logic
-- In-memory filtering causing performance issues
+**Key accomplishments:**
+- Created `createCrudRouter()` factory - migrated 13 tRPC routers, 73% code reduction
+- Created `useEditableCell` hook - consolidated 5 editable cell components
+- Created `useCrudMutations` hook - standardized mutation setup patterns
+- Created shared `LoginPage` component - eliminated 308 lines of duplication
+- Removed 586 lines of dead table code
+- Created column helpers and FormField wrapper - 37% reduction on vehicles page
 
 **Phases:**
+- [x] Phase 40: Quick Fixes (1/1 plan) — completed 2026-01-18
+- [x] Phase 41: Hook Extraction (3/3 plans) — completed 2026-01-18
+- [x] Phase 42: tRPC Router Factory (1/1 plan) — completed 2026-01-18
+- [x] Phase 43: Table Consolidation (1/1 plan) — completed 2026-01-18
+- [x] Phase 44: Query Optimization (1/1 plan) — completed 2026-01-18
+- [x] Phase 45: Admin Page Patterns (1/1 plan) — completed 2026-01-18
+
+</details>
 
 ---
 
-#### Phase 40: Quick Fixes
-**Goal**: Remove duplicate type definition, replace hardcoded enums with constants, add `getAllArray()` helper to CRUD factory
+<details>
+<summary>✅ v8.0 Public Inventory Form (Phases 46-48) — SHIPPED 2026-01-18</summary>
 
-**Depends on**: Can start anytime (no dependencies)
+**Milestone Goal:** Public-facing inventory form with AI-powered photo analysis. Admin queue for review/approval.
 
-**Research**: Unlikely (internal patterns, trivial changes)
+- [x] Phase 46: MLX Vision Integration (1/1 plan) — AI photo analysis endpoint
+- [x] Phase 47: Public Inventory Form (1/1 plan) — /forms/inventory with photo upload
+- [x] Phase 48: Admin Inventory Queue (1/1 plan) — /inventory-queue admin page
 
-**Plans**: 1 plan (3 tasks)
+**Key deliverables:**
+- `/forms/inventory` - Public submission form (no auth)
+- `/api/inventory/analyze` - AI photo analysis (Ollama + Qwen3-VL)
+- `/api/inventory/upload` - Photo upload to local filesystem
+- `/inventory-queue` - Admin review queue
+- Approval flow creates `personalProperty` records
 
-**Tasks:**
-1. Remove duplicate `AllocationClass` type from `src/lib/classification-rules.ts` (import from `type-utils.ts`)
-2. Replace hardcoded enum values in `src/server/trpc/routers/liability.ts` with `PAYMENT_METHOD_VALUES` and `ALLOCATION_CLASS_VALUES`
-3. Add `getAllArray()` method to `db/crud-factory.ts` that always returns `Select[]` (eliminates 20+ type guards)
-
-**Files:**
-- `src/lib/classification-rules.ts`
-- `src/server/trpc/routers/liability.ts`
-- `db/crud-factory.ts`
-
-Plans:
-- [x] 40-01: Quick fixes for type and enum duplication
-
----
-
-#### Phase 41: Hook Extraction
-**Goal**: Extract reusable hooks for editable cells and CRUD mutations, create shared login page component
-
-**Depends on**: Phase 40
-
-**Research**: ✅ Completed (41-RESEARCH.md)
-
-**Plans**: 3 plans
-Plans:
-- [x] 41-01: Create useEditableCell hook and migrate 5 editable cell components
-- [x] 41-02: Create shared LoginPage component
-- [x] 41-03: Create useCrudMutations hook and migrate 3 pilot pages
-
-**Impact:** ~400 lines consolidated
-
-Plans:
-- [ ] 41-01: Hook extraction and login page consolidation
-
----
-
-#### Phase 42: tRPC Router Factory
-**Goal**: Create `createCrudRouter()` factory to eliminate boilerplate in 13 simple routers
-
-**Depends on**: Phase 40
-
-**Research**: Unlikely (internal tRPC patterns)
-
-**Plans**: 1 plan (2 tasks)
-
-**Tasks:**
-1. Create `createCrudRouter()` factory in `src/server/trpc/index.ts` that generates standard list/byId/create/update/delete procedures given a CRUD instance and schemas
-2. Migrate these 13 routers to use the factory:
-   - artwork, contact, vehicle, bankAccount, homestead, investmentAccount
-   - rentalProperty, personalProperty, task, trustee, trusteeFeeSchedule
-   - specificBequest, liabilityPayment
-
-**Impact:** ~400 lines eliminated
-
-**Note:** Routers with custom logic (liability, distribution, hemsRequest, beneficiary) remain explicit.
-
-Plans:
-- [x] 42-01: tRPC router factory implementation
-
----
-
-#### Phase 43: Table Consolidation
-**Goal**: Migrate all pages to TanStack Table, remove deprecated `data-table.tsx`
-
-**Depends on**: Phase 41
-
-**Research**: Unlikely (migration work, TanStack Table already in use)
-
-**Plans**: 1 plan (3 tasks)
-
-**Tasks:**
-1. Audit all pages using `data-table.tsx` vs `tanstack-table.tsx`
-2. Migrate remaining pages to use `tanstack-table.tsx` (VirtualizedTable for large lists)
-3. Remove `src/components/data-table.tsx` after migration complete
-
-**Impact:** ~300 lines removed, single table implementation
-
-Plans:
-- [ ] 43-01: Table implementation consolidation
-
----
-
-#### Phase 44: Query Optimization
-**Goal**: Fix in-memory filtering, standardize `getById` relations across asset queries
-
-**Depends on**: Phase 42
-
-**Research**: Unlikely (internal query patterns)
-
-**Plans**: 1 plan (2 tasks)
-
-**Tasks:**
-1. Fix in-memory filtering:
-   - Update `getDistributions()` in `db/queries.ts` to accept optional `entityId` parameter
-   - Update `hemsRequest` router to filter `entityId` at database level
-2. Standardize `getById` relations:
-   - Ensure all 8 asset `getById` functions include consistent relations (`entity`, `valuations`, `documents`)
-   - Document pattern in code comments
-
-**Impact:** Performance improvement for large datasets
-
-Plans:
-- [ ] 44-01: Query optimization and relation standardization
-
----
-
-#### Phase 45: Admin Page Patterns
-**Goal**: Create column definition factory and FormField wrapper to reduce page boilerplate
-
-**Depends on**: Phases 41, 43
-
-**Research**: Unlikely (UI patterns established)
-
-**Plans**: 1 plan (2 tasks)
-
-**Tasks:**
-1. Create `createColumns(config)` utility that accepts column configuration objects and returns column definitions with consistent formatting, edit cells, and action buttons
-2. Create `<FormField name label required>` wrapper component that consolidates Label + Input + error display pattern
-
-**Impact:** ~500+ lines consolidated across 10 admin pages
-
-**Note:** This phase is optional but provides significant long-term maintainability benefits.
-
-Plans:
-- [ ] 45-01: Admin page pattern extraction
+</details>
 
 ---
 
@@ -985,4 +880,7 @@ Plans:
 | 42. tRPC Router Factory | v7.0 | 1/1 | ✅ Complete | 2026-01-18 |
 | 43. Table Consolidation | v7.0 | 1/1 | ✅ Complete | 2026-01-18 |
 | 44. Query Optimization | v7.0 | 1/1 | ✅ Complete | 2026-01-18 |
-| 45. Admin Page Patterns | v7.0 | 0/1 | Not started | - |
+| 45. Admin Page Patterns | v7.0 | 1/1 | ✅ Complete | 2026-01-18 |
+| 46. MLX Vision Integration | v8.0 | 1/1 | ✅ Complete | 2026-01-18 |
+| 47. Public Inventory Form | v8.0 | 1/1 | ✅ Complete | 2026-01-18 |
+| 48. Admin Inventory Queue | v8.0 | 1/1 | ✅ Complete | 2026-01-18 |

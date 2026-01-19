@@ -16,6 +16,7 @@ import {
     investmentAccount,
     liability,
     liabilityPayment,
+    pendingInventoryItem,
     personalProperty,
     rentalProperty,
     specificBequest,
@@ -237,6 +238,19 @@ export const insertPersonalPropertySchema = createInsertSchema(
 )
 export const selectPersonalPropertySchema = createSelectSchema(personalProperty)
 
+export const insertPendingInventoryItemSchema = createInsertSchema(
+    pendingInventoryItem,
+    {
+        createdAt: (schema) => schema.optional(),
+        updatedAt: (schema) => schema.optional(),
+        estimatedValue: () => positiveNumberValidation,
+        submitterEmail: () => emailValidation,
+        submitterPhone: () => phoneValidation,
+    },
+)
+export const selectPendingInventoryItemSchema =
+    createSelectSchema(pendingInventoryItem)
+
 export const insertRentalPropertySchema = createInsertSchema(rentalProperty, {
     createdAt: (schema) => schema.optional(),
     updatedAt: (schema) => schema.optional(),
@@ -348,3 +362,5 @@ export const updateDocumentSchema = insertDocumentSchema.partial()
 export const updateLiabilityPaymentSchema =
     insertLiabilityPaymentSchema.partial()
 export const updateInsurancePolicySchema = insertInsurancePolicySchema.partial()
+export const updatePendingInventoryItemSchema =
+    insertPendingInventoryItemSchema.partial()

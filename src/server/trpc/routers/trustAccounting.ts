@@ -1,10 +1,12 @@
+import { count, desc, eq } from 'drizzle-orm'
 import { z } from 'zod'
+import { db } from '../../../../db'
 import {
     convertIncomeToPrincipal,
     createTrustAccountingEntry,
     getUnconvertedIncomeSummary,
-    trustAccountingCrud,
 } from '../../../../db/queries'
+import { trustAccounting } from '../../../../db/schema'
 import {
     insertTrustAccountingSchema,
     updateTrustAccountingSchema,
@@ -15,7 +17,17 @@ export const trustAccountingRouter = createTRPCRouter({
     list: adminProcedure
         .input(z.object({ entityId: z.coerce.number().optional() }).optional())
         .query(async ({ input }) => {
-            return trustAccountingCrud.getAllArray(input?.entityId)
+            if (input?.entityId) {
+                return db
+                    .select()
+                    .from(trustAccounting)
+                    .where(eq(trustAccounting.entityId, input.entityId))
+                    .orderBy(desc(trustAccounting.accountingDate))
+            }
+            return db
+                .select()
+                .from(trustAccounting)
+                .orderBy(desc(trustAccounting.accountingDate))
         }),
 
     listPaginated: adminProcedure
@@ -27,31 +39,51 @@ export const trustAccountingRouter = createTRPCRouter({
             }),
         )
         .query(async ({ input }) => {
-            const result = await trustAccountingCrud.getAll(input?.entityId, {
-                limit: input?.limit,
-                offset: input?.offset,
-                includeTotalCount: true,
-            })
-            return Array.isArray(result)
-                ? { data: result, totalCount: result.length }
-                : result
+            const baseQuery = input?.entityId
+                ? eq(trustAccounting.entityId, input.entityId)
+                : undefined
+
+            const [data, countResult] = await Promise.all([
+                db
+                    .select()
+                    .from(trustAccounting)
+                    .where(baseQuery)
+                    .orderBy(desc(trustAccounting.accountingDate))
+                    .limit(input?.limit ?? 100)
+                    .offset(input?.offset ?? 0),
+                db
+                    .select({ totalCount: count() })
+                    .from(trustAccounting)
+                    .where(baseQuery),
+            ])
+
+            return { data, totalCount: countResult[0]?.totalCount ?? 0 }
         }),
 
     byId: adminProcedure.input(z.coerce.number()).query(async ({ input }) => {
-        return trustAccountingCrud.getById(input)
+        return db.query.trustAccounting.findFirst({
+            where: eq(trustAccounting.id, input),
+        })
     }),
 
     create: adminProcedure
         .input(insertTrustAccountingSchema)
         .mutation(async ({ input }) => {
-            return trustAccountingCrud.create(input)
+            const [created] = await db
+                .insert(trustAccounting)
+                .values({ ...input, updatedAt: new Date().toISOString() })
+                .returning()
+            return created
         }),
 
     // Special: Create entry with auto-classification
     createEntry: adminProcedure
         .input(insertTrustAccountingSchema)
         .mutation(async ({ input }) => {
-            return createTrustAccountingEntry(input)
+            return createTrustAccountingEntry({
+                ...input,
+                updatedAt: new Date().toISOString(),
+            })
         }),
 
     update: adminProcedure
@@ -62,13 +94,22 @@ export const trustAccountingRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ input }) => {
-            return trustAccountingCrud.update(input.id, input.data)
+            const [updated] = await db
+                .update(trustAccounting)
+                .set({ ...input.data, updatedAt: new Date().toISOString() })
+                .where(eq(trustAccounting.id, input.id))
+                .returning()
+            return updated
         }),
 
     delete: adminProcedure
         .input(z.coerce.number())
         .mutation(async ({ input }) => {
-            return trustAccountingCrud.delete(input)
+            const [deleted] = await db
+                .delete(trustAccounting)
+                .where(eq(trustAccounting.id, input))
+                .returning()
+            return deleted
         }),
 
     // =========================================================================

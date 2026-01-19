@@ -98,13 +98,17 @@ const ROLE_LABELS: Record<string, string> = {
 
 export default function ContactsPage() {
     // Use tRPC hooks for data fetching
+    const utils = trpc.useUtils()
     const { data: contacts = [], isLoading } = trpc.contact.list.useQuery()
 
     const {
         create: createContactMutation,
         update: updateContactMutation,
         delete: deleteContactMutation,
-    } = useCrudMutations('contact')
+    } = useCrudMutations({
+        router: trpc.contact,
+        invalidate: () => utils.contact.list.invalidate(),
+    })
 
     const [filter, setFilter] = useState<RoleFilter>('all')
     const [search, setSearch] = useState('')

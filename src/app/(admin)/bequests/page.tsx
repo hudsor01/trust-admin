@@ -54,6 +54,7 @@ const BEQUEST_CATEGORIES = [
 ]
 
 export default function BequestsPage() {
+    const utils = trpc.useUtils()
     const { data: entities = [], isLoading: entitiesLoading } =
         trpc.entity.list.useQuery()
     const [entityIdStr, setEntityIdStr] = useEntityFilter()
@@ -73,7 +74,10 @@ export default function BequestsPage() {
         create: createBequestMutation,
         update: updateBequestMutation,
         delete: deleteBequestMutation,
-    } = useCrudMutations('specificBequest')
+    } = useCrudMutations({
+        router: trpc.specificBequest,
+        invalidate: () => utils.specificBequest.list.invalidate(),
+    })
 
     const loading = entitiesLoading || bequestsLoading
 

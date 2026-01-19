@@ -1,9 +1,11 @@
+import { eq } from 'drizzle-orm'
 import { z } from 'zod'
+import { db } from '../../../../db'
 import {
     getHemsRequestsWithBeneficiary,
     getPendingHemsRequests,
-    hemsRequestCrud,
 } from '../../../../db/queries'
+import { hemsRequest } from '../../../../db/schema'
 import {
     insertHemsRequestSchema,
     updateHemsRequestSchema,
@@ -25,13 +27,19 @@ export const hemsRequestRouter = createTRPCRouter({
                 .optional(),
         )
         .query(async ({ input }) => {
-            const data = await hemsRequestCrud.getAllArray(input?.beneficiaryId)
-            // Note: entityId filtering done in-memory as HEMS requests are typically <100 records
-            // and entityId filter path is rare (most filtering is by beneficiaryId at DB level)
-            if (input?.entityId) {
-                return data.filter((r) => r.entityId === input.entityId)
+            if (input?.beneficiaryId) {
+                return db
+                    .select()
+                    .from(hemsRequest)
+                    .where(eq(hemsRequest.beneficiaryId, input.beneficiaryId))
             }
-            return data
+            if (input?.entityId) {
+                return db
+                    .select()
+                    .from(hemsRequest)
+                    .where(eq(hemsRequest.entityId, input.entityId))
+            }
+            return db.select().from(hemsRequest)
         }),
 
     // List with beneficiary info
@@ -51,13 +59,19 @@ export const hemsRequestRouter = createTRPCRouter({
     }),
 
     byId: adminProcedure.input(z.coerce.number()).query(async ({ input }) => {
-        return hemsRequestCrud.getById(input)
+        return db.query.hemsRequest.findFirst({
+            where: eq(hemsRequest.id, input),
+        })
     }),
 
     create: adminProcedure
         .input(insertHemsRequestSchema)
         .mutation(async ({ input }) => {
-            return hemsRequestCrud.create(input)
+            const [created] = await db
+                .insert(hemsRequest)
+                .values({ ...input, updatedAt: new Date().toISOString() })
+                .returning()
+            return created
         }),
 
     update: adminProcedure
@@ -65,13 +79,22 @@ export const hemsRequestRouter = createTRPCRouter({
             z.object({ id: z.coerce.number(), data: updateHemsRequestSchema }),
         )
         .mutation(async ({ input }) => {
-            return hemsRequestCrud.update(input.id, input.data)
+            const [updated] = await db
+                .update(hemsRequest)
+                .set({ ...input.data, updatedAt: new Date().toISOString() })
+                .where(eq(hemsRequest.id, input.id))
+                .returning()
+            return updated
         }),
 
     delete: adminProcedure
         .input(z.coerce.number())
         .mutation(async ({ input }) => {
-            return hemsRequestCrud.delete(input)
+            const [deleted] = await db
+                .delete(hemsRequest)
+                .where(eq(hemsRequest.id, input))
+                .returning()
+            return deleted
         }),
 
     // Special: Approve HEMS request
@@ -84,12 +107,18 @@ export const hemsRequestRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ input }) => {
-            return hemsRequestCrud.update(input.id, {
-                status: 'APPROVED',
-                approvedAmount: input.approvedAmount,
-                reviewNotes: input.reviewNotes,
-                reviewedAt: new Date().toISOString(),
-            })
+            const [updated] = await db
+                .update(hemsRequest)
+                .set({
+                    status: 'APPROVED',
+                    approvedAmount: input.approvedAmount,
+                    reviewNotes: input.reviewNotes,
+                    reviewedAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                })
+                .where(eq(hemsRequest.id, input.id))
+                .returning()
+            return updated
         }),
 
     // Special: Deny HEMS request
@@ -101,11 +130,17 @@ export const hemsRequestRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ input }) => {
-            return hemsRequestCrud.update(input.id, {
-                status: 'DENIED',
-                reviewNotes: input.reviewNotes,
-                reviewedAt: new Date().toISOString(),
-            })
+            const [updated] = await db
+                .update(hemsRequest)
+                .set({
+                    status: 'DENIED',
+                    reviewNotes: input.reviewNotes,
+                    reviewedAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                })
+                .where(eq(hemsRequest.id, input.id))
+                .returning()
+            return updated
         }),
 
     // Portal: Beneficiary submits request
@@ -117,10 +152,15 @@ export const hemsRequestRouter = createTRPCRouter({
                 throw new Error('Can only submit requests for yourself')
             }
 
-            return hemsRequestCrud.create({
-                ...input,
-                status: 'PENDING',
-            })
+            const [created] = await db
+                .insert(hemsRequest)
+                .values({
+                    ...input,
+                    status: 'PENDING',
+                    updatedAt: new Date().toISOString(),
+                })
+                .returning()
+            return created
         }),
 
     // Portal: Beneficiary views own requests
@@ -128,6 +168,9 @@ export const hemsRequestRouter = createTRPCRouter({
         if (!ctx.user.beneficiaryId) {
             return []
         }
-        return hemsRequestCrud.getAllArray(ctx.user.beneficiaryId)
+        return db
+            .select()
+            .from(hemsRequest)
+            .where(eq(hemsRequest.beneficiaryId, ctx.user.beneficiaryId))
     }),
 })
