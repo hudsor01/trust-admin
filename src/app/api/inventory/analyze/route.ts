@@ -6,16 +6,27 @@ import {
 } from '@/lib/inventory-analysis'
 
 /**
- * Request schema for inventory image analysis
+ * Schema for a single image
  */
-const AnalyzeRequestSchema = z.object({
-    imageBase64: z.string().min(1, 'Image data is required'),
+const ImageSchema = z.object({
+    base64: z.string().min(1, 'Image data is required'),
     mimeType: z
         .string()
         .regex(
             /^image\/(jpeg|png|gif|webp)$/,
             'Must be a valid image MIME type',
         ),
+})
+
+/**
+ * Request schema for inventory image analysis
+ * Supports multiple images of the same item (e.g., front + back with serial)
+ */
+const AnalyzeRequestSchema = z.object({
+    images: z
+        .array(ImageSchema)
+        .min(1, 'At least one image is required')
+        .max(5, 'Maximum 5 images per item'),
 })
 
 /**
@@ -40,12 +51,14 @@ type AnalyzeResponse = AnalyzeSuccessResponse | AnalyzeErrorResponse
 /**
  * POST /api/inventory/analyze
  *
- * Analyzes an image of a personal property item using local Ollama vision model
+ * Analyzes images of a personal property item using local Ollama vision model
  * via Vercel AI SDK with native structured output.
  *
+ * Supports multiple images of the same item (e.g., front view + back with
+ * model/serial number) for more accurate identification and valuation.
+ *
  * Request body:
- * - imageBase64: Base64 encoded image data (without data URL prefix)
- * - mimeType: Image MIME type (e.g., "image/jpeg", "image/png")
+ * - images: Array of { base64: string, mimeType: string } (1-5 images)
  *
  * Response:
  * - success: boolean
@@ -72,17 +85,13 @@ export async function POST(
             )
         }
 
-        const { imageBase64, mimeType } = validationResult.data
+        const { images } = validationResult.data
 
         // Get Ollama URL from environment (defaults to localhost)
         const ollamaUrl = process.env.OLLAMA_URL || 'http://127.0.0.1:11434'
 
-        // Analyze the image using Vercel AI SDK
-        const result = await analyzeInventoryImage(
-            imageBase64,
-            mimeType,
-            ollamaUrl,
-        )
+        // Analyze the images using Vercel AI SDK
+        const result = await analyzeInventoryImage(images, ollamaUrl)
 
         return NextResponse.json({
             success: true,

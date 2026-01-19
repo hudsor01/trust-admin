@@ -162,22 +162,54 @@ IMPORTANT GUIDELINES:
 When you cannot determine something reliably, set confidence to "low" rather than guessing.`
 
 /**
- * Analyzes an inventory image using Ollama vision model via Vercel AI SDK
+ * Image input for inventory analysis
+ */
+export interface InventoryImage {
+    base64: string
+    mimeType: string
+}
+
+/**
+ * Analyzes inventory images using Ollama vision model via Vercel AI SDK
  *
- * @param imageBase64 - Base64 encoded image data (without data URL prefix)
- * @param mimeType - Image MIME type (e.g., "image/jpeg")
+ * Supports multiple images of the same item (e.g., front view + back with model/serial)
+ * for more accurate identification and valuation.
+ *
+ * @param images - Array of images (base64 encoded with mimeType)
  * @param ollamaUrl - Ollama server URL (defaults to localhost:11434)
  * @returns Parsed and validated inventory analysis with DB category mapping
  */
 export async function analyzeInventoryImage(
-    imageBase64: string,
-    mimeType: string,
+    images: InventoryImage[],
     ollamaUrl: string = 'http://127.0.0.1:11434',
 ): Promise<InventoryAnalysisResult> {
+    if (images.length === 0) {
+        throw new Error('At least one image is required')
+    }
+
     // Create Ollama provider pointing to local server
     const ollama = createOllama({
         baseURL: `${ollamaUrl}/api`,
     })
+
+    // Build content array with text prompt and all images
+    const content: Array<
+        | { type: 'text'; text: string }
+        | { type: 'file'; data: string; mediaType: string }
+    > = [
+        {
+            type: 'text',
+            text:
+                images.length === 1
+                    ? 'Analyze this image of a personal property item for trust inventory purposes.'
+                    : `Analyze these ${images.length} images of the SAME personal property item for trust inventory purposes. The images may show different angles (front, back, labels, serial numbers). Synthesize all visible information to provide the most accurate identification and valuation.`,
+        },
+        ...images.map((img) => ({
+            type: 'file' as const,
+            data: `data:${img.mimeType};base64,${img.base64}`,
+            mediaType: img.mimeType,
+        })),
+    ]
 
     // Use AI SDK's generateObject for native structured output with Zod
     const { object } = await generateObject({
@@ -187,17 +219,7 @@ export async function analyzeInventoryImage(
         messages: [
             {
                 role: 'user',
-                content: [
-                    {
-                        type: 'text',
-                        text: 'Analyze this image of a personal property item for trust inventory purposes.',
-                    },
-                    {
-                        type: 'file',
-                        data: `data:${mimeType};base64,${imageBase64}`,
-                        mediaType: mimeType,
-                    },
-                ],
+                content,
             },
         ],
         temperature: 0.1, // Low temperature for consistent output
