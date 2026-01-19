@@ -1065,6 +1065,8 @@ export const pendingInventoryItem = pgTable(
         category: personalPropertyCategory().notNull(),
         description: t.text(),
         estimatedValue: t.numeric({ precision: 12, scale: 2 }),
+        valueRangeLow: t.numeric({ precision: 12, scale: 2 }),
+        valueRangeHigh: t.numeric({ precision: 12, scale: 2 }),
         condition: itemCondition().notNull(),
         // Photo references (local paths)
         photoPath1: t.text(),
@@ -1075,6 +1077,12 @@ export const pendingInventoryItem = pgTable(
         // AI analysis metadata
         aiConfidence: t.text(), // 'high' | 'medium' | 'low' | null
         aiSuggested: t.boolean().default(false).notNull(),
+        aiBrand: t.text(),
+        aiModel: t.text(),
+        aiEra: t.text(),
+        aiMaterials: t.text(),
+        aiValuationRationale: t.text(),
+        aiConditionNotes: t.text(),
         // Review workflow
         status: submissionStatus().default('PENDING').notNull(),
         reviewNotes: t.text(),
