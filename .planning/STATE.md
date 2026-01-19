@@ -6,26 +6,40 @@ See: .planning/PROJECT.md (updated 2026-01-09)
 
 **Core value:** Reliable trust administration - The API works without silent failures, users see clear error messages, and the codebase is maintainable for ongoing development.
 
-**Current focus:** v7.0 Codebase Consolidation
+**Current focus:** v8.0 Public Inventory Form - MLX-powered photo analysis for physical property cataloging
 
 ## Current Position
 
-Phase: 44 of 45 (Query Optimization)
-Plan: 1 of 1 - COMPLETE
-Status: Phase complete, ready for Phase 45
-Last activity: 2026-01-18 - Completed 44-01-PLAN.md
+Phase: 46 of 48 (MLX Vision Integration)
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-01-18 - Milestone v8.0 created
 
-Progress: ██████████████░░░░░░ 7/8 v7.0 plans
+Progress: ░░░░░░░░░░ 0% (0/3 phases)
 
 ## Performance Metrics
 
 **Velocity:**
 - v1.0 plans completed: 41
-- v2.0 plans completed: 4
-- v3.0 plans completed: 7
+- v2.0 plans completed: 6
+- v3.0 plans completed: 9
+- v4.0 plans completed: 7
+- v5.0 plans completed: 6
 - v6.0 plans completed: 4
+- v7.0 plans completed: 8
 
 ## Accumulated Context
+
+### v7.0 Phase 45 COMPLETE (Admin Page Patterns):
+
+**45-01 Completed (Admin Page Patterns):**
+- Created `src/lib/column-helpers.tsx` with 9 column definition helpers
+- Created `src/components/form-field.tsx` with FormField and CurrencyField components
+- Migrated vehicles page from ~1000 lines to 630 lines (~37% reduction)
+- Commits: e07b11c, f9bd3e2, 4d5a86f
+- Pattern: `editableTextColumn<T>(key, header, onSave, opts?)` for DataTable columns
+- Pattern: `<FormField form={form} name="field" label="Label" />` for simple form fields
+- Decision: Keep raw form.Field for complex fields (custom transforms, special validation)
 
 ### v7.0 Phase 44 COMPLETE (Query Optimization):
 
@@ -417,8 +431,9 @@ Progress: ██████████████░░░░░░ 7/8 v7.0 
 ## Session Continuity
 
 Last session: 2026-01-18
-Stopped at: Completed Phase 44 (1 plan), ready for Phase 45
+Stopped at: Milestone v8.0 initialization
 Resume file: None
+Next: `/gsd:plan-phase 46` to plan MLX Vision Integration
 
 ## Milestone History
 
@@ -430,4 +445,5 @@ Resume file: None
 | v4.0 Smart Liability Management | 25-29 | 7 | ✅ Complete | 2026-01-17 |
 | v5.0 Developer Experience & Observability | 30-35 | 6 | ✅ Complete | 2026-01-16 |
 | v6.0 React 19.2 Platform Optimizations | 36-39 | 4 | ✅ Complete | 2026-01-18 |
-| v7.0 Codebase Consolidation | 40-45 | 7 | 🔄 In Progress (6/7) | - |
+| v7.0 Codebase Consolidation | 40-45 | 8 | ✅ Complete | 2026-01-18 |
+| v8.0 Public Inventory Form | 46-48 | TBD | 🚧 In Progress | - |
