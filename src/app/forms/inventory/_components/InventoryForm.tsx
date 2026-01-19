@@ -2,6 +2,7 @@
 
 import {
     AlertCircle,
+    Camera,
     CheckCircle2,
     DollarSign,
     Loader2,
@@ -76,6 +77,17 @@ export function InventoryForm() {
     const [analysis, setAnalysis] = useState<AnalysisResult | null>(null)
     const [analysisError, setAnalysisError] = useState<string | null>(null)
 
+    // Controlled form state (updated by AI analysis)
+    const [formValues, setFormValues] = useState({
+        name: '',
+        category: '',
+        condition: '',
+        estimatedValue: '',
+        valueRangeLow: '',
+        valueRangeHigh: '',
+        description: '',
+    })
+
     const handlePhotoSelect = useCallback(
         (e: React.ChangeEvent<HTMLInputElement>) => {
             const files = Array.from(e.target.files || [])
@@ -121,6 +133,16 @@ export function InventoryForm() {
 
             if (data.success) {
                 setAnalysis(data.data)
+                // Update form values with AI analysis
+                setFormValues({
+                    name: data.data.name || '',
+                    category: data.data.dbCategory || '',
+                    condition: data.data.condition || '',
+                    estimatedValue: data.data.estimatedValue || '',
+                    valueRangeLow: data.data.valueRangeLow || '',
+                    valueRangeHigh: data.data.valueRangeHigh || '',
+                    description: data.data.description || '',
+                })
             } else {
                 setAnalysisError(data.error || 'Analysis failed')
             }
@@ -176,24 +198,54 @@ export function InventoryForm() {
                         condition, and provide a fair market valuation.
                     </p>
 
-                    <div className="border-2 border-dashed rounded-lg p-6 text-center">
-                        <input
-                            type="file"
-                            accept="image/jpeg,image/png,image/gif,image/webp"
-                            multiple
-                            onChange={handlePhotoSelect}
-                            className="hidden"
-                            id="photo-input"
-                        />
-                        <label htmlFor="photo-input" className="cursor-pointer">
-                            <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                            <p className="text-sm text-muted-foreground">
-                                Click to select photos (up to 5)
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                                Multiple angles help improve accuracy
-                            </p>
-                        </label>
+                    <div className="grid grid-cols-2 gap-4">
+                        {/* Camera capture */}
+                        <div className="border-2 border-dashed rounded-lg p-6 text-center">
+                            <input
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp"
+                                capture="environment"
+                                onChange={handlePhotoSelect}
+                                className="hidden"
+                                id="camera-input"
+                            />
+                            <label
+                                htmlFor="camera-input"
+                                className="cursor-pointer"
+                            >
+                                <Camera className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                                <p className="text-sm text-muted-foreground">
+                                    Take Photo
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    Use device camera
+                                </p>
+                            </label>
+                        </div>
+
+                        {/* File upload */}
+                        <div className="border-2 border-dashed rounded-lg p-6 text-center">
+                            <input
+                                type="file"
+                                accept="image/jpeg,image/png,image/gif,image/webp"
+                                multiple
+                                onChange={handlePhotoSelect}
+                                className="hidden"
+                                id="photo-input"
+                            />
+                            <label
+                                htmlFor="photo-input"
+                                className="cursor-pointer"
+                            >
+                                <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                                <p className="text-sm text-muted-foreground">
+                                    Upload Photos
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    Select up to 5 images
+                                </p>
+                            </label>
+                        </div>
                     </div>
 
                     {photos.length > 0 && (
@@ -405,7 +457,13 @@ export function InventoryForm() {
                             id="name"
                             name="name"
                             required
-                            defaultValue={analysis?.name}
+                            value={formValues.name}
+                            onChange={(e) =>
+                                setFormValues((v) => ({
+                                    ...v,
+                                    name: e.target.value,
+                                }))
+                            }
                             placeholder="e.g., Oak Dining Table"
                         />
                         {state.errors?.name && (
@@ -421,7 +479,13 @@ export function InventoryForm() {
                             <Select
                                 name="category"
                                 required
-                                defaultValue={analysis?.dbCategory}
+                                value={formValues.category}
+                                onValueChange={(val) =>
+                                    setFormValues((v) => ({
+                                        ...v,
+                                        category: val,
+                                    }))
+                                }
                             >
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select category" />
@@ -444,7 +508,13 @@ export function InventoryForm() {
                             <Select
                                 name="condition"
                                 required
-                                defaultValue={analysis?.condition}
+                                value={formValues.condition}
+                                onValueChange={(val) =>
+                                    setFormValues((v) => ({
+                                        ...v,
+                                        condition: val,
+                                    }))
+                                }
                             >
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select condition" />
@@ -472,7 +542,13 @@ export function InventoryForm() {
                                 id="estimatedValue"
                                 name="estimatedValue"
                                 type="text"
-                                defaultValue={analysis?.estimatedValue}
+                                value={formValues.estimatedValue}
+                                onChange={(e) =>
+                                    setFormValues((v) => ({
+                                        ...v,
+                                        estimatedValue: e.target.value,
+                                    }))
+                                }
                                 placeholder="e.g., 150.00"
                             />
                         </div>
@@ -482,7 +558,13 @@ export function InventoryForm() {
                                 id="valueRangeLow"
                                 name="valueRangeLow"
                                 type="text"
-                                defaultValue={analysis?.valueRangeLow}
+                                value={formValues.valueRangeLow}
+                                onChange={(e) =>
+                                    setFormValues((v) => ({
+                                        ...v,
+                                        valueRangeLow: e.target.value,
+                                    }))
+                                }
                                 placeholder="e.g., 100.00"
                             />
                         </div>
@@ -492,7 +574,13 @@ export function InventoryForm() {
                                 id="valueRangeHigh"
                                 name="valueRangeHigh"
                                 type="text"
-                                defaultValue={analysis?.valueRangeHigh}
+                                value={formValues.valueRangeHigh}
+                                onChange={(e) =>
+                                    setFormValues((v) => ({
+                                        ...v,
+                                        valueRangeHigh: e.target.value,
+                                    }))
+                                }
                                 placeholder="e.g., 200.00"
                             />
                         </div>
@@ -503,7 +591,13 @@ export function InventoryForm() {
                         <Textarea
                             id="description"
                             name="description"
-                            defaultValue={analysis?.description}
+                            value={formValues.description}
+                            onChange={(e) =>
+                                setFormValues((v) => ({
+                                    ...v,
+                                    description: e.target.value,
+                                }))
+                            }
                             placeholder="Describe the item, including any notable features, damage, or history"
                             rows={3}
                         />
@@ -557,50 +651,6 @@ export function InventoryForm() {
                 </CardContent>
             </Card>
 
-            {/* Contact Info Section */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>Contact Information (Optional)</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <p className="text-sm text-muted-foreground">
-                        Provide your contact info if you&apos;d like to be
-                        notified about this submission.
-                    </p>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="submitterName">Name</Label>
-                        <Input
-                            id="submitterName"
-                            name="submitterName"
-                            placeholder="Your name"
-                        />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="submitterEmail">Email</Label>
-                            <Input
-                                id="submitterEmail"
-                                name="submitterEmail"
-                                type="email"
-                                placeholder="email@example.com"
-                            />
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="submitterPhone">Phone</Label>
-                            <Input
-                                id="submitterPhone"
-                                name="submitterPhone"
-                                type="tel"
-                                placeholder="(555) 555-5555"
-                            />
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
-
             {state.error && (
                 <Alert variant="destructive">
                     <AlertDescription>{state.error}</AlertDescription>
@@ -614,7 +664,7 @@ export function InventoryForm() {
                         Submitting...
                     </>
                 ) : (
-                    'Submit for Review'
+                    'Submit'
                 )}
             </Button>
         </form>
