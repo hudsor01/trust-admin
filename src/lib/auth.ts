@@ -19,9 +19,12 @@ if (!resend) {
     log.warn('RESEND_API_KEY not set - magic link emails will not be sent')
 }
 
-// Email sender - use Resend's test domain or your verified domain
-const EMAIL_FROM =
-    process.env.EMAIL_FROM || 'Trust Admin <onboarding@resend.dev>'
+// Email sender - MUST be set in production to a verified domain
+const EMAIL_FROM = process.env.EMAIL_FROM
+
+if (!EMAIL_FROM && process.env.NODE_ENV === 'production') {
+    log.error('EMAIL_FROM not set - magic link emails will fail in production')
+}
 
 // =============================================================================
 // RATE LIMITER (VULN-005 FIX)
@@ -217,9 +220,6 @@ export const auth = betterAuth({
             secure: process.env.NODE_ENV === 'production',
             path: '/',
         },
-        database: {
-            generateId: false, // Let database generate IDs via BIGINT IDENTITY
-        },
     },
     user: {
         additionalFields: {
@@ -280,7 +280,7 @@ export const auth = betterAuth({
                     return // Success - link logged to console
                 }
 
-                // Production mode: require Resend
+                // Production mode: require Resend and verified domain
                 if (!resend) {
                     log.error(
                         'Cannot send magic link - RESEND_API_KEY not configured',
@@ -290,7 +290,21 @@ export const auth = betterAuth({
                     )
                 }
 
+                if (!EMAIL_FROM) {
+                    log.error(
+                        'Cannot send magic link - EMAIL_FROM not configured',
+                    )
+                    throw new Error(
+                        'Email sender not configured. Please set EMAIL_FROM to a verified domain (e.g., noreply@yourdomain.com).',
+                    )
+                }
+
                 try {
+                    log.info('Attempting to send magic link email', {
+                        to: email,
+                        from: EMAIL_FROM,
+                    })
+
                     const { data, error } = await resend.emails.send({
                         from: EMAIL_FROM,
                         to: email,
@@ -310,6 +324,11 @@ export const auth = betterAuth({
                     })
 
                     if (error) {
+                        log.error('Resend API returned error', {
+                            email,
+                            errorName: error.name,
+                            errorMessage: error.message,
+                        })
                         throw new Error(error.message)
                     }
 
@@ -321,7 +340,9 @@ export const auth = betterAuth({
                     const error = err as Error
                     log.error('Email send failed', {
                         email,
-                        error: error.message,
+                        errorName: error.name,
+                        errorMessage: error.message,
+                        errorStack: error.stack?.slice(0, 500),
                     })
                     throw new Error(
                         `Failed to send magic link email: ${error.message}`,

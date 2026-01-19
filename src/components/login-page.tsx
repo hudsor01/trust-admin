@@ -67,15 +67,10 @@ export function LoginPage({
         setLoading(true)
 
         try {
-            const isDev = process.env.NODE_ENV !== 'production'
-            const frontendURL = isDev
-                ? 'http://localhost:3000'
-                : window.location.origin
-
             const { error: magicLinkError } = await authClient.signIn.magicLink(
                 {
                     email,
-                    callbackURL: `${frontendURL}${callbackURL}`,
+                    callbackURL: `${window.location.origin}${callbackURL}`,
                 },
             )
 
