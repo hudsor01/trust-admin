@@ -41,6 +41,10 @@ const envSchema = z.object({
     // Example: "https://app.example.com,https://admin.example.com"
     TRUSTED_ORIGINS: z.string().optional(),
     ALLOWED_ORIGINS: z.string().optional(),
+
+    // Local AI (Ollama) - for inventory image analysis
+    // Default: http://127.0.0.1:11434
+    OLLAMA_URL: z.string().url().optional(),
 })
 
 export type Env = z.infer<typeof envSchema>
