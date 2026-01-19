@@ -14,6 +14,7 @@ out
 dist
 .next
 *.tgz
+docs/
 .env.example
 
 

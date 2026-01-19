@@ -1,3 +1,5 @@
+import { hasInventoryAccess } from '../_actions/verifyAccess'
+import { AccessGate } from './_components/AccessGate'
 import { InventoryForm } from './_components/InventoryForm'
 
 export const metadata = {
@@ -5,7 +7,13 @@ export const metadata = {
     description: 'Submit personal property items for the trust inventory',
 }
 
-export default function InventoryFormPage() {
+export default async function InventoryFormPage() {
+    const hasAccess = await hasInventoryAccess()
+
+    if (!hasAccess) {
+        return <AccessGate />
+    }
+
     return (
         <div className="py-8">
             <div className="max-w-2xl mx-auto text-center mb-8">
@@ -14,8 +22,8 @@ export default function InventoryFormPage() {
                 </h1>
                 <p className="text-muted-foreground">
                     Help us catalog estate property by submitting items
-                    you&apos;ve identified. You can optionally upload photos for
-                    AI-assisted categorization.
+                    you&apos;ve identified. Upload photos for AI-assisted
+                    identification and valuation.
                 </p>
             </div>
 

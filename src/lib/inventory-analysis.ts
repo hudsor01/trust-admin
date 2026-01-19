@@ -1,13 +1,13 @@
+import { anthropic } from '@ai-sdk/anthropic'
 import { generateObject } from 'ai'
-import { createOllama } from 'ollama-ai-provider-v2'
 import { z } from 'zod'
 
 /**
- * Inventory Analysis using Vercel AI SDK with local Ollama Vision Models
+ * Inventory Analysis using Vercel AI SDK with Claude Opus 4.5
  *
- * Uses Qwen3-VL:8b via Ollama to analyze photos of personal property items
- * for trust inventory purposes. Leverages AI SDK's native structured output
- * with Zod schemas for type-safe responses.
+ * Uses Claude's flagship vision model for accurate identification,
+ * condition assessment, and fair market valuation of personal property
+ * items for trust inventory purposes.
  */
 
 // DB enum values from schema.ts
@@ -32,12 +32,17 @@ export function mapToDbCategory(aiCategory: string): DbCategory {
         artwork: 'ART',
         decor: 'ART',
         jewelry: 'JEWELRY',
+        watches: 'JEWELRY',
         collectibles: 'COLLECTIBLES',
+        antiques: 'COLLECTIBLES',
         clothing: 'OTHER',
         tools: 'OTHER',
         sports_equipment: 'OTHER',
         musical_instruments: 'COLLECTIBLES',
         kitchenware: 'OTHER',
+        china: 'COLLECTIBLES',
+        silverware: 'COLLECTIBLES',
+        crystal: 'COLLECTIBLES',
         books_media: 'COLLECTIBLES',
         office_equipment: 'ELECTRONICS',
         outdoor: 'OTHER',
@@ -56,7 +61,7 @@ export const InventoryAnalysisSchema = z.object({
     name: z
         .string()
         .describe(
-            'Descriptive name for the item (e.g., "Mahogany Dining Table")',
+            'Specific, descriptive name including brand/maker if identifiable (e.g., "Henredon Mahogany Dining Table", "Rolex Submariner Watch")',
         ),
     category: z
         .enum([
@@ -65,12 +70,17 @@ export const InventoryAnalysisSchema = z.object({
             'appliances',
             'artwork',
             'jewelry',
+            'watches',
             'collectibles',
+            'antiques',
             'clothing',
             'tools',
             'sports_equipment',
             'musical_instruments',
             'kitchenware',
+            'china',
+            'silverware',
+            'crystal',
             'decor',
             'books_media',
             'office_equipment',
@@ -78,19 +88,63 @@ export const InventoryAnalysisSchema = z.object({
             'vehicles',
             'other',
         ])
-        .describe('Item category'),
+        .describe('Primary item category'),
+    brand: z
+        .string()
+        .nullable()
+        .describe('Brand, manufacturer, or maker if identifiable'),
+    model: z
+        .string()
+        .nullable()
+        .describe('Model name/number if visible or identifiable'),
+    materials: z
+        .array(z.string())
+        .describe(
+            'Primary materials (e.g., ["solid mahogany", "brass hardware"])',
+        ),
+    era: z
+        .string()
+        .nullable()
+        .describe(
+            'Approximate era or date of manufacture (e.g., "1960s", "Victorian era", "Contemporary")',
+        ),
     estimatedValue: z
         .string()
         .describe(
-            'Fair market value estimate as decimal string (e.g., "150.00")',
+            'Fair market value as decimal string - what it would sell for TODAY at estate sale or secondary market, NOT retail or replacement cost (e.g., "1500.00")',
         ),
+    valueRangeLow: z
+        .string()
+        .describe('Conservative low estimate (e.g., "1200.00")'),
+    valueRangeHigh: z
+        .string()
+        .describe('Optimistic high estimate (e.g., "1800.00")'),
     condition: z
         .enum(['excellent', 'good', 'fair', 'poor'])
         .describe('Physical condition assessment'),
-    description: z.string().describe('1-2 sentence description of the item'),
+    conditionNotes: z
+        .string()
+        .describe(
+            'Specific condition observations (wear, damage, repairs, patina)',
+        ),
+    description: z
+        .string()
+        .describe(
+            'Detailed 2-3 sentence description including notable features, style, and any identifying characteristics',
+        ),
+    valuationRationale: z
+        .string()
+        .describe(
+            'Brief explanation of how value was determined - comparable sales, market demand, rarity factors',
+        ),
     confidence: z
         .enum(['high', 'medium', 'low'])
-        .describe('Model confidence in the analysis'),
+        .describe('Model confidence in identification and valuation'),
+    confidenceNotes: z
+        .string()
+        .describe(
+            'What factors affect confidence - image quality, item rarity, visible details',
+        ),
 })
 
 export type InventoryAnalysis = z.infer<typeof InventoryAnalysisSchema>
@@ -106,60 +160,58 @@ export interface InventoryAnalysisResult extends InventoryAnalysis {
 /**
  * Domain-specific system prompt for trust inventory analysis
  *
- * Establishes the model as a trust inventory specialist focused on:
- * - Fair market value (not retail/replacement cost)
- * - Accurate categorization with examples
- * - Flagging uncertainty rather than hallucinating
+ * Claude Opus 4.5 excels at careful, detailed analysis - this prompt
+ * leverages that strength for accurate estate valuation.
  */
-export const INVENTORY_ANALYSIS_SYSTEM_PROMPT = `You are a trust inventory specialist helping to catalog personal property for estate administration.
+export const INVENTORY_ANALYSIS_SYSTEM_PROMPT = `You are an expert estate appraiser and personal property specialist with decades of experience in trust administration, estate sales, and antique/collectible valuation.
 
-Your role is to analyze photos of items and provide:
-1. A descriptive name for the item
-2. An appropriate category
-3. Fair market value estimate (what it would sell for today, NOT retail or replacement cost)
-4. Condition assessment
-5. Brief description
+Your role is to analyze photos of personal property items and provide ACCURATE fair market valuations for trust inventory purposes. This is a legal document - accuracy matters.
 
-IMPORTANT GUIDELINES:
+## YOUR EXPERTISE INCLUDES:
+- Fine furniture (period pieces, designer, mass-market)
+- Jewelry and watches (precious metals, gemstones, luxury brands)
+- Fine art and decorative arts
+- Antiques and collectibles
+- Electronics and appliances
+- Household goods and furnishings
 
-**Fair Market Value:**
-- Estimate what the item would realistically sell for at estate sale or secondary market
-- Consider age, condition, brand, and current demand
-- Do NOT use retail prices - used items typically sell for 20-40% of retail
-- For antiques/collectibles, consider collector market value
-- When uncertain, provide a conservative estimate
+## VALUATION METHODOLOGY:
 
-**Categories (choose one):**
-- furniture: Tables, chairs, sofas, beds, cabinets, desks
-- electronics: TVs, computers, phones, audio equipment, cameras
-- appliances: Kitchen appliances, washers, dryers, vacuums
-- artwork: Paintings, sculptures, prints, photographs (as art)
-- jewelry: Rings, necklaces, watches, brooches, precious metals
-- collectibles: Coins, stamps, memorabilia, vintage items, figurines
-- clothing: Designer items, furs, vintage clothing (only if notable value)
-- tools: Power tools, hand tools, workshop equipment
-- sports_equipment: Golf clubs, bicycles, exercise equipment
-- musical_instruments: Pianos, guitars, violins, etc.
-- kitchenware: Cookware, china, silverware, crystal
-- decor: Rugs, lamps, mirrors, decorative objects
-- books_media: Rare books, vinyl records, media collections
-- office_equipment: Printers, filing cabinets, office furniture
-- outdoor: Patio furniture, grills, lawn equipment
-- vehicles: Cars, boats, motorcycles, recreational vehicles
-- other: Items not fitting above categories
+**Fair Market Value (FMV)** = What a willing buyer would pay a willing seller, neither being under compulsion, both having reasonable knowledge of relevant facts.
 
-**Condition Assessment:**
-- excellent: Like new, minimal wear, fully functional
-- good: Normal wear, fully functional, well-maintained
-- fair: Noticeable wear, functional but showing age
-- poor: Significant wear, may need repair, cosmetic damage
+This is NOT:
+- Retail replacement cost (typically 2-5x higher than FMV)
+- Insurance replacement value
+- Sentimental value
+- What the owner paid for it
 
-**Confidence:**
-- high: Clear image, recognizable item, confident in all assessments
-- medium: Some uncertainty in value or details
-- low: Poor image quality, unusual item, or significant uncertainty
+**Consider these factors:**
+1. Current secondary market demand (eBay sold listings, 1stDibs, Chairish, auction results)
+2. Condition adjustments (excellent adds 10-20%, poor deducts 30-50%)
+3. Brand/maker premium (Henredon vs. Ashley, Rolex vs. Timex)
+4. Age and style relevance (mid-century modern in demand, 1990s oak not)
+5. Regional market variations
+6. Complete sets vs. individual pieces
 
-When you cannot determine something reliably, set confidence to "low" rather than guessing.`
+## CONDITION ASSESSMENT:
+- **Excellent**: Like new, minimal wear, fully functional, no repairs needed
+- **Good**: Normal age-appropriate wear, fully functional, well-maintained
+- **Fair**: Noticeable wear, functional but showing age, may need minor repairs
+- **Poor**: Significant wear/damage, may need restoration, affects value substantially
+
+## CONFIDENCE LEVELS:
+- **High**: Clear image, recognizable brand/maker, confident in all assessments
+- **Medium**: Some uncertainty in attribution or value due to image quality or item rarity
+- **Low**: Poor image, unusual item, or significant uncertainty - recommend professional appraisal
+
+## CRITICAL INSTRUCTIONS:
+1. Be SPECIFIC about what you see - don't guess at brands you can't identify
+2. Provide realistic VALUE RANGES reflecting market uncertainty
+3. Explain your RATIONALE so the trustee understands the valuation basis
+4. Flag items that may warrant professional appraisal (jewelry, fine art, antiques)
+5. Note if additional photos would help (labels, marks, damage areas)
+
+Remember: You're helping a trustee fulfill their fiduciary duty. Conservative, defensible valuations are preferred over optimistic guesses.`
 
 /**
  * Image input for inventory analysis
@@ -170,50 +222,40 @@ export interface InventoryImage {
 }
 
 /**
- * Analyzes inventory images using Ollama vision model via Vercel AI SDK
- *
- * Supports multiple images of the same item (e.g., front view + back with model/serial)
- * for more accurate identification and valuation.
+ * Analyzes inventory images using Claude Opus 4.5 via Vercel AI SDK
  *
  * @param images - Array of images (base64 encoded with mimeType)
- * @param ollamaUrl - Ollama server URL (defaults to localhost:11434)
  * @returns Parsed and validated inventory analysis with DB category mapping
  */
 export async function analyzeInventoryImage(
     images: InventoryImage[],
-    ollamaUrl: string = 'http://127.0.0.1:11434',
 ): Promise<InventoryAnalysisResult> {
     if (images.length === 0) {
         throw new Error('At least one image is required')
     }
 
-    // Create Ollama provider pointing to local server
-    const ollama = createOllama({
-        baseURL: `${ollamaUrl}/api`,
-    })
-
-    // Build content array with text prompt and all images
+    // Build content array with images and text prompt
     const content: Array<
         | { type: 'text'; text: string }
-        | { type: 'file'; data: string; mediaType: string }
+        | { type: 'image'; image: string; mimeType: string }
     > = [
+        ...images.map((img) => ({
+            type: 'image' as const,
+            image: img.base64,
+            mimeType: img.mimeType,
+        })),
         {
             type: 'text',
             text:
                 images.length === 1
-                    ? 'Analyze this image of a personal property item for trust inventory purposes.'
-                    : `Analyze these ${images.length} images of the SAME personal property item for trust inventory purposes. The images may show different angles (front, back, labels, serial numbers). Synthesize all visible information to provide the most accurate identification and valuation.`,
+                    ? 'Analyze this image of a personal property item for trust inventory purposes. Provide accurate identification, condition assessment, and fair market valuation.'
+                    : `Analyze these ${images.length} images of the SAME personal property item for trust inventory purposes. The images may show different angles, labels, marks, or condition details. Synthesize all visible information for the most accurate identification and valuation.`,
         },
-        ...images.map((img) => ({
-            type: 'file' as const,
-            data: `data:${img.mimeType};base64,${img.base64}`,
-            mediaType: img.mimeType,
-        })),
     ]
 
-    // Use AI SDK's generateObject for native structured output with Zod
+    // Use Claude Opus 4.5 for best-in-class analysis
     const { object } = await generateObject({
-        model: ollama('qwen3-vl:8b'),
+        model: anthropic('claude-opus-4-5-20251101'),
         schema: InventoryAnalysisSchema,
         system: INVENTORY_ANALYSIS_SYSTEM_PROMPT,
         messages: [
@@ -222,7 +264,7 @@ export async function analyzeInventoryImage(
                 content,
             },
         ],
-        temperature: 0.1, // Low temperature for consistent output
+        temperature: 0.1, // Low temperature for consistent, careful analysis
     })
 
     // Map to DB category
