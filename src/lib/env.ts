@@ -44,6 +44,9 @@ const envSchema = z.object({
 
     // AI (Anthropic Claude) - for inventory image analysis
     ANTHROPIC_API_KEY: z.string().optional(),
+
+    // Inventory form access code (simple passphrase protection)
+    INVENTORY_ACCESS_CODE: z.string().optional(),
 })
 
 export type Env = z.infer<typeof envSchema>
