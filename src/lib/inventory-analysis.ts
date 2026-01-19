@@ -255,7 +255,7 @@ export async function analyzeInventoryImage(
 
     // Use Claude Opus 4.5 for best-in-class analysis
     const { object } = await generateObject({
-        model: anthropic('claude-opus-4-5-20250514'),
+        model: anthropic('claude-opus-4-5-20251101'),
         schema: InventoryAnalysisSchema,
         system: INVENTORY_ANALYSIS_SYSTEM_PROMPT,
         messages: [
