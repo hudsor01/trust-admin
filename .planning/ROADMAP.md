@@ -17,7 +17,7 @@ Trust Admin application development roadmap. v1.0 focused on code quality and re
 - ✅ [v5.0 Developer Experience & Observability](milestones/v5.0-ROADMAP.md) - Phases 30-35 (shipped 2026-01-16)
 - ✅ [v6.0 React 19.2 Platform Optimizations](milestones/v6.0-ROADMAP.md) - Phases 36-39 (shipped 2026-01-18)
 - ✅ **v7.0 Codebase Consolidation** - Phases 40-45 (shipped 2026-01-18)
-- 🚧 **v8.0 Public Inventory Form** - Phases 46-48 (in progress)
+- ✅ **v8.0 Public Inventory Form** - Phases 46-48 (shipped 2026-01-18)
 
 ## Phases
 
@@ -804,37 +804,23 @@ See: [milestones/v7.0-ROADMAP.md](milestones/v7.0-ROADMAP.md) for full details.
 
 ---
 
-### 🚧 v8.0 Public Inventory Form (In Progress)
+<details>
+<summary>✅ v8.0 Public Inventory Form (Phases 46-48) — SHIPPED 2026-01-18</summary>
 
-**Milestone Goal:** Create a public-facing inventory form where anyone can submit physical property items (furniture, electronics, etc.) with optional photo upload and MLX-powered AI assistance for item categorization. Admin reviews and approves submissions.
+**Milestone Goal:** Public-facing inventory form with AI-powered photo analysis. Admin queue for review/approval.
 
-#### Phase 46: MLX Vision Integration
-**Goal**: Set up MLX inference endpoint for photo analysis - suggests item name, category, estimated value from uploaded images
-**Depends on**: v7.0 complete
-**Research**: Likely (MLX-VLM setup, model selection, API design)
-**Research topics**: MLX-LM/MLX-VLM server setup, LLaVA or similar vision model, Apple Silicon inference patterns
-**Plans**: TBD
+- [x] Phase 46: MLX Vision Integration (1/1 plan) — AI photo analysis endpoint
+- [x] Phase 47: Public Inventory Form (1/1 plan) — /forms/inventory with photo upload
+- [x] Phase 48: Admin Inventory Queue (1/1 plan) — /inventory-queue admin page
 
-Plans:
-- [ ] 46-01: TBD (run /gsd:plan-phase 46 to break down)
+**Key deliverables:**
+- `/forms/inventory` - Public submission form (no auth)
+- `/api/inventory/analyze` - AI photo analysis (Ollama + Qwen3-VL)
+- `/api/inventory/upload` - Photo upload to local filesystem
+- `/inventory-queue` - Admin review queue
+- Approval flow creates `personalProperty` records
 
-#### Phase 47: Public Inventory Form
-**Goal**: Create `/forms` route with multi-item submission form, photo upload to local filesystem, AI-assisted field population
-**Depends on**: Phase 46
-**Research**: Unlikely (internal patterns - forms, file upload)
-**Plans**: 1 plan (5 tasks)
-
-Plans:
-- [ ] 47-01: Public inventory form with photo upload and AI integration
-
-#### Phase 48: Admin Inventory Queue
-**Goal**: Admin interface to review pending inventory items, approve/reject/edit, link items to entity
-**Depends on**: Phase 47
-**Research**: Unlikely (internal patterns - similar to HEMS queue)
-**Plans**: TBD
-
-Plans:
-- [ ] 48-01: TBD
+</details>
 
 ---
 
@@ -895,6 +881,6 @@ Plans:
 | 43. Table Consolidation | v7.0 | 1/1 | ✅ Complete | 2026-01-18 |
 | 44. Query Optimization | v7.0 | 1/1 | ✅ Complete | 2026-01-18 |
 | 45. Admin Page Patterns | v7.0 | 1/1 | ✅ Complete | 2026-01-18 |
-| 46. MLX Vision Integration | v8.0 | 0/? | Not started | - |
-| 47. Public Inventory Form | v8.0 | 0/? | Not started | - |
-| 48. Admin Inventory Queue | v8.0 | 0/? | Not started | - |
+| 46. MLX Vision Integration | v8.0 | 1/1 | ✅ Complete | 2026-01-18 |
+| 47. Public Inventory Form | v8.0 | 1/1 | ✅ Complete | 2026-01-18 |
+| 48. Admin Inventory Queue | v8.0 | 1/1 | ✅ Complete | 2026-01-18 |

@@ -32,9 +32,12 @@ export function AppSidebar() {
     const isInDistributions = ['/hems', '/hems-queue', '/bequests'].includes(
         pathname,
     )
-    const isInAssets = ['/properties', '/accounts', '/vehicles'].includes(
-        pathname,
-    )
+    const isInAssets = [
+        '/properties',
+        '/accounts',
+        '/vehicles',
+        '/inventory-queue',
+    ].includes(pathname)
 
     return (
         <Sidebar collapsible="icon">
@@ -252,6 +255,19 @@ export function AppSidebar() {
                                             >
                                                 <Link href="/vehicles">
                                                     <span>Vehicles</span>
+                                                </Link>
+                                            </SidebarMenuSubButton>
+                                        </SidebarMenuSubItem>
+                                        <SidebarMenuSubItem>
+                                            <SidebarMenuSubButton
+                                                asChild
+                                                isActive={
+                                                    pathname ===
+                                                    '/inventory-queue'
+                                                }
+                                            >
+                                                <Link href="/inventory-queue">
+                                                    <span>Inventory Queue</span>
                                                 </Link>
                                             </SidebarMenuSubButton>
                                         </SidebarMenuSubItem>

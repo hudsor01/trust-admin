@@ -8,9 +8,16 @@ A trust administration application for managing the **Hudson Living Trust** (Tex
 
 **Reliable trust administration** — Type-safe APIs, clear error handling, database-level constraints, and maintainable code for ongoing development.
 
-## Current State (v6.0 shipped)
+## Current State (v7.0 shipped)
 
 **Stack:** Next.js 16.1 + tRPC v11 + React 19.2 + Drizzle ORM + Better Auth + Neon PostgreSQL
+
+**Codebase consolidation (v7.0):**
+- `createCrudRouter()` factory for 13 tRPC routers (73% code reduction)
+- `useEditableCell` hook consolidates 5 editable cell components
+- `useCrudMutations` hook standardizes mutation patterns
+- Column helpers and FormField wrapper reduce admin page boilerplate
+- Removed 586 lines of dead table code
 
 **React 19.2 features (v6.0):**
 - `useOptimistic` for instant UI feedback (payments, HEMS, tasks)
@@ -57,10 +64,14 @@ A trust administration application for managing the **Hudson Living Trust** (Tex
 - ✓ Optimistic UI updates (useOptimistic) — v6.0
 - ✓ Non-blocking audit logging (after()) — v6.0
 - ✓ Progressive enhancement (useActionState) — v6.0
+- ✓ tRPC router factory (createCrudRouter) — v7.0
+- ✓ Reusable hooks (useEditableCell, useCrudMutations) — v7.0
+- ✓ Admin page patterns (column helpers, FormField) — v7.0
+- ✓ Dead code removal (586 lines table code) — v7.0
 
 ### Active
 
-- [ ] v7.0: Codebase consolidation
+(Planning next milestone)
 
 ### Out of Scope
 
@@ -82,6 +93,11 @@ A trust administration application for managing the **Hudson Living Trust** (Tex
 | after() for audit logging | Fire-and-forget, non-blocking | ✓ Good |
 | Hidden inputs for Radix Select | Sync UI component with native form | ✓ Good |
 | TanStack Query over server cache | tRPC apps benefit from client-side caching | ✓ Good |
+| createCrudRouter factory | Eliminates boilerplate for standard CRUD routers | ✓ Good |
+| useEditableCell hook | Consolidates state logic for text-based editable cells | ✓ Good |
+| Keep EditableSelectCell separate | Different state pattern (direct onChange vs editValue) | ✓ Good |
+| Column helpers for DataTable | Reduces ~20 lines per column to ~4 lines | ✓ Good |
+| FormField wrapper | Reduces ~15 lines per form field to ~1 line | ✓ Good |
 
 ## Constraints
 
@@ -91,4 +107,4 @@ A trust administration application for managing the **Hudson Living Trust** (Tex
 - **No Breaking Changes**: Preserve existing API contracts
 
 ---
-*Last updated: 2026-01-18 after v6.0 milestone*
+*Last updated: 2026-01-18 after v7.0 milestone*
