@@ -14,6 +14,7 @@ export async function proxy(request: NextRequest) {
     // Public routes - no auth check needed
     const publicPaths = [
         '/',
+        '/login',
         '/api/auth',
         '/api/trpc',
         '/portal/login',
@@ -30,7 +31,10 @@ export async function proxy(request: NextRequest) {
     }
 
     // Check for session cookie (optimistic check)
-    const sessionCookie = getSessionCookie(request)
+    // Must match cookiePrefix in auth.ts
+    const sessionCookie = getSessionCookie(request, {
+        cookiePrefix: 'trust-admin',
+    })
 
     // Portal routes - require session
     if (pathname.startsWith('/portal')) {
@@ -42,7 +46,7 @@ export async function proxy(request: NextRequest) {
 
     // Admin routes - require session (role check done in pages)
     if (!sessionCookie) {
-        return NextResponse.redirect(new URL('/portal/login', request.url))
+        return NextResponse.redirect(new URL('/login', request.url))
     }
 
     return NextResponse.next()
