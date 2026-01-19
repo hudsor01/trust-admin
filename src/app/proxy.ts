@@ -17,7 +17,9 @@ export async function proxy(request: NextRequest) {
         '/login',
         '/api/auth',
         '/api/trpc',
+        '/api/inventory',
         '/portal/login',
+        '/forms',
         '/_next',
         '/favicon.ico',
     ]
