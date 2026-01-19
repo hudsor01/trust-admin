@@ -60,7 +60,15 @@ export function useResourceForm<T>({
         },
     })
 
-    const openDialog = () => setIsOpen(true)
+    const openDialog = (defaults?: Partial<T>) => {
+        if (defaults) {
+            formInstance.update({
+                defaultValues: { ...initialData, ...defaults },
+            })
+            formInstance.reset()
+        }
+        setIsOpen(true)
+    }
 
     const closeDialog = () => {
         setIsOpen(false)
