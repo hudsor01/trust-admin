@@ -2,7 +2,6 @@
 
 import { Loader2, Plus } from 'lucide-react'
 import { useState } from 'react'
-import { CurrencyField, FormField } from '@/components/form-field'
 import { ResourceDialog } from '@/components/resource-dialog'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -23,6 +22,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table'
+import { Textarea } from '@/components/ui/textarea'
 import type { Vehicle } from '@/db/schema'
 import { useCrudMutations } from '@/hooks/use-crud-mutations'
 import { useEntityFilter } from '@/hooks/use-entity-filter'
@@ -60,6 +60,7 @@ const ASSET_STATUS = enumToOptions(RECORD_STATUS_VALUES, (v) =>
 )
 
 export default function VehiclesPage() {
+    const utils = trpc.useUtils()
     const { data: entities = [], isLoading: entitiesLoading } =
         trpc.entity.list.useQuery()
     const [entityIdStr, setEntityIdStr] = useEntityFilter()
@@ -75,7 +76,10 @@ export default function VehiclesPage() {
         create: createVehicleMutation,
         update: updateVehicleMutation,
         delete: deleteVehicleMutation,
-    } = useCrudMutations('vehicle')
+    } = useCrudMutations({
+        router: trpc.vehicle,
+        invalidate: () => utils.vehicle.list.invalidate(),
+    })
 
     const [searchQuery, setSearchQuery] = useState('')
 
@@ -466,20 +470,70 @@ export default function VehiclesPage() {
                                     </div>
                                 )}
                             </vehicleForm.formInstance.Field>
-                            <FormField
-                                form={vehicleForm.formInstance}
-                                name="make"
-                                label="Make"
-                                required
-                                placeholder="e.g., Ford, Toyota"
-                            />
-                            <FormField
-                                form={vehicleForm.formInstance}
-                                name="model"
-                                label="Model"
-                                required
-                                placeholder="e.g., F-150, Camry"
-                            />
+                            <vehicleForm.formInstance.Field name="make">
+                                {(field: {
+                                    state: {
+                                        value: string
+                                        meta: { errors?: unknown[] }
+                                    }
+                                    handleChange: (value: string) => void
+                                    handleBlur: () => void
+                                }) => (
+                                    <div className="space-y-2">
+                                        <Label htmlFor="make">Make *</Label>
+                                        <Input
+                                            id="make"
+                                            placeholder="e.g., Ford, Toyota"
+                                            value={field.state.value || ''}
+                                            onChange={(e) =>
+                                                field.handleChange(
+                                                    e.target.value,
+                                                )
+                                            }
+                                            onBlur={field.handleBlur}
+                                        />
+                                        {field.state.meta.errors &&
+                                            field.state.meta.errors.length >
+                                                0 && (
+                                                <p className="text-sm text-red-500">
+                                                    {getFieldError(field)}
+                                                </p>
+                                            )}
+                                    </div>
+                                )}
+                            </vehicleForm.formInstance.Field>
+                            <vehicleForm.formInstance.Field name="model">
+                                {(field: {
+                                    state: {
+                                        value: string
+                                        meta: { errors?: unknown[] }
+                                    }
+                                    handleChange: (value: string) => void
+                                    handleBlur: () => void
+                                }) => (
+                                    <div className="space-y-2">
+                                        <Label htmlFor="model">Model *</Label>
+                                        <Input
+                                            id="model"
+                                            placeholder="e.g., F-150, Camry"
+                                            value={field.state.value || ''}
+                                            onChange={(e) =>
+                                                field.handleChange(
+                                                    e.target.value,
+                                                )
+                                            }
+                                            onBlur={field.handleBlur}
+                                        />
+                                        {field.state.meta.errors &&
+                                            field.state.meta.errors.length >
+                                                0 && (
+                                                <p className="text-sm text-red-500">
+                                                    {getFieldError(field)}
+                                                </p>
+                                            )}
+                                    </div>
+                                )}
+                            </vehicleForm.formInstance.Field>
                         </div>
                         <div className="grid grid-cols-2 gap-4 mt-4">
                             {/* VIN field needs uppercase transform */}
@@ -515,32 +569,148 @@ export default function VehiclesPage() {
                                     </div>
                                 )}
                             </vehicleForm.formInstance.Field>
-                            <FormField
-                                form={vehicleForm.formInstance}
-                                name="color"
-                                label="Color"
-                            />
+                            <vehicleForm.formInstance.Field name="color">
+                                {(field: {
+                                    state: {
+                                        value: string
+                                        meta: { errors?: unknown[] }
+                                    }
+                                    handleChange: (value: string) => void
+                                    handleBlur: () => void
+                                }) => (
+                                    <div className="space-y-2">
+                                        <Label htmlFor="color">Color</Label>
+                                        <Input
+                                            id="color"
+                                            value={field.state.value || ''}
+                                            onChange={(e) =>
+                                                field.handleChange(
+                                                    e.target.value,
+                                                )
+                                            }
+                                            onBlur={field.handleBlur}
+                                        />
+                                        {field.state.meta.errors &&
+                                            field.state.meta.errors.length >
+                                                0 && (
+                                                <p className="text-sm text-red-500">
+                                                    {getFieldError(field)}
+                                                </p>
+                                            )}
+                                    </div>
+                                )}
+                            </vehicleForm.formInstance.Field>
                         </div>
                         <div className="grid grid-cols-3 gap-4 mt-4">
-                            <FormField
-                                form={vehicleForm.formInstance}
-                                name="licensePlate"
-                                label="License Plate"
-                            />
-                            <FormField
-                                form={vehicleForm.formInstance}
-                                name="mileage"
-                                label="Mileage"
-                                type="number"
-                            />
-                            <FormField
-                                form={vehicleForm.formInstance}
-                                name="titleStatus"
-                                label="Title Status"
-                                required
-                                type="select"
-                                options={TITLE_STATUS}
-                            />
+                            <vehicleForm.formInstance.Field name="licensePlate">
+                                {(field: {
+                                    state: {
+                                        value: string
+                                        meta: { errors?: unknown[] }
+                                    }
+                                    handleChange: (value: string) => void
+                                    handleBlur: () => void
+                                }) => (
+                                    <div className="space-y-2">
+                                        <Label htmlFor="licensePlate">
+                                            License Plate
+                                        </Label>
+                                        <Input
+                                            id="licensePlate"
+                                            value={field.state.value || ''}
+                                            onChange={(e) =>
+                                                field.handleChange(
+                                                    e.target.value,
+                                                )
+                                            }
+                                            onBlur={field.handleBlur}
+                                        />
+                                        {field.state.meta.errors &&
+                                            field.state.meta.errors.length >
+                                                0 && (
+                                                <p className="text-sm text-red-500">
+                                                    {getFieldError(field)}
+                                                </p>
+                                            )}
+                                    </div>
+                                )}
+                            </vehicleForm.formInstance.Field>
+                            <vehicleForm.formInstance.Field name="mileage">
+                                {(field: {
+                                    state: {
+                                        value: number
+                                        meta: { errors?: unknown[] }
+                                    }
+                                    handleChange: (value: number) => void
+                                    handleBlur: () => void
+                                }) => (
+                                    <div className="space-y-2">
+                                        <Label htmlFor="mileage">Mileage</Label>
+                                        <Input
+                                            id="mileage"
+                                            type="number"
+                                            value={field.state.value || ''}
+                                            onChange={(e) =>
+                                                field.handleChange(
+                                                    Number.parseInt(
+                                                        e.target.value,
+                                                        10,
+                                                    ) || 0,
+                                                )
+                                            }
+                                            onBlur={field.handleBlur}
+                                        />
+                                        {field.state.meta.errors &&
+                                            field.state.meta.errors.length >
+                                                0 && (
+                                                <p className="text-sm text-red-500">
+                                                    {getFieldError(field)}
+                                                </p>
+                                            )}
+                                    </div>
+                                )}
+                            </vehicleForm.formInstance.Field>
+                            <vehicleForm.formInstance.Field name="titleStatus">
+                                {(field: {
+                                    state: {
+                                        value: string
+                                        meta: { errors?: unknown[] }
+                                    }
+                                    handleChange: (value: string) => void
+                                    handleBlur: () => void
+                                }) => (
+                                    <div className="space-y-2">
+                                        <Label htmlFor="titleStatus">
+                                            Title Status *
+                                        </Label>
+                                        <Select
+                                            value={field.state.value || ''}
+                                            onValueChange={field.handleChange}
+                                        >
+                                            <SelectTrigger id="titleStatus">
+                                                <SelectValue placeholder="Select status" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {TITLE_STATUS.map((opt) => (
+                                                    <SelectItem
+                                                        key={opt.value}
+                                                        value={opt.value}
+                                                    >
+                                                        {opt.label}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        {field.state.meta.errors &&
+                                            field.state.meta.errors.length >
+                                                0 && (
+                                                <p className="text-sm text-red-500">
+                                                    {getFieldError(field)}
+                                                </p>
+                                            )}
+                                    </div>
+                                )}
+                            </vehicleForm.formInstance.Field>
                         </div>
                     </div>
 
@@ -550,17 +720,74 @@ export default function VehiclesPage() {
                             Acquisition
                         </h4>
                         <div className="grid grid-cols-2 gap-4">
-                            <FormField
-                                form={vehicleForm.formInstance}
-                                name="acquisitionDate"
-                                label="Acquisition Date"
-                                type="date"
-                            />
-                            <CurrencyField
-                                form={vehicleForm.formInstance}
-                                name="acquisitionCost"
-                                label="Acquisition Cost"
-                            />
+                            <vehicleForm.formInstance.Field name="acquisitionDate">
+                                {(field: {
+                                    state: {
+                                        value: string
+                                        meta: { errors?: unknown[] }
+                                    }
+                                    handleChange: (value: string) => void
+                                    handleBlur: () => void
+                                }) => (
+                                    <div className="space-y-2">
+                                        <Label htmlFor="acquisitionDate">
+                                            Acquisition Date
+                                        </Label>
+                                        <Input
+                                            id="acquisitionDate"
+                                            type="date"
+                                            value={field.state.value || ''}
+                                            onChange={(e) =>
+                                                field.handleChange(
+                                                    e.target.value,
+                                                )
+                                            }
+                                            onBlur={field.handleBlur}
+                                        />
+                                        {field.state.meta.errors &&
+                                            field.state.meta.errors.length >
+                                                0 && (
+                                                <p className="text-sm text-red-500">
+                                                    {getFieldError(field)}
+                                                </p>
+                                            )}
+                                    </div>
+                                )}
+                            </vehicleForm.formInstance.Field>
+                            <vehicleForm.formInstance.Field name="acquisitionCost">
+                                {(field: {
+                                    state: {
+                                        value: string
+                                        meta: { errors?: unknown[] }
+                                    }
+                                    handleChange: (value: string) => void
+                                    handleBlur: () => void
+                                }) => (
+                                    <div className="space-y-2">
+                                        <Label htmlFor="acquisitionCost">
+                                            Acquisition Cost
+                                        </Label>
+                                        <Input
+                                            id="acquisitionCost"
+                                            placeholder="$"
+                                            value={field.state.value || ''}
+                                            onChange={(e) =>
+                                                field.handleChange(
+                                                    e.target.value,
+                                                )
+                                            }
+                                            onBlur={field.handleBlur}
+                                        />
+                                        {field.state.meta.errors &&
+                                            field.state.meta.errors.length >
+                                                0 && (
+                                                <p className="text-sm text-red-500">
+                                                    {getFieldError(field)}
+                                                </p>
+                                            )}
+                                    </div>
+                                )}
+                            </vehicleForm.formInstance.Field>
                         </div>
                     </div>
 
@@ -570,26 +797,115 @@ export default function VehiclesPage() {
                             Date of Death Valuation
                         </h4>
                         <div className="grid grid-cols-3 gap-4">
-                            <CurrencyField
-                                form={vehicleForm.formInstance}
-                                name="dodValue"
-                                label="DOD Value"
-                                placeholder="$ (KBB/NADA)"
-                            />
-                            <FormField
-                                form={vehicleForm.formInstance}
-                                name="dodValueDate"
-                                label="DOD Value Date"
-                                type="date"
-                            />
-                            <FormField
-                                form={vehicleForm.formInstance}
-                                name="dodValueType"
-                                label="Valuation Type"
-                                type="select"
-                                options={DOD_VALUE_TYPES}
-                                placeholder="Select type"
-                            />
+                            <vehicleForm.formInstance.Field name="dodValue">
+                                {(field: {
+                                    state: {
+                                        value: string
+                                        meta: { errors?: unknown[] }
+                                    }
+                                    handleChange: (value: string) => void
+                                    handleBlur: () => void
+                                }) => (
+                                    <div className="space-y-2">
+                                        <Label htmlFor="dodValue">
+                                            DOD Value
+                                        </Label>
+                                        <Input
+                                            id="dodValue"
+                                            placeholder="$ (KBB/NADA)"
+                                            value={field.state.value || ''}
+                                            onChange={(e) =>
+                                                field.handleChange(
+                                                    e.target.value,
+                                                )
+                                            }
+                                            onBlur={field.handleBlur}
+                                        />
+                                        {field.state.meta.errors &&
+                                            field.state.meta.errors.length >
+                                                0 && (
+                                                <p className="text-sm text-red-500">
+                                                    {getFieldError(field)}
+                                                </p>
+                                            )}
+                                    </div>
+                                )}
+                            </vehicleForm.formInstance.Field>
+                            <vehicleForm.formInstance.Field name="dodValueDate">
+                                {(field: {
+                                    state: {
+                                        value: string
+                                        meta: { errors?: unknown[] }
+                                    }
+                                    handleChange: (value: string) => void
+                                    handleBlur: () => void
+                                }) => (
+                                    <div className="space-y-2">
+                                        <Label htmlFor="dodValueDate">
+                                            DOD Value Date
+                                        </Label>
+                                        <Input
+                                            id="dodValueDate"
+                                            type="date"
+                                            value={field.state.value || ''}
+                                            onChange={(e) =>
+                                                field.handleChange(
+                                                    e.target.value,
+                                                )
+                                            }
+                                            onBlur={field.handleBlur}
+                                        />
+                                        {field.state.meta.errors &&
+                                            field.state.meta.errors.length >
+                                                0 && (
+                                                <p className="text-sm text-red-500">
+                                                    {getFieldError(field)}
+                                                </p>
+                                            )}
+                                    </div>
+                                )}
+                            </vehicleForm.formInstance.Field>
+                            <vehicleForm.formInstance.Field name="dodValueType">
+                                {(field: {
+                                    state: {
+                                        value: string
+                                        meta: { errors?: unknown[] }
+                                    }
+                                    handleChange: (value: string) => void
+                                    handleBlur: () => void
+                                }) => (
+                                    <div className="space-y-2">
+                                        <Label htmlFor="dodValueType">
+                                            Valuation Type
+                                        </Label>
+                                        <Select
+                                            value={field.state.value || ''}
+                                            onValueChange={field.handleChange}
+                                        >
+                                            <SelectTrigger id="dodValueType">
+                                                <SelectValue placeholder="Select type" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {DOD_VALUE_TYPES.map((opt) => (
+                                                    <SelectItem
+                                                        key={opt.value}
+                                                        value={opt.value}
+                                                    >
+                                                        {opt.label}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        {field.state.meta.errors &&
+                                            field.state.meta.errors.length >
+                                                0 && (
+                                                <p className="text-sm text-red-500">
+                                                    {getFieldError(field)}
+                                                </p>
+                                            )}
+                                    </div>
+                                )}
+                            </vehicleForm.formInstance.Field>
                         </div>
                     </div>
 
@@ -597,32 +913,121 @@ export default function VehiclesPage() {
                     <div>
                         <h4 className="text-sm font-medium mb-3">Status</h4>
                         <div className="grid grid-cols-2 gap-4">
-                            <FormField
-                                form={vehicleForm.formInstance}
-                                name="status"
-                                label="Asset Status"
-                                required
-                                type="select"
-                                options={ASSET_STATUS}
-                            />
-                            <FormField
-                                form={vehicleForm.formInstance}
-                                name="transferStatus"
-                                label="Transfer Status"
-                                required
-                                type="select"
-                                options={TRANSFER_STATUS}
-                            />
+                            <vehicleForm.formInstance.Field name="status">
+                                {(field: {
+                                    state: {
+                                        value: string
+                                        meta: { errors?: unknown[] }
+                                    }
+                                    handleChange: (value: string) => void
+                                    handleBlur: () => void
+                                }) => (
+                                    <div className="space-y-2">
+                                        <Label htmlFor="status">
+                                            Asset Status *
+                                        </Label>
+                                        <Select
+                                            value={field.state.value || ''}
+                                            onValueChange={field.handleChange}
+                                        >
+                                            <SelectTrigger id="status">
+                                                <SelectValue placeholder="Select status" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {ASSET_STATUS.map((opt) => (
+                                                    <SelectItem
+                                                        key={opt.value}
+                                                        value={opt.value}
+                                                    >
+                                                        {opt.label}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        {field.state.meta.errors &&
+                                            field.state.meta.errors.length >
+                                                0 && (
+                                                <p className="text-sm text-red-500">
+                                                    {getFieldError(field)}
+                                                </p>
+                                            )}
+                                    </div>
+                                )}
+                            </vehicleForm.formInstance.Field>
+                            <vehicleForm.formInstance.Field name="transferStatus">
+                                {(field: {
+                                    state: {
+                                        value: string
+                                        meta: { errors?: unknown[] }
+                                    }
+                                    handleChange: (value: string) => void
+                                    handleBlur: () => void
+                                }) => (
+                                    <div className="space-y-2">
+                                        <Label htmlFor="transferStatus">
+                                            Transfer Status *
+                                        </Label>
+                                        <Select
+                                            value={field.state.value || ''}
+                                            onValueChange={field.handleChange}
+                                        >
+                                            <SelectTrigger id="transferStatus">
+                                                <SelectValue placeholder="Select status" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {TRANSFER_STATUS.map((opt) => (
+                                                    <SelectItem
+                                                        key={opt.value}
+                                                        value={opt.value}
+                                                    >
+                                                        {opt.label}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        {field.state.meta.errors &&
+                                            field.state.meta.errors.length >
+                                                0 && (
+                                                <p className="text-sm text-red-500">
+                                                    {getFieldError(field)}
+                                                </p>
+                                            )}
+                                    </div>
+                                )}
+                            </vehicleForm.formInstance.Field>
                         </div>
                     </div>
 
                     {/* Notes */}
-                    <FormField
-                        form={vehicleForm.formInstance}
-                        name="notes"
-                        label="Notes"
-                        type="textarea"
-                    />
+                    <vehicleForm.formInstance.Field name="notes">
+                        {(field: {
+                            state: {
+                                value: string
+                                meta: { errors?: unknown[] }
+                            }
+                            handleChange: (value: string) => void
+                            handleBlur: () => void
+                        }) => (
+                            <div className="space-y-2">
+                                <Label htmlFor="notes">Notes</Label>
+                                <Textarea
+                                    id="notes"
+                                    value={field.state.value || ''}
+                                    onChange={(e) =>
+                                        field.handleChange(e.target.value)
+                                    }
+                                    onBlur={field.handleBlur}
+                                    rows={4}
+                                />
+                                {field.state.meta.errors &&
+                                    field.state.meta.errors.length > 0 && (
+                                        <p className="text-sm text-red-500">
+                                            {getFieldError(field)}
+                                        </p>
+                                    )}
+                            </div>
+                        )}
+                    </vehicleForm.formInstance.Field>
                 </div>
             </ResourceDialog>
         </div>

@@ -1,27 +1,9 @@
 import { useForm } from '@tanstack/react-form'
 import { useState } from 'react'
-import type { ZodSchema } from 'zod'
 
 export interface UseResourceFormOptions<T> {
     initialData: T
     onSubmit: (data: T) => Promise<void>
-    schema?: ZodSchema<T> // Optional - kept for backwards compatibility but not used
-}
-
-export interface UseResourceFormReturn<T> {
-    isOpen: boolean
-    open: () => void
-    close: () => void
-    form: T
-    setForm: (form: T) => void
-    isEditing: boolean
-    editing: T | null // The item being edited (null if creating)
-    handleEdit: (item: T) => void
-    handleAdd: () => void
-    handleSave: () => Promise<void>
-    isSubmitting: boolean
-    // biome-ignore lint/suspicious/noExplicitAny: FormApi has 11+ generic parameters, using any allows proper type inference at usage site
-    formInstance: any
 }
 
 /**
@@ -30,25 +12,29 @@ export interface UseResourceFormReturn<T> {
  * Encapsulates the common pattern of:
  * - Opening/closing dialog
  * - Tracking editing vs creating mode
- * - Form state management
+ * - Form state management with TanStack Form
  * - Submit handling with loading state
+ *
+ * TypeScript Note: The return type is inferred rather than explicitly typed.
+ * This follows TanStack Form's guidance: "You should never need to pass
+ * a generic or use an internal type when leveraging TanStack Form."
  *
  * @param initialData - Default form data for create mode
  * @param onSubmit - Async function called on save (receives form data)
  *
  * @example
  * ```typescript
- * const { isOpen, form, setForm, handleEdit, handleAdd, handleSave } =
- *   useResourceForm<Liability>({
- *     initialData: { creditor: "", amount: "0" },
- *     onSubmit: async (data) => {
- *       if (isEditing) {
- *         await updateLiability(editingId, data)
- *       } else {
- *         await createLiability(data)
- *       }
- *     }
- *   })
+ * const vehicleForm = useResourceForm({
+ *   initialData: { make: '', model: '', year: 2024 },
+ *   onSubmit: async (data) => {
+ *     await createVehicle(data)
+ *   }
+ * })
+ *
+ * // Access form instance for Field components
+ * <vehicleForm.formInstance.Field name="make">
+ *   {(field) => <Input value={field.state.value} ... />}
+ * </vehicleForm.formInstance.Field>
  * ```
  */
 export function useResourceForm<T>({
@@ -57,63 +43,55 @@ export function useResourceForm<T>({
 }: UseResourceFormOptions<T>) {
     const [isOpen, setIsOpen] = useState(false)
     const [editing, setEditing] = useState<T | null>(null)
-    const [form, setForm] = useState<T>(initialData)
     const [isSubmitting, setIsSubmitting] = useState(false)
 
-    // TanStack Form instance - let TypeScript infer types from defaultValues
-    // This enables contextual typing for Field components
-    // Note: Schema validation happens server-side; form uses initialData types
+    // TanStack Form instance - TypeScript infers types from defaultValues
+    // The generic T flows through: initialData: T -> defaultValues: T -> value: T
     const formInstance = useForm({
         defaultValues: initialData,
         onSubmit: async ({ value }) => {
             setIsSubmitting(true)
             try {
-                await onSubmit(value as T)
-                close()
+                await onSubmit(value)
+                closeDialog()
             } finally {
                 setIsSubmitting(false)
             }
         },
     })
 
-    const open = () => setIsOpen(true)
-    const close = () => {
+    const openDialog = () => setIsOpen(true)
+
+    const closeDialog = () => {
         setIsOpen(false)
         setEditing(null)
-        setForm(initialData)
-        formInstance.reset() // Reset TanStack Form
+        formInstance.reset()
     }
 
     const handleEdit = (item: T) => {
         setEditing(item)
-        setForm(item)
-        // Update form instance with item data
-        Object.entries(item as Record<string, unknown>).forEach(
-            ([key, value]) => {
-                formInstance.setFieldValue(key, value as never)
-            },
-        )
+        // Update defaultValues then reset - TanStack Form recommended approach
+        // See: https://github.com/TanStack/form/discussions/613
+        formInstance.update({ defaultValues: item })
+        formInstance.reset()
         setIsOpen(true)
     }
 
     const handleAdd = () => {
         setEditing(null)
-        setForm(initialData)
-        formInstance.reset() // Reset to initialData
+        formInstance.reset()
         setIsOpen(true)
     }
 
-    const handleSave = async () => {
-        // Trigger form submission (validates and calls onSubmit)
+    const handleSave = () => {
         formInstance.handleSubmit()
     }
 
+    // Return type is inferred - no explicit interface needed
     return {
         isOpen,
-        open,
-        close,
-        form,
-        setForm,
+        open: openDialog,
+        close: closeDialog,
         isEditing: editing !== null,
         editing,
         handleEdit,
@@ -123,3 +101,6 @@ export function useResourceForm<T>({
         formInstance,
     }
 }
+
+// Export the inferred return type for consumers who need it
+export type UseResourceFormReturn<T> = ReturnType<typeof useResourceForm<T>>

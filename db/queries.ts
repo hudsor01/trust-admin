@@ -1,18 +1,16 @@
 /**
  * Database Queries
  *
- * Consolidated query functions using the CRUD factory for standard operations.
- * Custom queries are kept for complex operations that need specific logic.
+ * Direct Drizzle queries for all database operations.
+ * No generic factory - just straightforward type-safe queries.
  */
-import { desc, eq } from 'drizzle-orm'
+import { desc, eq, sql } from 'drizzle-orm'
 import { calculatePaymentSplit } from '../src/lib/amortization'
 import {
     type ExpenseType,
     type IncomeType,
     isPrincipalTransaction,
 } from '../src/lib/classification-rules'
-import { createCrud } from './crud-factory'
-// generateId removed - using database IDENTITY columns
 import { db } from './index'
 import {
     activityLog,
@@ -24,9 +22,11 @@ import {
     entity,
     hemsRequest,
     homestead,
+    insurancePolicy,
     investmentAccount,
     liability,
     liabilityPayment,
+    pendingInventoryItem,
     personalProperty,
     rentalProperty,
     specificBequest,
@@ -40,82 +40,16 @@ import {
     withdrawalRecord,
 } from './schema'
 
-// generateId export removed - IDs now database-generated
-
 // Re-export all Drizzle-inferred types for use in components
 export type * from './schema'
 
 // =============================================================================
-// CRUD FACTORIES
+// ENTITY QUERIES
 // =============================================================================
 
-// Core entities
-export const entityCrud = createCrud(entity)
-export const beneficiaryCrud = createCrud(beneficiary)
-export const contactCrud = createCrud(contact)
-export const taskCrud = createCrud(task)
-export const distributionCrud = createCrud(distribution)
-export const valuationCrud = createCrud(valuation, { hasUpdatedAt: false })
-
-// Assets with entityId filter
-export const vehicleCrud = createCrud(vehicle, { filterColumn: 'entityId' })
-export const homesteadCrud = createCrud(homestead, { filterColumn: 'entityId' })
-export const rentalPropertyCrud = createCrud(rentalProperty, {
-    filterColumn: 'entityId',
-})
-export const bankAccountCrud = createCrud(bankAccount, {
-    filterColumn: 'entityId',
-})
-export const investmentAccountCrud = createCrud(investmentAccount, {
-    filterColumn: 'entityId',
-})
-export const personalPropertyCrud = createCrud(personalProperty, {
-    filterColumn: 'entityId',
-})
-export const artworkCrud = createCrud(artwork, { filterColumn: 'entityId' })
-export const trusteeCrud = createCrud(trustee, { filterColumn: 'entityId' })
-export const specificBequestCrud = createCrud(specificBequest, {
-    filterColumn: 'entityId',
-})
-export const trustAccountingCrud = createCrud(trustAccounting, {
-    filterColumn: 'entityId',
-})
-export const withdrawalRecordCrud = createCrud(withdrawalRecord, {
-    filterColumn: 'beneficiaryId',
-})
-
-// Texas 113.152(5) - Liabilities
-export const liabilityCrud = createCrud(liability, { filterColumn: 'entityId' })
-export const liabilityPaymentCrud = createCrud(liabilityPayment, {
-    filterColumn: 'liabilityId',
-    hasUpdatedAt: false,
-})
-
-// HEMS Request Workflow
-export const hemsRequestCrud = createCrud(hemsRequest, {
-    filterColumn: 'beneficiaryId',
-})
-
-// Trustee Fee Tracking
-export const trusteeFeeScheduleCrud = createCrud(trusteeFeeSchedule, {
-    filterColumn: 'entityId',
-    hasUpdatedAt: false,
-})
-export const trusteeFeeEntryCrud = createCrud(trusteeFeeEntry, {
-    filterColumn: 'entityId',
-})
-
-// Activity Log (read-only audit trail)
-export const activityLogCrud = createCrud(activityLog, { hasUpdatedAt: false })
-
-// =============================================================================
-// ENTITY QUERIES (with custom getById for relations)
-// =============================================================================
-
-export const getEntities = () => entityCrud.getAll()
-export const createEntity = entityCrud.create
-export const updateEntity = entityCrud.update
-export const deleteEntity = entityCrud.delete
+export async function getEntities() {
+    return db.select().from(entity)
+}
 
 export async function getEntityById(id: number) {
     return db.query.entity.findFirst({
@@ -133,14 +67,47 @@ export async function getEntityById(id: number) {
     })
 }
 
+export async function createEntity(data: typeof entity.$inferInsert) {
+    const [created] = await db
+        .insert(entity)
+        .values({ ...data, updatedAt: new Date().toISOString() })
+        .returning()
+    return created
+}
+
+export async function updateEntity(
+    id: number,
+    data: Partial<typeof entity.$inferInsert>,
+) {
+    const [updated] = await db
+        .update(entity)
+        .set({ ...data, updatedAt: new Date().toISOString() })
+        .where(eq(entity.id, id))
+        .returning()
+    return updated
+}
+
+export async function deleteEntity(id: number) {
+    const [deleted] = await db
+        .delete(entity)
+        .where(eq(entity.id, id))
+        .returning()
+    return deleted
+}
+
 // =============================================================================
-// BENEFICIARY QUERIES (with custom getById for distributions)
+// BENEFICIARY QUERIES
 // =============================================================================
 
-export const getBeneficiaries = () => beneficiaryCrud.getAll()
-export const createBeneficiary = beneficiaryCrud.create
-export const updateBeneficiary = beneficiaryCrud.update
-export const deleteBeneficiary = beneficiaryCrud.delete
+export async function getBeneficiaries(entityId?: number) {
+    if (entityId) {
+        return db
+            .select()
+            .from(beneficiary)
+            .where(eq(beneficiary.entityId, entityId))
+    }
+    return db.select().from(beneficiary)
+}
 
 export async function getBeneficiaryById(id: number) {
     return db.query.beneficiary.findFirst({
@@ -164,6 +131,34 @@ export async function getBeneficiariesWithDistributions(entityId?: number) {
     })
 }
 
+export async function createBeneficiary(data: typeof beneficiary.$inferInsert) {
+    const [created] = await db
+        .insert(beneficiary)
+        .values({ ...data, updatedAt: new Date().toISOString() })
+        .returning()
+    return created
+}
+
+export async function updateBeneficiary(
+    id: number,
+    data: Partial<typeof beneficiary.$inferInsert>,
+) {
+    const [updated] = await db
+        .update(beneficiary)
+        .set({ ...data, updatedAt: new Date().toISOString() })
+        .where(eq(beneficiary.id, id))
+        .returning()
+    return updated
+}
+
+export async function deleteBeneficiary(id: number) {
+    const [deleted] = await db
+        .delete(beneficiary)
+        .where(eq(beneficiary.id, id))
+        .returning()
+    return deleted
+}
+
 // =============================================================================
 // DISTRIBUTION QUERIES
 // =============================================================================
@@ -184,16 +179,26 @@ export async function getDistributionsByBeneficiary(beneficiaryId: number) {
     })
 }
 
-export const createDistribution = distributionCrud.create
+export async function createDistribution(
+    data: typeof distribution.$inferInsert,
+) {
+    const [created] = await db
+        .insert(distribution)
+        .values({ ...data, updatedAt: new Date().toISOString() })
+        .returning()
+    return created
+}
 
 // =============================================================================
-// VEHICLE QUERIES (with custom getById for relations)
+// VEHICLE QUERIES
 // =============================================================================
 
-export const getVehicles = vehicleCrud.getAll
-export const createVehicle = vehicleCrud.create
-export const updateVehicle = vehicleCrud.update
-export const deleteVehicle = vehicleCrud.delete
+export async function getVehicles(entityId?: number) {
+    if (entityId) {
+        return db.select().from(vehicle).where(eq(vehicle.entityId, entityId))
+    }
+    return db.select().from(vehicle)
+}
 
 export async function getVehicleById(id: number) {
     return db.query.vehicle.findFirst({
@@ -207,14 +212,47 @@ export async function getVehicleById(id: number) {
     })
 }
 
+export async function createVehicle(data: typeof vehicle.$inferInsert) {
+    const [created] = await db
+        .insert(vehicle)
+        .values({ ...data, updatedAt: new Date().toISOString() })
+        .returning()
+    return created
+}
+
+export async function updateVehicle(
+    id: number,
+    data: Partial<typeof vehicle.$inferInsert>,
+) {
+    const [updated] = await db
+        .update(vehicle)
+        .set({ ...data, updatedAt: new Date().toISOString() })
+        .where(eq(vehicle.id, id))
+        .returning()
+    return updated
+}
+
+export async function deleteVehicle(id: number) {
+    const [deleted] = await db
+        .delete(vehicle)
+        .where(eq(vehicle.id, id))
+        .returning()
+    return deleted
+}
+
 // =============================================================================
-// HOMESTEAD QUERIES (with custom getById for relations)
+// HOMESTEAD QUERIES
 // =============================================================================
 
-export const getHomesteads = homesteadCrud.getAll
-export const createHomestead = homesteadCrud.create
-export const updateHomestead = homesteadCrud.update
-export const deleteHomestead = homesteadCrud.delete
+export async function getHomesteads(entityId?: number) {
+    if (entityId) {
+        return db
+            .select()
+            .from(homestead)
+            .where(eq(homestead.entityId, entityId))
+    }
+    return db.select().from(homestead)
+}
 
 export async function getHomesteadById(id: number) {
     return db.query.homestead.findFirst({
@@ -228,14 +266,47 @@ export async function getHomesteadById(id: number) {
     })
 }
 
+export async function createHomestead(data: typeof homestead.$inferInsert) {
+    const [created] = await db
+        .insert(homestead)
+        .values({ ...data, updatedAt: new Date().toISOString() })
+        .returning()
+    return created
+}
+
+export async function updateHomestead(
+    id: number,
+    data: Partial<typeof homestead.$inferInsert>,
+) {
+    const [updated] = await db
+        .update(homestead)
+        .set({ ...data, updatedAt: new Date().toISOString() })
+        .where(eq(homestead.id, id))
+        .returning()
+    return updated
+}
+
+export async function deleteHomestead(id: number) {
+    const [deleted] = await db
+        .delete(homestead)
+        .where(eq(homestead.id, id))
+        .returning()
+    return deleted
+}
+
 // =============================================================================
-// RENTAL PROPERTY QUERIES (with custom getById for relations)
+// RENTAL PROPERTY QUERIES
 // =============================================================================
 
-export const getRentalProperties = rentalPropertyCrud.getAll
-export const createRentalProperty = rentalPropertyCrud.create
-export const updateRentalProperty = rentalPropertyCrud.update
-export const deleteRentalProperty = rentalPropertyCrud.delete
+export async function getRentalProperties(entityId?: number) {
+    if (entityId) {
+        return db
+            .select()
+            .from(rentalProperty)
+            .where(eq(rentalProperty.entityId, entityId))
+    }
+    return db.select().from(rentalProperty)
+}
 
 export async function getRentalPropertyById(id: number) {
     return db.query.rentalProperty.findFirst({
@@ -249,14 +320,49 @@ export async function getRentalPropertyById(id: number) {
     })
 }
 
+export async function createRentalProperty(
+    data: typeof rentalProperty.$inferInsert,
+) {
+    const [created] = await db
+        .insert(rentalProperty)
+        .values({ ...data, updatedAt: new Date().toISOString() })
+        .returning()
+    return created
+}
+
+export async function updateRentalProperty(
+    id: number,
+    data: Partial<typeof rentalProperty.$inferInsert>,
+) {
+    const [updated] = await db
+        .update(rentalProperty)
+        .set({ ...data, updatedAt: new Date().toISOString() })
+        .where(eq(rentalProperty.id, id))
+        .returning()
+    return updated
+}
+
+export async function deleteRentalProperty(id: number) {
+    const [deleted] = await db
+        .delete(rentalProperty)
+        .where(eq(rentalProperty.id, id))
+        .returning()
+    return deleted
+}
+
 // =============================================================================
-// BANK ACCOUNT QUERIES (with custom getById for relations)
+// BANK ACCOUNT QUERIES
 // =============================================================================
 
-export const getBankAccounts = bankAccountCrud.getAll
-export const createBankAccount = bankAccountCrud.create
-export const updateBankAccount = bankAccountCrud.update
-export const deleteBankAccount = bankAccountCrud.delete
+export async function getBankAccounts(entityId?: number) {
+    if (entityId) {
+        return db
+            .select()
+            .from(bankAccount)
+            .where(eq(bankAccount.entityId, entityId))
+    }
+    return db.select().from(bankAccount)
+}
 
 export async function getBankAccountById(id: number) {
     return db.query.bankAccount.findFirst({
@@ -270,14 +376,47 @@ export async function getBankAccountById(id: number) {
     })
 }
 
+export async function createBankAccount(data: typeof bankAccount.$inferInsert) {
+    const [created] = await db
+        .insert(bankAccount)
+        .values({ ...data, updatedAt: new Date().toISOString() })
+        .returning()
+    return created
+}
+
+export async function updateBankAccount(
+    id: number,
+    data: Partial<typeof bankAccount.$inferInsert>,
+) {
+    const [updated] = await db
+        .update(bankAccount)
+        .set({ ...data, updatedAt: new Date().toISOString() })
+        .where(eq(bankAccount.id, id))
+        .returning()
+    return updated
+}
+
+export async function deleteBankAccount(id: number) {
+    const [deleted] = await db
+        .delete(bankAccount)
+        .where(eq(bankAccount.id, id))
+        .returning()
+    return deleted
+}
+
 // =============================================================================
-// INVESTMENT ACCOUNT QUERIES (with custom getById for relations)
+// INVESTMENT ACCOUNT QUERIES
 // =============================================================================
 
-export const getInvestmentAccounts = investmentAccountCrud.getAll
-export const createInvestmentAccount = investmentAccountCrud.create
-export const updateInvestmentAccount = investmentAccountCrud.update
-export const deleteInvestmentAccount = investmentAccountCrud.delete
+export async function getInvestmentAccounts(entityId?: number) {
+    if (entityId) {
+        return db
+            .select()
+            .from(investmentAccount)
+            .where(eq(investmentAccount.entityId, entityId))
+    }
+    return db.select().from(investmentAccount)
+}
 
 export async function getInvestmentAccountById(id: number) {
     return db.query.investmentAccount.findFirst({
@@ -290,14 +429,99 @@ export async function getInvestmentAccountById(id: number) {
     })
 }
 
+export async function createInvestmentAccount(
+    data: typeof investmentAccount.$inferInsert,
+) {
+    const [created] = await db
+        .insert(investmentAccount)
+        .values({ ...data, updatedAt: new Date().toISOString() })
+        .returning()
+    return created
+}
+
+export async function updateInvestmentAccount(
+    id: number,
+    data: Partial<typeof investmentAccount.$inferInsert>,
+) {
+    const [updated] = await db
+        .update(investmentAccount)
+        .set({ ...data, updatedAt: new Date().toISOString() })
+        .where(eq(investmentAccount.id, id))
+        .returning()
+    return updated
+}
+
+export async function deleteInvestmentAccount(id: number) {
+    const [deleted] = await db
+        .delete(investmentAccount)
+        .where(eq(investmentAccount.id, id))
+        .returning()
+    return deleted
+}
+
 // =============================================================================
-// PERSONAL PROPERTY QUERIES (with custom getById for relations)
+// INSURANCE POLICY QUERIES
 // =============================================================================
 
-export const getPersonalProperties = personalPropertyCrud.getAll
-export const createPersonalProperty = personalPropertyCrud.create
-export const updatePersonalProperty = personalPropertyCrud.update
-export const deletePersonalProperty = personalPropertyCrud.delete
+export async function getInsurancePolicies(entityId?: number) {
+    if (entityId) {
+        return db
+            .select()
+            .from(insurancePolicy)
+            .where(eq(insurancePolicy.entityId, entityId))
+    }
+    return db.select().from(insurancePolicy)
+}
+
+export async function getInsurancePolicyById(id: number) {
+    return db.query.insurancePolicy.findFirst({
+        where: eq(insurancePolicy.id, id),
+    })
+}
+
+export async function createInsurancePolicy(
+    data: typeof insurancePolicy.$inferInsert,
+) {
+    const [created] = await db
+        .insert(insurancePolicy)
+        .values({ ...data, updatedAt: new Date().toISOString() })
+        .returning()
+    return created
+}
+
+export async function updateInsurancePolicy(
+    id: number,
+    data: Partial<typeof insurancePolicy.$inferInsert>,
+) {
+    const [updated] = await db
+        .update(insurancePolicy)
+        .set({ ...data, updatedAt: new Date().toISOString() })
+        .where(eq(insurancePolicy.id, id))
+        .returning()
+    return updated
+}
+
+export async function deleteInsurancePolicy(id: number) {
+    const [deleted] = await db
+        .delete(insurancePolicy)
+        .where(eq(insurancePolicy.id, id))
+        .returning()
+    return deleted
+}
+
+// =============================================================================
+// PERSONAL PROPERTY QUERIES
+// =============================================================================
+
+export async function getPersonalProperties(entityId?: number) {
+    if (entityId) {
+        return db
+            .select()
+            .from(personalProperty)
+            .where(eq(personalProperty.entityId, entityId))
+    }
+    return db.select().from(personalProperty)
+}
 
 export async function getPersonalPropertyById(id: number) {
     return db.query.personalProperty.findFirst({
@@ -310,11 +534,93 @@ export async function getPersonalPropertyById(id: number) {
     })
 }
 
+export async function createPersonalProperty(
+    data: typeof personalProperty.$inferInsert,
+) {
+    const [created] = await db
+        .insert(personalProperty)
+        .values({ ...data, updatedAt: new Date().toISOString() })
+        .returning()
+    return created
+}
+
+export async function updatePersonalProperty(
+    id: number,
+    data: Partial<typeof personalProperty.$inferInsert>,
+) {
+    const [updated] = await db
+        .update(personalProperty)
+        .set({ ...data, updatedAt: new Date().toISOString() })
+        .where(eq(personalProperty.id, id))
+        .returning()
+    return updated
+}
+
+export async function deletePersonalProperty(id: number) {
+    const [deleted] = await db
+        .delete(personalProperty)
+        .where(eq(personalProperty.id, id))
+        .returning()
+    return deleted
+}
+
+// =============================================================================
+// ARTWORK QUERIES
+// =============================================================================
+
+export async function getArtworks(entityId?: number) {
+    if (entityId) {
+        return db.select().from(artwork).where(eq(artwork.entityId, entityId))
+    }
+    return db.select().from(artwork)
+}
+
+export async function getArtworkById(id: number) {
+    return db.query.artwork.findFirst({
+        where: eq(artwork.id, id),
+        with: {
+            entity: true,
+            valuations: true,
+        },
+    })
+}
+
+export async function createArtwork(data: typeof artwork.$inferInsert) {
+    const [created] = await db
+        .insert(artwork)
+        .values({ ...data, updatedAt: new Date().toISOString() })
+        .returning()
+    return created
+}
+
+export async function updateArtwork(
+    id: number,
+    data: Partial<typeof artwork.$inferInsert>,
+) {
+    const [updated] = await db
+        .update(artwork)
+        .set({ ...data, updatedAt: new Date().toISOString() })
+        .where(eq(artwork.id, id))
+        .returning()
+    return updated
+}
+
+export async function deleteArtwork(id: number) {
+    const [deleted] = await db
+        .delete(artwork)
+        .where(eq(artwork.id, id))
+        .returning()
+    return deleted
+}
+
 // =============================================================================
 // VALUATION QUERIES
 // =============================================================================
 
-export const createValuation = valuationCrud.create
+export async function createValuation(data: typeof valuation.$inferInsert) {
+    const [created] = await db.insert(valuation).values(data).returning()
+    return created
+}
 
 export async function getValuationsForAsset(
     assetType: string,
@@ -342,77 +648,227 @@ export async function getValuationsForAsset(
 // CONTACT QUERIES
 // =============================================================================
 
-export const getContacts = () => contactCrud.getAll()
-export const createContact = contactCrud.create
-export const updateContact = contactCrud.update
-export const deleteContact = contactCrud.delete
+export async function getContacts() {
+    return db.select().from(contact)
+}
+
+export async function getContactById(id: number) {
+    return db.query.contact.findFirst({
+        where: eq(contact.id, id),
+    })
+}
+
+export async function createContact(data: typeof contact.$inferInsert) {
+    const [created] = await db
+        .insert(contact)
+        .values({ ...data, updatedAt: new Date().toISOString() })
+        .returning()
+    return created
+}
+
+export async function updateContact(
+    id: number,
+    data: Partial<typeof contact.$inferInsert>,
+) {
+    const [updated] = await db
+        .update(contact)
+        .set({ ...data, updatedAt: new Date().toISOString() })
+        .where(eq(contact.id, id))
+        .returning()
+    return updated
+}
+
+export async function deleteContact(id: number) {
+    const [deleted] = await db
+        .delete(contact)
+        .where(eq(contact.id, id))
+        .returning()
+    return deleted
+}
 
 // =============================================================================
 // TASK QUERIES
 // =============================================================================
 
-export const getTasks = () => taskCrud.getAll()
-export const createTask = taskCrud.create
-export const updateTask = taskCrud.update
-export const deleteTask = taskCrud.delete
+export async function getTasks() {
+    return db.select().from(task)
+}
 
-// =============================================================================
-// ARTWORK QUERIES (with custom getById for relations)
-// =============================================================================
-
-export const getArtworks = artworkCrud.getAll
-export const createArtwork = artworkCrud.create
-export const updateArtwork = artworkCrud.update
-export const deleteArtwork = artworkCrud.delete
-
-export async function getArtworkById(id: number) {
-    return db.query.artwork.findFirst({
-        where: eq(artwork.id, id),
-        with: {
-            entity: true,
-            valuations: true,
-            // Note: artwork doesn't have documents relation in schema
-        },
+export async function getTaskById(id: number) {
+    return db.query.task.findFirst({
+        where: eq(task.id, id),
     })
+}
+
+export async function createTask(data: typeof task.$inferInsert) {
+    const [created] = await db
+        .insert(task)
+        .values({ ...data, updatedAt: new Date().toISOString() })
+        .returning()
+    return created
+}
+
+export async function updateTask(
+    id: number,
+    data: Partial<typeof task.$inferInsert>,
+) {
+    const [updated] = await db
+        .update(task)
+        .set({ ...data, updatedAt: new Date().toISOString() })
+        .where(eq(task.id, id))
+        .returning()
+    return updated
+}
+
+export async function deleteTask(id: number) {
+    const [deleted] = await db.delete(task).where(eq(task.id, id)).returning()
+    return deleted
 }
 
 // =============================================================================
 // TRUSTEE QUERIES
 // =============================================================================
 
-export const getTrustees = trusteeCrud.getAll
-export const getTrusteeById = trusteeCrud.getById
-export const createTrustee = trusteeCrud.create
-export const updateTrustee = trusteeCrud.update
-export const deleteTrustee = trusteeCrud.delete
+export async function getTrustees(entityId?: number) {
+    if (entityId) {
+        return db.select().from(trustee).where(eq(trustee.entityId, entityId))
+    }
+    return db.select().from(trustee)
+}
+
+export async function getTrusteeById(id: number) {
+    return db.query.trustee.findFirst({
+        where: eq(trustee.id, id),
+    })
+}
+
+export async function createTrustee(data: typeof trustee.$inferInsert) {
+    const [created] = await db
+        .insert(trustee)
+        .values({ ...data, updatedAt: new Date().toISOString() })
+        .returning()
+    return created
+}
+
+export async function updateTrustee(
+    id: number,
+    data: Partial<typeof trustee.$inferInsert>,
+) {
+    const [updated] = await db
+        .update(trustee)
+        .set({ ...data, updatedAt: new Date().toISOString() })
+        .where(eq(trustee.id, id))
+        .returning()
+    return updated
+}
+
+export async function deleteTrustee(id: number) {
+    const [deleted] = await db
+        .delete(trustee)
+        .where(eq(trustee.id, id))
+        .returning()
+    return deleted
+}
 
 // =============================================================================
 // SPECIFIC BEQUEST QUERIES
 // =============================================================================
 
-export const getSpecificBequests = specificBequestCrud.getAll
-export const getSpecificBequestById = specificBequestCrud.getById
-export const createSpecificBequest = specificBequestCrud.create
-export const updateSpecificBequest = specificBequestCrud.update
-export const deleteSpecificBequest = specificBequestCrud.delete
+export async function getSpecificBequests(entityId?: number) {
+    if (entityId) {
+        return db
+            .select()
+            .from(specificBequest)
+            .where(eq(specificBequest.entityId, entityId))
+    }
+    return db.select().from(specificBequest)
+}
+
+export async function getSpecificBequestById(id: number) {
+    return db.query.specificBequest.findFirst({
+        where: eq(specificBequest.id, id),
+    })
+}
+
+export async function createSpecificBequest(
+    data: typeof specificBequest.$inferInsert,
+) {
+    const [created] = await db
+        .insert(specificBequest)
+        .values({ ...data, updatedAt: new Date().toISOString() })
+        .returning()
+    return created
+}
+
+export async function updateSpecificBequest(
+    id: number,
+    data: Partial<typeof specificBequest.$inferInsert>,
+) {
+    const [updated] = await db
+        .update(specificBequest)
+        .set({ ...data, updatedAt: new Date().toISOString() })
+        .where(eq(specificBequest.id, id))
+        .returning()
+    return updated
+}
+
+export async function deleteSpecificBequest(id: number) {
+    const [deleted] = await db
+        .delete(specificBequest)
+        .where(eq(specificBequest.id, id))
+        .returning()
+    return deleted
+}
 
 // =============================================================================
 // TRUST ACCOUNTING QUERIES
 // =============================================================================
 
-export const getTrustAccountingEntries = trustAccountingCrud.getAll
-export const updateTrustAccountingEntry = trustAccountingCrud.update
-export const deleteTrustAccountingEntry = trustAccountingCrud.delete
+export async function getTrustAccountingEntries(entityId?: number) {
+    if (entityId) {
+        return db
+            .select()
+            .from(trustAccounting)
+            .where(eq(trustAccounting.entityId, entityId))
+    }
+    return db.select().from(trustAccounting)
+}
+
+export async function getTrustAccountingEntryById(id: number) {
+    return db.query.trustAccounting.findFirst({
+        where: eq(trustAccounting.id, id),
+    })
+}
+
+export async function updateTrustAccountingEntry(
+    id: number,
+    data: Partial<typeof trustAccounting.$inferInsert>,
+) {
+    const [updated] = await db
+        .update(trustAccounting)
+        .set({ ...data, updatedAt: new Date().toISOString() })
+        .where(eq(trustAccounting.id, id))
+        .returning()
+    return updated
+}
+
+export async function deleteTrustAccountingEntry(id: number) {
+    const [deleted] = await db
+        .delete(trustAccounting)
+        .where(eq(trustAccounting.id, id))
+        .returning()
+    return deleted
+}
 
 /**
  * Create a trust accounting entry with auto-classification
  *
  * Automatically determines isPrincipal based on Texas Property Code 116:
- * - Income types (rent, dividends, interest) → isPrincipal: false
- * - Principal types (capital gains, sale proceeds) → isPrincipal: true
+ * - Income types (rent, dividends, interest) -> isPrincipal: false
+ * - Principal types (capital gains, sale proceeds) -> isPrincipal: true
  */
 export async function createTrustAccountingEntry(
-    data: Parameters<typeof trustAccountingCrud.create>[0],
+    data: typeof trustAccounting.$inferInsert,
 ) {
     // Auto-classify if isPrincipal not explicitly provided
     const isPrincipal =
@@ -420,38 +876,122 @@ export async function createTrustAccountingEntry(
         isPrincipalTransaction(
             data.incomeType as IncomeType | undefined,
             data.expenseType as ExpenseType | undefined,
-            undefined, // category for special rules
+            undefined,
         )
 
-    return trustAccountingCrud.create({
-        ...data,
-        isPrincipal,
-    })
+    const [created] = await db
+        .insert(trustAccounting)
+        .values({
+            ...data,
+            isPrincipal,
+            updatedAt: new Date().toISOString(),
+        })
+        .returning()
+    return created
 }
 
 // =============================================================================
 // WITHDRAWAL RECORD QUERIES
 // =============================================================================
 
-export const getWithdrawalRecords = withdrawalRecordCrud.getAll
-export const createWithdrawalRecord = withdrawalRecordCrud.create
-export const updateWithdrawalRecord = withdrawalRecordCrud.update
-export const deleteWithdrawalRecord = withdrawalRecordCrud.delete
+export async function getWithdrawalRecords(beneficiaryId?: number) {
+    if (beneficiaryId) {
+        return db
+            .select()
+            .from(withdrawalRecord)
+            .where(eq(withdrawalRecord.beneficiaryId, beneficiaryId))
+    }
+    return db.select().from(withdrawalRecord)
+}
+
+export async function getWithdrawalRecordById(id: number) {
+    return db.query.withdrawalRecord.findFirst({
+        where: eq(withdrawalRecord.id, id),
+    })
+}
+
+export async function createWithdrawalRecord(
+    data: typeof withdrawalRecord.$inferInsert,
+) {
+    const [created] = await db
+        .insert(withdrawalRecord)
+        .values({ ...data, updatedAt: new Date().toISOString() })
+        .returning()
+    return created
+}
+
+export async function updateWithdrawalRecord(
+    id: number,
+    data: Partial<typeof withdrawalRecord.$inferInsert>,
+) {
+    const [updated] = await db
+        .update(withdrawalRecord)
+        .set({ ...data, updatedAt: new Date().toISOString() })
+        .where(eq(withdrawalRecord.id, id))
+        .returning()
+    return updated
+}
+
+export async function deleteWithdrawalRecord(id: number) {
+    const [deleted] = await db
+        .delete(withdrawalRecord)
+        .where(eq(withdrawalRecord.id, id))
+        .returning()
+    return deleted
+}
 
 // =============================================================================
 // HEMS REQUEST QUERIES
 // =============================================================================
 
-export const getHemsRequests = hemsRequestCrud.getAll
-export const getHemsRequestById = hemsRequestCrud.getById
-export const createHemsRequest = hemsRequestCrud.create
-export const updateHemsRequest = hemsRequestCrud.update
-export const deleteHemsRequest = hemsRequestCrud.delete
+export async function getHemsRequests(beneficiaryId?: number) {
+    if (beneficiaryId) {
+        return db
+            .select()
+            .from(hemsRequest)
+            .where(eq(hemsRequest.beneficiaryId, beneficiaryId))
+    }
+    return db.select().from(hemsRequest)
+}
 
-export async function getHemsRequestsWithBeneficiary(filterValue?: number) {
+export async function getHemsRequestById(id: number) {
+    return db.query.hemsRequest.findFirst({
+        where: eq(hemsRequest.id, id),
+    })
+}
+
+export async function createHemsRequest(data: typeof hemsRequest.$inferInsert) {
+    const [created] = await db
+        .insert(hemsRequest)
+        .values({ ...data, updatedAt: new Date().toISOString() })
+        .returning()
+    return created
+}
+
+export async function updateHemsRequest(
+    id: number,
+    data: Partial<typeof hemsRequest.$inferInsert>,
+) {
+    const [updated] = await db
+        .update(hemsRequest)
+        .set({ ...data, updatedAt: new Date().toISOString() })
+        .where(eq(hemsRequest.id, id))
+        .returning()
+    return updated
+}
+
+export async function deleteHemsRequest(id: number) {
+    const [deleted] = await db
+        .delete(hemsRequest)
+        .where(eq(hemsRequest.id, id))
+        .returning()
+    return deleted
+}
+
+export async function getHemsRequestsWithBeneficiary(beneficiaryId?: number) {
     return db.query.hemsRequest.findMany({
-        where: filterValue
-            ? eq(hemsRequest.beneficiaryId, filterValue)
+        where: beneficiaryId
+            ? eq(hemsRequest.beneficiaryId, beneficiaryId)
             : undefined,
         with: { beneficiary: true },
         orderBy: (r, { desc }) => [desc(r.createdAt)],
@@ -467,20 +1007,104 @@ export async function getPendingHemsRequests() {
 }
 
 // =============================================================================
-// TRUSTEE FEE QUERIES
+// TRUSTEE FEE SCHEDULE QUERIES
 // =============================================================================
 
-export const getTrusteeFeeSchedules = trusteeFeeScheduleCrud.getAll
-export const getTrusteeFeeScheduleById = trusteeFeeScheduleCrud.getById
-export const createTrusteeFeeSchedule = trusteeFeeScheduleCrud.create
-export const updateTrusteeFeeSchedule = trusteeFeeScheduleCrud.update
-export const deleteTrusteeFeeSchedule = trusteeFeeScheduleCrud.delete
+export async function getTrusteeFeeSchedules(entityId?: number) {
+    if (entityId) {
+        return db
+            .select()
+            .from(trusteeFeeSchedule)
+            .where(eq(trusteeFeeSchedule.entityId, entityId))
+    }
+    return db.select().from(trusteeFeeSchedule)
+}
 
-export const getTrusteeFeeEntries = trusteeFeeEntryCrud.getAll
-export const getTrusteeFeeEntryById = trusteeFeeEntryCrud.getById
-export const createTrusteeFeeEntry = trusteeFeeEntryCrud.create
-export const updateTrusteeFeeEntry = trusteeFeeEntryCrud.update
-export const deleteTrusteeFeeEntry = trusteeFeeEntryCrud.delete
+export async function getTrusteeFeeScheduleById(id: number) {
+    return db.query.trusteeFeeSchedule.findFirst({
+        where: eq(trusteeFeeSchedule.id, id),
+    })
+}
+
+export async function createTrusteeFeeSchedule(
+    data: typeof trusteeFeeSchedule.$inferInsert,
+) {
+    const [created] = await db
+        .insert(trusteeFeeSchedule)
+        .values(data)
+        .returning()
+    return created
+}
+
+export async function updateTrusteeFeeSchedule(
+    id: number,
+    data: Partial<typeof trusteeFeeSchedule.$inferInsert>,
+) {
+    const [updated] = await db
+        .update(trusteeFeeSchedule)
+        .set(data)
+        .where(eq(trusteeFeeSchedule.id, id))
+        .returning()
+    return updated
+}
+
+export async function deleteTrusteeFeeSchedule(id: number) {
+    const [deleted] = await db
+        .delete(trusteeFeeSchedule)
+        .where(eq(trusteeFeeSchedule.id, id))
+        .returning()
+    return deleted
+}
+
+// =============================================================================
+// TRUSTEE FEE ENTRY QUERIES
+// =============================================================================
+
+export async function getTrusteeFeeEntries(entityId?: number) {
+    if (entityId) {
+        return db
+            .select()
+            .from(trusteeFeeEntry)
+            .where(eq(trusteeFeeEntry.entityId, entityId))
+    }
+    return db.select().from(trusteeFeeEntry)
+}
+
+export async function getTrusteeFeeEntryById(id: number) {
+    return db.query.trusteeFeeEntry.findFirst({
+        where: eq(trusteeFeeEntry.id, id),
+    })
+}
+
+export async function createTrusteeFeeEntry(
+    data: typeof trusteeFeeEntry.$inferInsert,
+) {
+    const [created] = await db
+        .insert(trusteeFeeEntry)
+        .values({ ...data, updatedAt: new Date().toISOString() })
+        .returning()
+    return created
+}
+
+export async function updateTrusteeFeeEntry(
+    id: number,
+    data: Partial<typeof trusteeFeeEntry.$inferInsert>,
+) {
+    const [updated] = await db
+        .update(trusteeFeeEntry)
+        .set({ ...data, updatedAt: new Date().toISOString() })
+        .where(eq(trusteeFeeEntry.id, id))
+        .returning()
+    return updated
+}
+
+export async function deleteTrusteeFeeEntry(id: number) {
+    const [deleted] = await db
+        .delete(trusteeFeeEntry)
+        .where(eq(trusteeFeeEntry.id, id))
+        .returning()
+    return deleted
+}
 
 export async function getTrusteeFeeEntriesWithSchedule(entityId?: number) {
     return db.query.trusteeFeeEntry.findMany({
@@ -491,6 +1115,54 @@ export async function getTrusteeFeeEntriesWithSchedule(entityId?: number) {
 }
 
 // =============================================================================
+// LIABILITY QUERIES
+// =============================================================================
+
+export async function getLiabilities(entityId?: number) {
+    if (entityId) {
+        return db
+            .select()
+            .from(liability)
+            .where(eq(liability.entityId, entityId))
+    }
+    return db.select().from(liability)
+}
+
+export async function getLiabilityById(id: number) {
+    return db.query.liability.findFirst({
+        where: eq(liability.id, id),
+    })
+}
+
+export async function createLiability(data: typeof liability.$inferInsert) {
+    const [created] = await db
+        .insert(liability)
+        .values({ ...data, updatedAt: new Date().toISOString() })
+        .returning()
+    return created
+}
+
+export async function updateLiability(
+    id: number,
+    data: Partial<typeof liability.$inferInsert>,
+) {
+    const [updated] = await db
+        .update(liability)
+        .set({ ...data, updatedAt: new Date().toISOString() })
+        .where(eq(liability.id, id))
+        .returning()
+    return updated
+}
+
+export async function deleteLiability(id: number) {
+    const [deleted] = await db
+        .delete(liability)
+        .where(eq(liability.id, id))
+        .returning()
+    return deleted
+}
+
+// =============================================================================
 // LIABILITY PAYMENT QUERIES
 // =============================================================================
 
@@ -498,7 +1170,7 @@ interface RecordPaymentData {
     liabilityId: number
     paymentDate: string
     amount: string
-    bankAccountId: number // Required: which account the payment came from
+    bankAccountId: number
     principalPortion?: string | null
     interestPortion?: string | null
     escrowPortion?: string | null
@@ -506,12 +1178,11 @@ interface RecordPaymentData {
     checkNumber?: string | null
     confirmationNumber?: string | null
     notes?: string | null
-    createExpenseEntry?: boolean // Whether to auto-create trust accounting entry
-    allocationClass?: 'PRINCIPAL' | 'INCOME' | null // For trust accounting
+    createExpenseEntry?: boolean
+    allocationClass?: 'PRINCIPAL' | 'INCOME' | null
 }
 
 export async function recordLiabilityPayment(data: RecordPaymentData) {
-    // 1. Get the liability to update and get entityId
     const liabilityRecord = await db.query.liability.findFirst({
         where: eq(liability.id, data.liabilityId),
     })
@@ -520,8 +1191,6 @@ export async function recordLiabilityPayment(data: RecordPaymentData) {
         throw new Error('Liability not found')
     }
 
-    // 2. Auto-calculate principal/interest split if applicable
-    // Conditions: has interest rate, not revolving credit, user didn't provide portions
     const shouldAutoCalculate =
         liabilityRecord.interestRate &&
         parseFloat(liabilityRecord.interestRate) > 0 &&
@@ -545,14 +1214,12 @@ export async function recordLiabilityPayment(data: RecordPaymentData) {
         )
     }
 
-    // Determine final values for principal/interest/escrow
     const principalPortion =
         data.principalPortion || calculatedSplit?.principal || null
     const interestPortion =
         data.interestPortion || calculatedSplit?.interest || null
     const escrowPortion = data.escrowPortion || calculatedSplit?.escrow || null
 
-    // Calculate new balance - use calculated if available, otherwise simple subtraction
     const paymentAmount = parseFloat(data.amount) || 0
     const currentBalance =
         parseFloat(liabilityRecord.currentBalance || '0') || 0
@@ -560,7 +1227,6 @@ export async function recordLiabilityPayment(data: RecordPaymentData) {
         ? parseFloat(calculatedSplit.newBalance)
         : Math.max(0, currentBalance - paymentAmount)
 
-    // 3. Create the payment record
     const [payment] = await db
         .insert(liabilityPayment)
         .values({
@@ -578,7 +1244,6 @@ export async function recordLiabilityPayment(data: RecordPaymentData) {
         .returning()
     if (!payment) throw new Error('Failed to create payment record')
 
-    // 3. Update the liability's current balance
     await db
         .update(liability)
         .set({
@@ -587,19 +1252,16 @@ export async function recordLiabilityPayment(data: RecordPaymentData) {
         })
         .where(eq(liability.id, data.liabilityId))
 
-    // 4. Optionally create a trust accounting expense entry
     let accountingEntry: { id: number } | null = null
     if (data.createExpenseEntry !== false) {
         const expenseDescription = `${liabilityRecord.liabilityType.replace(/_/g, ' ')} payment to ${liabilityRecord.creditor}`
 
-        // Determine if principal based on payment's allocation class (or fallback to liability's)
         const effectiveAllocation =
             data.allocationClass ||
             liabilityRecord.allocationClass ||
             'PRINCIPAL'
         const isPrincipal = effectiveAllocation === 'PRINCIPAL'
 
-        // Determine expense type based on liability type
         const expenseType =
             liabilityRecord.liabilityType === 'TAX_OWED' ? 'TAX' : 'OTHER'
 
@@ -630,7 +1292,6 @@ export async function recordLiabilityPayment(data: RecordPaymentData) {
         accountingEntry = { id: entry.id }
     }
 
-    // Return the payment with updated liability info and calculated split
     return {
         payment: {
             id: payment.id,
@@ -644,7 +1305,6 @@ export async function recordLiabilityPayment(data: RecordPaymentData) {
             currentBalance: newBalance.toFixed(2),
         },
         accountingEntry,
-        // Include calculated split info so UI can show auto-calculated values
         autoCalculated: calculatedSplit
             ? {
                   principal: calculatedSplit.principal,
@@ -663,22 +1323,20 @@ export async function getLiabilityPayments(liabilityId: number) {
 }
 
 // =============================================================================
-// PostgreSQL 17 ADVANCED FEATURES
+// ACTIVITY LOG QUERIES
 // =============================================================================
 
-import { sql } from 'drizzle-orm'
+export async function getActivityLogs() {
+    return db.select().from(activityLog).orderBy(desc(activityLog.createdAt))
+}
+
+export async function createActivityLog(data: typeof activityLog.$inferInsert) {
+    const [created] = await db.insert(activityLog).values(data).returning()
+    return created
+}
 
 /**
  * PostgreSQL 17 JSON_TABLE - Extract structured data from ActivityLog JSONB columns
- *
- * This function demonstrates PostgreSQL 17's JSON_TABLE feature for extracting
- * structured data from JSONB columns without manual parsing in application code.
- *
- * Use case: Audit trail queries that need to analyze specific field changes
- * across multiple log entries.
- *
- * @param recordId - The record ID to fetch activity logs for
- * @returns Activity log entries with extracted JSONB fields
  */
 export async function getActivityLogWithChanges(recordId: string) {
     return db.execute(sql`
@@ -714,9 +1372,59 @@ export async function getActivityLogWithChanges(recordId: string) {
 }
 
 // =============================================================================
+// PENDING INVENTORY ITEM QUERIES
+// =============================================================================
+
+export async function getPendingInventoryItems(
+    status?: 'PENDING' | 'APPROVED' | 'REJECTED',
+) {
+    if (status) {
+        return db
+            .select()
+            .from(pendingInventoryItem)
+            .where(eq(pendingInventoryItem.status, status))
+    }
+    return db.select().from(pendingInventoryItem)
+}
+
+export async function getPendingInventoryItemById(id: number) {
+    return db.query.pendingInventoryItem.findFirst({
+        where: eq(pendingInventoryItem.id, id),
+    })
+}
+
+export async function createPendingInventoryItem(
+    data: typeof pendingInventoryItem.$inferInsert,
+) {
+    const [created] = await db
+        .insert(pendingInventoryItem)
+        .values({ ...data, updatedAt: new Date().toISOString() })
+        .returning()
+    return created
+}
+
+export async function updatePendingInventoryItem(
+    id: number,
+    data: Partial<typeof pendingInventoryItem.$inferInsert>,
+) {
+    const [updated] = await db
+        .update(pendingInventoryItem)
+        .set({ ...data, updatedAt: new Date().toISOString() })
+        .where(eq(pendingInventoryItem.id, id))
+        .returning()
+    return updated
+}
+
+export async function deletePendingInventoryItem(id: number) {
+    const [deleted] = await db
+        .delete(pendingInventoryItem)
+        .where(eq(pendingInventoryItem.id, id))
+        .returning()
+    return deleted
+}
+
+// =============================================================================
 // BENEFICIARY DEATH HANDLING - Trust Section 7.01
-// If beneficiary dies before complete distribution without exercising LPOA,
-// their share goes pro-rata to other beneficiaries
 // =============================================================================
 
 interface MarkDeceasedData {
@@ -724,14 +1432,7 @@ interface MarkDeceasedData {
     deceasedDate: string
 }
 
-/**
- * Mark a beneficiary as deceased and recalculate shares
- *
- * Per Trust Section 7.01: If a beneficiary dies before complete distribution,
- * their share goes pro-rata to other living beneficiaries.
- */
 export async function markBeneficiaryDeceased(data: MarkDeceasedData) {
-    // 1. Update the beneficiary record
     await db
         .update(beneficiary)
         .set({
@@ -740,7 +1441,6 @@ export async function markBeneficiaryDeceased(data: MarkDeceasedData) {
         })
         .where(eq(beneficiary.id, data.beneficiaryId))
 
-    // 2. Get the deceased beneficiary's info
     const deceased = await db.query.beneficiary.findFirst({
         where: eq(beneficiary.id, data.beneficiaryId),
     })
@@ -749,26 +1449,17 @@ export async function markBeneficiaryDeceased(data: MarkDeceasedData) {
         return { success: true, shareRecalculated: false }
     }
 
-    // 3. Recalculate shares for remaining beneficiaries
     return recalculateBeneficiaryShares(deceased.entityId, data.beneficiaryId)
 }
 
-/**
- * Recalculate beneficiary shares when a beneficiary dies without exercising LPOA
- *
- * The deceased beneficiary's share is distributed pro-rata among remaining
- * living beneficiaries based on their current share percentages.
- */
 export async function recalculateBeneficiaryShares(
     entityId: number,
     excludeBeneficiaryId: number,
 ) {
-    // Get all beneficiaries for this entity
     const allBeneficiaries = await db.query.beneficiary.findMany({
         where: eq(beneficiary.entityId, entityId),
     })
 
-    // Find deceased and living beneficiaries
     const deceased = allBeneficiaries.find((b) => b.id === excludeBeneficiaryId)
     const living = allBeneficiaries.filter(
         (b) => b.id !== excludeBeneficiaryId && !b.deceasedDate,
@@ -780,7 +1471,6 @@ export async function recalculateBeneficiaryShares(
 
     const deceasedShare = parseFloat(deceased.sharePercent)
 
-    // Calculate total shares of living beneficiaries
     const totalLivingShares = living.reduce((sum, b) => {
         return sum + (parseFloat(b.sharePercent || '0') || 0)
     }, 0)
@@ -793,7 +1483,6 @@ export async function recalculateBeneficiaryShares(
         }
     }
 
-    // Distribute deceased's share pro-rata
     const updates: { id: number; newShare: string }[] = []
 
     for (const b of living) {
@@ -813,7 +1502,6 @@ export async function recalculateBeneficiaryShares(
         updates.push({ id: b.id, newShare })
     }
 
-    // Zero out the deceased beneficiary's share
     await db
         .update(beneficiary)
         .set({
@@ -832,22 +1520,13 @@ export async function recalculateBeneficiaryShares(
 
 // =============================================================================
 // INCOME TO PRINCIPAL CONVERSION - Trust Section 7.10(c)
-// "All income not distributed shall be added to principal at least annually"
 // =============================================================================
 
-/**
- * Convert undistributed income to principal for a fiscal year
- *
- * Per Trust Section 7.10(c): All income not distributed shall be added
- * to principal at least annually. This function marks income entries as
- * converted and creates corresponding principal entries.
- */
 export async function convertIncomeToPrincipal(
     entityId: number,
     fiscalYear: number,
     bankAccountId: number,
 ) {
-    // 1. Find all unconverted income entries for the fiscal year
     const incomeEntries = await db.query.trustAccounting.findMany({
         where: (ta, { and, eq: eqOp }) =>
             and(
@@ -868,7 +1547,6 @@ export async function convertIncomeToPrincipal(
         }
     }
 
-    // 2. Calculate total income to convert
     const totalIncome = incomeEntries.reduce(
         (sum, entry) => sum + (parseFloat(entry.amount) || 0),
         0,
@@ -876,18 +1554,17 @@ export async function convertIncomeToPrincipal(
 
     const now = new Date().toISOString()
 
-    // 3. Create a principal entry for the converted income
     const [principalEntry] = await db
         .insert(trustAccounting)
         .values({
             entityId,
             accountingDate: now,
-            entryType: 'INCOME', // It's still income, but now classified as principal
+            entryType: 'INCOME',
             incomeType: 'INCOME_TO_PRINCIPAL_CONVERSION',
             amount: totalIncome.toFixed(2),
             description: `FY${fiscalYear} undistributed income added to principal per Trust Section 7.10(c)`,
             bankAccountId,
-            isPrincipal: true, // Now treated as principal
+            isPrincipal: true,
             fiscalYear,
             notes: `Converted ${incomeEntries.length} income entries totaling $${totalIncome.toFixed(2)}`,
             updatedAt: now,
@@ -895,7 +1572,6 @@ export async function convertIncomeToPrincipal(
         .returning()
     if (!principalEntry) throw new Error('Failed to create principal entry')
 
-    // 4. Mark all the original income entries as converted
     const convertedIds: number[] = []
     for (const entry of incomeEntries) {
         await db
@@ -919,9 +1595,6 @@ export async function convertIncomeToPrincipal(
     }
 }
 
-/**
- * Get summary of unconverted income by fiscal year
- */
 export async function getUnconvertedIncomeSummary(entityId: number) {
     const entries = await db.query.trustAccounting.findMany({
         where: (ta, { and, eq: eqOp }) =>
@@ -934,7 +1607,6 @@ export async function getUnconvertedIncomeSummary(entityId: number) {
         orderBy: (ta, { asc }) => [asc(ta.fiscalYear)],
     })
 
-    // Group by fiscal year
     const byYear: Record<number, { count: number; total: number }> = {}
     for (const entry of entries) {
         const year =
@@ -953,10 +1625,10 @@ export async function getUnconvertedIncomeSummary(entityId: number) {
     }))
 }
 
-/**
- * Allowlist of searchable fields in ActivityLog newValues JSONB column.
- * Only these fields can be searched to prevent SQL injection.
- */
+// =============================================================================
+// ACTIVITY LOG SEARCH
+// =============================================================================
+
 export const SEARCHABLE_ACTIVITY_LOG_FIELDS = [
     'status',
     'amount',
@@ -975,9 +1647,6 @@ export const SEARCHABLE_ACTIVITY_LOG_FIELDS = [
 export type SearchableActivityLogField =
     (typeof SEARCHABLE_ACTIVITY_LOG_FIELDS)[number]
 
-/**
- * Type guard to validate field name is in allowlist
- */
 export function isSearchableActivityLogField(
     field: string,
 ): field is SearchableActivityLogField {
@@ -986,31 +1655,16 @@ export function isSearchableActivityLogField(
     )
 }
 
-/**
- * Search ActivityLog for changes to specific fields using JSONB operators
- *
- * SECURITY: Uses allowlist for field names and parameterized queries for values
- * to prevent SQL injection attacks.
- *
- * Example: Find all entries where status changed to "ACTIVE"
- *
- * @param fieldName - The JSONB field name to search for (must be in allowlist)
- * @param fieldValue - The value to match (safely parameterized)
- * @returns Matching activity log entries with extracted field values
- */
 export async function searchActivityLogByField(
     fieldName: SearchableActivityLogField,
     fieldValue: string,
 ) {
-    // Validate field name against allowlist (defense in depth - TypeScript enforces this too)
     if (!isSearchableActivityLogField(fieldName)) {
         throw new Error(
             `Invalid field name: ${fieldName}. Allowed fields: ${SEARCHABLE_ACTIVITY_LOG_FIELDS.join(', ')}`,
         )
     }
 
-    // Use parameterized query with JSONB ->> operator
-    // The field name is from allowlist (safe), the value is parameterized (safe)
     return db
         .select({
             id: activityLog.id,
@@ -1019,11 +1673,302 @@ export async function searchActivityLogByField(
             action: activityLog.action,
             changedBy: activityLog.changedBy,
             createdAt: activityLog.createdAt,
-            // Extract the field value from newValues JSONB
             fieldValue: sql<string>`${activityLog.newValues}->>${fieldName}`,
         })
         .from(activityLog)
         .where(sql`${activityLog.newValues}->>${fieldName} = ${fieldValue}`)
         .orderBy(desc(activityLog.createdAt))
         .limit(100)
+}
+
+// =============================================================================
+// CRUD WRAPPERS - For createCrudRouter compatibility
+// These wrap the individual functions into the object format the router expects
+// =============================================================================
+
+export const entityCrud = {
+    getAllArray: getEntities,
+    getById: getEntityById,
+    create: createEntity,
+    update: updateEntity,
+    delete: deleteEntity,
+}
+
+export const beneficiaryCrud = {
+    getAllArray: getBeneficiaries,
+    getById: getBeneficiaryById,
+    create: createBeneficiary,
+    update: updateBeneficiary,
+    delete: deleteBeneficiary,
+}
+
+export const distributionCrud = {
+    getAllArray: getDistributions,
+    getById: async (id: number) =>
+        db.query.distribution.findFirst({ where: eq(distribution.id, id) }),
+    create: createDistribution,
+    update: async (
+        id: number,
+        data: Partial<typeof distribution.$inferInsert>,
+    ) => {
+        const [updated] = await db
+            .update(distribution)
+            .set({ ...data, updatedAt: new Date().toISOString() })
+            .where(eq(distribution.id, id))
+            .returning()
+        return updated
+    },
+    delete: async (id: number) => {
+        const [deleted] = await db
+            .delete(distribution)
+            .where(eq(distribution.id, id))
+            .returning()
+        return deleted
+    },
+}
+
+export const vehicleCrud = {
+    getAllArray: getVehicles,
+    getById: async (id: number) =>
+        db.query.vehicle.findFirst({ where: eq(vehicle.id, id) }),
+    create: createVehicle,
+    update: updateVehicle,
+    delete: deleteVehicle,
+}
+
+export const homesteadCrud = {
+    getAllArray: getHomesteads,
+    getById: async (id: number) =>
+        db.query.homestead.findFirst({ where: eq(homestead.id, id) }),
+    create: createHomestead,
+    update: updateHomestead,
+    delete: deleteHomestead,
+}
+
+export const rentalPropertyCrud = {
+    getAllArray: getRentalProperties,
+    getById: async (id: number) =>
+        db.query.rentalProperty.findFirst({ where: eq(rentalProperty.id, id) }),
+    create: createRentalProperty,
+    update: updateRentalProperty,
+    delete: deleteRentalProperty,
+}
+
+export const bankAccountCrud = {
+    getAllArray: getBankAccounts,
+    getById: async (id: number) =>
+        db.query.bankAccount.findFirst({ where: eq(bankAccount.id, id) }),
+    create: createBankAccount,
+    update: updateBankAccount,
+    delete: deleteBankAccount,
+}
+
+export const investmentAccountCrud = {
+    getAllArray: getInvestmentAccounts,
+    getById: async (id: number) =>
+        db.query.investmentAccount.findFirst({
+            where: eq(investmentAccount.id, id),
+        }),
+    create: createInvestmentAccount,
+    update: updateInvestmentAccount,
+    delete: deleteInvestmentAccount,
+}
+
+export const insurancePolicyCrud = {
+    getAllArray: getInsurancePolicies,
+    getById: getInsurancePolicyById,
+    create: createInsurancePolicy,
+    update: updateInsurancePolicy,
+    delete: deleteInsurancePolicy,
+}
+
+export const personalPropertyCrud = {
+    getAllArray: getPersonalProperties,
+    getById: async (id: number) =>
+        db.query.personalProperty.findFirst({
+            where: eq(personalProperty.id, id),
+        }),
+    create: createPersonalProperty,
+    update: updatePersonalProperty,
+    delete: deletePersonalProperty,
+}
+
+export const artworkCrud = {
+    getAllArray: getArtworks,
+    getById: async (id: number) =>
+        db.query.artwork.findFirst({ where: eq(artwork.id, id) }),
+    create: createArtwork,
+    update: updateArtwork,
+    delete: deleteArtwork,
+}
+
+export const contactCrud = {
+    getAllArray: getContacts,
+    getById: getContactById,
+    create: createContact,
+    update: updateContact,
+    delete: deleteContact,
+}
+
+export const taskCrud = {
+    getAllArray: getTasks,
+    getById: getTaskById,
+    create: createTask,
+    update: updateTask,
+    delete: deleteTask,
+}
+
+export const trusteeCrud = {
+    getAllArray: getTrustees,
+    getById: getTrusteeById,
+    create: createTrustee,
+    update: updateTrustee,
+    delete: deleteTrustee,
+}
+
+export const specificBequestCrud = {
+    getAllArray: getSpecificBequests,
+    getById: getSpecificBequestById,
+    create: createSpecificBequest,
+    update: updateSpecificBequest,
+    delete: deleteSpecificBequest,
+}
+
+export const trustAccountingCrud = {
+    getAllArray: getTrustAccountingEntries,
+    getById: getTrustAccountingEntryById,
+    create: createTrustAccountingEntry,
+    update: updateTrustAccountingEntry,
+    delete: deleteTrustAccountingEntry,
+}
+
+export const withdrawalRecordCrud = {
+    getAllArray: getWithdrawalRecords,
+    getById: getWithdrawalRecordById,
+    create: createWithdrawalRecord,
+    update: updateWithdrawalRecord,
+    delete: deleteWithdrawalRecord,
+}
+
+export const hemsRequestCrud = {
+    getAllArray: getHemsRequests,
+    getById: getHemsRequestById,
+    create: createHemsRequest,
+    update: updateHemsRequest,
+    delete: deleteHemsRequest,
+}
+
+export const trusteeFeeScheduleCrud = {
+    getAllArray: getTrusteeFeeSchedules,
+    getById: getTrusteeFeeScheduleById,
+    create: createTrusteeFeeSchedule,
+    update: updateTrusteeFeeSchedule,
+    delete: deleteTrusteeFeeSchedule,
+}
+
+export const trusteeFeeEntryCrud = {
+    getAllArray: getTrusteeFeeEntries,
+    getById: getTrusteeFeeEntryById,
+    create: createTrusteeFeeEntry,
+    update: updateTrusteeFeeEntry,
+    delete: deleteTrusteeFeeEntry,
+}
+
+export const liabilityCrud = {
+    getAllArray: getLiabilities,
+    getById: getLiabilityById,
+    create: createLiability,
+    update: updateLiability,
+    delete: deleteLiability,
+}
+
+export const liabilityPaymentCrud = {
+    getAllArray: getLiabilityPayments,
+    getById: async (id: number) =>
+        db.query.liabilityPayment.findFirst({
+            where: eq(liabilityPayment.id, id),
+        }),
+    create: async (data: typeof liabilityPayment.$inferInsert) => {
+        const [created] = await db
+            .insert(liabilityPayment)
+            .values(data)
+            .returning()
+        return created
+    },
+    update: async (
+        id: number,
+        data: Partial<typeof liabilityPayment.$inferInsert>,
+    ) => {
+        const [updated] = await db
+            .update(liabilityPayment)
+            .set(data)
+            .where(eq(liabilityPayment.id, id))
+            .returning()
+        return updated
+    },
+    delete: async (id: number) => {
+        const [deleted] = await db
+            .delete(liabilityPayment)
+            .where(eq(liabilityPayment.id, id))
+            .returning()
+        return deleted
+    },
+}
+
+export const activityLogCrud = {
+    getAllArray: getActivityLogs,
+    getById: async (id: number) =>
+        db.query.activityLog.findFirst({ where: eq(activityLog.id, id) }),
+    create: createActivityLog,
+    update: async (
+        id: number,
+        data: Partial<typeof activityLog.$inferInsert>,
+    ) => {
+        const [updated] = await db
+            .update(activityLog)
+            .set(data)
+            .where(eq(activityLog.id, id))
+            .returning()
+        return updated
+    },
+    delete: async (id: number) => {
+        const [deleted] = await db
+            .delete(activityLog)
+            .where(eq(activityLog.id, id))
+            .returning()
+        return deleted
+    },
+}
+
+export const pendingInventoryItemCrud = {
+    getAllArray: getPendingInventoryItems,
+    getById: getPendingInventoryItemById,
+    create: createPendingInventoryItem,
+    update: updatePendingInventoryItem,
+    delete: deletePendingInventoryItem,
+}
+
+export const valuationCrud = {
+    getAllArray: async () => db.select().from(valuation),
+    getById: async (id: number) =>
+        db.query.valuation.findFirst({ where: eq(valuation.id, id) }),
+    create: createValuation,
+    update: async (
+        id: number,
+        data: Partial<typeof valuation.$inferInsert>,
+    ) => {
+        const [updated] = await db
+            .update(valuation)
+            .set(data)
+            .where(eq(valuation.id, id))
+            .returning()
+        return updated
+    },
+    delete: async (id: number) => {
+        const [deleted] = await db
+            .delete(valuation)
+            .where(eq(valuation.id, id))
+            .returning()
+        return deleted
+    },
 }

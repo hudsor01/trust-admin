@@ -229,6 +229,19 @@ export const documentType = pgEnum('DocumentType', [
     'OTHER',
 ])
 
+// Inventory submission enums
+export const itemCondition = pgEnum('ItemCondition', [
+    'excellent',
+    'good',
+    'fair',
+    'poor',
+])
+export const submissionStatus = pgEnum('SubmissionStatus', [
+    'PENDING',
+    'APPROVED',
+    'REJECTED',
+])
+
 // Auth and logging enums
 export const logAction = pgEnum('LogAction', [
     'INSERT',
@@ -1038,6 +1051,73 @@ export const personalProperty = pgTable(
 
 export type PersonalProperty = typeof personalProperty.$inferSelect
 export type InsertPersonalProperty = typeof personalProperty.$inferInsert
+
+// ============================================
+// Pending Inventory Items (Public Submission Queue)
+// ============================================
+
+export const pendingInventoryItem = pgTable(
+    'pending_inventory_item',
+    (t) => ({
+        id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
+        // Submission data
+        name: t.text().notNull(),
+        category: personalPropertyCategory().notNull(),
+        description: t.text(),
+        estimatedValue: t.numeric({ precision: 12, scale: 2 }),
+        condition: itemCondition().notNull(),
+        // Photo references (local paths)
+        photoPath1: t.text(),
+        photoPath2: t.text(),
+        photoPath3: t.text(),
+        photoPath4: t.text(),
+        photoPath5: t.text(),
+        // AI analysis metadata
+        aiConfidence: t.text(), // 'high' | 'medium' | 'low' | null
+        aiSuggested: t.boolean().default(false).notNull(),
+        // Review workflow
+        status: submissionStatus().default('PENDING').notNull(),
+        reviewNotes: t.text(),
+        approvedAt: t.timestamp({
+            precision: 3,
+            mode: 'string',
+            withTimezone: true,
+        }),
+        approvedById: bigint({ mode: 'number' }),
+        // Target entity (set by admin on approval)
+        entityId: bigint({ mode: 'number' }),
+        // Submitter contact info
+        submitterName: t.text(),
+        submitterEmail: t.text(),
+        submitterPhone: t.text(),
+        // Tracking
+        createdAt: t
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
+            .default(sql`CURRENT_TIMESTAMP`)
+            .notNull(),
+        updatedAt: t
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
+            .notNull(),
+    }),
+    (table) => [
+        index('idx_pending_inventory_item_status').on(table.status),
+        index('idx_pending_inventory_item_entity_id').on(table.entityId),
+        index('idx_pending_inventory_item_created_at').on(
+            table.createdAt.desc(),
+        ),
+        foreignKey({
+            columns: [table.entityId],
+            foreignColumns: [entity.id],
+            name: 'pending_inventory_item_entity_id_fkey',
+        })
+            .onUpdate('cascade')
+            .onDelete('set null'),
+    ],
+)
+
+export type PendingInventoryItem = typeof pendingInventoryItem.$inferSelect
+export type InsertPendingInventoryItem =
+    typeof pendingInventoryItem.$inferInsert
 
 // ============================================
 // Documents
@@ -2344,6 +2424,8 @@ export type DocumentTypeEnum =
     | 'CONTRACT'
     | 'LEGAL'
     | 'OTHER'
+export type ItemConditionEnum = 'excellent' | 'good' | 'fair' | 'poor'
+export type SubmissionStatusEnum = 'PENDING' | 'APPROVED' | 'REJECTED'
 
 // Commonly used combined types
 export type TrustAccountingEntryType = 'INCOME' | 'EXPENSE'
@@ -2554,5 +2636,28 @@ export function isDocumentType(value: unknown): value is DocumentTypeEnum {
     ]
     return (
         typeof value === 'string' && valid.includes(value as DocumentTypeEnum)
+    )
+}
+
+/**
+ * Type guard for ItemCondition enum
+ */
+export function isItemCondition(value: unknown): value is ItemConditionEnum {
+    const valid: ItemConditionEnum[] = ['excellent', 'good', 'fair', 'poor']
+    return (
+        typeof value === 'string' && valid.includes(value as ItemConditionEnum)
+    )
+}
+
+/**
+ * Type guard for SubmissionStatus enum
+ */
+export function isSubmissionStatus(
+    value: unknown,
+): value is SubmissionStatusEnum {
+    const valid: SubmissionStatusEnum[] = ['PENDING', 'APPROVED', 'REJECTED']
+    return (
+        typeof value === 'string' &&
+        valid.includes(value as SubmissionStatusEnum)
     )
 }

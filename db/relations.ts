@@ -12,6 +12,7 @@ import {
     homestead,
     insurancePolicy,
     investmentAccount,
+    pendingInventoryItem,
     personalProperty,
     rentalProperty,
     specificBequest,
@@ -53,6 +54,7 @@ export const entityRelations = relations(entity, ({ one, many }) => ({
     hemsRequests: many(hemsRequest),
     trusteeFeeSchedules: many(trusteeFeeSchedule),
     trusteeFeeEntries: many(trusteeFeeEntry),
+    pendingInventoryItems: many(pendingInventoryItem),
 }))
 
 export const vehicleRelations = relations(vehicle, ({ one, many }) => ({
@@ -392,6 +394,17 @@ export const trusteeFeeEntryRelations = relations(
         schedule: one(trusteeFeeSchedule, {
             fields: [trusteeFeeEntry.scheduleId],
             references: [trusteeFeeSchedule.id],
+        }),
+    }),
+)
+
+// Pending Inventory Item Relations
+export const pendingInventoryItemRelations = relations(
+    pendingInventoryItem,
+    ({ one }) => ({
+        entity: one(entity, {
+            fields: [pendingInventoryItem.entityId],
+            references: [entity.id],
         }),
     }),
 )

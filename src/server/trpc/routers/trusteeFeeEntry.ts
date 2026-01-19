@@ -1,8 +1,8 @@
+import { eq } from 'drizzle-orm'
 import { z } from 'zod'
-import {
-    getTrusteeFeeEntriesWithSchedule,
-    trusteeFeeEntryCrud,
-} from '../../../../db/queries'
+import { db } from '../../../../db'
+import { getTrusteeFeeEntriesWithSchedule } from '../../../../db/queries'
+import { trusteeFeeEntry } from '../../../../db/schema'
 import {
     insertTrusteeFeeEntrySchema,
     updateTrusteeFeeEntrySchema,
@@ -13,7 +13,13 @@ export const trusteeFeeEntryRouter = createTRPCRouter({
     list: adminProcedure
         .input(z.object({ entityId: z.coerce.number().optional() }).optional())
         .query(async ({ input }) => {
-            return trusteeFeeEntryCrud.getAllArray(input?.entityId)
+            if (input?.entityId) {
+                return db
+                    .select()
+                    .from(trusteeFeeEntry)
+                    .where(eq(trusteeFeeEntry.entityId, input.entityId))
+            }
+            return db.select().from(trusteeFeeEntry)
         }),
 
     // List with schedule info
@@ -24,13 +30,19 @@ export const trusteeFeeEntryRouter = createTRPCRouter({
         }),
 
     byId: adminProcedure.input(z.coerce.number()).query(async ({ input }) => {
-        return trusteeFeeEntryCrud.getById(input)
+        return db.query.trusteeFeeEntry.findFirst({
+            where: eq(trusteeFeeEntry.id, input),
+        })
     }),
 
     create: adminProcedure
         .input(insertTrusteeFeeEntrySchema)
         .mutation(async ({ input }) => {
-            return trusteeFeeEntryCrud.create(input)
+            const [created] = await db
+                .insert(trusteeFeeEntry)
+                .values({ ...input, updatedAt: new Date().toISOString() })
+                .returning()
+            return created
         }),
 
     update: adminProcedure
@@ -41,12 +53,21 @@ export const trusteeFeeEntryRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ input }) => {
-            return trusteeFeeEntryCrud.update(input.id, input.data)
+            const [updated] = await db
+                .update(trusteeFeeEntry)
+                .set({ ...input.data, updatedAt: new Date().toISOString() })
+                .where(eq(trusteeFeeEntry.id, input.id))
+                .returning()
+            return updated
         }),
 
     delete: adminProcedure
         .input(z.coerce.number())
         .mutation(async ({ input }) => {
-            return trusteeFeeEntryCrud.delete(input)
+            const [deleted] = await db
+                .delete(trusteeFeeEntry)
+                .where(eq(trusteeFeeEntry.id, input))
+                .returning()
+            return deleted
         }),
 })
