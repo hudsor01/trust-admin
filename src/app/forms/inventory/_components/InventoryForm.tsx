@@ -1,9 +1,18 @@
 'use client'
 
-import { CheckCircle2, Loader2, Sparkles, Upload, X } from 'lucide-react'
+import {
+    AlertCircle,
+    CheckCircle2,
+    DollarSign,
+    Loader2,
+    Sparkles,
+    Upload,
+    X,
+} from 'lucide-react'
 import Image from 'next/image'
 import { useActionState, useCallback, useState } from 'react'
-import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -41,10 +50,19 @@ type AnalysisResult = {
     name: string
     category: string
     dbCategory: string
+    brand: string | null
+    model: string | null
+    materials: string[]
+    era: string | null
     estimatedValue: string
+    valueRangeLow: string
+    valueRangeHigh: string
     condition: 'excellent' | 'good' | 'fair' | 'poor'
+    conditionNotes: string
     description: string
+    valuationRationale: string
     confidence: 'high' | 'medium' | 'low'
+    confidenceNotes: string
 }
 
 export function InventoryForm() {
@@ -54,10 +72,9 @@ export function InventoryForm() {
     >(submitInventoryItem, { success: false })
 
     const [photos, setPhotos] = useState<File[]>([])
-    const [photoPaths, setPhotoPaths] = useState<string[]>([])
-    const [uploading, setUploading] = useState(false)
     const [analyzing, setAnalyzing] = useState(false)
     const [analysis, setAnalysis] = useState<AnalysisResult | null>(null)
+    const [analysisError, setAnalysisError] = useState<string | null>(null)
 
     const handlePhotoSelect = useCallback(
         (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -67,45 +84,24 @@ export function InventoryForm() {
                 return
             }
             setPhotos((prev) => [...prev, ...files])
+            setAnalysis(null) // Clear previous analysis when photos change
+            setAnalysisError(null)
         },
         [photos.length],
     )
 
     const removePhoto = useCallback((index: number) => {
         setPhotos((prev) => prev.filter((_, i) => i !== index))
-        setPhotoPaths((prev) => prev.filter((_, i) => i !== index))
+        setAnalysis(null)
+        setAnalysisError(null)
     }, [])
-
-    const uploadPhotos = async () => {
-        if (photos.length === 0) return
-
-        setUploading(true)
-        try {
-            const formData = new FormData()
-            photos.forEach((photo) => formData.append('photos', photo))
-
-            const res = await fetch('/api/inventory/upload', {
-                method: 'POST',
-                body: formData,
-            })
-            const data = await res.json()
-
-            if (data.success) {
-                setPhotoPaths(data.paths)
-            } else {
-                alert(data.error || 'Upload failed')
-            }
-        } catch {
-            alert('Upload failed')
-        } finally {
-            setUploading(false)
-        }
-    }
 
     const analyzePhotos = async () => {
         if (photos.length === 0) return
 
         setAnalyzing(true)
+        setAnalysisError(null)
+
         try {
             // Convert photos to base64
             const images = await Promise.all(
@@ -126,10 +122,10 @@ export function InventoryForm() {
             if (data.success) {
                 setAnalysis(data.data)
             } else {
-                alert(data.error || 'Analysis failed')
+                setAnalysisError(data.error || 'Analysis failed')
             }
         } catch {
-            alert('Analysis failed')
+            setAnalysisError('Failed to connect to analysis service')
         } finally {
             setAnalyzing(false)
         }
@@ -171,10 +167,15 @@ export function InventoryForm() {
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <Upload className="h-5 w-5" />
-                        Photos (Optional)
+                        Photo Analysis
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                        Upload a photo and our AI will identify the item, assess
+                        condition, and provide a fair market valuation.
+                    </p>
+
                     <div className="border-2 border-dashed rounded-lg p-6 text-center">
                         <input
                             type="file"
@@ -188,6 +189,9 @@ export function InventoryForm() {
                             <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
                             <p className="text-sm text-muted-foreground">
                                 Click to select photos (up to 5)
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                                Multiple angles help improve accuracy
                             </p>
                         </label>
                     </div>
@@ -215,75 +219,186 @@ export function InventoryForm() {
                         </div>
                     )}
 
-                    {photos.length > 0 && (
-                        <div className="flex gap-2">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={uploadPhotos}
-                                disabled={uploading || photoPaths.length > 0}
-                            >
-                                {uploading ? (
-                                    <>
-                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                        Uploading...
-                                    </>
-                                ) : photoPaths.length > 0 ? (
-                                    'Uploaded'
-                                ) : (
-                                    'Upload Photos'
-                                )}
-                            </Button>
-                            <Button
-                                type="button"
-                                variant="secondary"
-                                onClick={analyzePhotos}
-                                disabled={analyzing || !photoPaths.length}
-                            >
-                                {analyzing ? (
-                                    <>
-                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                        Analyzing...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Sparkles className="h-4 w-4 mr-2" />
-                                        AI Suggest
-                                    </>
-                                )}
-                            </Button>
-                        </div>
+                    {photos.length > 0 && !analysis && (
+                        <Button
+                            type="button"
+                            onClick={analyzePhotos}
+                            disabled={analyzing}
+                            className="w-full"
+                        >
+                            {analyzing ? (
+                                <>
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    Analyzing with AI...
+                                </>
+                            ) : (
+                                <>
+                                    <Sparkles className="h-4 w-4 mr-2" />
+                                    Analyze & Value Item
+                                </>
+                            )}
+                        </Button>
                     )}
 
-                    {/* Hidden inputs for photo paths */}
-                    {photoPaths.map((path, i) => (
-                        <input
-                            key={i}
-                            type="hidden"
-                            name={`photoPath${i + 1}`}
-                            value={path}
-                        />
-                    ))}
+                    {analysisError && (
+                        <Alert variant="destructive">
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertTitle>Analysis Failed</AlertTitle>
+                            <AlertDescription>{analysisError}</AlertDescription>
+                        </Alert>
+                    )}
                 </CardContent>
             </Card>
 
-            {/* Item Details Section */}
+            {/* AI Analysis Results */}
+            {analysis && (
+                <Card className="border-primary/50 bg-primary/5">
+                    <CardHeader>
+                        <CardTitle className="flex items-center justify-between">
+                            <span className="flex items-center gap-2">
+                                <Sparkles className="h-5 w-5 text-primary" />
+                                AI Analysis
+                            </span>
+                            <Badge
+                                variant={
+                                    analysis.confidence === 'high'
+                                        ? 'default'
+                                        : analysis.confidence === 'medium'
+                                          ? 'secondary'
+                                          : 'outline'
+                                }
+                            >
+                                {analysis.confidence} confidence
+                            </Badge>
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        {/* Item Identification */}
+                        <div>
+                            <h3 className="font-semibold text-lg">
+                                {analysis.name}
+                            </h3>
+                            <p className="text-muted-foreground">
+                                {analysis.description}
+                            </p>
+                        </div>
+
+                        {/* Details Grid */}
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                            {analysis.brand && (
+                                <div>
+                                    <span className="text-muted-foreground">
+                                        Brand:
+                                    </span>{' '}
+                                    <span className="font-medium">
+                                        {analysis.brand}
+                                    </span>
+                                </div>
+                            )}
+                            {analysis.model && (
+                                <div>
+                                    <span className="text-muted-foreground">
+                                        Model:
+                                    </span>{' '}
+                                    <span className="font-medium">
+                                        {analysis.model}
+                                    </span>
+                                </div>
+                            )}
+                            {analysis.era && (
+                                <div>
+                                    <span className="text-muted-foreground">
+                                        Era:
+                                    </span>{' '}
+                                    <span className="font-medium">
+                                        {analysis.era}
+                                    </span>
+                                </div>
+                            )}
+                            <div>
+                                <span className="text-muted-foreground">
+                                    Materials:
+                                </span>{' '}
+                                <span className="font-medium">
+                                    {analysis.materials.join(', ')}
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Valuation */}
+                        <div className="bg-background rounded-lg p-4 border">
+                            <div className="flex items-center gap-2 mb-2">
+                                <DollarSign className="h-5 w-5 text-green-600" />
+                                <span className="font-semibold">
+                                    Fair Market Value
+                                </span>
+                            </div>
+                            <div className="text-3xl font-bold text-green-600">
+                                $
+                                {Number(
+                                    analysis.estimatedValue,
+                                ).toLocaleString()}
+                            </div>
+                            <div className="text-sm text-muted-foreground mt-1">
+                                Range: $
+                                {Number(
+                                    analysis.valueRangeLow,
+                                ).toLocaleString()}{' '}
+                                - $
+                                {Number(
+                                    analysis.valueRangeHigh,
+                                ).toLocaleString()}
+                            </div>
+                            <p className="text-sm text-muted-foreground mt-2">
+                                {analysis.valuationRationale}
+                            </p>
+                        </div>
+
+                        {/* Condition */}
+                        <div>
+                            <div className="flex items-center gap-2 mb-1">
+                                <span className="font-medium">Condition:</span>
+                                <Badge
+                                    variant={
+                                        analysis.condition === 'excellent'
+                                            ? 'default'
+                                            : analysis.condition === 'good'
+                                              ? 'secondary'
+                                              : 'outline'
+                                    }
+                                >
+                                    {analysis.condition}
+                                </Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                                {analysis.conditionNotes}
+                            </p>
+                        </div>
+
+                        {/* Confidence Notes */}
+                        {analysis.confidence !== 'high' && (
+                            <Alert>
+                                <AlertCircle className="h-4 w-4" />
+                                <AlertDescription>
+                                    {analysis.confidenceNotes}
+                                </AlertDescription>
+                            </Alert>
+                        )}
+
+                        <p className="text-xs text-muted-foreground">
+                            Review and adjust the values below before
+                            submitting.
+                        </p>
+                    </CardContent>
+                </Card>
+            )}
+
+            {/* Item Details Form */}
             <Card>
                 <CardHeader>
                     <CardTitle>Item Details</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    {analysis && (
-                        <Alert>
-                            <Sparkles className="h-4 w-4" />
-                            <AlertDescription>
-                                AI suggested values below (confidence:{' '}
-                                {analysis.confidence}). Please review and adjust
-                                as needed.
-                            </AlertDescription>
-                        </Alert>
-                    )}
-
                     <div className="space-y-2">
                         <Label htmlFor="name">Item Name *</Label>
                         <Input
@@ -348,18 +463,39 @@ export function InventoryForm() {
                         </div>
                     </div>
 
-                    <div className="space-y-2">
-                        <Label htmlFor="estimatedValue">Estimated Value</Label>
-                        <Input
-                            id="estimatedValue"
-                            name="estimatedValue"
-                            type="text"
-                            defaultValue={analysis?.estimatedValue?.replace(
-                                /[^0-9.]/g,
-                                '',
-                            )}
-                            placeholder="e.g., 150.00"
-                        />
+                    <div className="grid grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="estimatedValue">
+                                Estimated Value
+                            </Label>
+                            <Input
+                                id="estimatedValue"
+                                name="estimatedValue"
+                                type="text"
+                                defaultValue={analysis?.estimatedValue}
+                                placeholder="e.g., 150.00"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="valueRangeLow">Value Low</Label>
+                            <Input
+                                id="valueRangeLow"
+                                name="valueRangeLow"
+                                type="text"
+                                defaultValue={analysis?.valueRangeLow}
+                                placeholder="e.g., 100.00"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="valueRangeHigh">Value High</Label>
+                            <Input
+                                id="valueRangeHigh"
+                                name="valueRangeHigh"
+                                type="text"
+                                defaultValue={analysis?.valueRangeHigh}
+                                placeholder="e.g., 200.00"
+                            />
+                        </div>
                     </div>
 
                     <div className="space-y-2">
@@ -385,6 +521,36 @@ export function InventoryForm() {
                                 type="hidden"
                                 name="aiSuggested"
                                 value="true"
+                            />
+                            <input
+                                type="hidden"
+                                name="aiBrand"
+                                value={analysis.brand || ''}
+                            />
+                            <input
+                                type="hidden"
+                                name="aiModel"
+                                value={analysis.model || ''}
+                            />
+                            <input
+                                type="hidden"
+                                name="aiEra"
+                                value={analysis.era || ''}
+                            />
+                            <input
+                                type="hidden"
+                                name="aiMaterials"
+                                value={analysis.materials.join(', ')}
+                            />
+                            <input
+                                type="hidden"
+                                name="aiValuationRationale"
+                                value={analysis.valuationRationale}
+                            />
+                            <input
+                                type="hidden"
+                                name="aiConditionNotes"
+                                value={analysis.conditionNotes}
                             />
                         </>
                     )}
@@ -448,7 +614,7 @@ export function InventoryForm() {
                         Submitting...
                     </>
                 ) : (
-                    'Submit Item'
+                    'Submit for Review'
                 )}
             </Button>
         </form>

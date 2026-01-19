@@ -113,10 +113,18 @@ export default function PortalDashboardPage() {
             <div className="min-h-screen bg-background">
                 <div className="container mx-auto px-4 py-6">
                     <Card>
-                        <CardContent className="pt-6">
+                        <CardContent className="pt-6 space-y-4">
                             <p className="text-muted-foreground">
                                 No beneficiary profile found for your account.
                             </p>
+                            <Button
+                                variant="outline"
+                                onClick={handleSignOut}
+                                className="gap-2"
+                            >
+                                <LogOut className="h-4 w-4" />
+                                Sign Out
+                            </Button>
                         </CardContent>
                     </Card>
                 </div>

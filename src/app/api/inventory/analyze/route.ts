@@ -51,7 +51,7 @@ type AnalyzeResponse = AnalyzeSuccessResponse | AnalyzeErrorResponse
 /**
  * POST /api/inventory/analyze
  *
- * Analyzes images of a personal property item using local Ollama vision model
+ * Analyzes images of a personal property item using Claude Opus 4.5
  * via Vercel AI SDK with native structured output.
  *
  * Supports multiple images of the same item (e.g., front view + back with
@@ -62,13 +62,24 @@ type AnalyzeResponse = AnalyzeSuccessResponse | AnalyzeErrorResponse
  *
  * Response:
  * - success: boolean
- * - data: { name, category, dbCategory, estimatedValue, condition, description, confidence }
+ * - data: Full analysis including value ranges, rationale, condition notes
  * - error: string (on failure)
  */
 export async function POST(
     request: NextRequest,
 ): Promise<NextResponse<AnalyzeResponse>> {
     try {
+        // Check for API key
+        if (!process.env.ANTHROPIC_API_KEY) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    error: 'Anthropic API key not configured',
+                },
+                { status: 503 },
+            )
+        }
+
         // Parse request body
         const body = await request.json()
 
@@ -87,31 +98,40 @@ export async function POST(
 
         const { images } = validationResult.data
 
-        // Get Ollama URL from environment (defaults to localhost)
-        const ollamaUrl = process.env.OLLAMA_URL || 'http://127.0.0.1:11434'
-
-        // Analyze the images using Vercel AI SDK
-        const result = await analyzeInventoryImage(images, ollamaUrl)
+        // Analyze the images using Claude Opus 4.5
+        const result = await analyzeInventoryImage(images)
 
         return NextResponse.json({
             success: true,
             data: result,
         })
     } catch (error) {
-        // Check for connection errors (Ollama not running)
-        if (
-            error instanceof Error &&
-            (error.message.includes('ECONNREFUSED') ||
-                error.message.includes('fetch failed') ||
-                error.message.includes('Connection refused'))
-        ) {
-            return NextResponse.json(
-                {
-                    success: false,
-                    error: 'Vision service unavailable - ensure Ollama is running',
-                },
-                { status: 503 },
-            )
+        // Check for API errors
+        if (error instanceof Error) {
+            // Rate limiting
+            if (error.message.includes('rate limit')) {
+                return NextResponse.json(
+                    {
+                        success: false,
+                        error: 'Rate limit exceeded - please wait a moment and try again',
+                    },
+                    { status: 429 },
+                )
+            }
+
+            // Authentication errors
+            if (
+                error.message.includes('401') ||
+                error.message.includes('authentication')
+            ) {
+                return NextResponse.json(
+                    {
+                        success: false,
+                        error: 'API authentication failed - check ANTHROPIC_API_KEY',
+                    },
+                    { status: 401 },
+                )
+            }
         }
 
         // Generic error
