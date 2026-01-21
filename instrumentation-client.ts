@@ -1,11 +1,18 @@
 // This file configures the initialization of Sentry on the client.
 // The config you add here will be used whenever a users loads a page in their browser.
 // https://docs.sentry.io/platforms/javascript/guides/nextjs/
+//
+// Note: This is the recommended file for Next.js 15+ (replaces sentry.client.config.ts)
+// See: https://nextjs.org/docs/app/api-reference/file-conventions/instrumentation-client
 
 import * as Sentry from '@sentry/nextjs'
 
 // Required for Next.js navigation instrumentation
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart
+
+// Module-level flag to prevent replay re-initialization during HMR
+// See: https://github.com/getsentry/sentry-javascript/discussions/8414
+let replayInitialized = false
 
 Sentry.init({
     dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
@@ -25,11 +32,22 @@ Sentry.init({
     // Setting this option to true will print useful information to the console while you're setting up Sentry.
     debug: false,
 
-    integrations: [
-        Sentry.replayIntegration({
-            // Additional Replay configuration goes here
-            maskAllText: true,
-            blockAllMedia: true,
-        }),
-    ],
+    // Note: Replay integration is added separately below to prevent
+    // "Multiple Sentry Session Replay instances" error during HMR
+    integrations: [],
 })
+
+// Add replay integration separately with its own guard
+// This prevents the "Multiple Sentry Session Replay instances are not supported" error
+if (!replayInitialized && typeof window !== 'undefined') {
+    const client = Sentry.getClient()
+    if (client) {
+        replayInitialized = true
+        client.addIntegration(
+            Sentry.replayIntegration({
+                maskAllText: true,
+                blockAllMedia: true,
+            }),
+        )
+    }
+}

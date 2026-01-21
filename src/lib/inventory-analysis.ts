@@ -1,6 +1,95 @@
 import { anthropic } from '@ai-sdk/anthropic'
 import { generateObject } from 'ai'
+import sharp from 'sharp'
 import { z } from 'zod'
+
+// Anthropic's max image size is 5MB, we target 4MB to leave headroom
+const TARGET_IMAGE_SIZE_BYTES = 4 * 1024 * 1024 // 4MB target
+
+/**
+ * Compresses an image to fit within Anthropic's size limits
+ *
+ * Uses progressive quality reduction and resizing to achieve target size
+ * while maintaining image quality for accurate analysis.
+ *
+ * @param base64Data - Base64 encoded image data
+ * @param mimeType - Original MIME type
+ * @returns Compressed image as base64 with updated mimeType
+ */
+export async function compressImage(
+    base64Data: string,
+    mimeType: string,
+): Promise<{ base64: string; mimeType: string }> {
+    // Decode base64 to buffer
+    const buffer = Buffer.from(base64Data, 'base64')
+    const originalSize = buffer.length
+
+    // If already under limit, return as-is
+    if (originalSize <= TARGET_IMAGE_SIZE_BYTES) {
+        return { base64: base64Data, mimeType }
+    }
+
+    console.log(
+        `Compressing image: ${(originalSize / 1024 / 1024).toFixed(2)}MB -> target ${(TARGET_IMAGE_SIZE_BYTES / 1024 / 1024).toFixed(2)}MB`,
+    )
+
+    // Get image metadata
+    const metadata = await sharp(buffer).metadata()
+    const { width = 4000, height = 3000 } = metadata
+
+    // Calculate scale factor based on how much we need to reduce
+    // Area scales with square of dimensions, so sqrt for linear scale
+    const sizeRatio = originalSize / TARGET_IMAGE_SIZE_BYTES
+    const scaleFactor = Math.min(1, 1 / Math.sqrt(sizeRatio * 1.2)) // 1.2x buffer for compression
+
+    // Calculate new dimensions (maintain aspect ratio)
+    const newWidth = Math.round(width * scaleFactor)
+    const newHeight = Math.round(height * scaleFactor)
+
+    // Max dimension cap (4096 is a good limit for Claude vision)
+    const maxDim = 4096
+    const finalWidth = Math.min(newWidth, maxDim)
+    const finalHeight = Math.min(newHeight, maxDim)
+
+    // Compress with progressive quality reduction if needed
+    let quality = 85
+    let compressedBuffer: Buffer
+    let attempts = 0
+    const maxAttempts = 5
+
+    do {
+        compressedBuffer = await sharp(buffer)
+            .resize(finalWidth, finalHeight, {
+                fit: 'inside',
+                withoutEnlargement: true,
+            })
+            .jpeg({ quality, mozjpeg: true })
+            .toBuffer()
+
+        attempts++
+        if (
+            compressedBuffer.length > TARGET_IMAGE_SIZE_BYTES &&
+            attempts < maxAttempts
+        ) {
+            quality -= 10
+            console.log(
+                `Retry ${attempts}: ${(compressedBuffer.length / 1024 / 1024).toFixed(2)}MB, reducing quality to ${quality}`,
+            )
+        }
+    } while (
+        compressedBuffer.length > TARGET_IMAGE_SIZE_BYTES &&
+        attempts < maxAttempts
+    )
+
+    console.log(
+        `Compressed: ${(originalSize / 1024 / 1024).toFixed(2)}MB -> ${(compressedBuffer.length / 1024 / 1024).toFixed(2)}MB (${finalWidth}x${finalHeight}, q${quality})`,
+    )
+
+    return {
+        base64: compressedBuffer.toString('base64'),
+        mimeType: 'image/jpeg', // Always output as JPEG after compression
+    }
+}
 
 /**
  * Inventory Analysis using Vercel AI SDK with Claude Opus 4.5
@@ -224,6 +313,8 @@ export interface InventoryImage {
 /**
  * Analyzes inventory images using Claude Opus 4.5 via Vercel AI SDK
  *
+ * Images are automatically compressed if they exceed Anthropic's 5MB limit.
+ *
  * @param images - Array of images (base64 encoded with mimeType)
  * @returns Parsed and validated inventory analysis with DB category mapping
  */
@@ -234,12 +325,17 @@ export async function analyzeInventoryImage(
         throw new Error('At least one image is required')
     }
 
-    // Build content array with images and text prompt
+    // Compress images that exceed Anthropic's size limit
+    const compressedImages = await Promise.all(
+        images.map((img) => compressImage(img.base64, img.mimeType)),
+    )
+
+    // Build content array with compressed images and text prompt
     const content: Array<
         | { type: 'text'; text: string }
         | { type: 'image'; image: string; mimeType: string }
     > = [
-        ...images.map((img) => ({
+        ...compressedImages.map((img) => ({
             type: 'image' as const,
             image: img.base64,
             mimeType: img.mimeType,
