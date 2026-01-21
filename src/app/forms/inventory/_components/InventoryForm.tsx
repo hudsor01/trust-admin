@@ -73,6 +73,7 @@ export function InventoryForm() {
     >(submitInventoryItem, { success: false })
 
     const [photos, setPhotos] = useState<File[]>([])
+    const [photoUrls, setPhotoUrls] = useState<string[]>([])
     const [analyzing, setAnalyzing] = useState(false)
     const [analysis, setAnalysis] = useState<AnalysisResult | null>(null)
     const [analysisError, setAnalysisError] = useState<string | null>(null)
@@ -104,6 +105,7 @@ export function InventoryForm() {
 
     const removePhoto = useCallback((index: number) => {
         setPhotos((prev) => prev.filter((_, i) => i !== index))
+        setPhotoUrls([])
         setAnalysis(null)
         setAnalysisError(null)
     }, [])
@@ -133,6 +135,10 @@ export function InventoryForm() {
 
             if (data.success) {
                 setAnalysis(data.data)
+                // Store uploaded photo URLs
+                if (data.photoUrls && data.photoUrls.length > 0) {
+                    setPhotoUrls(data.photoUrls)
+                }
                 // Update form values with AI analysis
                 setFormValues({
                     name: data.data.name || '',
@@ -648,6 +654,16 @@ export function InventoryForm() {
                             />
                         </>
                     )}
+
+                    {/* Hidden photo URLs from Uploadthing */}
+                    {photoUrls.map((url, index) => (
+                        <input
+                            key={`photo-${index}`}
+                            type="hidden"
+                            name={`photoPath${index + 1}`}
+                            value={url}
+                        />
+                    ))}
                 </CardContent>
             </Card>
 

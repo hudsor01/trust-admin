@@ -149,15 +149,9 @@ export default function TrusteesPage() {
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-2xl font-semibold tracking-tight text-balance">
-                        Trustees
-                    </h2>
-                    <p className="text-sm text-muted-foreground">
-                        {currentTrustees.length} active trustees,{' '}
-                        {arbitorTrustees.length} arbitors
-                    </p>
-                </div>
+                <h2 className="text-2xl font-semibold tracking-tight text-balance">
+                    Trustees
+                </h2>
                 <div className="flex items-center gap-3">
                     <Select
                         value={selectedEntity?.toString() ?? undefined}
@@ -466,20 +460,21 @@ export default function TrusteesPage() {
                 </CardContent>
             </Card>
 
+            <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold tracking-tight">
+                    Arbitors
+                </h3>
+                <Button
+                    onClick={() => trusteeForm.open({ status: 'ARBITOR' })}
+                    disabled={!selectedEntity}
+                >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Arbitor
+                </Button>
+            </div>
+
             <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle className="text-lg">Arbitors</CardTitle>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => trusteeForm.open({ status: 'ARBITOR' })}
-                        disabled={!selectedEntity}
-                    >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Arbitor
-                    </Button>
-                </CardHeader>
-                <CardContent>
+                <CardContent className="pt-6">
                     {arbitorTrustees.length === 0 ? (
                         <p className="text-center py-8 text-muted-foreground">
                             No arbitors designated

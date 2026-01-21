@@ -3,8 +3,8 @@ import { generateObject } from 'ai'
 import sharp from 'sharp'
 import { z } from 'zod'
 
-// Anthropic's max image size is 5MB, we target 4MB to leave headroom
-const TARGET_IMAGE_SIZE_BYTES = 4 * 1024 * 1024 // 4MB target
+// Target 2MB for both Anthropic API and Uploadthing storage
+const TARGET_IMAGE_SIZE_BYTES = 2 * 1024 * 1024 // 2MB target
 
 /**
  * Compresses an image to fit within Anthropic's size limits
@@ -368,5 +368,88 @@ export async function analyzeInventoryImage(
         ...object,
         rawCategory: object.category,
         dbCategory: mapToDbCategory(object.category),
+    }
+}
+
+/**
+ * Compressed image with base64 and mimeType
+ */
+export interface CompressedImage {
+    base64: string
+    mimeType: string
+}
+
+/**
+ * Result of analysis with compressed images included
+ */
+export interface AnalysisWithImages {
+    analysis: InventoryAnalysisResult
+    compressedImages: CompressedImage[]
+}
+
+/**
+ * Analyzes inventory images and returns both analysis and compressed images.
+ *
+ * This version is used when photos need to be stored - it returns the
+ * compressed images so they can be uploaded to permanent storage.
+ *
+ * @param images - Array of images (base64 encoded with mimeType)
+ * @returns Analysis result and compressed images for storage
+ */
+export async function analyzeInventoryImageWithCompressed(
+    images: InventoryImage[],
+): Promise<AnalysisWithImages> {
+    if (images.length === 0) {
+        throw new Error('At least one image is required')
+    }
+
+    // Compress images that exceed size limit
+    const compressedImages = await Promise.all(
+        images.map((img) => compressImage(img.base64, img.mimeType)),
+    )
+
+    // Build content array with compressed images and text prompt
+    const content: Array<
+        | { type: 'text'; text: string }
+        | { type: 'image'; image: string; mimeType: string }
+    > = [
+        ...compressedImages.map((img) => ({
+            type: 'image' as const,
+            image: img.base64,
+            mimeType: img.mimeType,
+        })),
+        {
+            type: 'text',
+            text:
+                images.length === 1
+                    ? 'Analyze this image of a personal property item for trust inventory purposes. Provide accurate identification, condition assessment, and fair market valuation.'
+                    : `Analyze these ${images.length} images of the SAME personal property item for trust inventory purposes. The images may show different angles, labels, marks, or condition details. Synthesize all visible information for the most accurate identification and valuation.`,
+        },
+    ]
+
+    // Use Claude Opus 4.5 for best-in-class analysis
+    const { object } = await generateObject({
+        model: anthropic('claude-opus-4-5-20251101'),
+        schema: InventoryAnalysisSchema,
+        system: INVENTORY_ANALYSIS_SYSTEM_PROMPT,
+        messages: [
+            {
+                role: 'user',
+                content,
+            },
+        ],
+        temperature: 0.1,
+    })
+
+    // Map to DB category
+    const analysis: InventoryAnalysisResult = {
+        ...object,
+        rawCategory: object.category,
+        dbCategory: mapToDbCategory(object.category),
+    }
+
+    return {
+        analysis,
+        compressedImages,
     }
 }

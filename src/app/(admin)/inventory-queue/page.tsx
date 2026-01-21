@@ -219,14 +219,15 @@ export default function InventoryQueuePage() {
         })
     }
 
-    const getPhotoPaths = (item: PendingInventoryItem) => {
+    // Get photo URLs from item (filters out null/undefined)
+    const getPhotoUrls = (item: PendingInventoryItem) => {
         return [
             item.photoPath1,
             item.photoPath2,
             item.photoPath3,
             item.photoPath4,
             item.photoPath5,
-        ].filter(Boolean) as string[]
+        ].filter((url): url is string => Boolean(url))
     }
 
     if (entitiesLoading) {
@@ -359,21 +360,21 @@ export default function InventoryQueuePage() {
                     {reviewingItem && (
                         <div className="space-y-4">
                             {/* Photos */}
-                            {getPhotoPaths(reviewingItem).length > 0 && (
+                            {getPhotoUrls(reviewingItem).length > 0 && (
                                 <div>
                                     <Label className="text-sm text-muted-foreground">
                                         Photos
                                     </Label>
                                     <div className="mt-2 grid grid-cols-5 gap-2">
-                                        {getPhotoPaths(reviewingItem).map(
-                                            (path, i) => (
+                                        {getPhotoUrls(reviewingItem).map(
+                                            (url, i) => (
                                                 <div
                                                     key={i}
                                                     className="relative aspect-square"
                                                 >
                                                     <Image
-                                                        src={path}
-                                                        alt={`Submitted inventory ${i + 1}`}
+                                                        src={url}
+                                                        alt={`Inventory photo ${i + 1}`}
                                                         fill
                                                         unoptimized
                                                         className="object-cover rounded border"

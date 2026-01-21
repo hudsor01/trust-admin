@@ -1,9 +1,10 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import {
-    analyzeInventoryImage,
+    analyzeInventoryImageWithCompressed,
     type InventoryAnalysisResult,
 } from '@/lib/inventory-analysis'
+import { uploadInventoryImages } from '@/lib/uploadthing-server'
 
 /**
  * Schema for a single image
@@ -30,11 +31,12 @@ const AnalyzeRequestSchema = z.object({
 })
 
 /**
- * Response type for successful analysis
+ * Response type for successful analysis (now includes photo URLs)
  */
 interface AnalyzeSuccessResponse {
     success: true
     data: InventoryAnalysisResult
+    photoUrls: string[]
 }
 
 /**
@@ -98,12 +100,24 @@ export async function POST(
 
         const { images } = validationResult.data
 
-        // Analyze the images using Claude Opus 4.5
-        const result = await analyzeInventoryImage(images)
+        // Analyze the images using Claude Opus 4.5 and get compressed versions
+        const { analysis, compressedImages } =
+            await analyzeInventoryImageWithCompressed(images)
+
+        // Upload compressed images to Uploadthing for permanent storage
+        let photoUrls: string[] = []
+        try {
+            photoUrls = await uploadInventoryImages(compressedImages)
+            console.log(`Uploaded ${photoUrls.length} photos to Uploadthing`)
+        } catch (uploadError) {
+            // Log but don't fail - analysis is still valuable without photos
+            console.error('Failed to upload photos:', uploadError)
+        }
 
         return NextResponse.json({
             success: true,
-            data: result,
+            data: analysis,
+            photoUrls,
         })
     } catch (error) {
         // Check for API errors
