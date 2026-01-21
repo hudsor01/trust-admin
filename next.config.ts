@@ -45,6 +45,20 @@ const nextConfig: NextConfig = {
     // See: https://github.com/radix-ui/primitives/issues/3675
     reactStrictMode: false,
 
+    // Allow images from UploadThing storage
+    images: {
+        remotePatterns: [
+            {
+                protocol: 'https',
+                hostname: 'utfs.io',
+            },
+            {
+                protocol: 'https',
+                hostname: '*.ufs.sh',
+            },
+        ],
+    },
+
     // NOTE: cacheComponents is NOT enabled because this app uses tRPC with client-side
     // data fetching. Enabling cacheComponents requires either:
     // 1. Adding `export const dynamic = 'force-dynamic'` to all pages, or
