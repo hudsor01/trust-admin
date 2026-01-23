@@ -26,25 +26,13 @@ export default async function AuthPage({
         <div className="grid min-h-screen lg:grid-cols-2">
             {/* Left side - Branding */}
             <div className="relative hidden bg-gradient-to-br from-primary/10 via-background to-background lg:flex lg:flex-col lg:justify-center lg:p-12">
-                <div className="max-w-md">
-                    <div className="flex items-center gap-3 mb-8">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary">
-                            <Scale className="h-7 w-7 text-primary-foreground" />
-                        </div>
-                        <div>
-                            <h1 className="text-2xl font-semibold tracking-tight">
-                                Hudson Living Trust
-                            </h1>
-                            <p className="text-sm text-muted-foreground">
-                                Trust Administration
-                            </p>
-                        </div>
+                <div className="flex items-center gap-4">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary">
+                        <Scale className="h-8 w-8 text-primary-foreground" />
                     </div>
-
-                    <p className="text-muted-foreground">
-                        Manage trust assets, distributions, and beneficiary
-                        information.
-                    </p>
+                    <h1 className="text-3xl font-semibold tracking-tight">
+                        Hudson Living Trust
+                    </h1>
                 </div>
             </div>
 
