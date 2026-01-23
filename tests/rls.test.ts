@@ -942,7 +942,7 @@ describe('Row-Level Security', () => {
             expect(enabled).toBe(true)
         })
 
-        test('exactly 11 tables have RLS enabled', async () => {
+        test('exactly 33 tables have RLS enabled', async () => {
             const client = getClient()
             const result = await client`
                 SELECT COUNT(*)::int as count
@@ -952,7 +952,7 @@ describe('Row-Level Security', () => {
                 AND c.relkind = 'r'
                 AND c.relrowsecurity = true
             `
-            expect(result[0]?.count).toBe(11)
+            expect(result[0]?.count).toBe(33)
         })
     })
 })
