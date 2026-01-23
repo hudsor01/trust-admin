@@ -1,12 +1,14 @@
 'use client'
 
+import type { ColumnDef } from '@tanstack/react-table'
 import { CheckCircle, Clock, Loader2, Package, XCircle } from 'lucide-react'
 import Image from 'next/image'
 import { useMemo, useState } from 'react'
-import { type ColumnDef, DataTable } from '@/components/data-table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { DataTable } from '@/components/ui/data-table'
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import {
     Dialog,
     DialogContent,
@@ -98,65 +100,77 @@ export default function InventoryQueuePage() {
 
     const columns: ColumnDef<PendingInventoryItem>[] = [
         {
-            key: 'createdAt',
-            header: 'Submitted',
-            render: (item) => (
-                <span className="text-sm">{formatDate(item.createdAt)}</span>
+            accessorKey: 'createdAt',
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title="Submitted" />
+            ),
+            cell: ({ row }) => (
+                <span className="text-sm">
+                    {formatDate(row.original.createdAt)}
+                </span>
             ),
         },
         {
-            key: 'name',
-            header: 'Item',
-            render: (item) => (
+            accessorKey: 'name',
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title="Item" />
+            ),
+            cell: ({ row }) => (
                 <div>
-                    <p className="font-medium">{item.name}</p>
-                    {item.submitterName && (
+                    <p className="font-medium">{row.original.name}</p>
+                    {row.original.submitterName && (
                         <p className="text-xs text-muted-foreground">
-                            by {item.submitterName}
+                            by {row.original.submitterName}
                         </p>
                     )}
                 </div>
             ),
         },
         {
-            key: 'category',
-            header: 'Category',
-            render: (item) => (
+            accessorKey: 'category',
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title="Category" />
+            ),
+            cell: ({ row }) => (
                 <Badge variant="outline">
-                    {CATEGORY_LABELS[item.category] || item.category}
+                    {CATEGORY_LABELS[row.original.category] ||
+                        row.original.category}
                 </Badge>
             ),
         },
         {
-            key: 'estimatedValue',
-            header: 'Est. Value',
-            render: (item) => (
+            accessorKey: 'estimatedValue',
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title="Est. Value" />
+            ),
+            cell: ({ row }) => (
                 <span className="font-medium">
-                    {item.estimatedValue
-                        ? formatCurrency(item.estimatedValue)
+                    {row.original.estimatedValue
+                        ? formatCurrency(row.original.estimatedValue)
                         : '-'}
                 </span>
             ),
         },
         {
-            key: 'condition',
+            accessorKey: 'condition',
             header: 'Condition',
-            render: (item) => (
+            cell: ({ row }) => (
                 <span className="text-sm">
-                    {CONDITION_LABELS[item.condition] || item.condition}
+                    {CONDITION_LABELS[row.original.condition] ||
+                        row.original.condition}
                 </span>
             ),
         },
         {
-            key: 'photos',
+            id: 'photos',
             header: 'Photos',
-            render: (item) => {
+            cell: ({ row }) => {
                 const photoCount = [
-                    item.photoPath1,
-                    item.photoPath2,
-                    item.photoPath3,
-                    item.photoPath4,
-                    item.photoPath5,
+                    row.original.photoPath1,
+                    row.original.photoPath2,
+                    row.original.photoPath3,
+                    row.original.photoPath4,
+                    row.original.photoPath5,
                 ].filter(Boolean).length
                 return (
                     <span className="text-sm text-muted-foreground">
@@ -168,27 +182,33 @@ export default function InventoryQueuePage() {
             },
         },
         {
-            key: 'status',
-            header: 'Status',
-            render: (item) => (
-                <Badge variant={STATUS_VARIANTS[item.status] || 'secondary'}>
-                    {item.status}
+            accessorKey: 'status',
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title="Status" />
+            ),
+            cell: ({ row }) => (
+                <Badge
+                    variant={
+                        STATUS_VARIANTS[row.original.status] || 'secondary'
+                    }
+                >
+                    {row.original.status}
                 </Badge>
             ),
         },
         {
-            key: 'actions',
+            id: 'actions',
             header: 'Actions',
-            render: (item) =>
-                item.status === 'PENDING' ? (
-                    <Button size="sm" onClick={() => openReview(item)}>
+            cell: ({ row }) =>
+                row.original.status === 'PENDING' ? (
+                    <Button size="sm" onClick={() => openReview(row.original)}>
                         Review
                     </Button>
                 ) : (
                     <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => openReview(item)}
+                        onClick={() => openReview(row.original)}
                     >
                         View
                     </Button>
@@ -320,23 +340,20 @@ export default function InventoryQueuePage() {
                 </TabsList>
 
                 <TabsContent value={activeTab} className="mt-4">
-                    {loading ? (
-                        <div className="flex justify-center py-12">
-                            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                        </div>
-                    ) : displayedItems.length === 0 ? (
-                        <Card>
-                            <CardContent className="py-12">
-                                <p className="text-center text-muted-foreground">
-                                    {activeTab === 'pending'
-                                        ? 'No pending items to review.'
-                                        : 'No reviewed items yet.'}
-                                </p>
-                            </CardContent>
-                        </Card>
-                    ) : (
-                        <DataTable data={displayedItems} columns={columns} />
-                    )}
+                    <DataTable
+                        data={displayedItems}
+                        columns={columns}
+                        searchKey="name"
+                        searchPlaceholder="Filter by name..."
+                        isLoading={loading}
+                        emptyMessage={
+                            activeTab === 'pending'
+                                ? 'No pending items to review.'
+                                : 'No reviewed items yet.'
+                        }
+                        enableColumnVisibility={true}
+                        enablePagination={true}
+                    />
                 </TabsContent>
             </Tabs>
 

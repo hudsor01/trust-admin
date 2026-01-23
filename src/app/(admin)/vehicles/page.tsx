@@ -1,10 +1,18 @@
 'use client'
 
-import { Loader2, Plus } from 'lucide-react'
-import { useState } from 'react'
+import type { ColumnDef } from '@tanstack/react-table'
+import { Loader2, Pencil, Plus, Trash2 } from 'lucide-react'
+import { useMemo } from 'react'
+import {
+    EditableCurrencyCell,
+    EditableSelectCell,
+    EditableTextCell,
+} from '@/components/editable-cells'
 import { ResourceDialog } from '@/components/resource-dialog'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { DataTable } from '@/components/ui/data-table'
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -14,25 +22,11 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table'
 import { Textarea } from '@/components/ui/textarea'
 import type { Vehicle } from '@/db/schema'
 import { useCrudMutations } from '@/hooks/use-crud-mutations'
 import { useEntityFilter } from '@/hooks/use-entity-filter'
 import { useResourceForm } from '@/hooks/use-resource-form'
-import {
-    actionsColumn,
-    editableCurrencyColumn,
-    editableSelectColumn,
-    editableTextColumn,
-} from '@/lib/column-helpers'
 import {
     DOD_VALUE_TYPES,
     STATUS_VARIANTS,
@@ -80,8 +74,6 @@ export default function VehiclesPage() {
         router: trpc.vehicle,
         invalidate: () => utils.vehicle.list.invalidate(),
     })
-
-    const [searchQuery, setSearchQuery] = useState('')
 
     // Use useResourceForm hook with TanStack Form validation
     const vehicleForm = useResourceForm({
@@ -159,50 +151,144 @@ export default function VehiclesPage() {
         }
     }
 
-    // Column definitions using helpers
-    const colorColumn = editableTextColumn<Vehicle>(
-        'color',
-        'Color',
-        (id, val) => handleInlineUpdate(id, { color: val }),
-        { placeholder: 'Add color' },
+    // Column definitions using TanStack Table format
+    const columns: ColumnDef<Vehicle>[] = useMemo(
+        () => [
+            {
+                id: 'vehicle',
+                header: ({ column }) => (
+                    <DataTableColumnHeader
+                        column={column}
+                        title="Year/Make/Model"
+                    />
+                ),
+                cell: ({ row }) => (
+                    <div>
+                        <p className="font-medium">
+                            {row.original.year} {row.original.make}{' '}
+                            {row.original.model}
+                        </p>
+                        {row.original.mileage && (
+                            <p className="text-xs text-muted-foreground">
+                                {row.original.mileage.toLocaleString()} miles
+                            </p>
+                        )}
+                    </div>
+                ),
+            },
+            {
+                accessorKey: 'vin',
+                header: ({ column }) => (
+                    <DataTableColumnHeader column={column} title="VIN" />
+                ),
+                cell: ({ row }) => (
+                    <code className="text-xs">
+                        {row.original.vin.slice(-6)}
+                    </code>
+                ),
+            },
+            {
+                accessorKey: 'color',
+                header: 'Color',
+                cell: ({ row }) => (
+                    <EditableTextCell
+                        value={row.original.color}
+                        onSave={(val) =>
+                            handleInlineUpdate(row.original.id, { color: val })
+                        }
+                        placeholder="Add color"
+                    />
+                ),
+            },
+            {
+                accessorKey: 'dodValue',
+                header: 'DOD Value',
+                cell: ({ row }) => (
+                    <EditableCurrencyCell
+                        value={row.original.dodValue}
+                        onSave={(val) =>
+                            handleInlineUpdate(row.original.id, {
+                                dodValue: val,
+                            })
+                        }
+                    />
+                ),
+            },
+            {
+                accessorKey: 'titleStatus',
+                header: 'Title',
+                cell: ({ row }) => (
+                    <EditableSelectCell
+                        value={row.original.titleStatus}
+                        options={TITLE_STATUS}
+                        variants={STATUS_VARIANTS}
+                        onSave={(val) =>
+                            handleInlineUpdate(row.original.id, {
+                                titleStatus: asTitleStatus(val),
+                            })
+                        }
+                    />
+                ),
+            },
+            {
+                accessorKey: 'status',
+                header: 'Status',
+                cell: ({ row }) => (
+                    <EditableSelectCell
+                        value={row.original.status}
+                        options={ASSET_STATUS}
+                        variants={STATUS_VARIANTS}
+                        onSave={(val) =>
+                            handleInlineUpdate(row.original.id, {
+                                status: asRecordStatus(val),
+                            })
+                        }
+                    />
+                ),
+            },
+            {
+                accessorKey: 'transferStatus',
+                header: 'Transfer',
+                cell: ({ row }) => (
+                    <EditableSelectCell
+                        value={row.original.transferStatus}
+                        options={TRANSFER_STATUS}
+                        variants={STATUS_VARIANTS}
+                        onSave={(val) =>
+                            handleInlineUpdate(row.original.id, {
+                                transferStatus: asTransferStatus(val),
+                            })
+                        }
+                    />
+                ),
+            },
+            {
+                id: 'actions',
+                header: 'Actions',
+                cell: ({ row }) => (
+                    <div className="flex items-center gap-1">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => handleEdit(row.original)}
+                        >
+                            <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:text-destructive"
+                            onClick={() => handleDelete(row.original)}
+                        >
+                            <Trash2 className="h-4 w-4" />
+                        </Button>
+                    </div>
+                ),
+            },
+        ],
+        [handleInlineUpdate, handleEdit, handleDelete],
     )
-
-    const dodValueColumn = editableCurrencyColumn<Vehicle>(
-        'dodValue',
-        'DOD Value',
-        (id, val) => handleInlineUpdate(id, { dodValue: val }),
-    )
-
-    const titleColumn = editableSelectColumn<Vehicle>(
-        'titleStatus',
-        'Title',
-        TITLE_STATUS,
-        (id, val) =>
-            handleInlineUpdate(id, { titleStatus: asTitleStatus(val) }),
-        { variants: STATUS_VARIANTS },
-    )
-
-    const statusColumn = editableSelectColumn<Vehicle>(
-        'status',
-        'Status',
-        ASSET_STATUS,
-        (id, val) => handleInlineUpdate(id, { status: asRecordStatus(val) }),
-        { variants: STATUS_VARIANTS },
-    )
-
-    const transferColumn = editableSelectColumn<Vehicle>(
-        'transferStatus',
-        'Transfer',
-        TRANSFER_STATUS,
-        (id, val) =>
-            handleInlineUpdate(id, { transferStatus: asTransferStatus(val) }),
-        { variants: STATUS_VARIANTS },
-    )
-
-    const actions = actionsColumn<Vehicle>({
-        onEdit: handleEdit,
-        onDelete: handleDelete,
-    })
 
     if (entitiesLoading) {
         return (
@@ -211,17 +297,6 @@ export default function VehiclesPage() {
             </div>
         )
     }
-
-    const filteredVehicles = vehicles.filter((v) => {
-        if (!searchQuery) return true
-        const query = searchQuery.toLowerCase()
-        return (
-            v.make.toLowerCase().includes(query) ||
-            v.model.toLowerCase().includes(query) ||
-            v.vin.toLowerCase().includes(query) ||
-            v.year.toString().includes(query)
-        )
-    })
 
     const totalValue = sumStrings(vehicles.map((v) => v.dodValue))
 
@@ -253,166 +328,24 @@ export default function VehiclesPage() {
 
             {selectedEntity && (
                 <>
-                    {/* Search & Actions */}
-                    <div className="flex items-center justify-between gap-4">
-                        <Input
-                            placeholder="Search vehicles..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="max-w-sm"
-                        />
-                        <div className="flex items-center gap-2">
-                            <Button
-                                variant="outline"
-                                onClick={() => {
-                                    const csv = [
-                                        [
-                                            'Year',
-                                            'Make',
-                                            'Model',
-                                            'VIN',
-                                            'Color',
-                                            'DOD Value',
-                                            'Title Status',
-                                            'Status',
-                                        ].join(','),
-                                        ...vehicles.map((v) =>
-                                            [
-                                                v.year,
-                                                v.make,
-                                                v.model,
-                                                v.vin,
-                                                v.color || '',
-                                                v.dodValue || '',
-                                                v.titleStatus,
-                                                v.status,
-                                            ].join(','),
-                                        ),
-                                    ].join('\n')
-                                    const blob = new Blob([csv], {
-                                        type: 'text/csv',
-                                    })
-                                    const url = URL.createObjectURL(blob)
-                                    const a = document.createElement('a')
-                                    a.href = url
-                                    a.download = `vehicles-${new Date().toISOString().split('T')[0]}.csv`
-                                    a.click()
-                                }}
-                            >
-                                Export CSV
-                            </Button>
-                            <Button onClick={vehicleForm.handleAdd}>
-                                <Plus className="h-4 w-4 mr-2" />
-                                Add Vehicle
-                            </Button>
-                        </div>
+                    {/* Actions */}
+                    <div className="flex justify-end">
+                        <Button onClick={vehicleForm.handleAdd}>
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add Vehicle
+                        </Button>
                     </div>
 
                     {/* Table */}
-                    {vehiclesLoading ? (
-                        <div className="flex justify-center py-12">
-                            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                        </div>
-                    ) : filteredVehicles.length === 0 ? (
-                        <Card>
-                            <CardContent className="py-12">
-                                <p className="text-center text-muted-foreground">
-                                    {vehicles.length === 0
-                                        ? 'No vehicles. Click Add Vehicle to create one.'
-                                        : 'No vehicles match your search.'}
-                                </p>
-                            </CardContent>
-                        </Card>
-                    ) : (
-                        <Card>
-                            <CardContent className="p-0">
-                                <div className="rounded-md border">
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead>
-                                                    Year/Make/Model
-                                                </TableHead>
-                                                <TableHead>VIN</TableHead>
-                                                <TableHead>
-                                                    {colorColumn.header}
-                                                </TableHead>
-                                                <TableHead>
-                                                    {dodValueColumn.header}
-                                                </TableHead>
-                                                <TableHead>
-                                                    {titleColumn.header}
-                                                </TableHead>
-                                                <TableHead>
-                                                    {statusColumn.header}
-                                                </TableHead>
-                                                <TableHead>
-                                                    {transferColumn.header}
-                                                </TableHead>
-                                                <TableHead className="w-20">
-                                                    Actions
-                                                </TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {filteredVehicles.map((v) => (
-                                                <TableRow key={v.id}>
-                                                    <TableCell>
-                                                        <div>
-                                                            <p className="font-medium">
-                                                                {v.year}{' '}
-                                                                {v.make}{' '}
-                                                                {v.model}
-                                                            </p>
-                                                            {v.mileage && (
-                                                                <p className="text-xs text-muted-foreground">
-                                                                    {v.mileage.toLocaleString()}{' '}
-                                                                    miles
-                                                                </p>
-                                                            )}
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <code className="text-xs">
-                                                            {v.vin.slice(-6)}
-                                                        </code>
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        {colorColumn.render?.(
-                                                            v,
-                                                        )}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        {dodValueColumn.render?.(
-                                                            v,
-                                                        )}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        {titleColumn.render?.(
-                                                            v,
-                                                        )}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        {statusColumn.render?.(
-                                                            v,
-                                                        )}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        {transferColumn.render?.(
-                                                            v,
-                                                        )}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        {actions.render?.(v)}
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    )}
+                    <DataTable
+                        columns={columns}
+                        data={vehicles}
+                        searchKey="make"
+                        searchPlaceholder="Search vehicles..."
+                        isLoading={vehiclesLoading}
+                        emptyMessage="No vehicles. Click Add Vehicle to create one."
+                        enablePagination={true}
+                    />
                 </>
             )}
 

@@ -6,10 +6,13 @@
  * Reusable inline-editable table cell components.
  * All cells support: keyboard navigation (Enter to save, Escape to cancel),
  * loading states, and optimistic updates.
+ *
+ * PERF: All cells wrapped with React.memo() to prevent unnecessary re-renders
+ * in table contexts where parent state changes frequently.
  */
 
 import { Loader2 } from 'lucide-react'
-import { useState } from 'react'
+import { memo, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
@@ -27,7 +30,10 @@ interface EditableTextCellProps {
     placeholder?: string
 }
 
-export function EditableTextCell({
+/**
+ * PERF: Memoized to prevent re-renders when parent state changes
+ */
+export const EditableTextCell = memo(function EditableTextCell({
     value,
     onSave,
     placeholder = '—',
@@ -75,7 +81,7 @@ export function EditableTextCell({
             </span>
         </div>
     )
-}
+})
 
 // =============================================================================
 // EDITABLE CURRENCY CELL
@@ -86,7 +92,10 @@ interface EditableCurrencyCellProps {
     onSave: (val: string | null) => Promise<unknown>
 }
 
-export function EditableCurrencyCell({
+/**
+ * PERF: Memoized to prevent re-renders when parent state changes
+ */
+export const EditableCurrencyCell = memo(function EditableCurrencyCell({
     value,
     onSave,
 }: EditableCurrencyCellProps) {
@@ -139,7 +148,7 @@ export function EditableCurrencyCell({
             </span>
         </div>
     )
-}
+})
 
 // =============================================================================
 // EDITABLE SELECT CELL
@@ -156,7 +165,10 @@ interface EditableSelectCellProps {
     >
 }
 
-export function EditableSelectCell({
+/**
+ * PERF: Memoized to prevent re-renders when parent state changes
+ */
+export const EditableSelectCell = memo(function EditableSelectCell({
     value,
     options,
     onSave,
@@ -219,7 +231,7 @@ export function EditableSelectCell({
             </Badge>
         </div>
     )
-}
+})
 
 // =============================================================================
 // EDITABLE DATE CELL
@@ -231,7 +243,10 @@ interface EditableDateCellProps {
     placeholder?: string
 }
 
-export function EditableDateCell({
+/**
+ * PERF: Memoized to prevent re-renders when parent state changes
+ */
+export const EditableDateCell = memo(function EditableDateCell({
     value,
     onSave,
     placeholder = '—',
@@ -280,7 +295,7 @@ export function EditableDateCell({
             </span>
         </div>
     )
-}
+})
 
 // =============================================================================
 // EDITABLE NUMBER CELL
@@ -294,7 +309,10 @@ interface EditableNumberCellProps {
     placeholder?: string
 }
 
-export function EditableNumberCell({
+/**
+ * PERF: Memoized to prevent re-renders when parent state changes
+ */
+export const EditableNumberCell = memo(function EditableNumberCell({
     value,
     onSave,
     min = 1,
@@ -355,7 +373,7 @@ export function EditableNumberCell({
             </span>
         </div>
     )
-}
+})
 
 // =============================================================================
 // EDITABLE PERCENT CELL
@@ -366,7 +384,10 @@ interface EditablePercentCellProps {
     onSave: (val: string | null) => Promise<unknown>
 }
 
-export function EditablePercentCell({
+/**
+ * PERF: Memoized to prevent re-renders when parent state changes
+ */
+export const EditablePercentCell = memo(function EditablePercentCell({
     value,
     onSave,
 }: EditablePercentCellProps) {
@@ -421,4 +442,4 @@ export function EditablePercentCell({
             </span>
         </div>
     )
-}
+})

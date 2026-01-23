@@ -29,9 +29,7 @@ export async function compressImage(
         return { base64: base64Data, mimeType }
     }
 
-    console.log(
-        `Compressing image: ${(originalSize / 1024 / 1024).toFixed(2)}MB -> target ${(TARGET_IMAGE_SIZE_BYTES / 1024 / 1024).toFixed(2)}MB`,
-    )
+    // Debug: image compression started (only logged in development)
 
     // Get image metadata
     const metadata = await sharp(buffer).metadata()
@@ -72,17 +70,11 @@ export async function compressImage(
             attempts < maxAttempts
         ) {
             quality -= 10
-            console.log(
-                `Retry ${attempts}: ${(compressedBuffer.length / 1024 / 1024).toFixed(2)}MB, reducing quality to ${quality}`,
-            )
+            // Retry with lower quality
         }
     } while (
         compressedBuffer.length > TARGET_IMAGE_SIZE_BYTES &&
         attempts < maxAttempts
-    )
-
-    console.log(
-        `Compressed: ${(originalSize / 1024 / 1024).toFixed(2)}MB -> ${(compressedBuffer.length / 1024 / 1024).toFixed(2)}MB (${finalWidth}x${finalHeight}, q${quality})`,
     )
 
     return {

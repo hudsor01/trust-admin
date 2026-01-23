@@ -5,6 +5,7 @@ import { adminProcedure, createTRPCRouter } from '../index'
 
 export const pendingInventoryItemRouter = createTRPCRouter({
     // List all pending items
+    // PERF: Push status filter to database instead of filtering in memory
     list: adminProcedure
         .input(
             z
@@ -16,17 +17,14 @@ export const pendingInventoryItemRouter = createTRPCRouter({
                 .optional(),
         )
         .query(async ({ input }) => {
-            const items = await pendingInventoryItemCrud.getAllArray()
-            if (input?.status) {
-                return items.filter((item) => item.status === input.status)
-            }
-            return items
+            // Database-level filtering - no N+1
+            return pendingInventoryItemCrud.getAllArray(input?.status)
         }),
 
     // Get pending items only (for queue)
+    // PERF: Use database filter instead of loading all + filtering in memory
     pending: adminProcedure.query(async () => {
-        const items = await pendingInventoryItemCrud.getAllArray()
-        return items.filter((item) => item.status === 'PENDING')
+        return pendingInventoryItemCrud.getAllArray('PENDING')
     }),
 
     // Get by ID

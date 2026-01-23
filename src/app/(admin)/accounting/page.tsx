@@ -1,8 +1,15 @@
 'use client'
 
-import { ArrowRightLeft, FileText, Loader2, Plus } from 'lucide-react'
+import type { ColumnDef } from '@tanstack/react-table'
+import {
+    ArrowRightLeft,
+    FileText,
+    Loader2,
+    Pencil,
+    Plus,
+    Trash2,
+} from 'lucide-react'
 import { useCallback, useMemo, useState } from 'react'
-import { type ColumnDef, DataTable } from '@/components/data-table'
 import {
     EditableCurrencyCell,
     EditableTextCell,
@@ -11,6 +18,8 @@ import { ResourceDialog } from '@/components/resource-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { DataTable } from '@/components/ui/data-table'
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -433,85 +442,96 @@ export default function AccountingPage() {
     // Column configuration for DataTable
     const accountingColumns: ColumnDef<TrustAccounting>[] = [
         {
-            key: 'accountingDate',
-            header: 'Date',
-            render: (entry) => (
+            accessorKey: 'accountingDate',
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title="Date" />
+            ),
+            cell: ({ row }) => (
                 <div className="text-sm">
-                    {formatDate(entry.accountingDate)}
+                    {formatDate(row.original.accountingDate)}
                 </div>
             ),
         },
         {
-            key: 'entryType',
-            header: 'Type',
-            render: (entry) => (
+            accessorKey: 'entryType',
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title="Type" />
+            ),
+            cell: ({ row }) => (
                 <Badge
                     variant={
-                        entry.entryType === 'INCOME' ? 'default' : 'destructive'
+                        row.original.entryType === 'INCOME'
+                            ? 'default'
+                            : 'destructive'
                     }
                     className={cn(
-                        entry.entryType === 'INCOME' &&
+                        row.original.entryType === 'INCOME' &&
                             'bg-success hover:bg-success/90',
                     )}
                 >
-                    {entry.entryType}
+                    {row.original.entryType}
                 </Badge>
             ),
         },
         {
-            key: 'incomeType',
+            id: 'category',
             header: 'Category',
-            render: (entry) => (
+            cell: ({ row }) => (
                 <div className="text-sm">
-                    {entry.entryType === 'INCOME'
-                        ? INCOME_TYPES.find((t) => t.value === entry.incomeType)
-                              ?.label || entry.incomeType
+                    {row.original.entryType === 'INCOME'
+                        ? INCOME_TYPES.find(
+                              (t) => t.value === row.original.incomeType,
+                          )?.label || row.original.incomeType
                         : EXPENSE_TYPES.find(
-                              (t) => t.value === entry.expenseType,
-                          )?.label || entry.expenseType}
+                              (t) => t.value === row.original.expenseType,
+                          )?.label || row.original.expenseType}
                 </div>
             ),
         },
         {
-            key: 'description',
+            accessorKey: 'description',
             header: 'Description',
-            render: (entry) => (
+            cell: ({ row }) => (
                 <EditableTextCell
-                    value={entry.description}
+                    value={row.original.description}
                     onSave={async (v) =>
-                        updateEntry(entry.id, { description: v || undefined })
+                        updateEntry(row.original.id, {
+                            description: v || undefined,
+                        })
                     }
                     placeholder="Add description"
                 />
             ),
         },
         {
-            key: 'amount',
-            header: 'Amount',
-            render: (entry) => (
+            accessorKey: 'amount',
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title="Amount" />
+            ),
+            cell: ({ row }) => (
                 <div
                     className={cn(
                         'text-right',
-                        entry.entryType === 'INCOME'
+                        row.original.entryType === 'INCOME'
                             ? 'text-success'
                             : 'text-destructive',
                     )}
                 >
                     <EditableCurrencyCell
-                        value={entry.amount}
+                        value={row.original.amount}
                         onSave={async (v) =>
-                            updateEntry(entry.id, { amount: v || '' })
+                            updateEntry(row.original.id, { amount: v || '' })
                         }
                     />
                 </div>
             ),
         },
         {
-            key: 'flags',
+            id: 'flags',
             header: 'Flags',
-            render: (entry) => (
+            cell: ({ row }) => (
                 <div className="flex gap-1">
-                    {entry.isPrincipal && (
+                    {row.original.isPrincipal && (
                         <TooltipProvider>
                             <Tooltip>
                                 <TooltipTrigger asChild>
@@ -528,7 +548,7 @@ export default function AccountingPage() {
                             </Tooltip>
                         </TooltipProvider>
                     )}
-                    {entry.taxDeductible && (
+                    {row.original.taxDeductible && (
                         <TooltipProvider>
                             <Tooltip>
                                 <TooltipTrigger asChild>
@@ -543,6 +563,32 @@ export default function AccountingPage() {
                             </Tooltip>
                         </TooltipProvider>
                     )}
+                </div>
+            ),
+        },
+        {
+            id: 'actions',
+            header: '',
+            cell: ({ row }) => (
+                <div className="flex items-center gap-1">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => openEditForm(row.original)}
+                        title="Edit entry"
+                    >
+                        <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                        onClick={() => deleteEntry(row.original.id)}
+                        title="Delete entry"
+                    >
+                        <Trash2 className="h-4 w-4" />
+                    </Button>
                 </div>
             ),
         },
@@ -840,16 +886,12 @@ export default function AccountingPage() {
                             <DataTable
                                 columns={accountingColumns}
                                 data={filteredEntries}
+                                searchKey="description"
+                                searchPlaceholder="Filter by description..."
                                 isLoading={loading}
                                 emptyMessage="No entries recorded yet. Click 'Add Entry' to start tracking."
-                                onEdit={openEditForm}
-                                onDelete={(entry) => deleteEntry(entry.id)}
-                                pagination={{
-                                    currentPage,
-                                    pageSize,
-                                    totalCount,
-                                    onPageChange: setCurrentPage,
-                                }}
+                                enableColumnVisibility={true}
+                                enablePagination={true}
                             />
                         </CardContent>
                     </TabsContent>

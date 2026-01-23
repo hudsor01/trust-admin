@@ -1,9 +1,9 @@
 'use client'
 
+import type { ColumnDef } from '@tanstack/react-table'
 import { AlertCircle, Plus } from 'lucide-react'
 import { useState } from 'react'
 import { z } from 'zod'
-import { type ColumnDef, DataTable } from '@/components/data-table'
 import { EditableTextCell } from '@/components/editable-cells'
 import { ResourceDialog } from '@/components/resource-dialog'
 import { SummaryCard } from '@/components/summary-card'
@@ -17,6 +17,8 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card'
+import { DataTable } from '@/components/ui/data-table'
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -292,44 +294,52 @@ export default function DistributionsPage() {
 
     const hemsColumns: ColumnDef<Distribution>[] = [
         {
-            key: 'distributionDate',
-            header: 'Date',
-            render: (d) => formatDate(d.distributionDate),
-            sortable: true,
+            accessorKey: 'distributionDate',
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title="Date" />
+            ),
+            cell: ({ row }) => formatDate(row.original.distributionDate),
         },
         {
-            key: 'beneficiaryId',
-            header: 'Beneficiary',
-            render: (d) => {
+            accessorKey: 'beneficiaryId',
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title="Beneficiary" />
+            ),
+            cell: ({ row }) => {
                 const beneficiary = beneficiaries.find(
-                    (b) => b.id === d.beneficiaryId,
+                    (b) => b.id === row.original.beneficiaryId,
                 )
                 return beneficiary
                     ? `${beneficiary.firstName} ${beneficiary.lastName}`
                     : '—'
             },
-            sortable: true,
         },
         {
-            key: 'hemsCategory',
-            header: 'Category',
-            render: (d) => <Badge variant="secondary">{d.hemsCategory}</Badge>,
-            sortable: true,
-        },
-        {
-            key: 'amount',
-            header: 'Amount',
-            render: (d) => (
-                <span className="font-medium">{formatCurrency(d.amount)}</span>
+            accessorKey: 'hemsCategory',
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title="Category" />
             ),
-            sortable: true,
+            cell: ({ row }) => (
+                <Badge variant="secondary">{row.original.hemsCategory}</Badge>
+            ),
         },
         {
-            key: 'hemsJustification',
+            accessorKey: 'amount',
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title="Amount" />
+            ),
+            cell: ({ row }) => (
+                <span className="font-medium">
+                    {formatCurrency(row.original.amount)}
+                </span>
+            ),
+        },
+        {
+            accessorKey: 'hemsJustification',
             header: 'Justification',
-            render: (d) => (
+            cell: ({ row }) => (
                 <span className="text-muted-foreground">
-                    {d.hemsJustification || '—'}
+                    {row.original.hemsJustification || '—'}
                 </span>
             ),
         },
@@ -337,63 +347,74 @@ export default function DistributionsPage() {
 
     const historyColumns: ColumnDef<Distribution>[] = [
         {
-            key: 'distributionDate',
-            header: 'Date',
-            render: (d) => formatDate(d.distributionDate),
-            sortable: true,
+            accessorKey: 'distributionDate',
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title="Date" />
+            ),
+            cell: ({ row }) => formatDate(row.original.distributionDate),
         },
         {
-            key: 'beneficiaryId',
-            header: 'Beneficiary',
-            render: (d) => {
+            accessorKey: 'beneficiaryId',
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title="Beneficiary" />
+            ),
+            cell: ({ row }) => {
                 const beneficiary = beneficiaries.find(
-                    (b) => b.id === d.beneficiaryId,
+                    (b) => b.id === row.original.beneficiaryId,
                 )
                 return beneficiary
                     ? `${beneficiary.firstName} ${beneficiary.lastName}`
                     : '—'
             },
-            sortable: true,
         },
         {
-            key: 'distributionType',
-            header: 'Type',
-            render: (d) => (
+            accessorKey: 'distributionType',
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title="Type" />
+            ),
+            cell: ({ row }) => (
                 <Badge
-                    variant={d.isWithdrawal ? 'default' : 'secondary'}
+                    variant={
+                        row.original.isWithdrawal ? 'default' : 'secondary'
+                    }
                     className={cn(
-                        d.isWithdrawal &&
+                        row.original.isWithdrawal &&
                             'bg-violet-100 text-violet-800 dark:bg-violet-900 dark:text-violet-100',
                     )}
                 >
-                    {d.isWithdrawal
+                    {row.original.isWithdrawal
                         ? 'Withdrawal'
-                        : d.hemsCategory || d.distributionType}
+                        : row.original.hemsCategory ||
+                          row.original.distributionType}
                 </Badge>
             ),
-            sortable: true,
         },
         {
-            key: 'amount',
-            header: 'Amount',
-            render: (d) => (
-                <span className="font-medium">{formatCurrency(d.amount)}</span>
+            accessorKey: 'amount',
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title="Amount" />
             ),
-            sortable: true,
+            cell: ({ row }) => (
+                <span className="font-medium">
+                    {formatCurrency(row.original.amount)}
+                </span>
+            ),
         },
         {
-            key: 'paymentMethod',
+            accessorKey: 'paymentMethod',
             header: 'Method',
-            render: (d) => d.paymentMethod,
+            cell: ({ row }) => row.original.paymentMethod,
         },
         {
-            key: 'notes',
+            accessorKey: 'notes',
             header: 'Notes',
-            render: (d) => (
+            cell: ({ row }) => (
                 <EditableTextCell
-                    value={d.notes}
+                    value={row.original.notes}
                     onSave={async (val) => {
-                        await updateDistribution(d.id, { notes: val })
+                        await updateDistribution(row.original.id, {
+                            notes: val,
+                        })
                     }}
                 />
             ),
@@ -407,122 +428,136 @@ export default function DistributionsPage() {
     }
     const withdrawalColumns: ColumnDef<WithdrawalRow>[] = [
         {
-            key: 'beneficiary',
-            header: 'Beneficiary',
-            render: (w) => (
+            id: 'beneficiary',
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title="Beneficiary" />
+            ),
+            cell: ({ row }) => (
                 <span className="font-medium">
-                    {w.beneficiary.firstName} {w.beneficiary.lastName}
+                    {row.original.beneficiary.firstName}{' '}
+                    {row.original.beneficiary.lastName}
                 </span>
             ),
-            sortable: true,
         },
         {
-            key: 'age',
-            header: 'Age',
-            render: (w) =>
-                w.beneficiary.dob ? calculateAge(w.beneficiary.dob) : '—',
-            sortable: true,
+            id: 'age',
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title="Age" />
+            ),
+            cell: ({ row }) =>
+                row.original.beneficiary.dob
+                    ? calculateAge(row.original.beneficiary.dob)
+                    : '—',
         },
         {
-            key: 'share',
-            header: 'Share',
-            render: (w) => `${w.beneficiary.sharePercent}%`,
-            sortable: true,
+            id: 'share',
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title="Share" />
+            ),
+            cell: ({ row }) => `${row.original.beneficiary.sharePercent}%`,
         },
         {
-            key: 'age25',
+            id: 'age25',
             header: 'Age 25 (50%)',
-            render: (w) => {
-                if (!w.age25) return '—'
-                const status = getWithdrawalStatus(w.age25.eligibleDate)
+            cell: ({ row }) => {
+                if (!row.original.age25) return '—'
+                const status = getWithdrawalStatus(
+                    row.original.age25.eligibleDate,
+                )
                 return (
                     <div className="flex items-center gap-2">
                         <Badge
                             variant={
-                                w.age25.status === 'COMPLETE'
+                                row.original.age25.status === 'COMPLETE'
                                     ? 'secondary'
                                     : getStatusVariant(status?.status || '')
                             }
                             className={cn(
-                                w.age25.status !== 'COMPLETE' &&
+                                row.original.age25.status !== 'COMPLETE' &&
                                     status?.isEligible &&
                                     'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100',
                             )}
                         >
-                            {w.age25.status === 'COMPLETE'
+                            {row.original.age25.status === 'COMPLETE'
                                 ? 'WITHDRAWN'
                                 : status?.status}
                         </Badge>
                         <span className="text-xs text-muted-foreground">
-                            {formatDate(w.age25.eligibleDate)}
+                            {formatDate(row.original.age25.eligibleDate)}
                         </span>
                     </div>
                 )
             },
         },
         {
-            key: 'age30',
+            id: 'age30',
             header: 'Age 30 (50%)',
-            render: (w) => {
-                if (!w.age30) return '—'
-                const status = getWithdrawalStatus(w.age30.eligibleDate)
+            cell: ({ row }) => {
+                if (!row.original.age30) return '—'
+                const status = getWithdrawalStatus(
+                    row.original.age30.eligibleDate,
+                )
                 return (
                     <div className="flex items-center gap-2">
                         <Badge
                             variant={
-                                w.age30.status === 'COMPLETE'
+                                row.original.age30.status === 'COMPLETE'
                                     ? 'secondary'
                                     : getStatusVariant(status?.status || '')
                             }
                             className={cn(
-                                w.age30.status !== 'COMPLETE' &&
+                                row.original.age30.status !== 'COMPLETE' &&
                                     status?.isEligible &&
                                     'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100',
                             )}
                         >
-                            {w.age30.status === 'COMPLETE'
+                            {row.original.age30.status === 'COMPLETE'
                                 ? 'WITHDRAWN'
                                 : status?.status}
                         </Badge>
                         <span className="text-xs text-muted-foreground">
-                            {formatDate(w.age30.eligibleDate)}
+                            {formatDate(row.original.age30.eligibleDate)}
                         </span>
                     </div>
                 )
             },
         },
         {
-            key: 'actions',
+            id: 'actions',
             header: 'Actions',
-            render: (w) => {
-                const age25Status = w.age25
-                    ? getWithdrawalStatus(w.age25.eligibleDate)
+            cell: ({ row }) => {
+                const age25Status = row.original.age25
+                    ? getWithdrawalStatus(row.original.age25.eligibleDate)
                     : null
-                const age30Status = w.age30
-                    ? getWithdrawalStatus(w.age30.eligibleDate)
+                const age30Status = row.original.age30
+                    ? getWithdrawalStatus(row.original.age30.eligibleDate)
                     : null
                 return (
                     <div className="flex gap-2">
-                        {w.age25 &&
+                        {row.original.age25 &&
                             age25Status?.isEligible &&
-                            w.age25.status !== 'COMPLETE' && (
+                            row.original.age25.status !== 'COMPLETE' && (
                                 <Button
                                     size="sm"
                                     variant="outline"
                                     className="border-green-300 text-green-700 hover:bg-green-50 dark:border-green-700 dark:text-green-300"
-                                    onClick={() => openWithdrawalForm(w.age25!)}
+                                    onClick={() =>
+                                        openWithdrawalForm(row.original.age25!)
+                                    }
                                 >
                                     Process 25
                                 </Button>
                             )}
-                        {w.age30 &&
+                        {row.original.age30 &&
                             age30Status?.isEligible &&
-                            w.age30.status !== 'COMPLETE' && (
+                            row.original.age30.status !== 'COMPLETE' && (
                                 <Button
                                     size="sm"
                                     variant="outline"
                                     className="border-green-300 text-green-700 hover:bg-green-50 dark:border-green-700 dark:text-green-300"
-                                    onClick={() => openWithdrawalForm(w.age30!)}
+                                    onClick={() =>
+                                        openWithdrawalForm(row.original.age30!)
+                                    }
                                 >
                                     Process 30
                                 </Button>

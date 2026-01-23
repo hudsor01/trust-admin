@@ -7,11 +7,12 @@
  * Uses virtualized table for performance with large datasets.
  */
 
+import type { ColumnDef } from '@tanstack/react-table'
 import { ClipboardList, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import type { ColumnDef } from '@/components/data-table'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import {
     Dialog,
     DialogContent,
@@ -88,57 +89,75 @@ export default function ActivityLogPage() {
         return JSON.stringify(data, null, 2)
     }
 
-    // Column definitions for VirtualizedTable
-    const columns: ColumnDef<ActivityLogType>[] = [
-        {
-            key: 'createdAt',
-            header: 'Timestamp',
-            render: (log) => (
-                <span className="text-sm">{formatDate(log.createdAt)}</span>
-            ),
-        },
-        {
-            key: 'action',
-            header: 'Action',
-            render: (log) => (
-                <Badge variant={ACTION_VARIANTS[log.action]} className="gap-1">
-                    {ACTION_ICONS[log.action]}
-                    {ACTION_LABELS[log.action] || log.action}
-                </Badge>
-            ),
-        },
-        {
-            key: 'tableName',
-            header: 'Table',
-            render: (log) => (
-                <span className="font-medium">{log.tableName}</span>
-            ),
-        },
-        {
-            key: 'recordId',
-            header: 'Record ID',
-            render: (log) => (
-                <span className="font-mono text-sm text-muted-foreground">
-                    {log.recordId.length > 12
-                        ? `${log.recordId.slice(0, 12)}...`
-                        : log.recordId}
-                </span>
-            ),
-        },
-        {
-            key: 'details',
-            header: 'Details',
-            align: 'right',
-            render: (log) => (
-                <button
-                    onClick={() => setSelectedLog(log)}
-                    className="text-sm text-primary hover:underline"
-                >
-                    View Changes
-                </button>
-            ),
-        },
-    ]
+    // Column definitions for VirtualizedTable (TanStack format)
+    const columns: ColumnDef<ActivityLogType>[] = useMemo(
+        () => [
+            {
+                accessorKey: 'createdAt',
+                header: ({ column }) => (
+                    <DataTableColumnHeader column={column} title="Timestamp" />
+                ),
+                cell: ({ row }) => (
+                    <span className="text-sm">
+                        {formatDate(row.original.createdAt)}
+                    </span>
+                ),
+            },
+            {
+                accessorKey: 'action',
+                header: ({ column }) => (
+                    <DataTableColumnHeader column={column} title="Action" />
+                ),
+                cell: ({ row }) => (
+                    <Badge
+                        variant={ACTION_VARIANTS[row.original.action]}
+                        className="gap-1"
+                    >
+                        {ACTION_ICONS[row.original.action]}
+                        {ACTION_LABELS[row.original.action] ||
+                            row.original.action}
+                    </Badge>
+                ),
+            },
+            {
+                accessorKey: 'tableName',
+                header: ({ column }) => (
+                    <DataTableColumnHeader column={column} title="Table" />
+                ),
+                cell: ({ row }) => (
+                    <span className="font-medium">
+                        {row.original.tableName}
+                    </span>
+                ),
+            },
+            {
+                accessorKey: 'recordId',
+                header: ({ column }) => (
+                    <DataTableColumnHeader column={column} title="Record ID" />
+                ),
+                cell: ({ row }) => (
+                    <span className="font-mono text-sm text-muted-foreground">
+                        {row.original.recordId.length > 12
+                            ? `${row.original.recordId.slice(0, 12)}...`
+                            : row.original.recordId}
+                    </span>
+                ),
+            },
+            {
+                id: 'details',
+                header: 'Details',
+                cell: ({ row }) => (
+                    <button
+                        onClick={() => setSelectedLog(row.original)}
+                        className="text-sm text-primary hover:underline"
+                    >
+                        View Changes
+                    </button>
+                ),
+            },
+        ],
+        [],
+    )
 
     return (
         <div className="space-y-6">

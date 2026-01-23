@@ -1,11 +1,48 @@
 /**
- * Test setup file - preloaded before all tests
- * Configure global test environment here
+ * Test Setup
+ *
+ * Configures happy-dom for React component testing with Bun
  */
 
-// Set test environment
-process.env.NODE_ENV = 'test'
+import { GlobalRegistrator } from '@happy-dom/global-registrator'
 
-// Suppress console output during tests if needed
-// const originalConsole = console.log;
-// console.log = () => {};
+// Register happy-dom globals before tests run
+GlobalRegistrator.register()
+
+// Mock matchMedia for components that use it
+Object.defineProperty(window, 'matchMedia', {
+    writable: true,
+    value: (query: string) => ({
+        matches: false,
+        media: query,
+        onchange: null,
+        addListener: () => {},
+        removeListener: () => {},
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        dispatchEvent: () => true,
+    }),
+})
+
+// Mock ResizeObserver
+class ResizeObserverMock {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+}
+window.ResizeObserver = ResizeObserverMock
+
+// Mock IntersectionObserver
+class IntersectionObserverMock {
+    constructor(_callback: IntersectionObserverCallback) {}
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+    root = null
+    rootMargin = ''
+    thresholds: number[] = []
+    takeRecords(): IntersectionObserverEntry[] {
+        return []
+    }
+}
+window.IntersectionObserver = IntersectionObserverMock

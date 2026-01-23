@@ -1,5 +1,5 @@
 import { ApiError } from './api-error'
-import { type AppUser, auth, extractClientIP } from './auth'
+import { type AppUser, authServer, extractClientIP } from './auth'
 import { recordAuthEvent } from './auth-events'
 import { logger } from './logger'
 
@@ -19,17 +19,15 @@ async function getCachedSession(req: Request) {
         return sessionCache.get(req)!
     }
 
-    // Fetch and cache
-    const sessionPromise = auth.api
-        .getSession({ headers: req.headers })
-        .then((session) =>
-            session
-                ? {
-                      user: session.user as AppUser,
-                      session: session.session,
-                  }
-                : null,
-        )
+    // Fetch and cache using Neon Auth
+    const sessionPromise = authServer.getSession().then(({ data }) =>
+        data
+            ? {
+                  user: data.user as AppUser,
+                  session: data.session,
+              }
+            : null,
+    )
 
     sessionCache.set(req, sessionPromise)
     return sessionPromise
@@ -132,7 +130,7 @@ export async function requireBeneficiary(req: Request): Promise<AppUser> {
 export function isPublicRoute(path: string): boolean {
     const publicPaths = [
         '/health',
-        '/api/auth/', // Better Auth endpoints
+        '/api/auth/', // Neon Auth endpoints
     ]
     return publicPaths.some((p) => path.startsWith(p))
 }

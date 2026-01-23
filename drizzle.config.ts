@@ -1,13 +1,18 @@
 import { defineConfig } from 'drizzle-kit'
 
-// Strip ?schema=public suffix if present in DATABASE_URL
+// Ensure DATABASE_URL is set and configure SSL properly for Neon
 const databaseUrl = process.env.DATABASE_URL
 if (!databaseUrl) {
     throw new Error(
         'DATABASE_URL environment variable is required for Drizzle Kit',
     )
 }
-const cleanDatabaseUrl = databaseUrl.replace(/\?schema=\w+$/, '')
+
+// Clean up URL and ensure proper SSL mode to avoid pg driver warnings
+let cleanDatabaseUrl = databaseUrl.replace(/\?schema=\w+$/, '')
+const url = new URL(cleanDatabaseUrl)
+url.searchParams.set('sslmode', 'verify-full')
+cleanDatabaseUrl = url.toString()
 
 export default defineConfig({
     dialect: 'postgresql',
@@ -18,4 +23,10 @@ export default defineConfig({
     },
     verbose: true,
     strict: true,
+    // Enable RLS role management for Neon
+    entities: {
+        roles: {
+            provider: 'neon',
+        },
+    },
 })

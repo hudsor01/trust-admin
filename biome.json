@@ -68,6 +68,22 @@
             "linter": {
                 "enabled": false
             }
+        },
+        {
+            "includes": ["drizzle/**"],
+            "linter": {
+                "enabled": false
+            }
+        },
+        {
+            "includes": ["db/seed-*.ts"],
+            "linter": {
+                "rules": {
+                    "correctness": {
+                        "noUnusedVariables": "off"
+                    }
+                }
+            }
         }
     ]
 }

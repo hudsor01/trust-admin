@@ -1,4 +1,4 @@
-import { headers } from 'next/headers'
+import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import { AppSidebar } from '@/components/app-sidebar'
 import { CommandPalette } from '@/components/command-palette'
@@ -8,7 +8,8 @@ import {
     SidebarTrigger,
 } from '@/components/ui/sidebar'
 import { TooltipProvider } from '@/components/ui/tooltip'
-import { auth } from '@/lib/auth'
+import { authServer } from '@/lib/auth'
+import { db, userProfile } from '../../../db'
 
 /**
  * Admin Layout
@@ -21,17 +22,22 @@ export default async function AdminLayout({
 }: {
     children: React.ReactNode
 }) {
-    const headersList = await headers()
-    const session = await auth.api.getSession({ headers: headersList })
+    const { data: session } = await authServer.getSession()
 
     // Redirect to login if not authenticated
     if (!session?.user) {
-        redirect('/login')
+        redirect('/auth/sign-in')
     }
 
+    // Fetch user profile to get role
+    const [profile] = await db
+        .select()
+        .from(userProfile)
+        .where(eq(userProfile.userId, session.user.id))
+        .limit(1)
+
     // Check for admin role
-    const user = session.user as { role?: string }
-    if (user.role !== 'admin') {
+    if (profile?.role !== 'admin') {
         // Non-admin users go to portal
         redirect('/portal')
     }

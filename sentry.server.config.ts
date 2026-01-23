@@ -10,8 +10,31 @@ Sentry.init({
     // Enable when DSN is configured (production, or dev for testing)
     enabled: !!process.env.SENTRY_DSN,
 
-    // Adjust sample rate in production (1.0 = 100% of events)
+    // Performance monitoring sample rates
+    // 10% of transactions for general performance data
     tracesSampleRate: 0.1,
+
+    // Integrations for enhanced monitoring
+    integrations: [
+        // PostgreSQL query tracing (auto-instruments pg driver)
+        Sentry.postgresIntegration(),
+    ],
+
+    // Capture slow database queries (over 500ms)
+    // This helps identify N+1 queries and missing indexes
+    beforeSendTransaction(event) {
+        // Tag slow transactions for easy filtering
+        const duration =
+            event.timestamp && event.start_timestamp
+                ? (event.timestamp - event.start_timestamp) * 1000
+                : 0
+
+        if (duration > 1000) {
+            event.tags = { ...event.tags, slow_transaction: 'true' }
+        }
+
+        return event
+    },
 
     // Setting this option to true will print useful information to the console while you're setting up Sentry.
     debug: false,

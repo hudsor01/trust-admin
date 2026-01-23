@@ -26,6 +26,7 @@ import {
     trustee,
     trusteeFeeEntry,
     trusteeFeeSchedule,
+    userProfile,
     valuation,
     vehicle,
     withdrawalRecord,
@@ -364,3 +365,11 @@ export const updateLiabilityPaymentSchema =
 export const updateInsurancePolicySchema = insertInsurancePolicySchema.partial()
 export const updatePendingInventoryItemSchema =
     insertPendingInventoryItemSchema.partial()
+
+// User Profile schemas
+export const insertUserProfileSchema = createInsertSchema(userProfile, {
+    createdAt: (schema) => schema.optional(),
+    updatedAt: (schema) => schema.optional(),
+})
+export const selectUserProfileSchema = createSelectSchema(userProfile)
+export const updateUserProfileSchema = insertUserProfileSchema.partial()

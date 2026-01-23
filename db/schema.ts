@@ -334,6 +334,13 @@ export const entity = pgTable(
         stateOfFormation: t.text(),
         registeredAgent: t.text(),
         parentEntityId: bigint({ mode: 'number' }),
+        ownershipPercent: t.numeric({ precision: 5, scale: 2 }), // Ownership stake (100.00 = 100%)
+        dodValue: t.numeric({ precision: 14, scale: 2 }), // Value of entity/ownership at date of death
+        dodValueDate: t.timestamp({
+            precision: 3,
+            mode: 'string',
+            withTimezone: true,
+        }),
         status: recordStatus().default('ACTIVE').notNull(),
         notes: t.text(),
         createdAt: t
@@ -2175,6 +2182,36 @@ export const user = pgTable(
 
 export type User = typeof user.$inferSelect
 export type InsertUser = typeof user.$inferInsert
+
+// User profile for Neon Auth - links Neon users to app roles and beneficiaries
+export const userProfile = pgTable(
+    'user_profile',
+    (t) => ({
+        userId: t.text('user_id').primaryKey().notNull(),
+        role: userRole().notNull().default('beneficiary'),
+        beneficiaryId: bigint('beneficiary_id', { mode: 'number' }),
+        createdAt: t
+            .timestamp('created_at', { withTimezone: true })
+            .notNull()
+            .defaultNow(),
+        updatedAt: t
+            .timestamp('updated_at', { withTimezone: true })
+            .notNull()
+            .defaultNow(),
+    }),
+    (table) => [
+        foreignKey({
+            columns: [table.beneficiaryId],
+            foreignColumns: [beneficiary.id],
+            name: 'user_profile_beneficiary_id_fkey',
+        })
+            .onUpdate('cascade')
+            .onDelete('set null'),
+    ],
+)
+
+export type UserProfile = typeof userProfile.$inferSelect
+export type InsertUserProfile = typeof userProfile.$inferInsert
 
 export const session = pgTable(
     'session',

@@ -32,9 +32,29 @@ Sentry.init({
     // Setting this option to true will print useful information to the console while you're setting up Sentry.
     debug: false,
 
-    // Note: Replay integration is added separately below to prevent
-    // "Multiple Sentry Session Replay instances" error during HMR
-    integrations: [],
+    // Integrations for browser performance monitoring
+    integrations: [
+        // Track browser performance metrics (LCP, FID, CLS)
+        // Note: browserTracingIntegration auto-instruments navigation, XHR, and fetch
+        Sentry.browserTracingIntegration(),
+
+        // Track long animation frames for jank detection
+        Sentry.browserProfilingIntegration(),
+    ],
+
+    // Tag slow client-side operations
+    beforeSendTransaction(event) {
+        const duration =
+            event.timestamp && event.start_timestamp
+                ? (event.timestamp - event.start_timestamp) * 1000
+                : 0
+
+        if (duration > 3000) {
+            event.tags = { ...event.tags, slow_page_load: 'true' }
+        }
+
+        return event
+    },
 })
 
 // Add replay integration separately with its own guard

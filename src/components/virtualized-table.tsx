@@ -1,25 +1,14 @@
 import {
-    type CellContext,
+    type ColumnDef,
     flexRender,
     getCoreRowModel,
     getSortedRowModel,
-    type Row,
     type SortingState,
-    type ColumnDef as TanStackColumnDef,
     useReactTable,
 } from '@tanstack/react-table'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import {
-    ArrowUpDown,
-    ChevronDown,
-    ChevronUp,
-    Pencil,
-    Trash2,
-} from 'lucide-react'
-import { useRef, useState } from 'react'
-import type { DataTableProps } from '@/components/data-table'
-import { Pagination } from '@/components/pagination'
-import { Button } from '@/components/ui/button'
+import { Loader2 } from 'lucide-react'
+import { useCallback, useRef, useState } from 'react'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
     Table,
@@ -30,7 +19,11 @@ import {
     TableRow,
 } from '@/components/ui/table'
 
-export interface VirtualizedTableProps<T> extends DataTableProps<T> {
+export interface VirtualizedTableProps<T> {
+    data: T[]
+    columns: ColumnDef<T>[]
+    emptyMessage?: string
+    isLoading?: boolean
     /**
      * Height of each row in pixels for virtualization calculation
      * @default 53
@@ -54,10 +47,18 @@ export interface VirtualizedTableProps<T> extends DataTableProps<T> {
  * Uses @tanstack/react-virtual to only render visible rows,
  * dramatically improving performance for tables with 100+ rows.
  *
- * Same interface as DataTable - drop-in replacement for large lists.
+ * Uses the same TanStack Table ColumnDef format as DataTable.
  *
  * @example
  * ```tsx
+ * const columns: ColumnDef<ActivityLog>[] = [
+ *   {
+ *     accessorKey: 'createdAt',
+ *     header: ({ column }) => <DataTableColumnHeader column={column} title="Timestamp" />,
+ *     cell: ({ row }) => formatDate(row.original.createdAt),
+ *   },
+ * ]
+ *
  * <VirtualizedTable
  *   data={activityLogs} // 1000+ rows
  *   columns={columns}
@@ -69,11 +70,8 @@ export interface VirtualizedTableProps<T> extends DataTableProps<T> {
 export function VirtualizedTable<T>({
     data,
     columns,
-    onEdit,
-    onDelete,
     emptyMessage = 'No data available',
     isLoading = false,
-    pagination,
     rowHeight = 53,
     maxHeight = 600,
     overscan = 5,
@@ -81,96 +79,25 @@ export function VirtualizedTable<T>({
     const [sorting, setSorting] = useState<SortingState>([])
     const parentRef = useRef<HTMLDivElement>(null)
 
-    const hasActions = onEdit || onDelete
-
-    // Transform custom ColumnDef to TanStack ColumnDef
-    const tanstackColumns: TanStackColumnDef<T>[] = [
-        ...columns.map((col) => ({
-            id: col.key,
-            accessorKey: col.key,
-            header: col.header,
-            cell: col.render
-                ? ({ row }: CellContext<T, unknown>) =>
-                      col.render!(row.original)
-                : ({ getValue }: CellContext<T, unknown>) => getValue(),
-            enableSorting: col.sortable ?? false,
-            meta: { align: col.align ?? 'left' },
-            sortingFn: (rowA: Row<T>, rowB: Row<T>, columnId: string) => {
-                const aVal = rowA.getValue(columnId)
-                const bVal = rowB.getValue(columnId)
-
-                if (aVal == null && bVal == null) return 0
-                if (aVal == null) return 1
-                if (bVal == null) return -1
-
-                if (typeof aVal === 'number' && typeof bVal === 'number') {
-                    return aVal - bVal
-                }
-
-                const aStr = String(aVal).toLowerCase()
-                const bStr = String(bVal).toLowerCase()
-                return aStr.localeCompare(bStr)
-            },
-        })),
-        ...(hasActions
-            ? [
-                  {
-                      id: 'actions',
-                      header: 'Actions',
-                      meta: { align: 'center' },
-                      cell: ({ row, table }: CellContext<T, unknown>) => (
-                          <div className="flex gap-1 justify-center">
-                              {table.options.meta?.onEdit && (
-                                  <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-8 w-8"
-                                      onClick={() =>
-                                          table.options.meta?.onEdit?.(
-                                              row.original,
-                                          )
-                                      }
-                                  >
-                                      <Pencil className="h-4 w-4" />
-                                  </Button>
-                              )}
-                              {table.options.meta?.onDelete && (
-                                  <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-8 w-8 text-destructive hover:text-destructive"
-                                      onClick={() =>
-                                          table.options.meta?.onDelete?.(
-                                              row.original,
-                                          )
-                                      }
-                                  >
-                                      <Trash2 className="h-4 w-4" />
-                                  </Button>
-                              )}
-                          </div>
-                      ),
-                  } as TanStackColumnDef<T>,
-              ]
-            : []),
-    ]
-
     const table = useReactTable({
         data,
-        columns: tanstackColumns,
+        columns,
         getCoreRowModel: getCoreRowModel(),
         getSortedRowModel: getSortedRowModel(),
         state: { sorting },
         onSortingChange: setSorting,
-        meta: { onEdit, onDelete },
     })
 
     const { rows } = table.getRowModel()
 
+    // PERF: Memoize virtualizer callbacks to prevent unnecessary recalculations
+    const getScrollElement = useCallback(() => parentRef.current, [])
+    const estimateSize = useCallback(() => rowHeight, [rowHeight])
+
     const virtualizer = useVirtualizer({
         count: rows.length,
-        getScrollElement: () => parentRef.current,
-        estimateSize: () => rowHeight,
+        getScrollElement,
+        estimateSize,
         overscan,
     })
 
@@ -180,38 +107,28 @@ export function VirtualizedTable<T>({
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            {columns.map((col) => (
-                                <TableHead
-                                    key={col.key}
-                                    className="text-center"
-                                >
-                                    {col.header}
+                            {columns.map((col, i) => (
+                                <TableHead key={col.id ?? `col-${i}`}>
+                                    <Skeleton className="h-4 w-20" />
                                 </TableHead>
                             ))}
-                            {hasActions && (
-                                <TableHead className="w-[100px] text-center">
-                                    Actions
-                                </TableHead>
-                            )}
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {[...Array(5)].map((_, i) => (
                             <TableRow key={i}>
-                                {columns.map((col) => (
-                                    <TableCell key={col.key}>
+                                {columns.map((col, j) => (
+                                    <TableCell key={col.id ?? `cell-${i}-${j}`}>
                                         <Skeleton className="h-4 w-24" />
                                     </TableCell>
                                 ))}
-                                {hasActions && (
-                                    <TableCell className="text-center">
-                                        <Skeleton className="h-8 w-16 mx-auto" />
-                                    </TableCell>
-                                )}
                             </TableRow>
                         ))}
                     </TableBody>
                 </Table>
+                <div className="flex justify-center py-4">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
             </div>
         )
     }
@@ -232,39 +149,14 @@ export function VirtualizedTable<T>({
                         {table.getHeaderGroups().map((headerGroup) => (
                             <TableRow key={headerGroup.id}>
                                 {headerGroup.headers.map((header) => (
-                                    <TableHead
-                                        key={header.id}
-                                        className="text-center"
-                                    >
-                                        {header.isPlaceholder ? null : header.column.getCanSort() ? (
-                                            <button
-                                                onClick={header.column.getToggleSortingHandler()}
-                                                className="flex items-center justify-center gap-2 hover:text-foreground transition-colors w-full"
-                                            >
-                                                {flexRender(
-                                                    header.column.columnDef
-                                                        .header,
-                                                    header.getContext(),
-                                                )}
-                                                {{
-                                                    asc: (
-                                                        <ChevronUp className="h-4 w-4" />
-                                                    ),
-                                                    desc: (
-                                                        <ChevronDown className="h-4 w-4" />
-                                                    ),
-                                                }[
-                                                    header.column.getIsSorted() as string
-                                                ] ?? (
-                                                    <ArrowUpDown className="h-4 w-4 opacity-50" />
-                                                )}
-                                            </button>
-                                        ) : (
-                                            flexRender(
-                                                header.column.columnDef.header,
-                                                header.getContext(),
-                                            )
-                                        )}
+                                    <TableHead key={header.id}>
+                                        {header.isPlaceholder
+                                            ? null
+                                            : flexRender(
+                                                  header.column.columnDef
+                                                      .header,
+                                                  header.getContext(),
+                                              )}
                                     </TableHead>
                                 ))}
                             </TableRow>
@@ -304,38 +196,18 @@ export function VirtualizedTable<T>({
                                             <TableRow>
                                                 {row
                                                     .getVisibleCells()
-                                                    .map((cell) => {
-                                                        const align =
-                                                            (
+                                                    .map((cell) => (
+                                                        <TableCell
+                                                            key={cell.id}
+                                                        >
+                                                            {flexRender(
                                                                 cell.column
                                                                     .columnDef
-                                                                    .meta as {
-                                                                    align?: string
-                                                                }
-                                                            )?.align ?? 'left'
-                                                        const alignClass =
-                                                            align === 'center'
-                                                                ? 'text-center'
-                                                                : align ===
-                                                                    'right'
-                                                                  ? 'text-right'
-                                                                  : 'text-left'
-                                                        return (
-                                                            <TableCell
-                                                                key={cell.id}
-                                                                className={
-                                                                    alignClass
-                                                                }
-                                                            >
-                                                                {flexRender(
-                                                                    cell.column
-                                                                        .columnDef
-                                                                        .cell,
-                                                                    cell.getContext(),
-                                                                )}
-                                                            </TableCell>
-                                                        )
-                                                    })}
+                                                                    .cell,
+                                                                cell.getContext(),
+                                                            )}
+                                                        </TableCell>
+                                                    ))}
                                             </TableRow>
                                         </TableBody>
                                     </Table>
@@ -345,15 +217,6 @@ export function VirtualizedTable<T>({
                     </div>
                 </div>
             </div>
-            {pagination && (
-                <Pagination
-                    currentPage={pagination.currentPage}
-                    pageSize={pagination.pageSize}
-                    totalCount={pagination.totalCount}
-                    onPageChange={pagination.onPageChange}
-                    disabled={isLoading}
-                />
-            )}
         </div>
     )
 }

@@ -1,5 +1,58 @@
 # Project Milestones: Trust Admin
 
+## v8.0 Public Inventory Form (Shipped: 2026-01-22)
+
+**Delivered:** Public-facing inventory form with AI-powered photo analysis and admin review queue for property cataloging.
+
+**Phases completed:** 46-48 (3 plans total)
+
+**Key accomplishments:**
+
+- AI photo analysis endpoint using Claude Opus 4.5 with domain-specific prompts
+- Public inventory form with multi-photo upload via Uploadthing
+- Passphrase-protected submission with progressive enhancement
+- Admin inventory queue with approve/reject workflow
+- Approval flow creates personalProperty records directly
+
+**Stats:**
+
+- 87 files modified
+- 7,279 insertions, 7,140 deletions
+- 3 phases, 3 plans
+- 4 days from start to ship
+
+**Git range:** `4d846ac` → `580afa2`
+
+**What's next:** TBD
+
+---
+
+## v7.0 Codebase Consolidation (Shipped: 2026-01-18)
+
+**Delivered:** Systematic code reduction through factories, hooks, and shared components.
+
+**Phases completed:** 40-45 (8 plans total)
+
+**Key accomplishments:**
+
+- createCrudRouter() factory - migrated 13 tRPC routers, 73% code reduction
+- useEditableCell hook - consolidated 5 editable cell components
+- useCrudMutations hook - standardized mutation setup patterns
+- Shared LoginPage component - eliminated 308 lines of duplication
+- Removed 586 lines of dead table code
+- Column helpers and FormField wrapper - 37% reduction on vehicles page
+
+**Stats:**
+
+- ~481 lines reduced to ~130 lines (73% reduction)
+- 6 phases, 8 plans
+
+**Git range:** See v7.0 archive
+
+**What's next:** v8.0 Public Inventory Form (completed)
+
+---
+
 ## v6.0 React 19.2 Platform Optimizations (Shipped: 2026-01-18)
 
 **Delivered:** React 19.2 and Next.js 16 native features for instant UI feedback, non-blocking audit logging, and progressive enhancement.

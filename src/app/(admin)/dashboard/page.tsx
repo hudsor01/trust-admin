@@ -10,16 +10,50 @@ import {
     Loader2,
     Plus,
 } from 'lucide-react'
+import dynamic from 'next/dynamic'
 import Link from 'next/link'
-import { useOptimistic, useState } from 'react'
-import { AssetAllocationChart } from '@/components/charts/asset-allocation-chart'
-import { NetWorthChart } from '@/components/charts/net-worth-chart'
-import { type ColumnDef, DataTable } from '@/components/data-table'
+import { useCallback, useMemo, useOptimistic, useState } from 'react'
+
+// PERF: Lazy load heavy chart components (recharts ~100KB gzipped)
+// Charts are below the fold, so this reduces initial bundle significantly
+const AssetAllocationChart = dynamic(
+    () =>
+        import('@/components/charts/asset-allocation-chart').then(
+            (m) => m.AssetAllocationChart,
+        ),
+    {
+        loading: () => (
+            <div className="h-[250px] flex items-center justify-center">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+        ),
+        ssr: false, // Charts don't need SSR
+    },
+)
+
+const NetWorthChart = dynamic(
+    () =>
+        import('@/components/charts/net-worth-chart').then(
+            (m) => m.NetWorthChart,
+        ),
+    {
+        loading: () => (
+            <div className="h-[250px] flex items-center justify-center">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+        ),
+        ssr: false, // Charts don't need SSR
+    },
+)
+
+import type { ColumnDef } from '@tanstack/react-table'
 import { LiabilityProgressCard } from '@/components/liability-progress-card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
+import { DataTable } from '@/components/ui/data-table'
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
 import {
@@ -122,20 +156,24 @@ export default function DashboardPage() {
     const [newTaskCategory, setNewTaskCategory] = useState('OTHER')
     const [expandedTask, setExpandedTask] = useState<number | null>(null)
 
-    const toggleTask = async (task: (typeof optimisticTasks)[number]) => {
-        // Optimistic update - toggles instantly
-        setOptimisticTask({ id: task.id, completed: !task.completed })
-        try {
-            await updateTaskMutation.mutateAsync({
-                id: task.id,
-                data: { completed: !task.completed },
-            })
-        } catch (error) {
-            console.error('Failed to update task:', error)
-        }
-    }
+    // PERF: Memoize handlers to prevent unnecessary re-renders of child components
+    const toggleTask = useCallback(
+        async (task: (typeof optimisticTasks)[number]) => {
+            // Optimistic update - toggles instantly
+            setOptimisticTask({ id: task.id, completed: !task.completed })
+            try {
+                await updateTaskMutation.mutateAsync({
+                    id: task.id,
+                    data: { completed: !task.completed },
+                })
+            } catch (error) {
+                console.error('Failed to update task:', error)
+            }
+        },
+        [setOptimisticTask, updateTaskMutation],
+    )
 
-    const addTask = async () => {
+    const addTask = useCallback(async () => {
         if (!newTaskTitle.trim()) return
 
         try {
@@ -148,278 +186,384 @@ export default function DashboardPage() {
         } catch (error) {
             console.error('Failed to add task:', error)
         }
-    }
+    }, [
+        newTaskTitle,
+        newTaskCategory,
+        optimisticTasks.length,
+        createTaskMutation,
+    ])
 
-    const updateTaskNotes = async (taskId: number, notes: string) => {
-        try {
-            await updateTaskMutation.mutateAsync({
-                id: taskId,
-                data: { notes },
+    const updateTaskNotes = useCallback(
+        async (taskId: number, notes: string) => {
+            try {
+                await updateTaskMutation.mutateAsync({
+                    id: taskId,
+                    data: { notes },
+                })
+            } catch (error) {
+                console.error('Failed to update notes:', error)
+            }
+        },
+        [updateTaskMutation],
+    )
+
+    // PERF: Memoize task statistics to prevent recalculation on unrelated renders
+    const { completedCount, totalCount, progressPercent, overdueTasks, today } =
+        useMemo(() => {
+            const completed = optimisticTasks.filter((t) => t.completed).length
+            const total = optimisticTasks.length
+            const progress =
+                total > 0 ? Math.round((completed / total) * 100) : 0
+            const todayDate = new Date()
+            const overdue = optimisticTasks.filter((t) => {
+                if (t.completed || !t.dueDate) return false
+                return new Date(t.dueDate) < todayDate
             })
-        } catch (error) {
-            console.error('Failed to update notes:', error)
+            return {
+                completedCount: completed,
+                totalCount: total,
+                progressPercent: progress,
+                overdueTasks: overdue,
+                today: todayDate,
+            }
+        }, [optimisticTasks])
+
+    // PERF: Memoize grouped tasks to prevent expensive sort operations on every render
+    const groupedTasks = useMemo(
+        () =>
+            CATEGORIES.map((cat) => ({
+                ...cat,
+                tasks: optimisticTasks
+                    .filter((t) => t.category === cat.value)
+                    .sort((a, b) => {
+                        if (a.dueDate && b.dueDate) {
+                            return (
+                                new Date(a.dueDate).getTime() -
+                                new Date(b.dueDate).getTime()
+                            )
+                        }
+                        if (a.dueDate && !b.dueDate) return -1
+                        if (!a.dueDate && b.dueDate) return 1
+                        return (a.sortOrder ?? 0) - (b.sortOrder ?? 0)
+                    }),
+            })).filter((cat) => cat.tasks.length > 0),
+        [optimisticTasks],
+    )
+
+    // PERF: Memoize accounting totals to avoid expensive array operations
+    const { incomeTotal, expenseTotal, netIncome } = useMemo(() => {
+        const income = sumStrings(
+            accountingEntries
+                .filter((e) => e.entryType === 'INCOME')
+                .map((e) => e.amount),
+        )
+        const expense = sumStrings(
+            accountingEntries
+                .filter((e) => e.entryType === 'EXPENSE')
+                .map((e) => e.amount),
+        )
+        return {
+            incomeTotal: income,
+            expenseTotal: expense,
+            netIncome: subtractMoney(income, expense),
         }
-    }
+    }, [accountingEntries])
 
-    // Calculate task stats
-    const completedCount = optimisticTasks.filter((t) => t.completed).length
-    const totalCount = optimisticTasks.length
-    const progressPercent =
-        totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0
-
-    // Calculate overdue tasks
-    const today = new Date()
-    const overdueTasks = optimisticTasks.filter((t) => {
-        if (t.completed || !t.dueDate) return false
-        return new Date(t.dueDate) < today
-    })
-
-    // Group tasks by category
-    const groupedTasks = CATEGORIES.map((cat) => ({
-        ...cat,
-        tasks: optimisticTasks
-            .filter((t) => t.category === cat.value)
-            .sort((a, b) => {
-                if (a.dueDate && b.dueDate) {
-                    return (
-                        new Date(a.dueDate).getTime() -
-                        new Date(b.dueDate).getTime()
-                    )
-                }
-                if (a.dueDate && !b.dueDate) return -1
-                if (!a.dueDate && b.dueDate) return 1
-                return (a.sortOrder ?? 0) - (b.sortOrder ?? 0)
-            }),
-    })).filter((cat) => cat.tasks.length > 0)
-
-    // Calculate accounting totals using dinero.js for precision
-    const incomeTotal = sumStrings(
-        accountingEntries
-            .filter((e) => e.entryType === 'INCOME')
-            .map((e) => e.amount),
-    )
-    const expenseTotal = sumStrings(
-        accountingEntries
-            .filter((e) => e.entryType === 'EXPENSE')
-            .map((e) => e.amount),
-    )
-    const netIncome = subtractMoney(incomeTotal, expenseTotal)
-
-    // Calculate asset totals for charts using dinero.js for precision
-    const totalBankAccounts = sumStrings(
-        bankAccounts.map((a) => a.currentBalance ?? '0'),
-    )
-    const totalInvestments = sumStrings(
-        investmentAccounts.map((a) => a.currentBalance ?? '0'),
-    )
-    const totalRealEstate = sumStrings(
-        [...homesteads, ...rentalProperties].map((p) => p.dodValue ?? '0'),
-    )
-    const totalVehicles = sumStrings(vehicles.map((v) => v.dodValue ?? '0'))
-    const totalLiabilities = sumStrings(
-        liabilities.map((l) => l.currentBalance ?? '0'),
-    )
-
-    // Calculate liability statistics
-    const activeLiabilities = liabilities.filter(
-        (l) => parseFloat(l.currentBalance ?? '0') > 0,
-    )
-    const totalOriginalLiabilities = sumStrings(
-        liabilities.map((l) => l.originalAmount ?? '0'),
-    )
-    const liabilityPayoffPercent =
-        parseFloat(totalOriginalLiabilities) > 0
-            ? Math.round(
-                  ((parseFloat(totalOriginalLiabilities) -
-                      parseFloat(totalLiabilities)) /
-                      parseFloat(totalOriginalLiabilities)) *
-                      100,
-              )
-            : 0
-
-    // Calculate total assets and net worth
-    const totalAssets = sumStrings([
+    // PERF: Memoize asset calculations - these involve multiple array operations
+    const {
         totalBankAccounts,
         totalInvestments,
         totalRealEstate,
         totalVehicles,
+        totalLiabilities,
+        totalAssets,
+        assetAllocationData,
+    } = useMemo(() => {
+        const bankTotal = sumStrings(
+            bankAccounts.map((a) => a.currentBalance ?? '0'),
+        )
+        const investTotal = sumStrings(
+            investmentAccounts.map((a) => a.currentBalance ?? '0'),
+        )
+        const realEstateTotal = sumStrings(
+            [...homesteads, ...rentalProperties].map((p) => p.dodValue ?? '0'),
+        )
+        const vehicleTotal = sumStrings(vehicles.map((v) => v.dodValue ?? '0'))
+        const liabilityTotal = sumStrings(
+            liabilities.map((l) => l.currentBalance ?? '0'),
+        )
+        const assetTotal = sumStrings([
+            bankTotal,
+            investTotal,
+            realEstateTotal,
+            vehicleTotal,
+        ])
+        const allocationData = [
+            {
+                name: 'Bank Accounts',
+                value: Number.parseFloat(bankTotal) || 0,
+                fill: 'hsl(221, 83%, 53%)',
+            },
+            {
+                name: 'Investments',
+                value: Number.parseFloat(investTotal) || 0,
+                fill: 'hsl(262, 83%, 58%)',
+            },
+            {
+                name: 'Real Estate',
+                value: Number.parseFloat(realEstateTotal) || 0,
+                fill: 'hsl(142, 76%, 36%)',
+            },
+            {
+                name: 'Vehicles',
+                value: Number.parseFloat(vehicleTotal) || 0,
+                fill: 'hsl(38, 92%, 50%)',
+            },
+        ].filter((item) => item.value > 0)
+
+        return {
+            totalBankAccounts: bankTotal,
+            totalInvestments: investTotal,
+            totalRealEstate: realEstateTotal,
+            totalVehicles: vehicleTotal,
+            totalLiabilities: liabilityTotal,
+            totalAssets: assetTotal,
+            assetAllocationData: allocationData,
+        }
+    }, [
+        bankAccounts,
+        investmentAccounts,
+        homesteads,
+        rentalProperties,
+        vehicles,
+        liabilities,
     ])
-    // Prepare asset allocation data for chart
-    const assetAllocationData = [
-        {
-            name: 'Bank Accounts',
-            value: Number.parseFloat(totalBankAccounts) || 0,
-            fill: 'hsl(221, 83%, 53%)',
-        },
-        {
-            name: 'Investments',
-            value: Number.parseFloat(totalInvestments) || 0,
-            fill: 'hsl(262, 83%, 58%)',
-        },
-        {
-            name: 'Real Estate',
-            value: Number.parseFloat(totalRealEstate) || 0,
-            fill: 'hsl(142, 76%, 36%)',
-        },
-        {
-            name: 'Vehicles',
-            value: Number.parseFloat(totalVehicles) || 0,
-            fill: 'hsl(38, 92%, 50%)',
-        },
-    ].filter((item) => item.value > 0)
 
-    // Get grandchildren with withdrawal info
-    const grandchildren = beneficiaries.filter(
-        (b) => b.relationshipType === 'GRANDCHILD',
-    )
+    // PERF: Memoize liability statistics
+    const {
+        activeLiabilities,
+        liabilityPayoffPercent,
+        totalOriginalLiabilities,
+    } = useMemo(() => {
+        const active = liabilities.filter(
+            (l) => parseFloat(l.currentBalance ?? '0') > 0,
+        )
+        const totalOriginal = sumStrings(
+            liabilities.map((l) => l.originalAmount ?? '0'),
+        )
+        const payoffPercent =
+            parseFloat(totalOriginal) > 0
+                ? Math.round(
+                      ((parseFloat(totalOriginal) -
+                          parseFloat(totalLiabilities)) /
+                          parseFloat(totalOriginal)) *
+                          100,
+                  )
+                : 0
+        return {
+            activeLiabilities: active,
+            liabilityPayoffPercent: payoffPercent,
+            totalOriginalLiabilities: totalOriginal,
+        }
+    }, [liabilities, totalLiabilities])
 
-    // Build withdrawal eligibility data
-    const withdrawalData = grandchildren
-        .map((gc) => {
-            const records = withdrawalRecords.filter(
-                (wr) => wr.beneficiaryId === gc.id,
-            )
-            const age25Record = records.find(
-                (r) => r.withdrawalType === 'AGE_25',
-            )
-            const age30Record = records.find(
-                (r) => r.withdrawalType === 'AGE_30',
-            )
+    // PERF: Memoize withdrawal data calculations - involves nested loops and sorting
+    const { withdrawalData, eligibleNow, upcomingMilestones } = useMemo(() => {
+        const grandchildren = beneficiaries.filter(
+            (b) => b.relationshipType === 'GRANDCHILD',
+        )
 
-            return {
-                beneficiary: gc,
-                currentAge: gc.dob ? calculateAge(gc.dob) : null,
-                age25: age25Record
-                    ? {
-                          eligibleDate: age25Record.eligibleDate,
-                          status: getWithdrawalStatus(age25Record.eligibleDate),
-                          withdrawn: age25Record.status === 'COMPLETE',
-                      }
-                    : null,
-                age30: age30Record
-                    ? {
-                          eligibleDate: age30Record.eligibleDate,
-                          status: getWithdrawalStatus(age30Record.eligibleDate),
-                          withdrawn: age30Record.status === 'COMPLETE',
-                      }
-                    : null,
-            }
+        const data = grandchildren
+            .map((gc) => {
+                const records = withdrawalRecords.filter(
+                    (wr) => wr.beneficiaryId === gc.id,
+                )
+                const age25Record = records.find(
+                    (r) => r.withdrawalType === 'AGE_25',
+                )
+                const age30Record = records.find(
+                    (r) => r.withdrawalType === 'AGE_30',
+                )
+
+                return {
+                    beneficiary: gc,
+                    currentAge: gc.dob ? calculateAge(gc.dob) : null,
+                    age25: age25Record
+                        ? {
+                              eligibleDate: age25Record.eligibleDate,
+                              status: getWithdrawalStatus(
+                                  age25Record.eligibleDate,
+                              ),
+                              withdrawn: age25Record.status === 'COMPLETE',
+                          }
+                        : null,
+                    age30: age30Record
+                        ? {
+                              eligibleDate: age30Record.eligibleDate,
+                              status: getWithdrawalStatus(
+                                  age30Record.eligibleDate,
+                              ),
+                              withdrawn: age30Record.status === 'COMPLETE',
+                          }
+                        : null,
+                }
+            })
+            .sort((a, b) => {
+                const aNext =
+                    a.age25?.status.daysUntil ??
+                    a.age30?.status.daysUntil ??
+                    9999
+                const bNext =
+                    b.age25?.status.daysUntil ??
+                    b.age30?.status.daysUntil ??
+                    9999
+                return aNext - bNext
+            })
+
+        const eligible = data.filter(
+            (w) =>
+                (w.age25 &&
+                    w.age25.status.daysUntil === 0 &&
+                    !w.age25.withdrawn) ||
+                (w.age30 &&
+                    w.age30.status.daysUntil === 0 &&
+                    !w.age30.withdrawn),
+        ).length
+
+        const upcoming = data.filter((w) => {
+            const age25Soon =
+                w.age25 &&
+                !w.age25.withdrawn &&
+                w.age25.status.daysUntil > 0 &&
+                w.age25.status.daysUntil <= 90
+            const age30Soon =
+                w.age30 &&
+                !w.age30.withdrawn &&
+                w.age30.status.daysUntil > 0 &&
+                w.age30.status.daysUntil <= 90
+            return age25Soon || age30Soon
         })
-        .sort((a, b) => {
-            const aNext =
-                a.age25?.status.daysUntil ?? a.age30?.status.daysUntil ?? 9999
-            const bNext =
-                b.age25?.status.daysUntil ?? b.age30?.status.daysUntil ?? 9999
-            return aNext - bNext
-        })
 
-    // Count upcoming eligibilities
-    const eligibleNow = withdrawalData.filter(
-        (w) =>
-            (w.age25 && w.age25.status.daysUntil === 0 && !w.age25.withdrawn) ||
-            (w.age30 && w.age30.status.daysUntil === 0 && !w.age30.withdrawn),
-    ).length
+        return {
+            withdrawalData: data,
+            eligibleNow: eligible,
+            upcomingMilestones: upcoming,
+        }
+    }, [beneficiaries, withdrawalRecords])
 
-    // Count upcoming milestones (within 90 days)
-    const upcomingMilestones = withdrawalData.filter((w) => {
-        const age25Soon =
-            w.age25 &&
-            !w.age25.withdrawn &&
-            w.age25.status.daysUntil > 0 &&
-            w.age25.status.daysUntil <= 90
-        const age30Soon =
-            w.age30 &&
-            !w.age30.withdrawn &&
-            w.age30.status.daysUntil > 0 &&
-            w.age30.status.daysUntil <= 90
-        return age25Soon || age30Soon
-    })
-
-    // Withdrawal schedule table columns
+    // PERF: Memoize column definitions to prevent TanStack Table recalculation
     type WithdrawalRow = (typeof withdrawalData)[number]
-    const withdrawalColumns: ColumnDef<WithdrawalRow>[] = [
-        {
-            key: 'beneficiary',
-            header: 'Beneficiary',
-            render: (row) => (
-                <span className="font-medium">
-                    {row.beneficiary.firstName} {row.beneficiary.lastName}
-                </span>
-            ),
-        },
-        {
-            key: 'currentAge',
-            header: 'Age',
-            render: (row) => row.currentAge ?? '—',
-        },
-        {
-            key: 'sharePercent',
-            header: 'Share',
-            render: (row) => `${row.beneficiary.sharePercent}%`,
-        },
-        {
-            key: 'age25',
-            header: 'Age 25 (50%)',
-            render: (row) =>
-                row.age25 ? (
-                    <div>
-                        <p
-                            className={cn(
-                                'text-sm',
-                                row.age25.withdrawn
-                                    ? 'text-muted-foreground'
-                                    : row.age25.status.daysUntil === 0
-                                      ? 'text-green-600 dark:text-green-400 font-medium'
-                                      : '',
-                            )}
-                        >
-                            {row.age25.withdrawn
-                                ? 'Withdrawn'
-                                : row.age25.status.status}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                            {formatDate(row.age25.eligibleDate)}
-                        </p>
-                    </div>
-                ) : (
-                    <span className="text-muted-foreground">—</span>
+    const withdrawalColumns = useMemo<ColumnDef<WithdrawalRow>[]>(
+        () => [
+            {
+                accessorKey: 'beneficiary',
+                header: ({ column }) => (
+                    <DataTableColumnHeader
+                        column={column}
+                        title="Beneficiary"
+                    />
                 ),
-        },
-        {
-            key: 'age30',
-            header: 'Age 30 (50%)',
-            render: (row) =>
-                row.age30 ? (
-                    <div>
-                        <p
-                            className={cn(
-                                'text-sm',
-                                row.age30.withdrawn
-                                    ? 'text-muted-foreground'
-                                    : row.age30.status.daysUntil === 0
-                                      ? 'text-green-600 dark:text-green-400 font-medium'
-                                      : '',
-                            )}
-                        >
-                            {row.age30.withdrawn
-                                ? 'Withdrawn'
-                                : row.age30.status.status}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                            {formatDate(row.age30.eligibleDate)}
-                        </p>
-                    </div>
-                ) : (
-                    <span className="text-muted-foreground">—</span>
+                cell: ({ row }) => (
+                    <span className="font-medium">
+                        {row.original.beneficiary.firstName}{' '}
+                        {row.original.beneficiary.lastName}
+                    </span>
                 ),
-        },
-    ]
-
-    // Pending HEMS requests
-    const pendingHems = hemsRequests.filter((r) => r.status === 'PENDING')
-    const pendingHemsTotal = sumStrings(
-        pendingHems.map((r) => r.amountRequested),
+            },
+            {
+                accessorKey: 'currentAge',
+                header: ({ column }) => (
+                    <DataTableColumnHeader column={column} title="Age" />
+                ),
+                cell: ({ row }) => row.original.currentAge ?? '—',
+            },
+            {
+                id: 'sharePercent',
+                header: ({ column }) => (
+                    <DataTableColumnHeader column={column} title="Share" />
+                ),
+                cell: ({ row }) => `${row.original.beneficiary.sharePercent}%`,
+            },
+            {
+                accessorKey: 'age25',
+                header: ({ column }) => (
+                    <DataTableColumnHeader
+                        column={column}
+                        title="Age 25 (50%)"
+                    />
+                ),
+                cell: ({ row }) =>
+                    row.original.age25 ? (
+                        <div>
+                            <p
+                                className={cn(
+                                    'text-sm',
+                                    row.original.age25.withdrawn
+                                        ? 'text-muted-foreground'
+                                        : row.original.age25.status
+                                                .daysUntil === 0
+                                          ? 'text-green-600 dark:text-green-400 font-medium'
+                                          : '',
+                                )}
+                            >
+                                {row.original.age25.withdrawn
+                                    ? 'Withdrawn'
+                                    : row.original.age25.status.status}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                                {formatDate(row.original.age25.eligibleDate)}
+                            </p>
+                        </div>
+                    ) : (
+                        <span className="text-muted-foreground">—</span>
+                    ),
+            },
+            {
+                accessorKey: 'age30',
+                header: ({ column }) => (
+                    <DataTableColumnHeader
+                        column={column}
+                        title="Age 30 (50%)"
+                    />
+                ),
+                cell: ({ row }) =>
+                    row.original.age30 ? (
+                        <div>
+                            <p
+                                className={cn(
+                                    'text-sm',
+                                    row.original.age30.withdrawn
+                                        ? 'text-muted-foreground'
+                                        : row.original.age30.status
+                                                .daysUntil === 0
+                                          ? 'text-green-600 dark:text-green-400 font-medium'
+                                          : '',
+                                )}
+                            >
+                                {row.original.age30.withdrawn
+                                    ? 'Withdrawn'
+                                    : row.original.age30.status.status}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                                {formatDate(row.original.age30.eligibleDate)}
+                            </p>
+                        </div>
+                    ) : (
+                        <span className="text-muted-foreground">—</span>
+                    ),
+            },
+        ],
+        [],
     )
+
+    // PERF: Memoize pending HEMS calculations
+    const { pendingHems, pendingHemsTotal } = useMemo(() => {
+        const pending = hemsRequests.filter((r) => r.status === 'PENDING')
+        return {
+            pendingHems: pending,
+            pendingHemsTotal: sumStrings(pending.map((r) => r.amountRequested)),
+        }
+    }, [hemsRequests])
 
     if (loading) {
         return (
@@ -976,21 +1120,13 @@ export default function DashboardPage() {
                         </p>
                     </div>
 
-                    {withdrawalData.length === 0 ? (
-                        <Card>
-                            <CardContent className="py-12 text-center">
-                                <p className="text-muted-foreground">
-                                    No grandchild beneficiaries with withdrawal
-                                    schedules found.
-                                </p>
-                            </CardContent>
-                        </Card>
-                    ) : (
-                        <DataTable
-                            data={withdrawalData}
-                            columns={withdrawalColumns}
-                        />
-                    )}
+                    <DataTable
+                        data={withdrawalData}
+                        columns={withdrawalColumns}
+                        emptyMessage="No grandchild beneficiaries with withdrawal schedules found."
+                        enableColumnVisibility={true}
+                        enablePagination={true}
+                    />
                 </TabsContent>
 
                 {/* Trust Accounting Panel */}

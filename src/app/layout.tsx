@@ -1,7 +1,9 @@
+import { NeonAuthUIProvider } from '@neondatabase/auth/react'
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { NuqsAdapter } from 'nuqs/adapters/next/app'
 import { Toaster } from 'sonner'
+import { authClient } from '@/lib/auth/client'
 import { TRPCProvider } from '@/lib/trpc-provider'
 import './globals.css'
 
@@ -26,18 +28,26 @@ export default function RootLayout({
     children: React.ReactNode
 }>) {
     return (
-        <html lang="en">
+        <html lang="en" suppressHydrationWarning>
             <body
                 className={`${geist.variable} ${geistMono.variable} antialiased`}
             >
                 <NuqsAdapter>
                     <TRPCProvider>
-                        {children}
-                        <Toaster
-                            richColors
-                            position="bottom-right"
-                            toastOptions={{ style: { width: 'fit-content' } }}
-                        />
+                        <NeonAuthUIProvider
+                            authClient={authClient}
+                            redirectTo="/dashboard"
+                            emailOTP
+                        >
+                            {children}
+                            <Toaster
+                                richColors
+                                position="bottom-right"
+                                toastOptions={{
+                                    style: { width: 'fit-content' },
+                                }}
+                            />
+                        </NeonAuthUIProvider>
                     </TRPCProvider>
                 </NuqsAdapter>
             </body>

@@ -6,6 +6,7 @@
  * Admin page for reviewing and approving/denying HEMS requests from beneficiaries.
  */
 
+import type { ColumnDef } from '@tanstack/react-table'
 import {
     CheckCircle,
     Clock,
@@ -15,10 +16,11 @@ import {
     XCircle,
 } from 'lucide-react'
 import { useMemo, useOptimistic, useState } from 'react'
-import { type ColumnDef, DataTable } from '@/components/data-table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { DataTable } from '@/components/ui/data-table'
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import {
     Dialog,
     DialogContent,
@@ -144,69 +146,84 @@ export default function HemsQueuePage() {
 
     const columns: ColumnDef<HemsRequestWithBeneficiary>[] = [
         {
-            key: 'createdAt',
-            header: 'Date',
-            render: (request) => (
-                <span className="text-sm">{formatDate(request.createdAt)}</span>
+            accessorKey: 'createdAt',
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title="Date" />
+            ),
+            cell: ({ row }) => (
+                <span className="text-sm">
+                    {formatDate(row.original.createdAt)}
+                </span>
             ),
         },
         {
-            key: 'beneficiary',
+            id: 'beneficiary',
             header: 'Beneficiary',
-            render: (request) => (
+            cell: ({ row }) => (
                 <div>
                     <p className="font-medium">
-                        {request.beneficiary.firstName}{' '}
-                        {request.beneficiary.lastName}
+                        {row.original.beneficiary.firstName}{' '}
+                        {row.original.beneficiary.lastName}
                     </p>
-                    {request.beneficiary.email && (
+                    {row.original.beneficiary.email && (
                         <p className="text-xs text-muted-foreground">
-                            {request.beneficiary.email}
+                            {row.original.beneficiary.email}
                         </p>
                     )}
                 </div>
             ),
         },
         {
-            key: 'category',
-            header: 'Category',
-            render: (request) => (
+            accessorKey: 'category',
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title="Category" />
+            ),
+            cell: ({ row }) => (
                 <Badge variant="outline">
-                    {CATEGORY_LABELS[request.category] || request.category}
+                    {CATEGORY_LABELS[row.original.category] ||
+                        row.original.category}
                 </Badge>
             ),
         },
         {
-            key: 'amountRequested',
-            header: 'Amount',
-            render: (request) => (
+            accessorKey: 'amountRequested',
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title="Amount" />
+            ),
+            cell: ({ row }) => (
                 <span className="font-medium">
-                    {formatCurrency(request.amountRequested)}
+                    {formatCurrency(row.original.amountRequested)}
                 </span>
             ),
         },
         {
-            key: 'status',
-            header: 'Status',
-            render: (request) => (
-                <Badge variant={STATUS_VARIANTS[request.status] || 'secondary'}>
-                    {STATUS_LABELS[request.status] || request.status}
+            accessorKey: 'status',
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title="Status" />
+            ),
+            cell: ({ row }) => (
+                <Badge
+                    variant={
+                        STATUS_VARIANTS[row.original.status] || 'secondary'
+                    }
+                >
+                    {STATUS_LABELS[row.original.status] || row.original.status}
                 </Badge>
             ),
         },
         {
-            key: 'actions',
+            id: 'actions',
             header: 'Actions',
-            render: (request) =>
-                request.status === 'PENDING' ? (
-                    <Button size="sm" onClick={() => openReview(request)}>
+            cell: ({ row }) =>
+                row.original.status === 'PENDING' ? (
+                    <Button size="sm" onClick={() => openReview(row.original)}>
                         Review
                     </Button>
                 ) : (
                     <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => openReview(request)}
+                        onClick={() => openReview(row.original)}
                     >
                         View
                     </Button>
@@ -402,7 +419,15 @@ export default function HemsQueuePage() {
                             </CardContent>
                         </Card>
                     ) : (
-                        <DataTable data={displayedRequests} columns={columns} />
+                        <DataTable
+                            data={displayedRequests}
+                            columns={columns}
+                            searchKey="category"
+                            searchPlaceholder="Filter by category..."
+                            emptyMessage="No requests found."
+                            enableColumnVisibility={true}
+                            enablePagination={true}
+                        />
                     )}
                 </TabsContent>
             </Tabs>
