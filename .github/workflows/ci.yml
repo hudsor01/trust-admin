@@ -37,3 +37,6 @@ jobs:
 
       - name: Run unit tests
         run: bun run test:unit
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          NEON_AUTH_BASE_URL: ${{ secrets.NEON_AUTH_BASE_URL }}
