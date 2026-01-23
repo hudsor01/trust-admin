@@ -74,16 +74,6 @@
             "linter": {
                 "enabled": false
             }
-        },
-        {
-            "includes": ["db/seed-*.ts"],
-            "linter": {
-                "rules": {
-                    "correctness": {
-                        "noUnusedVariables": "off"
-                    }
-                }
-            }
         }
     ]
 }

@@ -6,7 +6,7 @@
  */
 
 import '../setup'
-import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterEach, describe, expect, mock, test } from 'bun:test'
 import {
     cleanup,
     fireEvent,
@@ -57,7 +57,7 @@ describe('EditableTextCell', () => {
     })
 
     test('calls onSave with new value on blur', async () => {
-        const onSave = mock(async (value: string | null) => {})
+        const onSave = mock(async (_value: string | null) => {})
         const user = userEvent.setup()
 
         render(<EditableTextCell value="Original" onSave={onSave} />)
@@ -74,7 +74,7 @@ describe('EditableTextCell', () => {
     })
 
     test('calls onSave on Enter key', async () => {
-        const onSave = mock(async (value: string | null) => {})
+        const onSave = mock(async (_value: string | null) => {})
         const user = userEvent.setup()
 
         render(<EditableTextCell value="Original" onSave={onSave} />)
@@ -90,7 +90,7 @@ describe('EditableTextCell', () => {
     })
 
     test('cancels edit on Escape key', async () => {
-        const onSave = mock(async (value: string | null) => {})
+        const onSave = mock(async (_value: string | null) => {})
         const user = userEvent.setup()
 
         render(<EditableTextCell value="Original" onSave={onSave} />)
@@ -106,7 +106,7 @@ describe('EditableTextCell', () => {
     })
 
     test('does not call onSave if value unchanged', async () => {
-        const onSave = mock(async (value: string | null) => {})
+        const onSave = mock(async (_value: string | null) => {})
         const user = userEvent.setup()
 
         render(<EditableTextCell value="Original" onSave={onSave} />)
@@ -145,7 +145,7 @@ describe('EditableCurrencyCell', () => {
     })
 
     test('calls onSave with numeric string', async () => {
-        const onSave = mock(async (value: string | null) => {})
+        const onSave = mock(async (_value: string | null) => {})
         const user = userEvent.setup()
 
         render(<EditableCurrencyCell value="1000.00" onSave={onSave} />)
@@ -161,7 +161,7 @@ describe('EditableCurrencyCell', () => {
     })
 
     test('passes through input value as-is', async () => {
-        const onSave = mock(async (value: string | null) => {})
+        const onSave = mock(async (_value: string | null) => {})
         const user = userEvent.setup()
 
         render(<EditableCurrencyCell value="1000.00" onSave={onSave} />)
@@ -229,7 +229,7 @@ describe('EditableSelectCell', () => {
     })
 
     test('calls onSave when option selected', async () => {
-        const onSave = mock(async (value: string) => {})
+        const onSave = mock(async (_value: string) => {})
         const user = userEvent.setup()
 
         render(
@@ -306,7 +306,7 @@ describe('EditableDateCell', () => {
     })
 
     test('calls onSave with date string', async () => {
-        const onSave = mock(async (value: string | null) => {})
+        const onSave = mock(async (_value: string | null) => {})
         const user = userEvent.setup()
 
         const { container } = render(
@@ -386,7 +386,7 @@ describe('Editable cell error handling', () => {
     })
 
     test('EditableCurrencyCell handles invalid input', async () => {
-        const onSave = mock(async (value: string | null) => {})
+        const onSave = mock(async (_value: string | null) => {})
         const user = userEvent.setup()
 
         render(<EditableCurrencyCell value="100.00" onSave={onSave} />)

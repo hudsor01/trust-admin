@@ -271,10 +271,10 @@ export default function DashboardPage() {
 
     // PERF: Memoize asset calculations - these involve multiple array operations
     const {
-        totalBankAccounts,
-        totalInvestments,
-        totalRealEstate,
-        totalVehicles,
+        totalBankAccounts: _totalBankAccounts,
+        totalInvestments: _totalInvestments,
+        totalRealEstate: _totalRealEstate,
+        totalVehicles: _totalVehicles,
         totalLiabilities,
         totalAssets,
         assetAllocationData,

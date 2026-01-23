@@ -11,9 +11,7 @@
  * not the actual login flow (which requires browser interaction).
  */
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
-import { eq } from 'drizzle-orm'
-import { db, getClient, initJwtSession } from '../db'
-import { userProfile } from '../db/schema'
+import { getClient, initJwtSession } from '../db'
 import {
     authJwtSessionInitExists,
     authUserIdFunctionExists,

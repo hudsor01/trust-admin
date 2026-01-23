@@ -118,7 +118,7 @@ export default function AccountingPage() {
         )
 
     const entries = paginatedResult?.data || []
-    const totalCount = paginatedResult?.totalCount || 0
+    const _totalCount = paginatedResult?.totalCount || 0
 
     const createEntryMutation = trpc.trustAccounting.create.useMutation({
         onSuccess: () => utils.trustAccounting.listPaginated.invalidate(),

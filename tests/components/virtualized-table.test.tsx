@@ -23,7 +23,7 @@ const testLogs: TestLog[] = Array.from({ length: 50 }, (_, i) => ({
     id: i + 1,
     action: i % 3 === 0 ? 'INSERT' : i % 3 === 1 ? 'UPDATE' : 'DELETE',
     tableName: 'test_table',
-    recordId: 'record-' + (i + 1),
+    recordId: `record-${i + 1}`,
     createdAt: '2025-01-15T12:00:00',
 }))
 
@@ -110,7 +110,7 @@ describe('VirtualizedTable', () => {
                 id: i + 1,
                 action: 'INSERT',
                 tableName: 'large_table',
-                recordId: 'record-' + (i + 1),
+                recordId: `record-${i + 1}`,
                 createdAt: '2025-01-15T12:00:00',
             }))
 
@@ -167,7 +167,7 @@ describe('VirtualizedTable', () => {
                 {
                     accessorKey: 'action',
                     header: 'Custom Action Header',
-                    cell: ({ row }) => 'Action: ' + row.original.action,
+                    cell: ({ row }) => `Action: ${row.original.action}`,
                 },
             ]
 

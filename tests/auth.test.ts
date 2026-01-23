@@ -11,7 +11,7 @@
  * HTTP endpoint tests require a running server.
  */
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
-import { eq, sql } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { db, getClient } from '../db'
 import { beneficiary, entity, userProfile } from '../db/schema'
 

@@ -43,7 +43,7 @@ console.log('Distributions visible (no context):', distNoCtx[0]?.cnt)
 // First, find an actual beneficiary that exists in the database
 // We need to bypass RLS to do this, so let's check what exists
 console.log('\n--- Finding existing data (as admin) ---')
-const testAdminId = 'debug-admin-' + Date.now()
+const testAdminId = `debug-admin-${Date.now()}`
 await client`
     INSERT INTO user_profile (user_id, role, beneficiary_id)
     VALUES (${testAdminId}, 'admin', NULL)
@@ -81,7 +81,7 @@ console.log('\nUsing beneficiary ID:', testBenId)
 await client`SELECT app.clear_test_user()`
 await client`DELETE FROM user_profile WHERE user_id = ${testAdminId}`
 
-const testUserId = 'debug-ben-' + Date.now()
+const testUserId = `debug-ben-${Date.now()}`
 console.log('\n--- Creating test beneficiary user ---')
 await client`
     INSERT INTO user_profile (user_id, role, beneficiary_id)

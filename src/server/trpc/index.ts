@@ -36,7 +36,7 @@ export type AppUser = {
  * The session token is passed to auth.jwt_session_init() so that
  * auth.user_id() returns the correct user ID in RLS policies.
  */
-export async function createContext(opts: { headers: Headers }) {
+export async function createContext(_opts: { headers: Headers }) {
     const { data: session } = await authServer.getSession()
 
     // If we have a session, initialize JWT for RLS and fetch user profile

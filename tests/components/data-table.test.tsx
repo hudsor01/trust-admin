@@ -233,8 +233,8 @@ describe('DataTable', () => {
     describe('pagination', () => {
         const manyItems: TestPerson[] = Array.from({ length: 25 }, (_, i) => ({
             id: i + 1,
-            name: 'Person ' + (i + 1),
-            email: 'person' + (i + 1) + '@example.com',
+            name: `Person ${i + 1}`,
+            email: `person${i + 1}@example.com`,
             age: 20 + i,
             status: 'active',
         }))

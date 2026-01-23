@@ -2,7 +2,7 @@
 
 import type { ColumnDef } from '@tanstack/react-table'
 import { Loader2, Pencil, Plus, Trash2 } from 'lucide-react'
-import { useMemo } from 'react'
+import { useCallback, useMemo } from 'react'
 import {
     EditableCurrencyCell,
     EditableSelectCell,
@@ -10,7 +10,6 @@ import {
 } from '@/components/editable-cells'
 import { ResourceDialog } from '@/components/resource-dialog'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 import { DataTable } from '@/components/ui/data-table'
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import { Input } from '@/components/ui/input'
@@ -117,39 +116,46 @@ export default function VehiclesPage() {
         },
     })
 
-    const handleEdit = (v: Vehicle) => {
-        vehicleForm.handleEdit({
-            ...v,
-            color: v.color || '',
-            licensePlate: v.licensePlate || '',
-            acquisitionDate: toDateInput(v.acquisitionDate),
-            acquisitionCost: v.acquisitionCost || '',
-            dodValue: v.dodValue || '',
-            dodValueDate: toDateInput(v.dodValueDate),
-            dodValueType: v.dodValueType || '',
-            notes: v.notes || '',
-        })
-    }
+    const handleEdit = useCallback(
+        (v: Vehicle) => {
+            vehicleForm.handleEdit({
+                ...v,
+                color: v.color || '',
+                licensePlate: v.licensePlate || '',
+                acquisitionDate: toDateInput(v.acquisitionDate),
+                acquisitionCost: v.acquisitionCost || '',
+                dodValue: v.dodValue || '',
+                dodValueDate: toDateInput(v.dodValueDate),
+                dodValueType: v.dodValueType || '',
+                notes: v.notes || '',
+            })
+        },
+        [vehicleForm],
+    )
 
-    const handleDelete = async (item: Vehicle) => {
-        if (!confirm('Are you sure you want to delete this vehicle?')) return
-        try {
-            await deleteVehicleMutation.mutateAsync(item.id)
-        } catch (err) {
-            console.error('Failed to delete vehicle:', err)
-        }
-    }
+    const handleDelete = useCallback(
+        async (item: Vehicle) => {
+            if (!confirm('Are you sure you want to delete this vehicle?'))
+                return
+            try {
+                await deleteVehicleMutation.mutateAsync(item.id)
+            } catch (err) {
+                console.error('Failed to delete vehicle:', err)
+            }
+        },
+        [deleteVehicleMutation],
+    )
 
-    const handleInlineUpdate = async (
-        id: number,
-        updates: Partial<Vehicle>,
-    ) => {
-        try {
-            await updateVehicleMutation.mutateAsync({ id, data: updates })
-        } catch (err) {
-            console.error('Failed to update vehicle:', err)
-        }
-    }
+    const handleInlineUpdate = useCallback(
+        async (id: number, updates: Partial<Vehicle>) => {
+            try {
+                await updateVehicleMutation.mutateAsync({ id, data: updates })
+            } catch (err) {
+                console.error('Failed to update vehicle:', err)
+            }
+        },
+        [updateVehicleMutation],
+    )
 
     // Column definitions using TanStack Table format
     const columns: ColumnDef<Vehicle>[] = useMemo(

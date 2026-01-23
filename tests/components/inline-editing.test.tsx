@@ -60,7 +60,7 @@ describe('Inline Editing Integration', () => {
 
     describe('Text field editing', () => {
         test('edits creditor name and saves', async () => {
-            const onSave = mock(async (id: number, value: string) => {})
+            const onSave = mock(async (_id: number, _value: string) => {})
             const user = userEvent.setup()
 
             const columns: ColumnDef<Liability>[] = [
@@ -94,7 +94,7 @@ describe('Inline Editing Integration', () => {
         })
 
         test('cancels edit without saving', async () => {
-            const onSave = mock(async (id: number, value: string) => {})
+            const onSave = mock(async (_id: number, _value: string) => {})
             const user = userEvent.setup()
 
             const columns: ColumnDef<Liability>[] = [
@@ -127,7 +127,7 @@ describe('Inline Editing Integration', () => {
 
     describe('Currency field editing', () => {
         test('edits balance and saves formatted value', async () => {
-            const onSave = mock(async (id: number, value: string) => {})
+            const onSave = mock(async (_id: number, _value: string) => {})
             const user = userEvent.setup()
 
             const columns: ColumnDef<Liability>[] = [
@@ -160,7 +160,7 @@ describe('Inline Editing Integration', () => {
         })
 
         test('handles currency symbols in input', async () => {
-            const onSave = mock(async (id: number, value: string) => {})
+            const onSave = mock(async (_id: number, _value: string) => {})
             const user = userEvent.setup()
 
             const columns: ColumnDef<Liability>[] = [
@@ -194,7 +194,7 @@ describe('Inline Editing Integration', () => {
 
     describe('Select field editing', () => {
         test('changes status via dropdown', async () => {
-            const onSave = mock(async (id: number, value: string) => {})
+            const onSave = mock(async (_id: number, _value: string) => {})
             const user = userEvent.setup()
 
             // Use single item to avoid multiple "Active" elements
@@ -232,8 +232,12 @@ describe('Inline Editing Integration', () => {
 
     describe('Multiple columns editing', () => {
         test('edits different columns independently', async () => {
-            const onSaveCreditor = mock(async (id: number, value: string) => {})
-            const onSaveBalance = mock(async (id: number, value: string) => {})
+            const onSaveCreditor = mock(
+                async (_id: number, _value: string) => {},
+            )
+            const onSaveBalance = mock(
+                async (_id: number, _value: string) => {},
+            )
             const user = userEvent.setup()
 
             const columns: ColumnDef<Liability>[] = [
@@ -330,7 +334,7 @@ describe('Inline Editing Integration', () => {
 
     describe('Empty and null values', () => {
         test('handles null value correctly', async () => {
-            const onSave = mock(async (value: string | null) => {})
+            const onSave = mock(async (_value: string | null) => {})
             const user = userEvent.setup()
 
             const dataWithNull: Liability[] = [
@@ -372,7 +376,7 @@ describe('Inline Editing Integration', () => {
         })
 
         test('clears value to null', async () => {
-            const onSave = mock(async (value: string | null) => {})
+            const onSave = mock(async (_value: string | null) => {})
             const user = userEvent.setup()
 
             const columns: ColumnDef<Liability>[] = [
@@ -410,10 +414,10 @@ describe('Page-specific inline editing patterns', () => {
     describe('Liabilities page pattern', () => {
         test('creditor and balance columns are editable', async () => {
             const updateCreditor = mock(
-                async (id: number, creditor: string) => {},
+                async (_id: number, _creditor: string) => {},
             )
             const updateBalance = mock(
-                async (id: number, balance: string) => {},
+                async (_id: number, _balance: string) => {},
             )
             const user = userEvent.setup()
 
@@ -493,7 +497,7 @@ describe('Page-specific inline editing patterns', () => {
             },
         ]
 
-        const ACCOUNT_TYPES = [
+        const _ACCOUNT_TYPES = [
             { value: 'BROKERAGE', label: 'Brokerage' },
             { value: 'IRA', label: 'IRA' },
             { value: 'CHECKING', label: 'Checking' },
@@ -501,7 +505,7 @@ describe('Page-specific inline editing patterns', () => {
 
         test('institution and balance are editable', async () => {
             const onUpdate = mock(
-                async (id: number, data: Partial<Account>) => {},
+                async (_id: number, _data: Partial<Account>) => {},
             )
             const user = userEvent.setup()
 
@@ -575,7 +579,7 @@ describe('Page-specific inline editing patterns', () => {
         ]
 
         test('share percent is editable', async () => {
-            const onUpdate = mock(async (id: number, share: string) => {})
+            const onUpdate = mock(async (_id: number, _share: string) => {})
             const user = userEvent.setup()
 
             const columns: ColumnDef<Beneficiary>[] = [
@@ -583,7 +587,7 @@ describe('Page-specific inline editing patterns', () => {
                     accessorKey: 'firstName',
                     header: 'Name',
                     cell: ({ row }) =>
-                        row.original.firstName + ' ' + row.original.lastName,
+                        `${row.original.firstName} ${row.original.lastName}`,
                 },
                 {
                     accessorKey: 'sharePercent',

@@ -10,7 +10,7 @@
  * - Sessions use JWT tokens via pg_session_jwt extension
  */
 
-import { eq, sql } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { db, getClient } from '../../db'
 import { beneficiary, entity, userProfile } from '../../db/schema'
 
