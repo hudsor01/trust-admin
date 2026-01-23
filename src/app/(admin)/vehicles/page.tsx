@@ -162,6 +162,8 @@ export default function VehiclesPage() {
         () => [
             {
                 id: 'vehicle',
+                accessorFn: (row) =>
+                    `${row.year} ${row.make} ${row.model}`.toLowerCase(),
                 header: ({ column }) => (
                     <DataTableColumnHeader
                         column={column}
@@ -181,6 +183,7 @@ export default function VehiclesPage() {
                         )}
                     </div>
                 ),
+                filterFn: 'includesString',
             },
             {
                 accessorKey: 'vin',
@@ -346,7 +349,7 @@ export default function VehiclesPage() {
                     <DataTable
                         columns={columns}
                         data={vehicles}
-                        searchKey="make"
+                        searchKey="vehicle"
                         searchPlaceholder="Search vehicles..."
                         isLoading={vehiclesLoading}
                         emptyMessage="No vehicles. Click Add Vehicle to create one."
