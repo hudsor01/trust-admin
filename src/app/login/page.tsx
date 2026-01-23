@@ -1,22 +1,11 @@
-'use client'
+import { redirect } from 'next/navigation'
 
 /**
  * Admin Login Page
  *
- * Magic link authentication for admin users.
+ * Redirects to the unified Neon Auth sign-in page.
+ * Kept for backwards compatibility with existing links.
  */
-
-import { Shield } from 'lucide-react'
-import { LoginPage } from '@/components/login-page'
-
 export default function AdminLoginPage() {
-    return (
-        <LoginPage
-            title="Admin Login"
-            icon={Shield}
-            redirectPath="/dashboard"
-            callbackURL="/dashboard"
-            emailPlaceholder="admin@example.com"
-        />
-    )
+    redirect('/auth/sign-in')
 }

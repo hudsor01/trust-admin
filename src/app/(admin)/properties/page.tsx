@@ -1,8 +1,8 @@
 'use client'
 
+import type { ColumnDef } from '@tanstack/react-table'
 import { Loader2, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
-import { type ColumnDef, DataTable } from '@/components/data-table'
 import {
     EditableCurrencyCell,
     EditableNumberCell,
@@ -14,6 +14,8 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
+import { DataTable } from '@/components/ui/data-table'
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -428,76 +430,83 @@ export default function PropertiesPage() {
     // Column configuration for Rental Properties table
     const rentalColumns: ColumnDef<RentalProperty>[] = [
         {
-            key: 'name',
-            header: 'Name',
-            sortable: true,
-            render: (item) => (
+            accessorKey: 'name',
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title="Name" />
+            ),
+            cell: ({ row }) => (
                 <EditableTextCell
-                    value={item.name}
+                    value={row.original.name}
                     onSave={async (v) =>
-                        updateRental(item.id, { name: v as string })
+                        updateRental(row.original.id, { name: v as string })
                     }
                 />
             ),
         },
         {
-            key: 'streetAddress',
+            accessorKey: 'streetAddress',
             header: 'Address',
-            render: (item) => (
+            cell: ({ row }) => (
                 <>
-                    <p className="text-sm">{item.streetAddress}</p>
+                    <p className="text-sm">{row.original.streetAddress}</p>
                     <p className="text-xs text-muted-foreground">
-                        {item.city}, {item.state} {item.zip}
+                        {row.original.city}, {row.original.state}{' '}
+                        {row.original.zip}
                     </p>
                 </>
             ),
         },
         {
-            key: 'units',
-            header: 'Units',
-            sortable: true,
-            render: (item) => (
+            accessorKey: 'units',
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title="Units" />
+            ),
+            cell: ({ row }) => (
                 <EditableNumberCell
-                    value={item.units}
+                    value={row.original.units}
                     onSave={async (v) =>
-                        updateRental(item.id, { units: v as number })
+                        updateRental(row.original.id, { units: v as number })
                     }
                 />
             ),
         },
         {
-            key: 'monthlyRent',
-            header: 'Monthly Rent',
-            sortable: true,
-            render: (item) => (
+            accessorKey: 'monthlyRent',
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title="Monthly Rent" />
+            ),
+            cell: ({ row }) => (
                 <EditableCurrencyCell
-                    value={item.monthlyRent}
+                    value={row.original.monthlyRent}
                     onSave={async (v) =>
-                        updateRental(item.id, { monthlyRent: v })
+                        updateRental(row.original.id, { monthlyRent: v })
                     }
                 />
             ),
         },
         {
-            key: 'dodValue',
-            header: 'DOD Value',
-            sortable: true,
-            render: (item) => (
+            accessorKey: 'dodValue',
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title="DOD Value" />
+            ),
+            cell: ({ row }) => (
                 <EditableCurrencyCell
-                    value={item.dodValue}
-                    onSave={async (v) => updateRental(item.id, { dodValue: v })}
+                    value={row.original.dodValue}
+                    onSave={async (v) =>
+                        updateRental(row.original.id, { dodValue: v })
+                    }
                 />
             ),
         },
         {
-            key: 'rentalStatus',
+            accessorKey: 'rentalStatus',
             header: 'Status',
-            render: (item) => (
+            cell: ({ row }) => (
                 <EditableSelectCell
-                    value={item.rentalStatus}
+                    value={row.original.rentalStatus}
                     options={RENTAL_STATUS}
                     onSave={async (v) =>
-                        updateRental(item.id, {
+                        updateRental(row.original.id, {
                             rentalStatus: asRentalStatus(v),
                         })
                     }
@@ -506,19 +515,45 @@ export default function PropertiesPage() {
             ),
         },
         {
-            key: 'transferStatus',
+            accessorKey: 'transferStatus',
             header: 'Transfer',
-            render: (item) => (
+            cell: ({ row }) => (
                 <EditableSelectCell
-                    value={item.transferStatus}
+                    value={row.original.transferStatus}
                     options={TRANSFER_STATUS}
                     onSave={async (v) =>
-                        updateRental(item.id, {
+                        updateRental(row.original.id, {
                             transferStatus: asTransferStatus(v),
                         })
                     }
                     variants={STATUS_VARIANTS}
                 />
+            ),
+        },
+        {
+            id: 'actions',
+            header: '',
+            cell: ({ row }) => (
+                <div className="flex items-center gap-1">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => handleEditRental(row.original)}
+                        title="Edit property"
+                    >
+                        <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                        onClick={() => handleDeleteRental(row.original.id)}
+                        title="Delete property"
+                    >
+                        <Trash2 className="h-4 w-4" />
+                    </Button>
+                </div>
             ),
         },
     ]
@@ -797,10 +832,12 @@ export default function PropertiesPage() {
                                 <DataTable
                                     data={rentals}
                                     columns={rentalColumns}
-                                    onEdit={handleEditRental}
-                                    onDelete={(r) => handleDeleteRental(r.id)}
+                                    searchKey="name"
+                                    searchPlaceholder="Filter by name..."
                                     isLoading={rentalsLoading}
                                     emptyMessage="No rental properties. Click Add to create one."
+                                    enableColumnVisibility={true}
+                                    enablePagination={true}
                                 />
                             </CardContent>
                         </Card>

@@ -61,12 +61,15 @@ export function useResourceForm<T>({
     })
 
     const openDialog = (defaults?: Partial<T>) => {
-        if (defaults) {
-            formInstance.update({
-                defaultValues: { ...initialData, ...defaults },
-            })
-            formInstance.reset()
-        }
+        // Always reset form to proper defaults when opening
+        // Merge any provided defaults with initialData
+        const mergedDefaults = defaults
+            ? { ...initialData, ...defaults }
+            : initialData
+        formInstance.update({
+            defaultValues: mergedDefaults,
+        })
+        formInstance.reset()
         setIsOpen(true)
     }
 
@@ -87,6 +90,8 @@ export function useResourceForm<T>({
 
     const handleAdd = () => {
         setEditing(null)
+        // Reset to initial defaults (not any previously merged defaults)
+        formInstance.update({ defaultValues: initialData })
         formInstance.reset()
         setIsOpen(true)
     }

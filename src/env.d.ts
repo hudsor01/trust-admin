@@ -14,8 +14,10 @@ declare module 'bun' {
         PORT?: string
         NODE_ENV?: 'development' | 'production' | 'test'
 
-        // Authentication
-        BETTER_AUTH_SECRET?: string
+        // Authentication (Neon Auth)
+        NEON_AUTH_BASE_URL?: string // Required: Neon Auth service URL (auto-set by Neon)
+
+        // Email (Optional - for magic links)
         RESEND_API_KEY?: string
         EMAIL_FROM?: string
 

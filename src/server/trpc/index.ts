@@ -5,21 +5,87 @@
  * Used by all routers in server/trpc/routers/
  */
 import { initTRPC, TRPCError } from '@trpc/server'
+import { eq } from 'drizzle-orm'
 import { ZodError, z } from 'zod'
-import { auth } from '@/lib/auth'
+import { authServer } from '@/lib/auth'
+import { clearSentryUser, setSentryUser } from '@/lib/sentry'
+import { db, initJwtSession } from '../../../db'
+import { userProfile } from '../../../db/schema'
+
+/**
+ * App user type with custom fields from user_profile
+ */
+export type AppUser = {
+    id: string
+    name: string
+    email: string
+    emailVerified: boolean
+    image?: string | null
+    createdAt: Date
+    updatedAt: Date
+    // Custom fields from user_profile
+    role: 'admin' | 'beneficiary'
+    beneficiaryId: number | null
+}
 
 /**
  * Context creation for each request
- * Includes session info from Better Auth
+ * Includes session info from Neon Auth + custom user_profile data
+ *
+ * IMPORTANT: This initializes the JWT session for RLS policies.
+ * The session token is passed to auth.jwt_session_init() so that
+ * auth.user_id() returns the correct user ID in RLS policies.
  */
-export async function createContext(opts: { headers: Headers }) {
-    const session = await auth.api.getSession({
-        headers: opts.headers,
-    })
+export async function createContext(_opts: { headers: Headers }) {
+    const { data: session } = await authServer.getSession()
+
+    // If we have a session, initialize JWT for RLS and fetch user profile
+    let appUser: AppUser | null = null
+    if (session?.user && session?.session?.token) {
+        // Initialize JWT session for RLS - must be done BEFORE any queries
+        // This makes auth.user_id() work in RLS policies
+        try {
+            await initJwtSession(session.session.token)
+        } catch (error) {
+            console.error('Failed to initialize JWT session for RLS:', error)
+            // Continue without RLS - queries will still work but may return no data
+        }
+
+        const [profile] = await db
+            .select()
+            .from(userProfile)
+            .where(eq(userProfile.userId, session.user.id))
+            .limit(1)
+
+        // Merge Neon Auth user with profile data
+        appUser = {
+            id: session.user.id,
+            name: session.user.name,
+            email: session.user.email,
+            emailVerified: session.user.emailVerified,
+            image: session.user.image,
+            createdAt: session.user.createdAt,
+            updatedAt: session.user.updatedAt,
+            // Custom fields from profile (defaults if no profile exists)
+            role: profile?.role ?? 'beneficiary',
+            beneficiaryId: profile?.beneficiaryId ?? null,
+        }
+
+        // Set Sentry user context for error tracking and performance monitoring
+        setSentryUser({
+            id: appUser.id,
+            email: appUser.email,
+            role: appUser.role,
+            beneficiaryId: appUser.beneficiaryId,
+        })
+    } else {
+        // Clear Sentry user context when no session
+        clearSentryUser()
+    }
 
     return {
         session,
-        user: session?.user ?? null,
+        user: appUser,
     }
 }
 

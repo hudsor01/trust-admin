@@ -1,21 +1,11 @@
-'use client'
+import { redirect } from 'next/navigation'
 
 /**
  * Portal Login Page
  *
- * Magic link authentication for beneficiaries.
+ * Redirects to the unified Neon Auth sign-in page.
+ * Kept for backwards compatibility with existing links.
  */
-
-import { Mail } from 'lucide-react'
-import { LoginPage } from '@/components/login-page'
-
 export default function PortalLoginPage() {
-    return (
-        <LoginPage
-            title="Beneficiary Portal"
-            icon={Mail}
-            redirectPath="/portal"
-            callbackURL="/portal"
-        />
-    )
+    redirect('/auth/sign-in')
 }

@@ -1,5 +1,6 @@
 'use client'
 
+import type { ColumnDef } from '@tanstack/react-table'
 import {
     DollarSign,
     List,
@@ -15,7 +16,6 @@ import {
     BulkEntryTable,
     type BulkLiabilityRow,
 } from '@/components/bulk-entry-table'
-import { type ColumnDef, DataTable } from '@/components/data-table'
 import {
     EditableCurrencyCell,
     EditableSelectCell,
@@ -25,6 +25,8 @@ import { ResourceDialog } from '@/components/resource-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { DataTable } from '@/components/ui/data-table'
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Progress } from '@/components/ui/progress'
@@ -663,26 +665,29 @@ export default function LiabilitiesPage() {
 
     const liabilityColumns: ColumnDef<Liability>[] = [
         {
-            key: 'creditor',
-            header: 'Creditor',
-            render: (liability) => (
+            accessorKey: 'creditor',
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title="Creditor" />
+            ),
+            cell: ({ row }) => (
                 <EditableTextCell
-                    value={liability.creditor}
+                    value={row.original.creditor}
                     onSave={async (v) =>
-                        updateLiability(liability.id, { creditor: v || '' })
+                        updateLiability(row.original.id, { creditor: v || '' })
                     }
                 />
             ),
         },
         {
-            key: 'liabilityType',
-            header: 'Type',
-            align: 'center',
-            render: (liability) => {
+            accessorKey: 'liabilityType',
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title="Type" />
+            ),
+            cell: ({ row }) => {
                 const typeLabel =
                     LIABILITY_TYPES.find(
-                        (t) => t.value === liability.liabilityType,
-                    )?.label || liability.liabilityType
+                        (t) => t.value === row.original.liabilityType,
+                    )?.label || row.original.liabilityType
                 return (
                     <Badge variant="outline" className="text-xs">
                         {typeLabel}
@@ -691,14 +696,18 @@ export default function LiabilitiesPage() {
             },
         },
         {
-            key: 'originalAmount',
-            header: 'Original Amount',
-            align: 'right',
-            render: (liability) => (
+            accessorKey: 'originalAmount',
+            header: ({ column }) => (
+                <DataTableColumnHeader
+                    column={column}
+                    title="Original Amount"
+                />
+            ),
+            cell: ({ row }) => (
                 <EditableCurrencyCell
-                    value={liability.originalAmount}
+                    value={row.original.originalAmount}
                     onSave={async (v) =>
-                        updateLiability(liability.id, {
+                        updateLiability(row.original.id, {
                             originalAmount: v || '0',
                         })
                     }
@@ -706,14 +715,18 @@ export default function LiabilitiesPage() {
             ),
         },
         {
-            key: 'currentBalance',
-            header: 'Current Balance',
-            align: 'right',
-            render: (liability) => (
+            accessorKey: 'currentBalance',
+            header: ({ column }) => (
+                <DataTableColumnHeader
+                    column={column}
+                    title="Current Balance"
+                />
+            ),
+            cell: ({ row }) => (
                 <EditableCurrencyCell
-                    value={liability.currentBalance}
+                    value={row.original.currentBalance}
                     onSave={async (v) =>
-                        updateLiability(liability.id, {
+                        updateLiability(row.original.id, {
                             currentBalance: v || '0',
                         })
                     }
@@ -721,12 +734,11 @@ export default function LiabilitiesPage() {
             ),
         },
         {
-            key: 'progress',
+            id: 'progress',
             header: 'Progress',
-            align: 'center',
-            render: (liability) => {
-                const original = parseFloat(liability.originalAmount ?? '0')
-                const current = parseFloat(liability.currentBalance ?? '0')
+            cell: ({ row }) => {
+                const original = parseFloat(row.original.originalAmount ?? '0')
+                const current = parseFloat(row.original.currentBalance ?? '0')
                 const percent =
                     original > 0
                         ? Math.round(((original - current) / original) * 100)
@@ -755,29 +767,34 @@ export default function LiabilitiesPage() {
             },
         },
         {
-            key: 'monthlyPayment',
-            header: 'Monthly Payment',
-            align: 'right',
-            render: (liability) => (
+            accessorKey: 'monthlyPayment',
+            header: ({ column }) => (
+                <DataTableColumnHeader
+                    column={column}
+                    title="Monthly Payment"
+                />
+            ),
+            cell: ({ row }) => (
                 <EditableCurrencyCell
-                    value={liability.monthlyPayment}
+                    value={row.original.monthlyPayment}
                     onSave={async (v) =>
-                        updateLiability(liability.id, { monthlyPayment: v })
+                        updateLiability(row.original.id, { monthlyPayment: v })
                     }
                 />
             ),
         },
         {
-            key: 'status',
-            header: 'Status',
-            align: 'center',
-            render: (liability) => (
+            accessorKey: 'status',
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title="Status" />
+            ),
+            cell: ({ row }) => (
                 <EditableSelectCell
-                    value={liability.status}
+                    value={row.original.status}
                     options={LIABILITY_STATUS}
                     variants={STATUS_VARIANTS}
                     onSave={async (v) =>
-                        updateLiability(liability.id, {
+                        updateLiability(row.original.id, {
                             status: asRecordStatus(v),
                         })
                     }
@@ -785,10 +802,9 @@ export default function LiabilitiesPage() {
             ),
         },
         {
-            key: 'actions',
+            id: 'actions',
             header: 'Actions',
-            align: 'center',
-            render: (liability) => (
+            cell: ({ row }) => (
                 <div className="flex items-center justify-center gap-1">
                     <TooltipProvider>
                         <Tooltip>
@@ -797,7 +813,9 @@ export default function LiabilitiesPage() {
                                     variant="ghost"
                                     size="icon"
                                     className="h-8 w-8"
-                                    onClick={() => openPaymentDialog(liability)}
+                                    onClick={() =>
+                                        openPaymentDialog(row.original)
+                                    }
                                 >
                                     <DollarSign className="h-4 w-4" />
                                 </Button>
@@ -813,7 +831,7 @@ export default function LiabilitiesPage() {
                                     size="icon"
                                     className="h-8 w-8"
                                     onClick={() =>
-                                        handleEditLiability(liability)
+                                        handleEditLiability(row.original)
                                     }
                                 >
                                     <Pencil className="h-4 w-4" />
@@ -829,7 +847,9 @@ export default function LiabilitiesPage() {
                                     variant="ghost"
                                     size="icon"
                                     className="h-8 w-8 text-destructive hover:text-destructive"
-                                    onClick={() => handleDelete(liability.id)}
+                                    onClick={() =>
+                                        handleDelete(row.original.id)
+                                    }
                                 >
                                     <Trash2 className="h-4 w-4" />
                                 </Button>
@@ -970,26 +990,18 @@ export default function LiabilitiesPage() {
                     )}
 
                     {/* Table */}
-                    {!bulkMode &&
-                        (liabilitiesLoading ? (
-                            <div className="flex justify-center py-12">
-                                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                            </div>
-                        ) : optimisticLiabilities.length === 0 ? (
-                            <Card>
-                                <CardContent className="py-12">
-                                    <p className="text-center text-muted-foreground">
-                                        No liabilities recorded. Click Add to
-                                        create one.
-                                    </p>
-                                </CardContent>
-                            </Card>
-                        ) : (
-                            <DataTable
-                                columns={liabilityColumns}
-                                data={optimisticLiabilities}
-                            />
-                        ))}
+                    {!bulkMode && (
+                        <DataTable
+                            columns={liabilityColumns}
+                            data={optimisticLiabilities}
+                            searchKey="creditor"
+                            searchPlaceholder="Filter by creditor..."
+                            isLoading={liabilitiesLoading}
+                            emptyMessage="No liabilities recorded. Click Add to create one."
+                            enableColumnVisibility={true}
+                            enablePagination={true}
+                        />
+                    )}
                 </>
             )}
 

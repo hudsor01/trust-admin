@@ -40,6 +40,7 @@
   },
   "exclude": [
     "tests/**/*",
+    "scripts/**/*",
     "test-index-usage.ts",
     "node_modules",
     "dist",

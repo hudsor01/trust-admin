@@ -1,7 +1,8 @@
-import { headers } from 'next/headers'
+import { eq } from 'drizzle-orm'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { auth } from '@/lib/auth'
+import { authServer } from '@/lib/auth'
+import { db, userProfile } from '../../db'
 
 /**
  * Root page - auth gateway
@@ -17,13 +18,18 @@ import { auth } from '@/lib/auth'
  * - Proper Next.js redirect() for authenticated users
  */
 export default async function RootPage() {
-    const headersList = await headers()
-    const session = await auth.api.getSession({ headers: headersList })
+    const { data: session } = await authServer.getSession()
 
     // Redirect authenticated users to their appropriate dashboard
     if (session?.user) {
-        const user = session.user as { role?: string }
-        if (user.role === 'admin') {
+        // Fetch user profile to get role
+        const [profile] = await db
+            .select()
+            .from(userProfile)
+            .where(eq(userProfile.userId, session.user.id))
+            .limit(1)
+
+        if (profile?.role === 'admin') {
             redirect('/dashboard')
         }
         redirect('/portal')
@@ -44,14 +50,14 @@ export default async function RootPage() {
 
                 <div className="space-y-4">
                     <Link
-                        href="/login"
+                        href="/auth/sign-in"
                         className="block w-full rounded-lg bg-primary px-4 py-3 text-center font-medium text-primary-foreground transition-colors hover:bg-primary/90"
                     >
                         Admin Login
                     </Link>
 
                     <Link
-                        href="/portal/login"
+                        href="/auth/sign-in"
                         className="block w-full rounded-lg border border-input bg-background px-4 py-3 text-center font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
                     >
                         Beneficiary Portal

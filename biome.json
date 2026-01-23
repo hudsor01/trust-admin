@@ -68,6 +68,12 @@
             "linter": {
                 "enabled": false
             }
+        },
+        {
+            "includes": ["drizzle/**"],
+            "linter": {
+                "enabled": false
+            }
         }
     ]
 }

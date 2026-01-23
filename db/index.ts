@@ -68,3 +68,12 @@ export const client = new Proxy({} as ReturnType<typeof postgres>, {
 export * from './relations'
 // Re-export schema and relations for convenience
 export * from './schema'
+
+/**
+ * Initialize JWT session for RLS
+ * Call this with the JWT token to set auth.user_id() for RLS policies
+ */
+export async function initJwtSession(token: string) {
+    const sql = getClient()
+    await sql`SELECT auth.jwt_session_init(${token})`
+}

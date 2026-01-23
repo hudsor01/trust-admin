@@ -45,6 +45,33 @@ const nextConfig: NextConfig = {
     // See: https://github.com/radix-ui/primitives/issues/3675
     reactStrictMode: false,
 
+    // PERF: Enable experimental optimizations for better tree-shaking
+    experimental: {
+        // Automatically tree-shake imports from these packages
+        // This significantly reduces bundle size for component libraries
+        optimizePackageImports: [
+            'lucide-react',
+            '@radix-ui/react-alert-dialog',
+            '@radix-ui/react-avatar',
+            '@radix-ui/react-checkbox',
+            '@radix-ui/react-collapsible',
+            '@radix-ui/react-dialog',
+            '@radix-ui/react-dropdown-menu',
+            '@radix-ui/react-label',
+            '@radix-ui/react-popover',
+            '@radix-ui/react-progress',
+            '@radix-ui/react-scroll-area',
+            '@radix-ui/react-select',
+            '@radix-ui/react-separator',
+            '@radix-ui/react-slot',
+            '@radix-ui/react-switch',
+            '@radix-ui/react-tabs',
+            '@radix-ui/react-tooltip',
+            'recharts',
+            'date-fns',
+        ],
+    },
+
     // Allow images from UploadThing storage
     images: {
         remotePatterns: [

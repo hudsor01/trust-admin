@@ -51,6 +51,10 @@ export async function getEntities() {
     return db.select().from(entity)
 }
 
+/**
+ * Get entity by ID with all related assets (heavy query)
+ * Use getEntityByIdLite() when you only need entity fields
+ */
 export async function getEntityById(id: number) {
     return db.query.entity.findFirst({
         where: eq(entity.id, id),
@@ -64,6 +68,16 @@ export async function getEntityById(id: number) {
             personalProperties: true,
             documents: true,
         },
+    })
+}
+
+/**
+ * PERF: Lite variant - returns only entity fields without relations
+ * Use for dashboards, dropdowns, and contexts where relations aren't needed
+ */
+export async function getEntityByIdLite(id: number) {
+    return db.query.entity.findFirst({
+        where: eq(entity.id, id),
     })
 }
 
@@ -109,25 +123,56 @@ export async function getBeneficiaries(entityId?: number) {
     return db.select().from(beneficiary)
 }
 
+/**
+ * Get beneficiary by ID with recent distributions
+ * Use getBeneficiaryByIdLite() when you only need beneficiary fields
+ */
 export async function getBeneficiaryById(id: number) {
     return db.query.beneficiary.findFirst({
         where: eq(beneficiary.id, id),
         with: {
             distributions: {
                 orderBy: (d, { desc }) => [desc(d.distributionDate)],
+                limit: 20, // PERF: Limit to recent distributions
             },
         },
     })
 }
 
-export async function getBeneficiariesWithDistributions(entityId?: number) {
+/**
+ * PERF: Lite variant - returns only beneficiary fields without relations
+ * Use for dropdowns, validation checks, and contexts where relations aren't needed
+ */
+export async function getBeneficiaryByIdLite(id: number) {
+    return db.query.beneficiary.findFirst({
+        where: eq(beneficiary.id, id),
+    })
+}
+
+interface BeneficiaryDistributionOptions {
+    limit?: number
+    offset?: number
+    distributionLimit?: number // Limit distributions per beneficiary
+}
+
+/**
+ * Get beneficiaries with their distributions (paginated)
+ * PERF: Limits both beneficiaries and distributions per beneficiary
+ */
+export async function getBeneficiariesWithDistributions(
+    entityId?: number,
+    options?: BeneficiaryDistributionOptions,
+) {
     return db.query.beneficiary.findMany({
         where: entityId ? eq(beneficiary.entityId, entityId) : undefined,
         with: {
             distributions: {
                 orderBy: (d, { desc }) => [desc(d.distributionDate)],
+                limit: options?.distributionLimit ?? 20, // Limit distributions per beneficiary
             },
         },
+        limit: options?.limit ?? 100,
+        offset: options?.offset ?? 0,
     })
 }
 
@@ -988,21 +1033,43 @@ export async function deleteHemsRequest(id: number) {
     return deleted
 }
 
-export async function getHemsRequestsWithBeneficiary(beneficiaryId?: number) {
+interface HemsRequestPaginationOptions {
+    limit?: number
+    offset?: number
+}
+
+/**
+ * Get HEMS requests with beneficiary info (paginated, default limit: 100)
+ * PERF: Always paginated to prevent unbounded growth
+ */
+export async function getHemsRequestsWithBeneficiary(
+    beneficiaryId?: number,
+    options?: HemsRequestPaginationOptions,
+) {
     return db.query.hemsRequest.findMany({
         where: beneficiaryId
             ? eq(hemsRequest.beneficiaryId, beneficiaryId)
             : undefined,
         with: { beneficiary: true },
         orderBy: (r, { desc }) => [desc(r.createdAt)],
+        limit: options?.limit ?? 100,
+        offset: options?.offset ?? 0,
     })
 }
 
-export async function getPendingHemsRequests() {
+/**
+ * Get pending HEMS requests for admin queue (paginated, default limit: 50)
+ * PERF: Limited to reasonable queue size
+ */
+export async function getPendingHemsRequests(
+    options?: HemsRequestPaginationOptions,
+) {
     return db.query.hemsRequest.findMany({
         where: eq(hemsRequest.status, 'PENDING'),
         with: { beneficiary: true },
         orderBy: (r, { asc }) => [asc(r.createdAt)],
+        limit: options?.limit ?? 50,
+        offset: options?.offset ?? 0,
     })
 }
 
@@ -1315,10 +1382,24 @@ export async function recordLiabilityPayment(data: RecordPaymentData) {
     }
 }
 
-export async function getLiabilityPayments(liabilityId: number) {
+interface LiabilityPaymentOptions {
+    limit?: number
+    offset?: number
+}
+
+/**
+ * Get liability payments with pagination (default limit: 50)
+ * PERF: Paginated for liabilities with extensive payment history
+ */
+export async function getLiabilityPayments(
+    liabilityId: number,
+    options?: LiabilityPaymentOptions,
+) {
     return db.query.liabilityPayment.findMany({
         where: eq(liabilityPayment.liabilityId, liabilityId),
         orderBy: (p, { desc }) => [desc(p.paymentDate)],
+        limit: options?.limit ?? 50,
+        offset: options?.offset ?? 0,
     })
 }
 
@@ -1326,8 +1407,22 @@ export async function getLiabilityPayments(liabilityId: number) {
 // ACTIVITY LOG QUERIES
 // =============================================================================
 
-export async function getActivityLogs() {
-    return db.select().from(activityLog).orderBy(desc(activityLog.createdAt))
+interface ActivityLogPaginationOptions {
+    limit?: number
+    offset?: number
+}
+
+/**
+ * Get activity logs with pagination (default limit: 100)
+ * PERF: Always paginated to prevent OOM on large audit trails
+ */
+export async function getActivityLogs(options?: ActivityLogPaginationOptions) {
+    return db
+        .select()
+        .from(activityLog)
+        .orderBy(desc(activityLog.createdAt))
+        .limit(options?.limit ?? 100)
+        .offset(options?.offset ?? 0)
 }
 
 export async function createActivityLog(data: typeof activityLog.$inferInsert) {
@@ -1484,29 +1579,37 @@ export async function recalculateBeneficiaryShares(
     }
 
     const updates: { id: number; newShare: string }[] = []
+    const now = new Date().toISOString()
 
+    // Calculate new shares for all living beneficiaries
     for (const b of living) {
         const currentShare = parseFloat(b.sharePercent || '0') || 0
         const proportion = currentShare / totalLivingShares
         const additionalShare = deceasedShare * proportion
         const newShare = (currentShare + additionalShare).toFixed(2)
-
-        await db
-            .update(beneficiary)
-            .set({
-                sharePercent: newShare,
-                updatedAt: new Date().toISOString(),
-            })
-            .where(eq(beneficiary.id, b.id))
-
         updates.push({ id: b.id, newShare })
     }
 
+    // PERF: Use individual parameterized updates instead of raw SQL CASE
+    // This is safer (no SQL injection) and still efficient for typical beneficiary counts (<100)
+    // For extremely large beneficiary lists, consider a stored procedure
+    if (updates.length > 0) {
+        await Promise.all(
+            updates.map((u) =>
+                db
+                    .update(beneficiary)
+                    .set({ sharePercent: u.newShare, updatedAt: now })
+                    .where(eq(beneficiary.id, u.id)),
+            ),
+        )
+    }
+
+    // Update deceased beneficiary share to 0
     await db
         .update(beneficiary)
         .set({
             sharePercent: '0.00',
-            updatedAt: new Date().toISOString(),
+            updatedAt: now,
         })
         .where(eq(beneficiary.id, excludeBeneficiaryId))
 
@@ -1572,8 +1675,10 @@ export async function convertIncomeToPrincipal(
         .returning()
     if (!principalEntry) throw new Error('Failed to create principal entry')
 
-    const convertedIds: number[] = []
-    for (const entry of incomeEntries) {
+    // Batch update: Mark all income entries as converted in a single query
+    const convertedIds = incomeEntries.map((entry) => entry.id)
+
+    if (convertedIds.length > 0) {
         await db
             .update(trustAccounting)
             .set({
@@ -1582,8 +1687,7 @@ export async function convertIncomeToPrincipal(
                 conversionEntryId: principalEntry.id,
                 updatedAt: now,
             })
-            .where(eq(trustAccounting.id, entry.id))
-        convertedIds.push(entry.id)
+            .where(sql`id IN (${sql.raw(convertedIds.join(','))})`)
     }
 
     return {

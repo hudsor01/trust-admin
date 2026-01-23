@@ -40,7 +40,10 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table'
-import { signOut, useSession } from '@/lib/auth-client'
+import { authClient } from '@/lib/auth/client'
+
+const { signOut, useSession } = authClient
+
 import { sumStrings } from '@/lib/money'
 import { trpc } from '@/lib/trpc'
 import { formatCurrency, formatDate } from '@/utils/formatters'

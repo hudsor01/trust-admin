@@ -2,11 +2,11 @@
  * Column Definition Helpers
  *
  * Utility functions for creating common column configurations for DataTable.
- * Reduces boilerplate when defining table columns across admin pages.
+ * Uses TanStack Table ColumnDef format for consistency across all tables.
  */
 
+import type { ColumnDef } from '@tanstack/react-table'
 import { Pencil, Trash2 } from 'lucide-react'
-import type { ColumnDef } from '@/components/data-table'
 import {
     EditableCurrencyCell,
     EditableDateCell,
@@ -15,6 +15,7 @@ import {
 } from '@/components/editable-cells'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import {
     Tooltip,
     TooltipContent,
@@ -30,7 +31,6 @@ import { formatCurrency, formatDate } from '@/utils/formatters'
 
 export interface ColumnOpts {
     sortable?: boolean
-    align?: 'left' | 'center' | 'right'
 }
 
 type IdAccessor<T> = (item: T) => number
@@ -51,12 +51,14 @@ export function textColumn<T>(
     opts?: ColumnOpts,
 ): ColumnDef<T> {
     return {
-        key,
-        header,
-        sortable: opts?.sortable ?? false,
-        align: opts?.align ?? 'left',
-        render: (item) => {
-            const value = item[key]
+        accessorKey: key,
+        header: opts?.sortable
+            ? ({ column }) => (
+                  <DataTableColumnHeader column={column} title={header} />
+              )
+            : header,
+        cell: ({ row }) => {
+            const value = row.original[key]
             return value != null ? String(value) : '—'
         },
     }
@@ -80,14 +82,16 @@ export function editableTextColumn<T>(
 ): ColumnDef<T> {
     const getId = opts?.getId ?? ((item: T) => (item as { id: number }).id)
     return {
-        key,
-        header,
-        sortable: opts?.sortable ?? false,
-        align: opts?.align ?? 'left',
-        render: (item) => (
+        accessorKey: key,
+        header: opts?.sortable
+            ? ({ column }) => (
+                  <DataTableColumnHeader column={column} title={header} />
+              )
+            : header,
+        cell: ({ row }) => (
             <EditableTextCell
-                value={item[key] as string | null}
-                onSave={(val) => onSave(getId(item), val)}
+                value={row.original[key] as string | null}
+                onSave={(val) => onSave(getId(row.original), val)}
                 placeholder={opts?.placeholder ?? '—'}
             />
         ),
@@ -112,14 +116,16 @@ export function editableCurrencyColumn<T>(
 ): ColumnDef<T> {
     const getId = opts?.getId ?? ((item: T) => (item as { id: number }).id)
     return {
-        key,
-        header,
-        sortable: opts?.sortable ?? false,
-        align: opts?.align ?? 'right',
-        render: (item) => (
+        accessorKey: key,
+        header: opts?.sortable
+            ? ({ column }) => (
+                  <DataTableColumnHeader column={column} title={header} />
+              )
+            : header,
+        cell: ({ row }) => (
             <EditableCurrencyCell
-                value={item[key] as string | null}
-                onSave={(val) => onSave(getId(item), val)}
+                value={row.original[key] as string | null}
+                onSave={(val) => onSave(getId(row.original), val)}
             />
         ),
     }
@@ -153,16 +159,18 @@ export function editableSelectColumn<T>(
 ): ColumnDef<T> {
     const getId = opts?.getId ?? ((item: T) => (item as { id: number }).id)
     return {
-        key,
-        header,
-        sortable: opts?.sortable ?? false,
-        align: opts?.align ?? 'left',
-        render: (item) => (
+        accessorKey: key,
+        header: opts?.sortable
+            ? ({ column }) => (
+                  <DataTableColumnHeader column={column} title={header} />
+              )
+            : header,
+        cell: ({ row }) => (
             <EditableSelectCell
-                value={item[key] as string}
+                value={row.original[key] as string}
                 options={options}
                 variants={opts?.variants}
-                onSave={(val) => onSave(getId(item), val)}
+                onSave={(val) => onSave(getId(row.original), val)}
             />
         ),
     }
@@ -184,12 +192,14 @@ export function dateColumn<T>(
     opts?: ColumnOpts,
 ): ColumnDef<T> {
     return {
-        key,
-        header,
-        sortable: opts?.sortable ?? false,
-        align: opts?.align ?? 'left',
-        render: (item) => {
-            const value = item[key] as string | null
+        accessorKey: key,
+        header: opts?.sortable
+            ? ({ column }) => (
+                  <DataTableColumnHeader column={column} title={header} />
+              )
+            : header,
+        cell: ({ row }) => {
+            const value = row.original[key] as string | null
             return value ? formatDate(value) : '—'
         },
     }
@@ -213,14 +223,16 @@ export function editableDateColumn<T>(
 ): ColumnDef<T> {
     const getId = opts?.getId ?? ((item: T) => (item as { id: number }).id)
     return {
-        key,
-        header,
-        sortable: opts?.sortable ?? false,
-        align: opts?.align ?? 'left',
-        render: (item) => (
+        accessorKey: key,
+        header: opts?.sortable
+            ? ({ column }) => (
+                  <DataTableColumnHeader column={column} title={header} />
+              )
+            : header,
+        cell: ({ row }) => (
             <EditableDateCell
-                value={item[key] as string | null}
-                onSave={(val) => onSave(getId(item), val)}
+                value={row.original[key] as string | null}
+                onSave={(val) => onSave(getId(row.original), val)}
                 placeholder={opts?.placeholder ?? '—'}
             />
         ),
@@ -243,13 +255,19 @@ export function currencyColumn<T>(
     opts?: ColumnOpts,
 ): ColumnDef<T> {
     return {
-        key,
-        header,
-        sortable: opts?.sortable ?? false,
-        align: opts?.align ?? 'right',
-        render: (item) => {
-            const value = item[key] as string | null
-            return value ? formatCurrency(value) : '—'
+        accessorKey: key,
+        header: opts?.sortable
+            ? ({ column }) => (
+                  <DataTableColumnHeader column={column} title={header} />
+              )
+            : header,
+        cell: ({ row }) => {
+            const value = row.original[key] as string | null
+            return (
+                <span className="text-right tabular-nums">
+                    {value ? formatCurrency(value) : '—'}
+                </span>
+            )
         },
     }
 }
@@ -274,12 +292,14 @@ export function badgeColumn<T>(
     },
 ): ColumnDef<T> {
     return {
-        key,
-        header,
-        sortable: opts?.sortable ?? false,
-        align: opts?.align ?? 'left',
-        render: (item) => {
-            const value = item[key] as string | null
+        accessorKey: key,
+        header: opts?.sortable
+            ? ({ column }) => (
+                  <DataTableColumnHeader column={column} title={header} />
+              )
+            : header,
+        cell: ({ row }) => {
+            const value = row.original[key] as string | null
             if (!value) return '—'
             const variant = opts?.variants?.[value] ?? 'secondary'
             const display = opts?.format ? opts.format(value) : value
@@ -308,10 +328,9 @@ export function actionsColumn<T>(opts: {
     onView?: (item: T) => void
 }): ColumnDef<T> {
     return {
-        key: 'actions',
+        id: 'actions',
         header: 'Actions',
-        align: 'center',
-        render: (item) => (
+        cell: ({ row }) => (
             <div className="flex items-center gap-1 justify-center">
                 {opts.onEdit && (
                     <TooltipProvider>
@@ -321,7 +340,7 @@ export function actionsColumn<T>(opts: {
                                     variant="ghost"
                                     size="icon"
                                     className="h-8 w-8"
-                                    onClick={() => opts.onEdit!(item)}
+                                    onClick={() => opts.onEdit!(row.original)}
                                 >
                                     <Pencil className="h-4 w-4" />
                                 </Button>
@@ -340,7 +359,7 @@ export function actionsColumn<T>(opts: {
                                     variant="ghost"
                                     size="icon"
                                     className="h-8 w-8 text-destructive hover:text-destructive"
-                                    onClick={() => opts.onDelete!(item)}
+                                    onClick={() => opts.onDelete!(row.original)}
                                 >
                                     <Trash2 className="h-4 w-4" />
                                 </Button>

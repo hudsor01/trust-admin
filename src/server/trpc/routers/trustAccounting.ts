@@ -14,20 +14,32 @@ import {
 import { adminProcedure, createTRPCRouter } from '../index'
 
 export const trustAccountingRouter = createTRPCRouter({
+    // PERF: Add default limit to prevent unbounded queries
+    // For large result sets, use listPaginated instead
     list: adminProcedure
-        .input(z.object({ entityId: z.coerce.number().optional() }).optional())
+        .input(
+            z
+                .object({
+                    entityId: z.coerce.number().optional(),
+                    limit: z.number().min(1).max(1000).optional(),
+                })
+                .optional(),
+        )
         .query(async ({ input }) => {
+            const limit = input?.limit ?? 500 // Default limit to prevent memory issues
             if (input?.entityId) {
                 return db
                     .select()
                     .from(trustAccounting)
                     .where(eq(trustAccounting.entityId, input.entityId))
                     .orderBy(desc(trustAccounting.accountingDate))
+                    .limit(limit)
             }
             return db
                 .select()
                 .from(trustAccounting)
                 .orderBy(desc(trustAccounting.accountingDate))
+                .limit(limit)
         }),
 
     listPaginated: adminProcedure

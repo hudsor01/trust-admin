@@ -108,10 +108,8 @@ export async function POST(
         let photoUrls: string[] = []
         try {
             photoUrls = await uploadInventoryImages(compressedImages)
-            console.log(`Uploaded ${photoUrls.length} photos to Uploadthing`)
-        } catch (uploadError) {
-            // Log but don't fail - analysis is still valuable without photos
-            console.error('Failed to upload photos:', uploadError)
+        } catch {
+            // Don't fail - analysis is still valuable without photos
         }
 
         return NextResponse.json({
@@ -148,8 +146,7 @@ export async function POST(
             }
         }
 
-        // Generic error
-        console.error('Inventory analysis error:', error)
+        // Generic error (Sentry captures these automatically)
         return NextResponse.json(
             {
                 success: false,

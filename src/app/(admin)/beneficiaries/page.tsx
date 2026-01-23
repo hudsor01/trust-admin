@@ -1,5 +1,6 @@
 'use client'
 
+import type { ColumnDef } from '@tanstack/react-table'
 import {
     AlertTriangle,
     Check,
@@ -12,7 +13,6 @@ import {
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { CopyButton } from '@/components/copy-button'
-import { type ColumnDef, DataTable } from '@/components/data-table'
 import {
     EditablePercentCell,
     EditableSelectCell,
@@ -21,6 +21,8 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { DataTable } from '@/components/ui/data-table'
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import {
     Dialog,
     DialogContent,
@@ -285,20 +287,22 @@ export default function BeneficiariesPage() {
 
     const beneficiaryColumns: ColumnDef<BeneficiaryWithDistributions>[] = [
         {
-            key: 'name',
-            header: 'Name',
-            render: (b) => (
+            accessorKey: 'firstName',
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title="Name" />
+            ),
+            cell: ({ row }) => (
                 <div className="flex items-center gap-2">
                     <span
                         className={cn(
                             'font-medium',
-                            b.deceasedDate &&
+                            row.original.deceasedDate &&
                                 'text-muted-foreground line-through',
                         )}
                     >
-                        {b.firstName} {b.lastName}
+                        {row.original.firstName} {row.original.lastName}
                     </span>
-                    {b.deceasedDate && (
+                    {row.original.deceasedDate && (
                         <Badge
                             variant="outline"
                             className="text-xs border-destructive/50 text-destructive"
@@ -308,26 +312,28 @@ export default function BeneficiariesPage() {
                     )}
                 </div>
             ),
-            sortable: true,
         },
         {
-            key: 'sharePercent',
-            header: 'Share %',
-            render: (b) => (
+            accessorKey: 'sharePercent',
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title="Share %" />
+            ),
+            cell: ({ row }) => (
                 <EditablePercentCell
-                    value={b.sharePercent}
+                    value={row.original.sharePercent}
                     onSave={async (val) => {
-                        await updateBeneficiary(b.id, { sharePercent: val })
+                        await updateBeneficiary(row.original.id, {
+                            sharePercent: val,
+                        })
                     }}
                 />
             ),
-            sortable: true,
         },
         {
-            key: 'eligibility',
+            id: 'eligibility',
             header: 'Eligibility',
-            render: (b) => {
-                const eligibility = calculateEligibility(b.dob)
+            cell: ({ row }) => {
+                const eligibility = calculateEligibility(row.original.dob)
                 return (
                     <Badge
                         variant={
@@ -343,7 +349,7 @@ export default function BeneficiariesPage() {
                             eligibility.status === 'partial' &&
                                 'bg-amber-500/20 text-amber-700 border-amber-500/30',
                             eligibility.status === 'none' &&
-                                !b.dob &&
+                                !row.original.dob &&
                                 'text-muted-foreground',
                         )}
                         title={
@@ -360,62 +366,41 @@ export default function BeneficiariesPage() {
             },
         },
         {
-            key: 'distributionStandard',
-            header: 'Standard',
-            render: (b) => (
+            accessorKey: 'distributionStandard',
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title="Standard" />
+            ),
+            cell: ({ row }) => (
                 <EditableSelectCell
-                    value={b.distributionStandard || 'HEMS'}
+                    value={row.original.distributionStandard || 'HEMS'}
                     options={DISTRIBUTION_STANDARDS}
                     onSave={async (val) => {
-                        await updateBeneficiary(b.id, {
+                        await updateBeneficiary(row.original.id, {
                             distributionStandard: asDistributionStandard(val),
                         })
                     }}
                 />
             ),
-            sortable: true,
         },
         {
-            key: 'informed',
+            accessorKey: 'informed',
             header: 'Notified',
-            render: (b) => (
+            cell: ({ row }) => (
                 <Button
-                    variant={b.informed ? 'default' : 'outline'}
+                    variant={row.original.informed ? 'default' : 'outline'}
                     size="icon"
                     className={cn(
                         'h-7 w-7',
-                        b.informed && 'bg-success hover:bg-success/90',
+                        row.original.informed &&
+                            'bg-success hover:bg-success/90',
                     )}
                     onClick={() =>
-                        updateBeneficiary(b.id, { informed: !b.informed })
-                    }
-                >
-                    {b.informed ? (
-                        <Check className="h-3.5 w-3.5" />
-                    ) : (
-                        <Circle className="h-3.5 w-3.5" />
-                    )}
-                </Button>
-            ),
-        },
-        {
-            key: 'releaseSigned',
-            header: 'Release',
-            render: (b) => (
-                <Button
-                    variant={b.releaseSigned ? 'default' : 'outline'}
-                    size="icon"
-                    className={cn(
-                        'h-7 w-7',
-                        b.releaseSigned && 'bg-success hover:bg-success/90',
-                    )}
-                    onClick={() =>
-                        updateBeneficiary(b.id, {
-                            releaseSigned: !b.releaseSigned,
+                        updateBeneficiary(row.original.id, {
+                            informed: !row.original.informed,
                         })
                     }
                 >
-                    {b.releaseSigned ? (
+                    {row.original.informed ? (
                         <Check className="h-3.5 w-3.5" />
                     ) : (
                         <Circle className="h-3.5 w-3.5" />
@@ -424,11 +409,39 @@ export default function BeneficiariesPage() {
             ),
         },
         {
-            key: 'totalDistributed',
-            header: 'Distributed',
-            render: (b) => {
+            accessorKey: 'releaseSigned',
+            header: 'Release',
+            cell: ({ row }) => (
+                <Button
+                    variant={row.original.releaseSigned ? 'default' : 'outline'}
+                    size="icon"
+                    className={cn(
+                        'h-7 w-7',
+                        row.original.releaseSigned &&
+                            'bg-success hover:bg-success/90',
+                    )}
+                    onClick={() =>
+                        updateBeneficiary(row.original.id, {
+                            releaseSigned: !row.original.releaseSigned,
+                        })
+                    }
+                >
+                    {row.original.releaseSigned ? (
+                        <Check className="h-3.5 w-3.5" />
+                    ) : (
+                        <Circle className="h-3.5 w-3.5" />
+                    )}
+                </Button>
+            ),
+        },
+        {
+            id: 'totalDistributed',
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title="Distributed" />
+            ),
+            cell: ({ row }) => {
                 const totalDist = sumStrings(
-                    (b.distributions || []).map((d) => d.amount),
+                    (row.original.distributions || []).map((d) => d.amount),
                 )
                 return (
                     <span className="text-sm font-medium tabular-nums">
@@ -436,17 +449,16 @@ export default function BeneficiariesPage() {
                     </span>
                 )
             },
-            sortable: true,
         },
         {
-            key: 'actions',
+            id: 'actions',
             header: '',
-            render: (b) => (
+            cell: ({ row }) => (
                 <Button
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8"
-                    onClick={() => setSelectedBeneficiary(b)}
+                    onClick={() => setSelectedBeneficiary(row.original)}
                     title="View details"
                 >
                     <Eye className="h-4 w-4" />
@@ -560,8 +572,12 @@ export default function BeneficiariesPage() {
                     <DataTable
                         data={beneficiaries}
                         columns={beneficiaryColumns}
+                        searchKey="firstName"
+                        searchPlaceholder="Filter by name..."
                         isLoading={loading}
                         emptyMessage="No beneficiaries found"
+                        enableColumnVisibility={true}
+                        enablePagination={true}
                     />
                 </CardContent>
             </Card>

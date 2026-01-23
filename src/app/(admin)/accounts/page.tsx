@@ -1,8 +1,8 @@
 'use client'
 
-import { Loader2, Plus, Trash2 } from 'lucide-react'
+import type { ColumnDef } from '@tanstack/react-table'
+import { Loader2, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
-import { type ColumnDef, DataTable } from '@/components/data-table'
 import {
     EditableCurrencyCell,
     EditableSelectCell,
@@ -11,6 +11,8 @@ import {
 import { ResourceDialog } from '@/components/resource-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { DataTable } from '@/components/ui/data-table'
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -100,16 +102,19 @@ const createBankAccountColumns = (
         id: number,
         data: Partial<BankAccount>,
     ) => Promise<void>,
+    handleEditBank: (account: BankAccount) => void,
     handleDeleteBank: (id: number) => void,
 ): ColumnDef<BankAccount>[] => [
     {
-        key: 'institution',
-        header: 'Institution',
-        render: (account) => (
+        accessorKey: 'institution',
+        header: ({ column }) => (
+            <DataTableColumnHeader column={column} title="Institution" />
+        ),
+        cell: ({ row }) => (
             <EditableTextCell
-                value={account.institution}
+                value={row.original.institution}
                 onSave={async (val) => {
-                    await updateBankAccount(account.id, {
+                    await updateBankAccount(row.original.id, {
                         institution: val as string,
                     })
                 }}
@@ -117,61 +122,71 @@ const createBankAccountColumns = (
         ),
     },
     {
-        key: 'accountName',
-        header: 'Account Name',
-        render: (account) => (
+        accessorKey: 'accountName',
+        header: ({ column }) => (
+            <DataTableColumnHeader column={column} title="Account Name" />
+        ),
+        cell: ({ row }) => (
             <EditableTextCell
-                value={account.accountName}
+                value={row.original.accountName}
                 onSave={async (val) => {
-                    await updateBankAccount(account.id, { accountName: val })
+                    await updateBankAccount(row.original.id, {
+                        accountName: val,
+                    })
                 }}
             />
         ),
     },
     {
-        key: 'accountType',
-        header: 'Type',
-        render: (account) => (
+        accessorKey: 'accountType',
+        header: ({ column }) => (
+            <DataTableColumnHeader column={column} title="Type" />
+        ),
+        cell: ({ row }) => (
             <Badge variant="secondary" className="font-normal">
                 {
                     BANK_ACCOUNT_TYPES.find(
-                        (t) => t.value === account.accountType,
+                        (t) => t.value === row.original.accountType,
                     )?.label
                 }
             </Badge>
         ),
     },
     {
-        key: 'accountNumber',
+        accessorKey: 'accountNumber',
         header: 'Account #',
-        render: (account) => (
+        cell: ({ row }) => (
             <code className="text-xs">
-                {maskAccountNumber(account.accountNumber || '')}
+                {maskAccountNumber(row.original.accountNumber || '')}
             </code>
         ),
     },
     {
-        key: 'dodValue',
-        header: 'DOD Balance',
-        render: (account) => (
+        accessorKey: 'dodValue',
+        header: ({ column }) => (
+            <DataTableColumnHeader column={column} title="DOD Balance" />
+        ),
+        cell: ({ row }) => (
             <EditableCurrencyCell
-                value={account.dodValue}
+                value={row.original.dodValue}
                 onSave={async (val) => {
-                    await updateBankAccount(account.id, { dodValue: val })
+                    await updateBankAccount(row.original.id, { dodValue: val })
                 }}
             />
         ),
     },
     {
-        key: 'status',
-        header: 'Status',
-        render: (account) => (
+        accessorKey: 'status',
+        header: ({ column }) => (
+            <DataTableColumnHeader column={column} title="Status" />
+        ),
+        cell: ({ row }) => (
             <EditableSelectCell
-                value={account.status}
+                value={row.original.status}
                 options={ACCOUNT_STATUS}
                 variants={STATUS_VARIANTS}
                 onSave={async (val) => {
-                    await updateBankAccount(account.id, {
+                    await updateBankAccount(row.original.id, {
                         status: asRecordStatus(val),
                     })
                 }}
@@ -179,15 +194,17 @@ const createBankAccountColumns = (
         ),
     },
     {
-        key: 'transferStatus',
-        header: 'Transfer',
-        render: (account) => (
+        accessorKey: 'transferStatus',
+        header: ({ column }) => (
+            <DataTableColumnHeader column={column} title="Transfer" />
+        ),
+        cell: ({ row }) => (
             <EditableSelectCell
-                value={account.transferStatus}
+                value={row.original.transferStatus}
                 options={TRANSFER_STATUS}
                 variants={STATUS_VARIANTS}
                 onSave={async (val) => {
-                    await updateBankAccount(account.id, {
+                    await updateBankAccount(row.original.id, {
                         transferStatus: asTransferStatus(val),
                     })
                 }}
@@ -195,18 +212,29 @@ const createBankAccountColumns = (
         ),
     },
     {
-        key: 'actions',
+        id: 'actions',
         header: '',
-        render: (account) => (
-            <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-destructive hover:text-destructive"
-                onClick={() => handleDeleteBank(account.id)}
-                title="Delete account"
-            >
-                <Trash2 className="h-4 w-4" />
-            </Button>
+        cell: ({ row }) => (
+            <div className="flex items-center gap-1">
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => handleEditBank(row.original)}
+                    title="Edit account"
+                >
+                    <Pencil className="h-4 w-4" />
+                </Button>
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-destructive hover:text-destructive"
+                    onClick={() => handleDeleteBank(row.original.id)}
+                    title="Delete account"
+                >
+                    <Trash2 className="h-4 w-4" />
+                </Button>
+            </div>
         ),
     },
 ]
@@ -217,16 +245,19 @@ const createInvestmentAccountColumns = (
         id: number,
         data: Partial<InvestmentAccount>,
     ) => Promise<void>,
+    handleEditInvestment: (account: InvestmentAccount) => void,
     handleDeleteInvestment: (id: number) => void,
 ): ColumnDef<InvestmentAccount>[] => [
     {
-        key: 'institution',
-        header: 'Institution',
-        render: (account) => (
+        accessorKey: 'institution',
+        header: ({ column }) => (
+            <DataTableColumnHeader column={column} title="Institution" />
+        ),
+        cell: ({ row }) => (
             <EditableTextCell
-                value={account.institution}
+                value={row.original.institution}
                 onSave={async (val) => {
-                    await updateInvestmentAccount(account.id, {
+                    await updateInvestmentAccount(row.original.id, {
                         institution: val as string,
                     })
                 }}
@@ -234,13 +265,15 @@ const createInvestmentAccountColumns = (
         ),
     },
     {
-        key: 'accountName',
-        header: 'Account Name',
-        render: (account) => (
+        accessorKey: 'accountName',
+        header: ({ column }) => (
+            <DataTableColumnHeader column={column} title="Account Name" />
+        ),
+        cell: ({ row }) => (
             <EditableTextCell
-                value={account.accountName}
+                value={row.original.accountName}
                 onSave={async (val) => {
-                    await updateInvestmentAccount(account.id, {
+                    await updateInvestmentAccount(row.original.id, {
                         accountName: val,
                     })
                 }}
@@ -248,47 +281,55 @@ const createInvestmentAccountColumns = (
         ),
     },
     {
-        key: 'accountType',
-        header: 'Type',
-        render: (account) => (
+        accessorKey: 'accountType',
+        header: ({ column }) => (
+            <DataTableColumnHeader column={column} title="Type" />
+        ),
+        cell: ({ row }) => (
             <Badge variant="secondary" className="font-normal">
                 {
                     INVESTMENT_ACCOUNT_TYPES.find(
-                        (t) => t.value === account.accountType,
+                        (t) => t.value === row.original.accountType,
                     )?.label
                 }
             </Badge>
         ),
     },
     {
-        key: 'accountNumber',
+        accessorKey: 'accountNumber',
         header: 'Account #',
-        render: (account) => (
+        cell: ({ row }) => (
             <code className="text-xs">
-                {maskAccountNumber(account.accountNumber || '')}
+                {maskAccountNumber(row.original.accountNumber || '')}
             </code>
         ),
     },
     {
-        key: 'dodValue',
-        header: 'DOD Value',
-        render: (account) => (
+        accessorKey: 'dodValue',
+        header: ({ column }) => (
+            <DataTableColumnHeader column={column} title="DOD Value" />
+        ),
+        cell: ({ row }) => (
             <EditableCurrencyCell
-                value={account.dodValue}
+                value={row.original.dodValue}
                 onSave={async (val) => {
-                    await updateInvestmentAccount(account.id, { dodValue: val })
+                    await updateInvestmentAccount(row.original.id, {
+                        dodValue: val,
+                    })
                 }}
             />
         ),
     },
     {
-        key: 'costBasis',
-        header: 'Cost Basis',
-        render: (account) => (
+        accessorKey: 'costBasis',
+        header: ({ column }) => (
+            <DataTableColumnHeader column={column} title="Cost Basis" />
+        ),
+        cell: ({ row }) => (
             <EditableCurrencyCell
-                value={account.costBasis}
+                value={row.original.costBasis}
                 onSave={async (val) => {
-                    await updateInvestmentAccount(account.id, {
+                    await updateInvestmentAccount(row.original.id, {
                         costBasis: val,
                     })
                 }}
@@ -296,15 +337,17 @@ const createInvestmentAccountColumns = (
         ),
     },
     {
-        key: 'status',
-        header: 'Status',
-        render: (account) => (
+        accessorKey: 'status',
+        header: ({ column }) => (
+            <DataTableColumnHeader column={column} title="Status" />
+        ),
+        cell: ({ row }) => (
             <EditableSelectCell
-                value={account.status}
+                value={row.original.status}
                 options={ACCOUNT_STATUS}
                 variants={STATUS_VARIANTS}
                 onSave={async (val) => {
-                    await updateInvestmentAccount(account.id, {
+                    await updateInvestmentAccount(row.original.id, {
                         status: asRecordStatus(val),
                     })
                 }}
@@ -312,15 +355,17 @@ const createInvestmentAccountColumns = (
         ),
     },
     {
-        key: 'transferStatus',
-        header: 'Transfer',
-        render: (account) => (
+        accessorKey: 'transferStatus',
+        header: ({ column }) => (
+            <DataTableColumnHeader column={column} title="Transfer" />
+        ),
+        cell: ({ row }) => (
             <EditableSelectCell
-                value={account.transferStatus}
+                value={row.original.transferStatus}
                 options={TRANSFER_STATUS}
                 variants={STATUS_VARIANTS}
                 onSave={async (val) => {
-                    await updateInvestmentAccount(account.id, {
+                    await updateInvestmentAccount(row.original.id, {
                         transferStatus: asTransferStatus(val),
                     })
                 }}
@@ -328,18 +373,29 @@ const createInvestmentAccountColumns = (
         ),
     },
     {
-        key: 'actions',
+        id: 'actions',
         header: '',
-        render: (account) => (
-            <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-destructive hover:text-destructive"
-                onClick={() => handleDeleteInvestment(account.id)}
-                title="Delete account"
-            >
-                <Trash2 className="h-4 w-4" />
-            </Button>
+        cell: ({ row }) => (
+            <div className="flex items-center gap-1">
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => handleEditInvestment(row.original)}
+                    title="Edit account"
+                >
+                    <Pencil className="h-4 w-4" />
+                </Button>
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-destructive hover:text-destructive"
+                    onClick={() => handleDeleteInvestment(row.original.id)}
+                    title="Delete account"
+                >
+                    <Trash2 className="h-4 w-4" />
+                </Button>
+            </div>
         ),
     },
 ]
@@ -543,10 +599,12 @@ export default function AccountsPage() {
     // Create column configurations
     const bankColumns = createBankAccountColumns(
         updateBankAccount,
+        handleEditBank,
         handleDeleteBank,
     )
     const investmentColumns = createInvestmentAccountColumns(
         updateInvestmentAccount,
+        handleEditInvestment,
         handleDeleteInvestment,
     )
 
@@ -611,8 +669,11 @@ export default function AccountsPage() {
                         <DataTable
                             columns={bankColumns}
                             data={bankAccounts}
-                            onEdit={handleEditBank}
-                            onDelete={(account) => handleDeleteBank(account.id)}
+                            searchKey="institution"
+                            searchPlaceholder="Filter by institution..."
+                            emptyMessage="No bank accounts found."
+                            enableColumnVisibility={true}
+                            enablePagination={true}
                         />
                     </TabsContent>
 
@@ -630,10 +691,11 @@ export default function AccountsPage() {
                         <DataTable
                             columns={investmentColumns}
                             data={investmentAccounts}
-                            onEdit={handleEditInvestment}
-                            onDelete={(account) =>
-                                handleDeleteInvestment(account.id)
-                            }
+                            searchKey="institution"
+                            searchPlaceholder="Filter by institution..."
+                            emptyMessage="No investment accounts found."
+                            enableColumnVisibility={true}
+                            enablePagination={true}
                         />
                     </TabsContent>
                 </Tabs>

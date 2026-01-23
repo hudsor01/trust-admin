@@ -17,7 +17,6 @@ export const uploadRouter = {
             maxFileCount: 5,
         },
     }).onUploadComplete(({ file }) => {
-        console.log('Inventory photo uploaded:', file.ufsUrl)
         return { url: file.ufsUrl }
     }),
 } satisfies FileRouter
