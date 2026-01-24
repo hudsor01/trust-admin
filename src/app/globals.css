@@ -377,3 +377,85 @@
     width: 100% !important;
   }
 }
+
+/* Neon Auth UI customizations to match app theme */
+@layer components {
+  /* Auth form card styling */
+  [data-neon-auth] {
+    --neon-auth-primary: var(--primary);
+    --neon-auth-background: var(--card);
+    --neon-auth-foreground: var(--card-foreground);
+    --neon-auth-border: var(--border);
+    --neon-auth-input-background: var(--background);
+    --neon-auth-muted: var(--muted-foreground);
+  }
+
+  /* Style the auth card container */
+  [data-neon-auth] > div {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  }
+
+  /* Primary button styling */
+  [data-neon-auth] button[type="submit"],
+  [data-neon-auth] button[data-primary="true"] {
+    background: var(--primary) !important;
+    color: var(--primary-foreground) !important;
+    border-radius: var(--radius) !important;
+    font-weight: 500 !important;
+    transition: opacity 150ms ease !important;
+  }
+
+  [data-neon-auth] button[type="submit"]:hover,
+  [data-neon-auth] button[data-primary="true"]:hover {
+    opacity: 0.9 !important;
+  }
+
+  /* Secondary/outline button styling */
+  [data-neon-auth] button:not([type="submit"]):not([data-primary="true"]) {
+    background: var(--secondary) !important;
+    color: var(--secondary-foreground) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius) !important;
+  }
+
+  /* Input field styling */
+  [data-neon-auth] input {
+    background: var(--background) !important;
+    border: 1px solid var(--input) !important;
+    border-radius: var(--radius) !important;
+    color: var(--foreground) !important;
+  }
+
+  [data-neon-auth] input:focus {
+    border-color: var(--ring) !important;
+    outline: none !important;
+    box-shadow: 0 0 0 2px color-mix(in oklch, var(--ring) 20%, transparent) !important;
+  }
+
+  [data-neon-auth] input::placeholder {
+    color: var(--muted-foreground) !important;
+  }
+
+  /* Label styling */
+  [data-neon-auth] label {
+    color: var(--foreground) !important;
+    font-weight: 500 !important;
+  }
+
+  /* Link styling */
+  [data-neon-auth] a {
+    color: var(--primary) !important;
+  }
+
+  [data-neon-auth] a:hover {
+    text-decoration: underline !important;
+  }
+
+  /* Error message styling */
+  [data-neon-auth] [data-error] {
+    color: var(--destructive) !important;
+  }
+}
