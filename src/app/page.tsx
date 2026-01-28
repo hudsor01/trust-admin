@@ -1,35 +1,26 @@
-import { eq } from 'drizzle-orm'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { authServer } from '@/lib/auth'
-import { db, userProfile } from '../../db'
 
 /**
  * Root page - auth gateway
  *
  * Server Component that checks authentication and redirects appropriately:
  * - Admin users → /dashboard (admin dashboard)
- * - Beneficiary users → /portal (beneficiary portal)
+ * - Other users → /portal (beneficiary portal)
  * - Unauthenticated → shows login options
  *
- * Best practices applied:
- * - Server-side auth check (no client JS for redirects)
- * - Minimal bundle (no "use client" directive)
- * - Proper Next.js redirect() for authenticated users
+ * Uses native Neon Auth role from session.user.role.
+ * Default role for new users is "user". Use authClient.admin.setRole()
+ * to promote users to "admin" role.
  */
 export default async function RootPage() {
     const { data: session } = await authServer.getSession()
 
     // Redirect authenticated users to their appropriate dashboard
     if (session?.user) {
-        // Fetch user profile to get role
-        const [profile] = await db
-            .select()
-            .from(userProfile)
-            .where(eq(userProfile.userId, session.user.id))
-            .limit(1)
-
-        if (profile?.role === 'admin') {
+        // Check native Neon Auth role
+        if (session.user.role === 'admin') {
             redirect('/dashboard')
         }
         redirect('/portal')

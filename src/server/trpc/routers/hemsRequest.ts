@@ -10,6 +10,7 @@ import {
     insertHemsRequestSchema,
     updateHemsRequestSchema,
 } from '../../../../db/validation'
+import { addBreadcrumb, traceBusinessOperation } from '../../../lib/sentry'
 import {
     adminProcedure,
     beneficiaryProcedure,
@@ -46,11 +47,17 @@ export const hemsRequestRouter = createTRPCRouter({
     listWithBeneficiary: adminProcedure
         .input(
             z
-                .object({ beneficiaryId: z.coerce.number().optional() })
+                .object({
+                    beneficiaryId: z.coerce.number().optional(),
+                    entityId: z.coerce.number().optional(),
+                })
                 .optional(),
         )
         .query(async ({ input }) => {
-            return getHemsRequestsWithBeneficiary(input?.beneficiaryId)
+            return getHemsRequestsWithBeneficiary({
+                beneficiaryId: input?.beneficiaryId,
+                entityId: input?.entityId,
+            })
         }),
 
     // Get pending requests for queue
@@ -107,18 +114,31 @@ export const hemsRequestRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ input }) => {
-            const [updated] = await db
-                .update(hemsRequest)
-                .set({
-                    status: 'APPROVED',
-                    approvedAmount: input.approvedAmount,
-                    reviewNotes: input.reviewNotes,
-                    reviewedAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString(),
-                })
-                .where(eq(hemsRequest.id, input.id))
-                .returning()
-            return updated
+            addBreadcrumb('hems', `Approving HEMS request ${input.id}`, {
+                approvedAmount: input.approvedAmount,
+            })
+
+            return traceBusinessOperation(
+                'hems.approve',
+                {
+                    requestId: input.id,
+                    approvedAmount: input.approvedAmount ?? 'full',
+                },
+                async () => {
+                    const [updated] = await db
+                        .update(hemsRequest)
+                        .set({
+                            status: 'APPROVED',
+                            approvedAmount: input.approvedAmount,
+                            reviewNotes: input.reviewNotes,
+                            reviewedAt: new Date().toISOString(),
+                            updatedAt: new Date().toISOString(),
+                        })
+                        .where(eq(hemsRequest.id, input.id))
+                        .returning()
+                    return updated
+                },
+            )
         }),
 
     // Special: Deny HEMS request
@@ -130,17 +150,25 @@ export const hemsRequestRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ input }) => {
-            const [updated] = await db
-                .update(hemsRequest)
-                .set({
-                    status: 'DENIED',
-                    reviewNotes: input.reviewNotes,
-                    reviewedAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString(),
-                })
-                .where(eq(hemsRequest.id, input.id))
-                .returning()
-            return updated
+            addBreadcrumb('hems', `Denying HEMS request ${input.id}`)
+
+            return traceBusinessOperation(
+                'hems.deny',
+                { requestId: input.id },
+                async () => {
+                    const [updated] = await db
+                        .update(hemsRequest)
+                        .set({
+                            status: 'DENIED',
+                            reviewNotes: input.reviewNotes,
+                            reviewedAt: new Date().toISOString(),
+                            updatedAt: new Date().toISOString(),
+                        })
+                        .where(eq(hemsRequest.id, input.id))
+                        .returning()
+                    return updated
+                },
+            )
         }),
 
     // Portal: Beneficiary submits request
@@ -152,15 +180,29 @@ export const hemsRequestRouter = createTRPCRouter({
                 throw new Error('Can only submit requests for yourself')
             }
 
-            const [created] = await db
-                .insert(hemsRequest)
-                .values({
-                    ...input,
-                    status: 'PENDING',
-                    updatedAt: new Date().toISOString(),
-                })
-                .returning()
-            return created
+            addBreadcrumb('hems', 'Beneficiary submitting HEMS request', {
+                beneficiaryId: input.beneficiaryId,
+                category: input.category,
+            })
+
+            return traceBusinessOperation(
+                'hems.submit',
+                {
+                    beneficiaryId: input.beneficiaryId ?? 0,
+                    category: input.category ?? 'unknown',
+                },
+                async () => {
+                    const [created] = await db
+                        .insert(hemsRequest)
+                        .values({
+                            ...input,
+                            status: 'PENDING',
+                            updatedAt: new Date().toISOString(),
+                        })
+                        .returning()
+                    return created
+                },
+            )
         }),
 
     // Portal: Beneficiary views own requests

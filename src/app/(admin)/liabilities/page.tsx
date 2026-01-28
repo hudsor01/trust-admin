@@ -1,5 +1,6 @@
 'use client'
 
+import { useStore } from '@tanstack/react-store'
 import type { ColumnDef } from '@tanstack/react-table'
 import {
     DollarSign,
@@ -203,9 +204,10 @@ function PaymentImpactPreview({
     liability: Liability
 }) {
     // Subscribe to payment amount - hooks must be called unconditionally
-    const amount = formInstance.useStore(
-        (s: { values: PaymentFormData }) => s.values.amount,
-    )
+    // biome-ignore lint/suspicious/noExplicitAny: TanStack Form store has complex generics
+    const amount = useStore(formInstance.store, (s: any) => s.values.amount) as
+        | string
+        | undefined
 
     // Defer input for smooth typing
     const deferredAmount = useDeferredValue(amount)
@@ -876,7 +878,7 @@ export default function LiabilitiesPage() {
                     </p>
                 </div>
                 <Select
-                    value={selectedEntity?.toString() || undefined}
+                    value={selectedEntity?.toString() ?? ''}
                     onValueChange={(val) => setEntityIdStr(val || null)}
                 >
                     <SelectTrigger className="w-[280px]">

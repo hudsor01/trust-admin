@@ -1,10 +1,11 @@
 import { defineConfig } from 'drizzle-kit'
 
-// Ensure DATABASE_URL is set and configure SSL properly for Neon
-const databaseUrl = process.env.DATABASE_URL
+// Prefer direct connection for migrations (bypasses PgBouncer pooling)
+// Pooled connections don't support prepared statements used by migrations
+const databaseUrl = process.env.DATABASE_URL_DIRECT || process.env.DATABASE_URL
 if (!databaseUrl) {
     throw new Error(
-        'DATABASE_URL environment variable is required for Drizzle Kit',
+        'DATABASE_URL or DATABASE_URL_DIRECT environment variable is required for Drizzle Kit',
     )
 }
 

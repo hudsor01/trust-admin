@@ -4,7 +4,7 @@
  * Direct Drizzle queries for all database operations.
  * No generic factory - just straightforward type-safe queries.
  */
-import { desc, eq, sql } from 'drizzle-orm'
+import { and, desc, eq, sql } from 'drizzle-orm'
 import { calculatePaymentSplit } from '../src/lib/amortization'
 import {
     type ExpenseType,
@@ -1043,13 +1043,19 @@ interface HemsRequestPaginationOptions {
  * PERF: Always paginated to prevent unbounded growth
  */
 export async function getHemsRequestsWithBeneficiary(
-    beneficiaryId?: number,
+    filters?: { beneficiaryId?: number; entityId?: number },
     options?: HemsRequestPaginationOptions,
 ) {
+    const conditions = []
+    if (filters?.beneficiaryId) {
+        conditions.push(eq(hemsRequest.beneficiaryId, filters.beneficiaryId))
+    }
+    if (filters?.entityId) {
+        conditions.push(eq(hemsRequest.entityId, filters.entityId))
+    }
+
     return db.query.hemsRequest.findMany({
-        where: beneficiaryId
-            ? eq(hemsRequest.beneficiaryId, beneficiaryId)
-            : undefined,
+        where: conditions.length > 0 ? and(...conditions) : undefined,
         with: { beneficiary: true },
         orderBy: (r, { desc }) => [desc(r.createdAt)],
         limit: options?.limit ?? 100,

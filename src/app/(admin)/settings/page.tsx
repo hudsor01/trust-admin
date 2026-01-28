@@ -275,7 +275,7 @@ export default function SettingsPage() {
                             </CardDescription>
                         </div>
                         <Select
-                            value={selectedEntity?.toString()}
+                            value={selectedEntity?.toString() ?? ''}
                             onValueChange={(val) => setEntityId(val || null)}
                         >
                             <SelectTrigger className="w-[250px]">

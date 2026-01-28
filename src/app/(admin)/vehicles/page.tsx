@@ -319,7 +319,7 @@ export default function VehiclesPage() {
                         ` - Total DOD Value: ${formatCurrency(totalValue)}`}
                 </p>
                 <Select
-                    value={selectedEntity?.toString() ?? undefined}
+                    value={selectedEntity?.toString() ?? ''}
                     onValueChange={(val) => setEntityIdStr(val || null)}
                 >
                     <SelectTrigger className="w-70">
@@ -390,17 +390,43 @@ export default function VehiclesPage() {
                                             type="number"
                                             min={1900}
                                             max={new Date().getFullYear() + 1}
-                                            value={field.state.value || ''}
-                                            onChange={(e) =>
-                                                field.handleChange(
-                                                    Number.parseInt(
-                                                        e.target.value,
-                                                        10,
-                                                    ) ||
-                                                        new Date().getFullYear(),
-                                                )
+                                            value={
+                                                field.state.value
+                                                    ? String(field.state.value)
+                                                    : ''
                                             }
-                                            onBlur={field.handleBlur}
+                                            onChange={(e) => {
+                                                const val = e.target.value
+                                                // Only update if empty or valid 4-digit year
+                                                if (val === '') {
+                                                    // Don't auto-fill on clear - let user type fresh
+                                                    return
+                                                }
+                                                const parsed = Number.parseInt(
+                                                    val,
+                                                    10,
+                                                )
+                                                if (
+                                                    !Number.isNaN(parsed) &&
+                                                    parsed >= 0
+                                                ) {
+                                                    field.handleChange(parsed)
+                                                }
+                                            }}
+                                            onBlur={(e) => {
+                                                field.handleBlur()
+                                                // On blur, ensure we have a valid year
+                                                const val = e.target.value
+                                                if (
+                                                    !val ||
+                                                    Number.parseInt(val, 10) <
+                                                        1900
+                                                ) {
+                                                    field.handleChange(
+                                                        new Date().getFullYear(),
+                                                    )
+                                                }
+                                            }}
                                         />
                                         {field.state.meta.errors &&
                                             field.state.meta.errors.length >

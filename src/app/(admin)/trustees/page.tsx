@@ -144,7 +144,7 @@ export default function TrusteesPage() {
     const currentTrustees = trustees
         .filter((t) => t.status === 'ACTIVE')
         .sort((a, b) => a.order - b.order)
-    const arbitorTrustees = trustees.filter((t) => t.status === 'ARBITOR')
+    const arbiterTrustees = trustees.filter((t) => t.status === 'ARBITER')
 
     return (
         <div className="space-y-6">
@@ -154,7 +154,7 @@ export default function TrusteesPage() {
                 </h2>
                 <div className="flex items-center gap-3">
                     <Select
-                        value={selectedEntity?.toString() ?? undefined}
+                        value={selectedEntity?.toString() ?? ''}
                         onValueChange={(val) => setEntityId(val || null)}
                     >
                         <SelectTrigger className="w-[250px]">
@@ -462,22 +462,22 @@ export default function TrusteesPage() {
 
             <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold tracking-tight">
-                    Arbitors
+                    Arbiters
                 </h3>
                 <Button
-                    onClick={() => trusteeForm.open({ status: 'ARBITOR' })}
+                    onClick={() => trusteeForm.open({ status: 'ARBITER' })}
                     disabled={!selectedEntity}
                 >
                     <Plus className="h-4 w-4 mr-2" />
-                    Add Arbitor
+                    Add Arbiter
                 </Button>
             </div>
 
             <Card>
                 <CardContent className="pt-6">
-                    {arbitorTrustees.length === 0 ? (
+                    {arbiterTrustees.length === 0 ? (
                         <p className="text-center py-8 text-muted-foreground">
-                            No arbitors designated
+                            No arbiters designated
                         </p>
                     ) : (
                         <div className="rounded-md border">
@@ -499,7 +499,7 @@ export default function TrusteesPage() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {arbitorTrustees
+                                    {arbiterTrustees
                                         .sort((a, b) => a.order - b.order)
                                         .map((t) => (
                                             <TableRow key={t.id}>

@@ -10,6 +10,7 @@ import {
     insertDistributionSchema,
     updateDistributionSchema,
 } from '../../../../db/validation'
+import { addBreadcrumb, traceBusinessOperation } from '../../../lib/sentry'
 import {
     adminProcedure,
     beneficiaryProcedure,
@@ -32,11 +33,30 @@ export const distributionRouter = createTRPCRouter({
     create: adminProcedure
         .input(insertDistributionSchema)
         .mutation(async ({ input }) => {
-            const [created] = await db
-                .insert(distribution)
-                .values({ ...input, updatedAt: new Date().toISOString() })
-                .returning()
-            return created
+            addBreadcrumb('distribution', 'Creating distribution', {
+                beneficiaryId: input.beneficiaryId,
+                amount: input.amount,
+                distributionType: input.distributionType,
+            })
+
+            return traceBusinessOperation(
+                'distribution.create',
+                {
+                    beneficiaryId: input.beneficiaryId ?? 0,
+                    amount: input.amount ?? '0',
+                    distributionType: input.distributionType ?? 'unknown',
+                },
+                async () => {
+                    const [created] = await db
+                        .insert(distribution)
+                        .values({
+                            ...input,
+                            updatedAt: new Date().toISOString(),
+                        })
+                        .returning()
+                    return created
+                },
+            )
         }),
 
     update: adminProcedure

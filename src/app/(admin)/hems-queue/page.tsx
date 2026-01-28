@@ -79,16 +79,15 @@ export default function HemsQueuePage() {
     const { data: entities = [], isLoading: entitiesLoading } =
         trpc.entity.list.useQuery()
     const [entityId, setEntityId] = useEntityFilter()
-    // For hems-queue, empty string means "all entities"
-    const selectedEntity = entityId || null
+
+    // Query params: pass entityId only when a specific entity is selected
+    // When entityId is null or empty, fetch all HEMS requests
+    const queryParams = entityId ? { entityId: Number(entityId) } : undefined
 
     const { data: requests = [], isLoading: requestsLoading } =
-        trpc.hemsRequest.list.useQuery(
-            { entityId: selectedEntity! },
-            { enabled: selectedEntity !== 'all' && !!selectedEntity },
-        )
+        trpc.hemsRequest.listWithBeneficiary.useQuery(queryParams)
 
-    // Cast to include beneficiary data (API returns joined data)
+    // API returns joined beneficiary data
     const requestsWithBeneficiary =
         requests as unknown as HemsRequestWithBeneficiary[]
 
@@ -116,11 +115,11 @@ export default function HemsQueuePage() {
     )
 
     const approveRequestMutation = trpc.hemsRequest.approve.useMutation({
-        onSuccess: () => utils.hemsRequest.list.invalidate(),
+        onSuccess: () => utils.hemsRequest.listWithBeneficiary.invalidate(),
     })
 
     const denyRequestMutation = trpc.hemsRequest.deny.useMutation({
-        onSuccess: () => utils.hemsRequest.list.invalidate(),
+        onSuccess: () => utils.hemsRequest.listWithBeneficiary.invalidate(),
     })
 
     const loading = entitiesLoading || requestsLoading
@@ -159,19 +158,26 @@ export default function HemsQueuePage() {
         {
             id: 'beneficiary',
             header: 'Beneficiary',
-            cell: ({ row }) => (
-                <div>
-                    <p className="font-medium">
-                        {row.original.beneficiary.firstName}{' '}
-                        {row.original.beneficiary.lastName}
-                    </p>
-                    {row.original.beneficiary.email && (
-                        <p className="text-xs text-muted-foreground">
-                            {row.original.beneficiary.email}
+            cell: ({ row }) => {
+                const beneficiary = row.original.beneficiary
+                if (!beneficiary) {
+                    return (
+                        <span className="text-muted-foreground">Unknown</span>
+                    )
+                }
+                return (
+                    <div>
+                        <p className="font-medium">
+                            {beneficiary.firstName} {beneficiary.lastName}
                         </p>
-                    )}
-                </div>
-            ),
+                        {beneficiary.email && (
+                            <p className="text-xs text-muted-foreground">
+                                {beneficiary.email}
+                            </p>
+                        )}
+                    </div>
+                )
+            },
         },
         {
             accessorKey: 'category',
@@ -445,8 +451,9 @@ export default function HemsQueuePage() {
                                 : 'Request Details'}
                         </DialogTitle>
                         <DialogDescription>
-                            {reviewingRequest?.beneficiary.firstName}{' '}
-                            {reviewingRequest?.beneficiary.lastName} -{' '}
+                            {reviewingRequest?.beneficiary?.firstName ??
+                                'Unknown'}{' '}
+                            {reviewingRequest?.beneficiary?.lastName ?? ''} -{' '}
                             {CATEGORY_LABELS[
                                 reviewingRequest?.category || ''
                             ] || reviewingRequest?.category}
@@ -475,7 +482,7 @@ export default function HemsQueuePage() {
                                         {formatDate(reviewingRequest.createdAt)}
                                     </span>
                                 </div>
-                                {reviewingRequest.beneficiary.sharePercent && (
+                                {reviewingRequest.beneficiary?.sharePercent && (
                                     <div className="flex justify-between">
                                         <span className="text-sm text-muted-foreground">
                                             Share %
@@ -483,7 +490,7 @@ export default function HemsQueuePage() {
                                         <span className="text-sm">
                                             {
                                                 reviewingRequest.beneficiary
-                                                    .sharePercent
+                                                    ?.sharePercent
                                             }
                                             %
                                         </span>

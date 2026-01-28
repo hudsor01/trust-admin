@@ -61,38 +61,30 @@ export function useResourceForm<T>({
     })
 
     const openDialog = (defaults?: Partial<T>) => {
-        // Always reset form to proper defaults when opening
-        // Merge any provided defaults with initialData
         const mergedDefaults = defaults
             ? { ...initialData, ...defaults }
             : initialData
-        formInstance.update({
-            defaultValues: mergedDefaults,
-        })
-        formInstance.reset()
+        // reset(values) sets form to provided values and updates defaultValues
+        formInstance.reset(mergedDefaults)
         setIsOpen(true)
     }
 
     const closeDialog = () => {
         setIsOpen(false)
         setEditing(null)
-        formInstance.reset()
+        formInstance.reset(initialData)
     }
 
     const handleEdit = (item: T) => {
         setEditing(item)
-        // Update defaultValues then reset - TanStack Form recommended approach
-        // See: https://github.com/TanStack/form/discussions/613
-        formInstance.update({ defaultValues: item })
-        formInstance.reset()
+        // reset(values) properly sets all field values from the item
+        formInstance.reset(item)
         setIsOpen(true)
     }
 
     const handleAdd = () => {
         setEditing(null)
-        // Reset to initial defaults (not any previously merged defaults)
-        formInstance.update({ defaultValues: initialData })
-        formInstance.reset()
+        formInstance.reset(initialData)
         setIsOpen(true)
     }
 

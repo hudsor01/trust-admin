@@ -1,7 +1,7 @@
-import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import { AppSidebar } from '@/components/app-sidebar'
 import { CommandPalette } from '@/components/command-palette'
+import { AppErrorBoundary } from '@/components/error-boundary'
 import {
     SidebarInset,
     SidebarProvider,
@@ -9,13 +9,15 @@ import {
 } from '@/components/ui/sidebar'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { authServer } from '@/lib/auth'
-import { db, userProfile } from '../../../db'
 
 /**
  * Admin Layout
  *
  * Server Component that protects all admin routes.
  * Redirects to login if not authenticated or not an admin.
+ *
+ * Uses native Neon Auth role from session.user.role.
+ * To promote a user to admin, use authClient.admin.setRole().
  */
 export default async function AdminLayout({
     children,
@@ -29,15 +31,9 @@ export default async function AdminLayout({
         redirect('/auth/sign-in')
     }
 
-    // Fetch user profile to get role
-    const [profile] = await db
-        .select()
-        .from(userProfile)
-        .where(eq(userProfile.userId, session.user.id))
-        .limit(1)
-
-    // Check for admin role
-    if (profile?.role !== 'admin') {
+    // Check for admin role (native Neon Auth role)
+    // Default role for new users is "user", not "admin"
+    if (session.user.role !== 'admin') {
         // Non-admin users go to portal
         redirect('/portal')
     }
@@ -54,7 +50,14 @@ export default async function AdminLayout({
                             <span className="text-xs">⌘</span>K
                         </kbd>
                     </header>
-                    <main className="flex-1 overflow-auto p-6">{children}</main>
+                    <main className="flex-1 overflow-auto p-6">
+                        <AppErrorBoundary
+                            title="Admin Error"
+                            description="An error occurred in the admin interface. Please try again or contact support if the issue persists."
+                        >
+                            {children}
+                        </AppErrorBoundary>
+                    </main>
                 </SidebarInset>
                 <CommandPalette />
             </SidebarProvider>

@@ -2,7 +2,7 @@
 
 ## What This Is
 
-A trust administration application for managing the **Hudson Living Trust**, a Texas Irrevocable Trust. The grantor (Richard Hudson) died 2024-12-28, making this an **estate settlement** followed by **ongoing trust administration**.
+A trust administration application for managing the **Hudson Living Trust**, a Texas Irrevocable Trust. The grantor (Richard Hudson) died 2025-12-28, making this an **estate settlement** followed by **ongoing trust administration**.
 
 **Two user types:**
 - **Admin (Trustee):** Manages all trust assets, liabilities, accounting, and distributions
@@ -114,55 +114,63 @@ All have: `entityId`, `dodValue`, `dodValueDate`, `status`, `transferStatus`
 
 ---
 
-## Better Auth Patterns (Next.js App Router)
+## Neon Auth (Next.js App Router)
 
-### Two-Layer Auth Strategy
+Neon Auth is a managed Better Auth service. User data lives in `neon_auth.user` table.
 
-Better Auth recommends a two-layer approach for Next.js:
+### Native Roles
 
-| Layer | File | Purpose | Security |
-|-------|------|---------|----------|
-| 1. Optimistic | `proxy.ts` | Fast cookie-existence check for UX | ❌ Not secure alone |
-| 2. Secure | Per-page/layout | `auth.api.getSession()` validation | ✅ Secure |
+Roles are stored natively on `session.user.role`:
+- `"admin"` - Trust administrator
+- `"user"` (default) - Beneficiary
 
-**Key insight from docs:** "We recommend handling auth checks in each page/route"
+**To promote a user to admin:** Use Neon Console or `authClient.admin.setRole()`
 
-### Server-Side Session (REQUIRED for security)
+### Server-Side Session
 
-Use `auth.api.getSession()` in Server Components - this is the **secure** approach:
+Use `authServer.getSession()` in Server Components:
 
 ```tsx
 // src/app/page.tsx or any Server Component
-import { auth } from "@/lib/auth"
-import { headers } from "next/headers"
+import { authServer } from "@/lib/auth"
 import { redirect } from "next/navigation"
 
 export default async function ProtectedPage() {
-  const session = await auth.api.getSession({
-    headers: await headers()
-  })
+  const { data: session } = await authServer.getSession()
 
-  if (!session) {
-    redirect("/login")
+  if (!session?.user) {
+    redirect("/auth/sign-in")
   }
 
-  // Access user with role
-  const user = session.user as { role?: string }
-  if (user.role === "admin") {
-    // admin-specific logic
+  // Native role from Neon Auth
+  if (session.user.role === "admin") {
+    redirect("/dashboard")
   }
-
-  return <div>Welcome {session.user.name}</div>
+  redirect("/portal")
 }
 ```
 
-**Why this pattern:**
-- Server Components can't access browser cookies directly
-- `auth.api.getSession()` reads cookies from request headers
-- No client-side JavaScript needed for auth checks
-- Redirects happen at the edge/server (faster, no flash)
+### Auth File Locations
 
-**Documentation source:** Better Auth docs → FAQ → "getSession not working" and Next.js guide → "How to handle auth checks in each page/route"
+```
+src/lib/
+├── auth.ts           # Re-exports from auth/client and auth/server
+├── auth/
+│   ├── client.ts     # createAuthClient() for client components
+│   └── server.ts     # createAuthServer() for server components
+```
+
+### RLS Integration
+
+JWT session initialization for Row-Level Security:
+
+```typescript
+import { initJwtSession } from '@/db'
+
+// In tRPC context creation
+await initJwtSession(session.session.token)
+// Now auth.user_id() works in RLS policies
+```
 
 ### Optional: Proxy for Optimistic Redirects (UX only)
 
@@ -333,25 +341,53 @@ createCrud(liability, { filterColumn: "entityId" })
 | Framework | Next.js 16 (App Router) |
 | API | tRPC + Next.js API routes |
 | Database | PostgreSQL (Neon serverless) |
-| ORM | Drizzle ORM |
+| DB Driver | @neondatabase/serverless (HTTP) + postgres.js (transactions) |
+| ORM | Drizzle ORM (drizzle-orm/neon-http) |
 | Validation | Zod (via drizzle-zod) |
 | Frontend | React 19 + TailwindCSS |
 | UI | Radix UI + shadcn/ui |
 | Data Fetching | tRPC + TanStack Query |
-| Auth | Better Auth (magic link, no passwords) |
+| Auth | Neon Auth (managed Better Auth, magic link) |
 | Email | Resend |
 | Deployment | Vercel (with Neon Postgres integration) |
+
+### Database Architecture
+
+```
+Production Queries (Drizzle)     Raw SQL/Tests (postgres.js)
+         │                               │
+         ▼                               ▼
+   neon() HTTP driver            postgres.js client
+   (fast, stateless)             (template strings, transactions)
+         │                               │
+         └───────────┬───────────────────┘
+                     │
+                     ▼
+           Neon PostgreSQL (pooled)
+           └── PgBouncer (10K connections)
+```
+
+**Key exports from `db/index.ts`:**
+- `db` - Drizzle ORM instance (uses HTTP driver)
+- `getClient()` - postgres.js for raw SQL with transactions
+- `initJwtSession(token)` - Initialize RLS session
+
+**Time travel queries** (`db/time-travel.ts`):
+- `queryAtTime(table, timestamp)` - Query historical data
+- `compareWithHistory(table, timestamp, id)` - Diff current vs past
 
 ### File Structure
 
 ```
 trust-admin/
 ├── db/
+│   ├── index.ts          # DB connections (neon HTTP + postgres.js)
 │   ├── schema.ts         # 34 Drizzle tables + enums + type guards
 │   ├── relations.ts      # Drizzle relations
 │   ├── validation.ts     # Zod schemas from drizzle-zod
 │   ├── queries.ts        # CRUD instances + custom queries
-│   └── crud-factory.ts   # Generic CRUD with filtering + pagination
+│   ├── crud-factory.ts   # Generic CRUD with filtering + pagination
+│   └── time-travel.ts    # Historical query utilities
 ├── src/
 │   ├── app/                        # Next.js App Router
 │   │   ├── page.tsx                # Root: auth gateway (redirects by role)
@@ -573,16 +609,25 @@ update.mutate({ id, data: { currentBalance: "1500.00" } })
 ### Environment Variables
 
 ```bash
-DATABASE_URL=postgres://...           # Required (Neon PostgreSQL)
-BETTER_AUTH_SECRET=<random-string>    # Required (min 32 chars)
-RESEND_API_KEY=<key>                  # Optional in dev (logs to console)
-TRUSTED_ORIGINS=http://localhost:3000 # Comma-separated for multiple
+# Database (use -pooler endpoint for production)
+DATABASE_URL=postgresql://user:pass@ep-xxx-pooler.region.aws.neon.tech/neondb?sslmode=require
+DATABASE_URL_DIRECT=postgresql://user:pass@ep-xxx.region.aws.neon.tech/neondb?sslmode=require  # For migrations
+
+# Neon Auth
+NEON_AUTH_BASE_URL=https://ep-xxx.neonauth.region.aws.neon.tech/neondb/auth
+
+# Email (optional in dev)
+RESEND_API_KEY=<key>
+
+# URLs
+TRUSTED_ORIGINS=https://trust.thehudsonfam.com
+FRONTEND_URL=https://trust.thehudsonfam.com
 ```
 
 ### Seed Data
 
 `bun run db:seed` creates **The Hudson Living Trust**:
-- Grantor: Richard Hudson (DOD: 2024-12-28)
+- Grantor: Richard Hudson (DOD: 2025-12-28)
 - ~20 beneficiaries with HEMS + withdrawal rights
 - Children: Richard Jr (8.5%), Ashley (4.5%), Wendy (4.5%)
 - Stepchildren: Ricky, Timothy, Alicia (4.5% each)
@@ -593,11 +638,12 @@ TRUSTED_ORIGINS=http://localhost:3000 # Comma-separated for multiple
 
 ## Current State
 
-**Stack:** Next.js 16.1 (App Router) + tRPC v11 + Drizzle ORM + Better Auth + Neon PostgreSQL
+**Stack:** Next.js 16.1 (App Router) + tRPC v11 + Drizzle ORM + Neon Auth + @neondatabase/serverless
 
 **Working:**
 - 24 tRPC routers for all resources
-- Admin auth + beneficiary portal (magic link)
+- Neon Auth with native roles (admin/user)
+- RLS policies with JWT session initialization
 - Payment recording with auto-accounting
 - HEMS workflow (request → approve → distribute)
 - Year-end income-to-principal conversion (Section 7.10(c))
@@ -605,5 +651,13 @@ TRUSTED_ORIGINS=http://localhost:3000 # Comma-separated for multiple
 - Texas compliance fields (principal/income allocation)
 - Activity log audit trail
 - Inline editable cells with optimistic updates
+- Time travel queries for audit (db/time-travel.ts)
+- Neon serverless driver (HTTP for Drizzle, postgres.js for transactions)
+
+**Neon Features Enabled:**
+- Serverless driver (neon HTTP)
+- Connection pooling ready (-pooler endpoint)
+- Time travel queries utility
+- Vercel preview branching ready (needs console config)
 
 **Not implemented:** File upload, email notifications in prod, reporting/export, multi-entity support

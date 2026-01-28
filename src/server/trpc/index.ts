@@ -3,6 +3,10 @@
  *
  * Sets up tRPC with context, base procedures, and error handling.
  * Used by all routers in server/trpc/routers/
+ *
+ * Uses native Neon Auth roles:
+ * - "admin" = full admin access
+ * - "user" (default) = beneficiary/portal access
  */
 import { initTRPC, TRPCError } from '@trpc/server'
 import { eq } from 'drizzle-orm'
@@ -13,7 +17,7 @@ import { db, initJwtSession } from '../../../db'
 import { userProfile } from '../../../db/schema'
 
 /**
- * App user type with custom fields from user_profile
+ * App user type - uses native Neon Auth role + app-specific beneficiaryId
  */
 export type AppUser = {
     id: string
@@ -23,14 +27,15 @@ export type AppUser = {
     image?: string | null
     createdAt: Date
     updatedAt: Date
-    // Custom fields from user_profile
-    role: 'admin' | 'beneficiary'
+    // Native Neon Auth role: "admin" or "user" (default)
+    role: string | null
+    // App-specific: links user to beneficiary record (from userProfile table)
     beneficiaryId: number | null
 }
 
 /**
  * Context creation for each request
- * Includes session info from Neon Auth + custom user_profile data
+ * Uses native Neon Auth session.user.role for authorization.
  *
  * IMPORTANT: This initializes the JWT session for RLS policies.
  * The session token is passed to auth.jwt_session_init() so that
@@ -39,7 +44,7 @@ export type AppUser = {
 export async function createContext(_opts: { headers: Headers }) {
     const { data: session } = await authServer.getSession()
 
-    // If we have a session, initialize JWT for RLS and fetch user profile
+    // If we have a session, initialize JWT for RLS and fetch beneficiary link
     let appUser: AppUser | null = null
     if (session?.user && session?.session?.token) {
         // Initialize JWT session for RLS - must be done BEFORE any queries
@@ -51,13 +56,14 @@ export async function createContext(_opts: { headers: Headers }) {
             // Continue without RLS - queries will still work but may return no data
         }
 
+        // Fetch beneficiaryId from userProfile (app-specific mapping)
         const [profile] = await db
-            .select()
+            .select({ beneficiaryId: userProfile.beneficiaryId })
             .from(userProfile)
             .where(eq(userProfile.userId, session.user.id))
             .limit(1)
 
-        // Merge Neon Auth user with profile data
+        // Build app user from native Neon Auth session + profile
         appUser = {
             id: session.user.id,
             name: session.user.name,
@@ -66,17 +72,18 @@ export async function createContext(_opts: { headers: Headers }) {
             image: session.user.image,
             createdAt: session.user.createdAt,
             updatedAt: session.user.updatedAt,
-            // Custom fields from profile (defaults if no profile exists)
-            role: profile?.role ?? 'beneficiary',
+            // Native Neon Auth role (from neon_auth.user table)
+            role: session.user.role ?? null,
+            // App-specific beneficiary link
             beneficiaryId: profile?.beneficiaryId ?? null,
         }
 
         // Set Sentry user context for error tracking and performance monitoring
         setSentryUser({
-            id: appUser.id,
-            email: appUser.email,
-            role: appUser.role,
-            beneficiaryId: appUser.beneficiaryId,
+            id: session.user.id,
+            email: session.user.email,
+            role: session.user.role ?? 'user',
+            beneficiaryId: profile?.beneficiaryId ?? null,
         })
     } else {
         // Clear Sentry user context when no session

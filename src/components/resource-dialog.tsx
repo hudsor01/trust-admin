@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import {
     Dialog,
     DialogContent,
+    DialogDescription,
     DialogFooter,
     DialogHeader,
     DialogTitle,
@@ -12,6 +13,7 @@ export interface ResourceDialogProps<_T> {
     open: boolean
     onOpenChange: (open: boolean) => void
     title: string
+    description?: string
     children: React.ReactNode
     onSubmit: () => void | Promise<void>
     submitLabel?: string
@@ -50,6 +52,7 @@ export function ResourceDialog<T>({
     open,
     onOpenChange,
     title,
+    description,
     children,
     onSubmit,
     submitLabel = 'Save',
@@ -60,6 +63,9 @@ export function ResourceDialog<T>({
             <DialogContent className="max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>{title}</DialogTitle>
+                    <DialogDescription className={description ? '' : 'sr-only'}>
+                        {description || `${title} form`}
+                    </DialogDescription>
                 </DialogHeader>
                 {children}
                 <DialogFooter>

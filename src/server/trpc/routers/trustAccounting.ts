@@ -11,6 +11,7 @@ import {
     insertTrustAccountingSchema,
     updateTrustAccountingSchema,
 } from '../../../../db/validation'
+import { addBreadcrumb, traceBusinessOperation } from '../../../lib/sentry'
 import { adminProcedure, createTRPCRouter } from '../index'
 
 export const trustAccountingRouter = createTRPCRouter({
@@ -162,10 +163,25 @@ export const trustAccountingRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ input }) => {
-            return convertIncomeToPrincipal(
-                input.entityId,
-                input.fiscalYear,
-                input.bankAccountId,
+            addBreadcrumb('accounting', 'Converting income to principal', {
+                entityId: input.entityId,
+                fiscalYear: input.fiscalYear,
+            })
+
+            return traceBusinessOperation(
+                'accounting.convertIncomeToPrincipal',
+                {
+                    entityId: input.entityId,
+                    fiscalYear: input.fiscalYear,
+                    bankAccountId: input.bankAccountId,
+                },
+                async () => {
+                    return convertIncomeToPrincipal(
+                        input.entityId,
+                        input.fiscalYear,
+                        input.bankAccountId,
+                    )
+                },
             )
         }),
 })

@@ -12,6 +12,7 @@ import {
     insertBeneficiarySchema,
     updateBeneficiarySchema,
 } from '../../../../db/validation'
+import { addBreadcrumb, traceBusinessOperation } from '../../../lib/sentry'
 import {
     adminProcedure,
     beneficiaryProcedure,
@@ -102,7 +103,21 @@ export const beneficiaryRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ input }) => {
-            return markBeneficiaryDeceased(input)
+            addBreadcrumb('beneficiary', 'Marking beneficiary as deceased', {
+                beneficiaryId: input.beneficiaryId,
+                deceasedDate: input.deceasedDate,
+            })
+
+            return traceBusinessOperation(
+                'beneficiary.markDeceased',
+                {
+                    beneficiaryId: input.beneficiaryId,
+                    deceasedDate: input.deceasedDate,
+                },
+                async () => {
+                    return markBeneficiaryDeceased(input)
+                },
+            )
         }),
 
     /**
@@ -116,9 +131,23 @@ export const beneficiaryRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ input }) => {
-            return recalculateBeneficiaryShares(
-                input.entityId,
-                input.excludeBeneficiaryId,
+            addBreadcrumb('beneficiary', 'Recalculating beneficiary shares', {
+                entityId: input.entityId,
+                excludeBeneficiaryId: input.excludeBeneficiaryId,
+            })
+
+            return traceBusinessOperation(
+                'beneficiary.recalculateShares',
+                {
+                    entityId: input.entityId,
+                    excludeBeneficiaryId: input.excludeBeneficiaryId,
+                },
+                async () => {
+                    return recalculateBeneficiaryShares(
+                        input.entityId,
+                        input.excludeBeneficiaryId,
+                    )
+                },
             )
         }),
 })

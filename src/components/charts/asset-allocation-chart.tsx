@@ -26,7 +26,7 @@ export function AssetAllocationChart({ data }: AssetAllocationChartProps) {
     // Show placeholder if no data
     if (data.length === 0) {
         return (
-            <div className="flex h-[300px] items-center justify-center text-muted-foreground">
+            <div className="flex h-[300px] w-full items-center justify-center text-muted-foreground">
                 No asset data available
             </div>
         )
@@ -48,7 +48,10 @@ export function AssetAllocationChart({ data }: AssetAllocationChartProps) {
     ) satisfies ChartConfig
 
     return (
-        <ChartContainer config={chartConfig} className="mx-auto min-h-[300px]">
+        <ChartContainer
+            config={chartConfig}
+            className="mx-auto h-[300px] w-full"
+        >
             <PieChart>
                 <ChartTooltip
                     cursor={false}

@@ -209,7 +209,7 @@ export const trusteeFeeStatus = pgEnum('TrusteeFeeStatus', [
 export const trusteeStatus = pgEnum('TrusteeStatus', [
     'ACTIVE',
     'SUCCESSOR',
-    'ARBITOR',
+    'ARBITER',
     'RESIGNED',
     'REMOVED',
     'DECEASED',

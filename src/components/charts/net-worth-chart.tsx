@@ -45,14 +45,17 @@ export function NetWorthChart({
     // Show placeholder if no data
     if (chartData.length === 0) {
         return (
-            <div className="flex h-[250px] items-center justify-center text-muted-foreground">
+            <div className="flex h-[250px] w-full items-center justify-center text-muted-foreground">
                 No financial data available
             </div>
         )
     }
 
     return (
-        <ChartContainer config={chartConfig} className="mx-auto min-h-[250px]">
+        <ChartContainer
+            config={chartConfig}
+            className="mx-auto h-[250px] w-full"
+        >
             <PieChart>
                 <ChartTooltip
                     cursor={false}

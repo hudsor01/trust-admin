@@ -16,6 +16,7 @@ import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import {
     Dialog,
     DialogContent,
+    DialogDescription,
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog'
@@ -310,6 +311,9 @@ export default function ActivityLogPage() {
                                 </>
                             )}
                         </DialogTitle>
+                        <DialogDescription className="sr-only">
+                            Activity log entry details
+                        </DialogDescription>
                     </DialogHeader>
 
                     {selectedLog && (

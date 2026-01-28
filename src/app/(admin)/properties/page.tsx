@@ -581,7 +581,7 @@ export default function PropertiesPage() {
                     </p>
                 </div>
                 <Select
-                    value={selectedEntity?.toString()}
+                    value={selectedEntity?.toString() ?? ''}
                     onValueChange={(val) => setEntityId(val || null)}
                 >
                     <SelectTrigger className="w-[280px]">

@@ -26,6 +26,7 @@ import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import {
     Dialog,
     DialogContent,
+    DialogDescription,
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog'
@@ -312,6 +313,12 @@ export default function BeneficiariesPage() {
                     )}
                 </div>
             ),
+            // Custom filter to search both first and last name
+            filterFn: (row, _columnId, filterValue) => {
+                const fullName =
+                    `${row.original.firstName} ${row.original.lastName}`.toLowerCase()
+                return fullName.includes(filterValue.toLowerCase())
+            },
         },
         {
             accessorKey: 'sharePercent',
@@ -599,6 +606,9 @@ export default function BeneficiariesPage() {
                                 ? `${selectedBeneficiary?.firstName} ${selectedBeneficiary?.lastName}`
                                 : ''}
                         </DialogTitle>
+                        <DialogDescription className="sr-only">
+                            Beneficiary details and distribution management
+                        </DialogDescription>
                     </DialogHeader>
                     {selectedBeneficiary && (
                         <BeneficiaryDialogContent

@@ -608,7 +608,7 @@ export default function AccountingPage() {
                 </div>
                 <div className="flex items-center gap-3">
                     <Select
-                        value={selectedEntity?.toString()}
+                        value={selectedEntity?.toString() ?? ''}
                         onValueChange={handleEntityChange}
                     >
                         <SelectTrigger className="w-62.5">

@@ -1,13 +1,14 @@
-import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
+import { AppErrorBoundary } from '@/components/error-boundary'
 import { authServer } from '@/lib/auth'
-import { db, userProfile } from '../../../db'
 
 /**
  * Portal Layout
  *
  * Server Component that protects all portal routes.
  * Redirects to login if not authenticated or if admin (admins use /dashboard).
+ *
+ * Uses native Neon Auth role from session.user.role.
  */
 export default async function PortalLayout({
     children,
@@ -21,22 +22,18 @@ export default async function PortalLayout({
         redirect('/auth/sign-in')
     }
 
-    // Fetch user profile to get role
-    const [profile] = await db
-        .select()
-        .from(userProfile)
-        .where(eq(userProfile.userId, session.user.id))
-        .limit(1)
-
     // Admin users should use the admin dashboard
-    if (profile?.role === 'admin') {
+    // Uses native Neon Auth role
+    if (session.user.role === 'admin') {
         redirect('/dashboard')
     }
 
-    // Beneficiaries without a profile need to be set up by admin
-    if (!profile?.beneficiaryId) {
-        // Allow access but the page will show "no profile" message
-    }
-
-    return <>{children}</>
+    return (
+        <AppErrorBoundary
+            title="Portal Error"
+            description="An error occurred. Please try again or contact the trust administrator if the issue persists."
+        >
+            {children}
+        </AppErrorBoundary>
+    )
 }

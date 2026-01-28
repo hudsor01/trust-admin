@@ -26,6 +26,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import {
     Dialog,
     DialogContent,
+    DialogDescription,
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog'
@@ -436,6 +437,9 @@ export default function ContactsPage() {
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>{selectedContact?.name}</DialogTitle>
+                        <DialogDescription className="sr-only">
+                            Contact details and information
+                        </DialogDescription>
                     </DialogHeader>
                     {selectedContact && (
                         <div className="space-y-4">

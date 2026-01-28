@@ -11,6 +11,7 @@ import {
     updateLiabilitySchema,
 } from '../../../../db/validation'
 import { estimatePayoffDate } from '../../../lib/amortization'
+import { addBreadcrumb, traceBusinessOperation } from '../../../lib/sentry'
 import {
     ALLOCATION_CLASS_VALUES,
     LIABILITY_TYPE_VALUES,
@@ -108,49 +109,82 @@ export const liabilityRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ input }) => {
-            const results = await Promise.all(
-                input.liabilities.map((row) => {
-                    // Clean numeric strings (remove commas)
-                    const cleanBalance = row.currentBalance.replace(/,/g, '')
-                    const cleanRate =
-                        row.interestRate?.replace(/,/g, '') || null
-                    const cleanPayment =
-                        row.monthlyPayment?.replace(/,/g, '') || null
-                    const cleanEscrow =
-                        row.escrowMonthly?.replace(/,/g, '') || null
-                    const cleanTerm = row.loanTermMonths
-                        ? parseInt(row.loanTermMonths, 10)
-                        : null
+            addBreadcrumb('liability', 'Bulk creating liabilities', {
+                entityId: input.entityId,
+                count: input.liabilities.length,
+            })
 
-                    return db
-                        .insert(liability)
-                        .values({
-                            entityId: input.entityId,
-                            liabilityType: row.liabilityType,
-                            creditor: row.creditor,
-                            originalAmount: cleanBalance, // Use current balance as original for new entries
-                            currentBalance: cleanBalance,
-                            interestRate: cleanRate,
-                            monthlyPayment: cleanPayment,
-                            escrowMonthly: cleanEscrow,
-                            loanTermMonths: cleanTerm,
-                            isRevolvingCredit:
-                                row.liabilityType === 'CREDIT_CARD',
-                            status: 'ACTIVE',
-                            updatedAt: new Date().toISOString(),
-                        })
-                        .returning()
-                        .then(([created]) => created)
-                }),
+            return traceBusinessOperation(
+                'liability.bulkCreate',
+                {
+                    entityId: input.entityId,
+                    count: input.liabilities.length,
+                },
+                async () => {
+                    const results = await Promise.all(
+                        input.liabilities.map((row) => {
+                            // Clean numeric strings (remove commas)
+                            const cleanBalance = row.currentBalance.replace(
+                                /,/g,
+                                '',
+                            )
+                            const cleanRate =
+                                row.interestRate?.replace(/,/g, '') || null
+                            const cleanPayment =
+                                row.monthlyPayment?.replace(/,/g, '') || null
+                            const cleanEscrow =
+                                row.escrowMonthly?.replace(/,/g, '') || null
+                            const cleanTerm = row.loanTermMonths
+                                ? parseInt(row.loanTermMonths, 10)
+                                : null
+
+                            return db
+                                .insert(liability)
+                                .values({
+                                    entityId: input.entityId,
+                                    liabilityType: row.liabilityType,
+                                    creditor: row.creditor,
+                                    originalAmount: cleanBalance, // Use current balance as original for new entries
+                                    currentBalance: cleanBalance,
+                                    interestRate: cleanRate,
+                                    monthlyPayment: cleanPayment,
+                                    escrowMonthly: cleanEscrow,
+                                    loanTermMonths: cleanTerm,
+                                    isRevolvingCredit:
+                                        row.liabilityType === 'CREDIT_CARD',
+                                    status: 'ACTIVE',
+                                    updatedAt: new Date().toISOString(),
+                                })
+                                .returning()
+                                .then(([created]) => created)
+                        }),
+                    )
+                    return results
+                },
             )
-            return results
         }),
 
     // Special: Record payment with auto-accounting entry
     recordPayment: adminProcedure
         .input(recordPaymentSchema)
         .mutation(async ({ input }) => {
-            return recordLiabilityPayment(input)
+            addBreadcrumb('liability', 'Recording liability payment', {
+                liabilityId: input.liabilityId,
+                amount: input.amount,
+                paymentMethod: input.paymentMethod,
+            })
+
+            return traceBusinessOperation(
+                'liability.recordPayment',
+                {
+                    liabilityId: input.liabilityId,
+                    amount: input.amount,
+                    paymentMethod: input.paymentMethod ?? 'unknown',
+                },
+                async () => {
+                    return recordLiabilityPayment(input)
+                },
+            )
         }),
 
     // Special: Get payments for a liability

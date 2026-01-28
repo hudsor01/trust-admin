@@ -626,7 +626,7 @@ export default function AccountsPage() {
                     </p>
                 </div>
                 <Select
-                    value={selectedEntity?.toString() || undefined}
+                    value={selectedEntity?.toString() ?? ''}
                     onValueChange={(val) => setEntityIdStr(val || null)}
                 >
                     <SelectTrigger className="w-[280px]">

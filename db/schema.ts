@@ -151,7 +151,7 @@ export const withdrawalStatus = pgEnum('WithdrawalStatus', [
 export const trusteeStatus = pgEnum('TrusteeStatus', [
     'ACTIVE',
     'SUCCESSOR',
-    'ARBITOR',
+    'ARBITER',
     'RESIGNED',
     'REMOVED',
     'DECEASED',
@@ -2360,7 +2360,7 @@ export type DistributionStandardEnum =
 export type TrusteeStatusEnum =
     | 'CURRENT'
     | 'SUCCESSOR'
-    | 'ARBITOR'
+    | 'ARBITER'
     | 'RESIGNED'
     | 'REMOVED'
     | 'DECEASED'
