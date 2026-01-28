@@ -117,11 +117,16 @@ export function InventoryForm() {
         setAnalysisError(null)
 
         try {
-            // Convert photos to base64
+            // Convert photos to base64 (browser-compatible)
             const images = await Promise.all(
                 photos.map(async (photo) => {
                     const buffer = await photo.arrayBuffer()
-                    const base64 = Buffer.from(buffer).toString('base64')
+                    const bytes = new Uint8Array(buffer)
+                    const base64 = btoa(
+                        Array.from(bytes)
+                            .map((b) => String.fromCharCode(b))
+                            .join(''),
+                    )
                     return { base64, mimeType: photo.type }
                 }),
             )
