@@ -66,6 +66,46 @@ type AnalysisResult = {
     confidenceNotes: string
 }
 
+/**
+ * Compress an image file on the client side using Canvas API.
+ * Resizes to max 2048px on longest side and compresses to JPEG.
+ * Keeps each image under ~800KB base64 so total payload stays under Vercel's 4.5MB limit.
+ */
+async function compressImageClientSide(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+        const img = new globalThis.Image()
+        img.onload = () => {
+            const maxDim = 2048
+            let { width, height } = img
+
+            // Scale down if needed
+            if (width > maxDim || height > maxDim) {
+                const scale = maxDim / Math.max(width, height)
+                width = Math.round(width * scale)
+                height = Math.round(height * scale)
+            }
+
+            const canvas = document.createElement('canvas')
+            canvas.width = width
+            canvas.height = height
+            const ctx = canvas.getContext('2d')
+            if (!ctx) {
+                reject(new Error('Canvas context unavailable'))
+                return
+            }
+            ctx.drawImage(img, 0, 0, width, height)
+
+            // JPEG at 80% quality — good balance of size and detail for analysis
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.8)
+            // Strip the data:image/jpeg;base64, prefix
+            const base64 = dataUrl.split(',')[1] ?? ''
+            resolve(base64)
+        }
+        img.onerror = () => reject(new Error('Failed to load image'))
+        img.src = URL.createObjectURL(file)
+    })
+}
+
 export function InventoryForm() {
     const [state, formAction, isPending] = useActionState<
         InventoryFormState,
@@ -117,17 +157,12 @@ export function InventoryForm() {
         setAnalysisError(null)
 
         try {
-            // Convert photos to base64 (browser-compatible)
+            // Compress and convert photos to base64 on the client side
+            // This keeps the request payload under Vercel's 4.5MB body limit
             const images = await Promise.all(
                 photos.map(async (photo) => {
-                    const buffer = await photo.arrayBuffer()
-                    const bytes = new Uint8Array(buffer)
-                    const base64 = btoa(
-                        Array.from(bytes)
-                            .map((b) => String.fromCharCode(b))
-                            .join(''),
-                    )
-                    return { base64, mimeType: photo.type }
+                    const base64 = await compressImageClientSide(photo)
+                    return { base64, mimeType: 'image/jpeg' }
                 }),
             )
 
