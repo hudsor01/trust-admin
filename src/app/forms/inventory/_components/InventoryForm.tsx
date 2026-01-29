@@ -136,8 +136,25 @@ export function InventoryForm() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ images }),
             })
-            const data = await res.json()
 
+            if (!res.ok) {
+                let errorMsg = `Analysis failed (${res.status})`
+                try {
+                    const errData = await res.json()
+                    if (errData.error) errorMsg = errData.error
+                } catch {
+                    if (res.status === 504)
+                        errorMsg =
+                            'Analysis timed out - try with fewer or smaller photos'
+                    else if (res.status === 413)
+                        errorMsg =
+                            'Photos too large - try with fewer or smaller photos'
+                }
+                setAnalysisError(errorMsg)
+                return
+            }
+
+            const data = await res.json()
             if (data.success) {
                 setAnalysis(data.data)
                 // Store uploaded photo URLs
@@ -158,7 +175,9 @@ export function InventoryForm() {
                 setAnalysisError(data.error || 'Analysis failed')
             }
         } catch {
-            setAnalysisError('Failed to connect to analysis service')
+            setAnalysisError(
+                'Failed to connect to analysis service. Check your network connection and try again.',
+            )
         } finally {
             setAnalyzing(false)
         }

@@ -6,6 +6,9 @@ import {
 } from '@/lib/inventory-analysis'
 import { uploadInventoryImages } from '@/lib/uploadthing-server'
 
+// Allow up to 60 seconds for Claude Opus 4.5 image analysis + compression + upload
+export const maxDuration = 60
+
 /**
  * Schema for a single image
  */

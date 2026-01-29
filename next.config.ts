@@ -45,6 +45,9 @@ const nextConfig: NextConfig = {
     // See: https://github.com/radix-ui/primitives/issues/3675
     reactStrictMode: false,
 
+    // Native Node.js packages that should not be bundled by the serverless bundler
+    serverExternalPackages: ['sharp'],
+
     // PERF: Enable experimental optimizations for better tree-shaking
     experimental: {
         // Automatically tree-shake imports from these packages
