@@ -38,6 +38,7 @@ export default function RootLayout({
                             authClient={authClient}
                             redirectTo="/dashboard"
                             emailOTP
+                            credentials
                         >
                             {children}
                             <Toaster
