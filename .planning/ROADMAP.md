@@ -38,7 +38,7 @@ Trust administration application for managing the Hudson Living Trust. Systemati
 **Plans**: TBD
 
 Plans:
-- [ ] 49-01: TBD (run /gsd:plan-phase 49 to break down)
+- [x] 49-01: Fix tRPC context to use userProfile.role (complete 2026-01-30)
 
 #### Phase 50: enable-email-password
 
@@ -94,7 +94,7 @@ Phases execute in numeric order: 49 → 50 → 51 → 52 → 53
 | 4. pg-cron-jobs | v1.0 | 1/1 | Complete (skipped) | 2026-01-23 |
 | 5. time-travel-queries | v1.0 | 1/1 | Complete | 2026-01-23 |
 | 6. autoscaling-optimization | v1.0 | 1/1 | Complete (manual) | 2026-01-23 |
-| 49. fix-role-mismatch | v9.0 | 0/? | Not started | - |
+| 49. fix-role-mismatch | v9.0 | 1/1 | Complete | 2026-01-30 |
 | 50. enable-email-password | v9.0 | 0/? | Not started | - |
 | 51. admin-user-provisioning | v9.0 | 0/? | Not started | - |
 | 52. forced-password-change | v9.0 | 0/? | Not started | - |
