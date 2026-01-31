@@ -2,8 +2,7 @@
 node_modules
 .serena/
 .claude/
-*.md
-.planning/
+
 config/
 public/
 
