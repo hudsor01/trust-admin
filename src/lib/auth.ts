@@ -50,9 +50,10 @@ export interface NeonAuthUser {
 /**
  * Extended user type with app-specific fields
  * The role and beneficiaryId come from user_profile table
+ * "user" is a fallback for authenticated users without a userProfile record
  */
 export type AppUser = NeonAuthUser & {
-    role: 'admin' | 'beneficiary'
+    role: 'admin' | 'beneficiary' | 'user'
     beneficiaryId?: number | null
 }
 

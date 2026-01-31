@@ -40,7 +40,7 @@ async function getCachedSession(req: Request) {
  */
 export async function requireAuth(
     req: Request,
-    allowedRoles?: Array<'admin' | 'beneficiary'>,
+    allowedRoles?: Array<'admin' | 'beneficiary' | 'user'>,
 ): Promise<AppUser> {
     const url = new URL(req.url)
     // VULN-013 FIX: Use validated IP extraction

@@ -4,9 +4,13 @@
  * Sets up tRPC with context, base procedures, and error handling.
  * Used by all routers in server/trpc/routers/
  *
- * Uses native Neon Auth roles:
+ * Role source of truth: userProfile.role (app-managed)
  * - "admin" = full admin access
- * - "user" (default) = beneficiary/portal access
+ * - "beneficiary" = beneficiary portal access
+ * - "user" = fallback for users without a userProfile record
+ *
+ * Note: Neon Auth native role (session.user.role) is only used by
+ * layout guards for routing. tRPC authorization uses userProfile.role.
  */
 import { initTRPC, TRPCError } from '@trpc/server'
 import { eq } from 'drizzle-orm'
@@ -17,7 +21,7 @@ import { db, initJwtSession } from '../../../db'
 import { userProfile } from '../../../db/schema'
 
 /**
- * App user type - uses native Neon Auth role + app-specific beneficiaryId
+ * App user type - uses userProfile.role as source of truth for authorization
  */
 export type AppUser = {
     id: string
@@ -27,15 +31,15 @@ export type AppUser = {
     image?: string | null
     createdAt: Date
     updatedAt: Date
-    // Native Neon Auth role: "admin" or "user" (default)
-    role: string | null
+    // Role from userProfile table: "admin", "beneficiary", or "user" (fallback)
+    role: 'admin' | 'beneficiary' | 'user'
     // App-specific: links user to beneficiary record (from userProfile table)
     beneficiaryId: number | null
 }
 
 /**
  * Context creation for each request
- * Uses native Neon Auth session.user.role for authorization.
+ * Uses userProfile.role as source of truth for tRPC authorization.
  *
  * IMPORTANT: This initializes the JWT session for RLS policies.
  * The session token is passed to auth.jwt_session_init() so that
@@ -56,14 +60,28 @@ export async function createContext(_opts: { headers: Headers }) {
             // Continue without RLS - queries will still work but may return no data
         }
 
-        // Fetch beneficiaryId from userProfile (app-specific mapping)
+        // Fetch role and beneficiaryId from userProfile (app-managed)
         const [profile] = await db
-            .select({ beneficiaryId: userProfile.beneficiaryId })
+            .select({
+                role: userProfile.role,
+                beneficiaryId: userProfile.beneficiaryId,
+            })
             .from(userProfile)
             .where(eq(userProfile.userId, session.user.id))
             .limit(1)
 
-        // Build app user from native Neon Auth session + profile
+        // Determine role from userProfile (source of truth for tRPC authorization)
+        // - If userProfile exists: use profile.role ("admin" or "beneficiary")
+        // - If no profile but Neon Auth role is "admin": use "admin" (backwards compat)
+        // - Otherwise: "user" fallback (no beneficiary access)
+        let role: 'admin' | 'beneficiary' | 'user' = 'user'
+        if (profile) {
+            role = profile.role
+        } else if (session.user.role === 'admin') {
+            role = 'admin'
+        }
+
+        // Build app user with userProfile role
         appUser = {
             id: session.user.id,
             name: session.user.name,
@@ -72,9 +90,7 @@ export async function createContext(_opts: { headers: Headers }) {
             image: session.user.image,
             createdAt: session.user.createdAt,
             updatedAt: session.user.updatedAt,
-            // Native Neon Auth role (from neon_auth.user table)
-            role: session.user.role ?? null,
-            // App-specific beneficiary link
+            role,
             beneficiaryId: profile?.beneficiaryId ?? null,
         }
 
@@ -82,7 +98,7 @@ export async function createContext(_opts: { headers: Headers }) {
         setSentryUser({
             id: session.user.id,
             email: session.user.email,
-            role: session.user.role ?? 'user',
+            role,
             beneficiaryId: profile?.beneficiaryId ?? null,
         })
     } else {
