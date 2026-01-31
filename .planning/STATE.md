@@ -2,12 +2,12 @@
 
 ## Current Position
 
-Phase: 49 of 53 (fix-role-mismatch) - COMPLETE
-Plan: 49-01 complete
-Status: Ready for Phase 50
-Last activity: 2026-01-30 - Phase 49 completed
+Phase: 50 of 53 (enable-email-password) - COMPLETE
+Plan: 1 of 1 in phase complete
+Status: Phase complete, ready for Phase 51
+Last activity: 2026-01-31 - Completed 50-01-PLAN.md
 
-Progress: ██░░░░░░░░ 20%
+Progress: ████░░░░░░ 40%
 
 ## Accumulated Context
 
@@ -22,10 +22,12 @@ Progress: ██░░░░░░░░ 20%
 - Neon Auth supports email/password natively (not a plugin — core feature)
 - Neon Auth supported plugins: Admin, Email OTP, JWT, Organization, Open API
 - Cannot bring custom Better Auth plugins to Neon Auth
+- **NeonAuthUIProvider prop for email/password is `credentials`** (not `emailAndPassword`)
+- Both `emailOTP` and `credentials` enabled — dual auth methods
 
 ### Blockers/Concerns Carried Forward
 
-- None (role mismatch fixed in Phase 49)
+- None
 
 ### Deferred Issues
 
@@ -37,9 +39,10 @@ None
 - 2026-01-23: All 6 phases completed
 - 2026-01-30: Milestone v9.0 created - Email/Password Auth Migration, 5 phases (49-53)
 - 2026-01-30: Phase 49 (fix-role-mismatch) completed - 1 plan
+- 2026-01-31: Phase 50 (enable-email-password) completed - 1 plan
 
 ## Session Continuity
 
-Last session: 2026-01-30
-Stopped at: Phase 49 complete, ready for Phase 50 planning
+Last session: 2026-01-31
+Stopped at: Phase 50 complete, ready for Phase 51 planning
 Resume file: None
