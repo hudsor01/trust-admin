@@ -122,6 +122,18 @@ export function AppSidebar() {
                             </SidebarMenuButton>
                         </SidebarMenuItem>
 
+                        <SidebarMenuItem>
+                            <SidebarMenuButton
+                                asChild
+                                isActive={pathname === '/users'}
+                                tooltip="Users"
+                            >
+                                <Link href="/users">
+                                    <span>Users</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+
                         {/* Distributions - collapsed submenu for distribution actions */}
                         <Collapsible
                             open={distributionsOpen}
