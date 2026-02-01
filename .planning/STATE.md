@@ -2,12 +2,12 @@
 
 ## Current Position
 
-Phase: 51 of 53 (admin-user-provisioning) - PLANNED
-Plan: 0 of 2 in phase complete
-Status: Phase planned, ready for 51-01 execution
-Last activity: 2026-01-31 - Created 51-01-PLAN.md and 51-02-PLAN.md
+Phase: 51 of 53 (admin-user-provisioning) - IN PROGRESS
+Plan: 1 of 2 in phase complete
+Status: In progress
+Last activity: 2026-01-31 - Completed 51-01-PLAN.md
 
-Progress: ████░░░░░░ 40%
+Progress: █████░░░░░ 45%
 
 ## Accumulated Context
 
@@ -26,6 +26,9 @@ Progress: ████░░░░░░ 40%
 - Both `emailOTP` and `credentials` enabled — dual auth methods
 - **Two-step provisioning:** authServer.admin.createUser() → insert userProfile (Phase 51 RESEARCH)
 - **Don't write to neon_auth.* tables** — use Admin plugin API only
+- **LogAction enum uses INSERT/UPDATE** (not CREATE) — discovered in 51-01
+- **Neon Auth listUsers() requires `{ query: {...} }` shape** — not flat params
+- **Neon Auth createUser() returns `{ user: UserWithRole }`** — access via newUser.user.id
 
 ### Blockers/Concerns Carried Forward
 
@@ -42,10 +45,10 @@ None
 - 2026-01-30: Milestone v9.0 created - Email/Password Auth Migration, 5 phases (49-53)
 - 2026-01-30: Phase 49 (fix-role-mismatch) completed - 1 plan
 - 2026-01-31: Phase 50 (enable-email-password) completed - 1 plan
-- 2026-01-31: Phase 51 (admin-user-provisioning) planned - 2 plans
+- 2026-01-31: Phase 51 plan 01 (backend provisioning router) completed
 
 ## Session Continuity
 
 Last session: 2026-01-31
-Stopped at: Phase 51 planned, ready for 51-01 execution
+Stopped at: Completed 51-01-PLAN.md
 Resume file: None

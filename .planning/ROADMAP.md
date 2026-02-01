@@ -59,7 +59,8 @@ Plans:
 **Plans**: TBD
 
 Plans:
-- [ ] 51-01: TBD
+- [x] 51-01: Backend user provisioning router (complete 2026-01-31)
+- [ ] 51-02: TBD
 
 #### Phase 52: forced-password-change
 
@@ -96,6 +97,6 @@ Phases execute in numeric order: 49 → 50 → 51 → 52 → 53
 | 6. autoscaling-optimization | v1.0 | 1/1 | Complete (manual) | 2026-01-23 |
 | 49. fix-role-mismatch | v9.0 | 1/1 | Complete | 2026-01-30 |
 | 50. enable-email-password | v9.0 | 1/1 | Complete | 2026-01-31 |
-| 51. admin-user-provisioning | v9.0 | 0/? | Not started | - |
+| 51. admin-user-provisioning | v9.0 | 1/2 | In progress | - |
 | 52. forced-password-change | v9.0 | 0/? | Not started | - |
 | 53. beneficiary-data-isolation | v9.0 | 0/? | Not started | - |
