@@ -2,10 +2,10 @@
 
 ## Current Position
 
-Phase: 50 of 53 (enable-email-password) - COMPLETE
-Plan: 1 of 1 in phase complete
-Status: Phase complete, ready for Phase 51
-Last activity: 2026-01-31 - Completed 50-01-PLAN.md
+Phase: 51 of 53 (admin-user-provisioning) - PLANNED
+Plan: 0 of 2 in phase complete
+Status: Phase planned, ready for 51-01 execution
+Last activity: 2026-01-31 - Created 51-01-PLAN.md and 51-02-PLAN.md
 
 Progress: ████░░░░░░ 40%
 
@@ -24,10 +24,12 @@ Progress: ████░░░░░░ 40%
 - Cannot bring custom Better Auth plugins to Neon Auth
 - **NeonAuthUIProvider prop for email/password is `credentials`** (not `emailAndPassword`)
 - Both `emailOTP` and `credentials` enabled — dual auth methods
+- **Two-step provisioning:** authServer.admin.createUser() → insert userProfile (Phase 51 RESEARCH)
+- **Don't write to neon_auth.* tables** — use Admin plugin API only
 
 ### Blockers/Concerns Carried Forward
 
-- None
+- Better Auth #5879: Users sometimes can't login after createUser — may need setUserPassword as fallback (monitor during implementation)
 
 ### Deferred Issues
 
@@ -40,9 +42,10 @@ None
 - 2026-01-30: Milestone v9.0 created - Email/Password Auth Migration, 5 phases (49-53)
 - 2026-01-30: Phase 49 (fix-role-mismatch) completed - 1 plan
 - 2026-01-31: Phase 50 (enable-email-password) completed - 1 plan
+- 2026-01-31: Phase 51 (admin-user-provisioning) planned - 2 plans
 
 ## Session Continuity
 
 Last session: 2026-01-31
-Stopped at: Phase 50 complete, ready for Phase 51 planning
+Stopped at: Phase 51 planned, ready for 51-01 execution
 Resume file: None
