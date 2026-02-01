@@ -29,6 +29,7 @@ import { trustAccountingRouter } from './routers/trustAccounting'
 import { trusteeRouter } from './routers/trustee'
 import { trusteeFeeEntryRouter } from './routers/trusteeFeeEntry'
 import { trusteeFeeScheduleRouter } from './routers/trusteeFeeSchedule'
+import { userManagementRouter } from './routers/userManagement'
 import { valuationRouter } from './routers/valuation'
 import { vehicleRouter } from './routers/vehicle'
 import { withdrawalRecordRouter } from './routers/withdrawalRecord'
@@ -82,6 +83,9 @@ export const appRouter = createTRPCRouter({
 
     // Inventory Queue
     pendingInventoryItem: pendingInventoryItemRouter,
+
+    // User Management
+    userManagement: userManagementRouter,
 })
 
 // Export type for client-side inference
