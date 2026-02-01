@@ -8,8 +8,17 @@
  * - Production queries: Drizzle + neon() HTTP driver (fast, stateless)
  * - Raw SQL/Tests: postgres.js (template strings, transactions)
  *
+ * RLS Enforcement:
+ * - tRPC context calls setRequestAuthToken(jwt) per request via AsyncLocalStorage
+ * - The `db` proxy routes to an auth-enabled Drizzle instance when a token exists
+ * - Neon Authorize validates the JWT and runs queries as `authenticated` role
+ * - RLS policies on `authenticated` role filter rows via app.is_admin() / app.get_user_beneficiary_id()
+ * - Without token (public procedures, tests), queries run as neondb_owner (BYPASSRLS)
+ *
  * @see https://neon.com/docs/serverless/serverless-driver
+ * @see https://neon.com/docs/guides/neon-authorize
  */
+import { AsyncLocalStorage } from 'node:async_hooks'
 import { neon } from '@neondatabase/serverless'
 import type { NeonHttpDatabase } from 'drizzle-orm/neon-http'
 import { drizzle as drizzleHttp } from 'drizzle-orm/neon-http'
@@ -19,12 +28,47 @@ import * as schema from './schema'
 
 // Note: neonConfig.fetchConnectionCache is now always true by default
 
+// =============================================================================
+// PER-REQUEST AUTH TOKEN (AsyncLocalStorage)
+// =============================================================================
+
+/**
+ * Stores the JWT auth token and cached Drizzle instance for the current request.
+ * Each incoming request gets its own async context via Node.js AsyncLocalStorage.
+ */
+type AuthStore = {
+    token: string
+    db?: NeonHttpDatabase<Schema>
+}
+
+const authTokenStore = new AsyncLocalStorage<AuthStore>()
+
+/**
+ * Set the JWT auth token for the current request context.
+ * Call this in tRPC createContext() after obtaining the session token.
+ *
+ * Uses enterWith() to bind the token to the current async execution context.
+ * All subsequent `db` queries in this request will use the auth-enabled Drizzle
+ * instance, causing Neon to run them as the `authenticated` role.
+ */
+export function setRequestAuthToken(token: string): void {
+    authTokenStore.enterWith({ token })
+}
+
 // Schema type combining tables and relations
 type Schema = typeof schema & typeof relations
 
-// Lazy initialization
-let _sql: ReturnType<typeof neon> | null = null
-let _db: NeonHttpDatabase<Schema> | null = null
+const drizzleSchema = { ...schema, ...relations }
+
+// =============================================================================
+// DATABASE INSTANCES
+// =============================================================================
+
+// Public db (no authToken) - for tests, public procedures, unauthenticated queries
+let _sqlPublic: ReturnType<typeof neon> | null = null
+let _dbPublic: NeonHttpDatabase<Schema> | null = null
+
+// postgres.js client for raw SQL
 let _pgClient: ReturnType<typeof postgres> | null = null
 
 function getDatabaseUrl(): string {
@@ -39,24 +83,32 @@ function getDatabaseUrl(): string {
 }
 
 /**
- * Initialize HTTP-based database connection for Drizzle ORM
- * Lower latency, better for serverless cold starts
+ * Get the public (unauthenticated) Drizzle instance.
+ * No authToken — runs as neondb_owner with BYPASSRLS.
+ * Used for tests, public procedures, and setup queries.
  */
-function initializeHttpDatabase(): {
-    db: NeonHttpDatabase<Schema>
-    sql: ReturnType<typeof neon>
-} {
-    if (_db && _sql) return { db: _db, sql: _sql }
+function getPublicDb(): NeonHttpDatabase<Schema> {
+    if (_dbPublic) return _dbPublic
+    _sqlPublic = neon(getDatabaseUrl())
+    _dbPublic = drizzleHttp(_sqlPublic, { schema: drizzleSchema })
+    return _dbPublic
+}
 
-    const cleanDatabaseUrl = getDatabaseUrl()
-
-    // Create neon SQL function for HTTP queries
-    _sql = neon(cleanDatabaseUrl)
-
-    // Create Drizzle instance with schema
-    _db = drizzleHttp(_sql, { schema: { ...schema, ...relations } })
-
-    return { db: _db, sql: _sql }
+/**
+ * Get an auth-enabled Drizzle instance for the current request.
+ * Caches the instance in the AsyncLocalStorage store so it's reused within the request.
+ *
+ * The authToken causes Neon Authorize to:
+ * 1. Validate the JWT against the configured JWKS endpoint
+ * 2. Run the query as the `authenticated` role (no BYPASSRLS)
+ * 3. Set auth.user_id() from the JWT's sub claim
+ * 4. RLS policies filter rows accordingly
+ */
+function getAuthDb(store: AuthStore): NeonHttpDatabase<Schema> {
+    if (store.db) return store.db
+    const sql = neon(getDatabaseUrl(), { authToken: store.token })
+    store.db = drizzleHttp(sql, { schema: drizzleSchema })
+    return store.db
 }
 
 /**
@@ -89,19 +141,26 @@ function initializePostgresClient(): ReturnType<typeof postgres> {
 // =============================================================================
 
 /**
- * Get HTTP-based Drizzle instance (default, recommended)
- * Use for most queries - lower latency in serverless
+ * Get HTTP-based Drizzle instance.
+ * Returns auth-enabled instance if a request token is set, otherwise public instance.
  */
 export function getDb(): NeonHttpDatabase<Schema> {
-    return initializeHttpDatabase().db
+    const store = authTokenStore.getStore()
+    if (store?.token) {
+        return getAuthDb(store)
+    }
+    return getPublicDb()
 }
 
 /**
- * Get raw neon SQL function for direct HTTP queries
+ * Get raw neon SQL function for direct HTTP queries (public, no auth).
  * Note: Stateless - use getClient() for transactions
  */
 export function getSql(): ReturnType<typeof neon> {
-    return initializeHttpDatabase().sql
+    if (!_sqlPublic) {
+        _sqlPublic = neon(getDatabaseUrl())
+    }
+    return _sqlPublic
 }
 
 /**
@@ -114,7 +173,14 @@ export function getClient(): ReturnType<typeof postgres> {
 }
 
 /**
- * Default database instance - lazily initialized HTTP db via Drizzle
+ * Default database instance - routes to auth or public db based on request context.
+ *
+ * When setRequestAuthToken() has been called (tRPC authenticated requests):
+ *   → Uses auth-enabled Drizzle instance → queries run as `authenticated` role → RLS enforced
+ *
+ * When no token is set (tests, public procedures):
+ *   → Uses public Drizzle instance → queries run as neondb_owner → BYPASSRLS
+ *
  * Use via `import { db } from '@/db'`
  */
 export const db = new Proxy({} as NeonHttpDatabase<Schema>, {
@@ -133,10 +199,11 @@ export * from './relations'
 export * from './schema'
 
 /**
- * Initialize JWT session for RLS
- * Call this with the JWT token to set auth.user_id() for RLS policies
+ * Initialize JWT session for RLS on postgres.js client.
+ * Call this with the JWT token to set auth.user_id() for RLS policies.
  *
- * Uses postgres.js client for proper session state handling
+ * Note: This only affects the postgres.js connection (used by tests and raw SQL).
+ * For production Drizzle queries, use setRequestAuthToken() instead.
  */
 export async function initJwtSession(token: string): Promise<void> {
     const client = getClient()

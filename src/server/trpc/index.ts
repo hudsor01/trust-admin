@@ -17,7 +17,7 @@ import { eq } from 'drizzle-orm'
 import { ZodError, z } from 'zod'
 import { authServer } from '@/lib/auth'
 import { clearSentryUser, setSentryUser } from '@/lib/sentry'
-import { db, initJwtSession } from '../../../db'
+import { db, initJwtSession, setRequestAuthToken } from '../../../db'
 import { userProfile } from '../../../db/schema'
 
 /**
@@ -51,13 +51,18 @@ export async function createContext(_opts: { headers: Headers }) {
     // If we have a session, initialize JWT for RLS and fetch beneficiary link
     let appUser: AppUser | null = null
     if (session?.user && session?.session?.token) {
-        // Initialize JWT session for RLS - must be done BEFORE any queries
-        // This makes auth.user_id() work in RLS policies
+        // Set auth token for RLS enforcement via Neon Authorize
+        // This binds the JWT to the current async context so all neon() HTTP
+        // queries in this request run as the `authenticated` role with
+        // auth.user_id() set — making RLS policies apply.
+        setRequestAuthToken(session.session.token)
+
+        // Also initialize JWT on postgres.js client (for raw SQL/tests)
         try {
             await initJwtSession(session.session.token)
         } catch (error) {
             console.error('Failed to initialize JWT session for RLS:', error)
-            // Continue without RLS - queries will still work but may return no data
+            // Continue without RLS on postgres.js - neon HTTP still has authToken
         }
 
         // Fetch role and beneficiaryId from userProfile (app-managed)
