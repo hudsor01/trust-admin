@@ -52,6 +52,16 @@ mock.module('uploadthing/server', () => ({
     },
 }))
 
+// Mock auth - return admin session by default
+mock.module('../../src/lib/auth', () => ({
+    authServer: {
+        getSession: () =>
+            Promise.resolve({
+                data: { user: { id: '1', role: 'admin' }, session: {} },
+            }),
+    },
+}))
+
 // Set required env var
 process.env.ANTHROPIC_API_KEY = 'test-api-key'
 

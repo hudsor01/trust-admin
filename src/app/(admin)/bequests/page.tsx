@@ -122,6 +122,7 @@ export default function BequestsPage() {
             if (bequestForm.isEditing && editingBequestId) {
                 await updateBequestMutation.mutateAsync({
                     id: editingBequestId,
+                    entityId: selectedEntity!,
                     data: payload,
                 })
             } else {
@@ -137,7 +138,10 @@ export default function BequestsPage() {
         if (!confirm('Are you sure you want to delete this bequest?')) return
 
         try {
-            await deleteBequestMutation.mutateAsync(id)
+            await deleteBequestMutation.mutateAsync({
+                id,
+                entityId: selectedEntity!,
+            })
         } catch (error) {
             console.error('Failed to delete bequest:', error)
         }
@@ -147,13 +151,18 @@ export default function BequestsPage() {
         id: number,
         updates: Partial<SpecificBequest>,
     ) => {
-        await updateBequestMutation.mutateAsync({ id, data: updates })
+        await updateBequestMutation.mutateAsync({
+            id,
+            entityId: selectedEntity!,
+            data: updates,
+        })
     }
 
     const markDistributed = async (bequest: SpecificBequest) => {
         try {
             await updateBequestMutation.mutateAsync({
                 id: bequest.id,
+                entityId: selectedEntity!,
                 data: { dateDistributed: new Date().toISOString() },
             })
         } catch (error) {

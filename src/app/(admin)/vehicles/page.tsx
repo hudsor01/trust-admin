@@ -108,6 +108,7 @@ export default function VehiclesPage() {
                 const editingId = (vehicleForm.editing as Vehicle).id
                 await updateVehicleMutation.mutateAsync({
                     id: editingId,
+                    entityId: selectedEntity,
                     data: payload,
                 })
             } else {
@@ -137,24 +138,33 @@ export default function VehiclesPage() {
         async (item: Vehicle) => {
             if (!confirm('Are you sure you want to delete this vehicle?'))
                 return
+            if (!selectedEntity) return
             try {
-                await deleteVehicleMutation.mutateAsync(item.id)
+                await deleteVehicleMutation.mutateAsync({
+                    id: item.id,
+                    entityId: selectedEntity,
+                })
             } catch (err) {
                 console.error('Failed to delete vehicle:', err)
             }
         },
-        [deleteVehicleMutation],
+        [deleteVehicleMutation, selectedEntity],
     )
 
     const handleInlineUpdate = useCallback(
         async (id: number, updates: Partial<Vehicle>) => {
+            if (!selectedEntity) return
             try {
-                await updateVehicleMutation.mutateAsync({ id, data: updates })
+                await updateVehicleMutation.mutateAsync({
+                    id,
+                    entityId: selectedEntity,
+                    data: updates,
+                })
             } catch (err) {
                 console.error('Failed to update vehicle:', err)
             }
         },
-        [updateVehicleMutation],
+        [updateVehicleMutation, selectedEntity],
     )
 
     // Column definitions using TanStack Table format

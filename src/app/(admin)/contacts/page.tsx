@@ -13,6 +13,7 @@ import {
     Trash2,
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { toast } from 'sonner'
 import { CopyButton } from '@/components/copy-button'
 import {
     EditableDateCell,
@@ -401,9 +402,15 @@ export default function ContactsPage() {
                                                                                 'Are you sure you want to delete this contact?',
                                                                             )
                                                                         ) {
-                                                                            await deleteContactMutation.mutateAsync(
-                                                                                contact.id,
-                                                                            )
+                                                                            try {
+                                                                                await deleteContactMutation.mutateAsync(
+                                                                                    contact.id,
+                                                                                )
+                                                                            } catch {
+                                                                                toast.error(
+                                                                                    'Failed to delete contact',
+                                                                                )
+                                                                            }
                                                                         }
                                                                     }}
                                                                 >

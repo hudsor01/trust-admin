@@ -20,6 +20,7 @@
  */
 import { AsyncLocalStorage } from 'node:async_hooks'
 import { neon } from '@neondatabase/serverless'
+import * as Sentry from '@sentry/nextjs'
 import type { NeonHttpDatabase } from 'drizzle-orm/neon-http'
 import { drizzle as drizzleHttp } from 'drizzle-orm/neon-http'
 import postgres from 'postgres'
@@ -149,6 +150,11 @@ export function getDb(): NeonHttpDatabase<Schema> {
     if (store?.token) {
         return getAuthDb(store)
     }
+    Sentry.addBreadcrumb({
+        category: 'db',
+        message: 'Using public DB connection (no auth token in store)',
+        level: 'info',
+    })
     return getPublicDb()
 }
 

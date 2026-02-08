@@ -1,4 +1,5 @@
-import { count, desc, eq } from 'drizzle-orm'
+import { TRPCError } from '@trpc/server'
+import { and, count, desc, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '../../../../db'
 import {
@@ -19,26 +20,17 @@ export const trustAccountingRouter = createTRPCRouter({
     // For large result sets, use listPaginated instead
     list: adminProcedure
         .input(
-            z
-                .object({
-                    entityId: z.coerce.number().optional(),
-                    limit: z.number().min(1).max(1000).optional(),
-                })
-                .optional(),
+            z.object({
+                entityId: z.coerce.number(),
+                limit: z.number().min(1).max(1000).optional(),
+            }),
         )
         .query(async ({ input }) => {
-            const limit = input?.limit ?? 500 // Default limit to prevent memory issues
-            if (input?.entityId) {
-                return db
-                    .select()
-                    .from(trustAccounting)
-                    .where(eq(trustAccounting.entityId, input.entityId))
-                    .orderBy(desc(trustAccounting.accountingDate))
-                    .limit(limit)
-            }
+            const limit = input.limit ?? 500 // Default limit to prevent memory issues
             return db
                 .select()
                 .from(trustAccounting)
+                .where(eq(trustAccounting.entityId, input.entityId))
                 .orderBy(desc(trustAccounting.accountingDate))
                 .limit(limit)
         }),
@@ -46,38 +38,41 @@ export const trustAccountingRouter = createTRPCRouter({
     listPaginated: adminProcedure
         .input(
             z.object({
-                entityId: z.coerce.number().optional(),
+                entityId: z.coerce.number(),
                 limit: z.number().optional(),
                 offset: z.number().optional(),
             }),
         )
         .query(async ({ input }) => {
-            const baseQuery = input?.entityId
-                ? eq(trustAccounting.entityId, input.entityId)
-                : undefined
+            const whereClause = eq(trustAccounting.entityId, input.entityId)
 
             const [data, countResult] = await Promise.all([
                 db
                     .select()
                     .from(trustAccounting)
-                    .where(baseQuery)
+                    .where(whereClause)
                     .orderBy(desc(trustAccounting.accountingDate))
-                    .limit(input?.limit ?? 100)
-                    .offset(input?.offset ?? 0),
+                    .limit(input.limit ?? 100)
+                    .offset(input.offset ?? 0),
                 db
                     .select({ totalCount: count() })
                     .from(trustAccounting)
-                    .where(baseQuery),
+                    .where(whereClause),
             ])
 
             return { data, totalCount: countResult[0]?.totalCount ?? 0 }
         }),
 
-    byId: adminProcedure.input(z.coerce.number()).query(async ({ input }) => {
-        return db.query.trustAccounting.findFirst({
-            where: eq(trustAccounting.id, input),
-        })
-    }),
+    byId: adminProcedure
+        .input(z.object({ id: z.coerce.number(), entityId: z.coerce.number() }))
+        .query(async ({ input }) => {
+            return db.query.trustAccounting.findFirst({
+                where: and(
+                    eq(trustAccounting.id, input.id),
+                    eq(trustAccounting.entityId, input.entityId),
+                ),
+            })
+        }),
 
     create: adminProcedure
         .input(insertTrustAccountingSchema)
@@ -86,6 +81,11 @@ export const trustAccountingRouter = createTRPCRouter({
                 .insert(trustAccounting)
                 .values({ ...input, updatedAt: new Date().toISOString() })
                 .returning()
+            if (!created)
+                throw new TRPCError({
+                    code: 'INTERNAL_SERVER_ERROR',
+                    message: 'Failed to create trust accounting entry',
+                })
             return created
         }),
 
@@ -103,6 +103,7 @@ export const trustAccountingRouter = createTRPCRouter({
         .input(
             z.object({
                 id: z.coerce.number(),
+                entityId: z.coerce.number(),
                 data: updateTrustAccountingSchema,
             }),
         )
@@ -110,18 +111,38 @@ export const trustAccountingRouter = createTRPCRouter({
             const [updated] = await db
                 .update(trustAccounting)
                 .set({ ...input.data, updatedAt: new Date().toISOString() })
-                .where(eq(trustAccounting.id, input.id))
+                .where(
+                    and(
+                        eq(trustAccounting.id, input.id),
+                        eq(trustAccounting.entityId, input.entityId),
+                    ),
+                )
                 .returning()
+            if (!updated)
+                throw new TRPCError({
+                    code: 'NOT_FOUND',
+                    message: 'Record not found in this entity',
+                })
             return updated
         }),
 
     delete: adminProcedure
-        .input(z.coerce.number())
+        .input(z.object({ id: z.coerce.number(), entityId: z.coerce.number() }))
         .mutation(async ({ input }) => {
             const [deleted] = await db
                 .delete(trustAccounting)
-                .where(eq(trustAccounting.id, input))
+                .where(
+                    and(
+                        eq(trustAccounting.id, input.id),
+                        eq(trustAccounting.entityId, input.entityId),
+                    ),
+                )
                 .returning()
+            if (!deleted)
+                throw new TRPCError({
+                    code: 'NOT_FOUND',
+                    message: 'Record not found in this entity',
+                })
             return deleted
         }),
 

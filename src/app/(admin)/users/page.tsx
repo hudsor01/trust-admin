@@ -42,13 +42,20 @@ type ProvisionedUser = {
 export default function UsersPage() {
     const utils = trpc.useUtils()
 
+    // Fetch entities to get the default entityId for beneficiary queries
+    const { data: entities = [] } = trpc.entity.list.useQuery()
+    const defaultEntityId = entities[0]?.id
+
     // Fetch provisioned users
     const { data: provisionedUsers = [], isLoading: usersLoading } =
         trpc.userManagement.listProvisionedUsers.useQuery()
 
-    // Fetch all beneficiaries (no entity filter — users are global)
+    // Fetch all beneficiaries for the default entity
     const { data: allBeneficiaries = [], isLoading: beneficiariesLoading } =
-        trpc.beneficiary.list.useQuery()
+        trpc.beneficiary.list.useQuery(
+            { entityId: defaultEntityId! },
+            { enabled: !!defaultEntityId },
+        )
 
     // Dialog state
     const [createDialogOpen, setCreateDialogOpen] = useState(false)

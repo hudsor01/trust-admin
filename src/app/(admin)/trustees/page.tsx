@@ -120,6 +120,7 @@ export default function TrusteesPage() {
             ) {
                 await updateTrusteeMutation.mutateAsync({
                     id: (trusteeForm.editing as Trustee).id,
+                    entityId: selectedEntity,
                     data: payload,
                 })
             } else {
@@ -133,7 +134,10 @@ export default function TrusteesPage() {
     const deleteTrustee = async (id: number) => {
         if (!confirm('Are you sure you want to delete this trustee?')) return
         try {
-            await deleteTrusteeMutation.mutateAsync(id)
+            await deleteTrusteeMutation.mutateAsync({
+                id,
+                entityId: selectedEntity!,
+            })
         } catch (error) {
             console.error('Failed to delete trustee:', error)
         }
@@ -232,6 +236,8 @@ export default function TrusteesPage() {
                                                                 await updateTrusteeMutation.mutateAsync(
                                                                     {
                                                                         id: t.id,
+                                                                        entityId:
+                                                                            selectedEntity!,
                                                                         data: {
                                                                             order:
                                                                                 val ??
@@ -259,6 +265,8 @@ export default function TrusteesPage() {
                                                                 await updateTrusteeMutation.mutateAsync(
                                                                     {
                                                                         id: t.id,
+                                                                        entityId:
+                                                                            selectedEntity!,
                                                                         data: {
                                                                             name: val as string,
                                                                         },
@@ -287,6 +295,8 @@ export default function TrusteesPage() {
                                                                     await updateTrusteeMutation.mutateAsync(
                                                                         {
                                                                             id: t.id,
+                                                                            entityId:
+                                                                                selectedEntity!,
                                                                             data: {
                                                                                 email: val,
                                                                             },
@@ -316,6 +326,8 @@ export default function TrusteesPage() {
                                                                     await updateTrusteeMutation.mutateAsync(
                                                                         {
                                                                             id: t.id,
+                                                                            entityId:
+                                                                                selectedEntity!,
                                                                             data: {
                                                                                 phone: val,
                                                                             },
@@ -346,6 +358,8 @@ export default function TrusteesPage() {
                                                                     await updateTrusteeMutation.mutateAsync(
                                                                         {
                                                                             id: t.id,
+                                                                            entityId:
+                                                                                selectedEntity!,
                                                                             data: {
                                                                                 dob: val,
                                                                             },
@@ -382,6 +396,8 @@ export default function TrusteesPage() {
                                                                 await updateTrusteeMutation.mutateAsync(
                                                                     {
                                                                         id: t.id,
+                                                                        entityId:
+                                                                            selectedEntity!,
                                                                         data: {
                                                                             status: asTrusteeStatus(
                                                                                 val as string,
@@ -411,6 +427,8 @@ export default function TrusteesPage() {
                                                                 await updateTrusteeMutation.mutateAsync(
                                                                     {
                                                                         id: t.id,
+                                                                        entityId:
+                                                                            selectedEntity!,
                                                                         data: {
                                                                             startDate:
                                                                                 val,
@@ -510,6 +528,8 @@ export default function TrusteesPage() {
                                                             await updateTrusteeMutation.mutateAsync(
                                                                 {
                                                                     id: t.id,
+                                                                    entityId:
+                                                                        selectedEntity!,
                                                                     data: {
                                                                         order:
                                                                             val ??
@@ -527,6 +547,8 @@ export default function TrusteesPage() {
                                                             await updateTrusteeMutation.mutateAsync(
                                                                 {
                                                                     id: t.id,
+                                                                    entityId:
+                                                                        selectedEntity!,
                                                                     data: {
                                                                         name: val as string,
                                                                     },
@@ -547,6 +569,8 @@ export default function TrusteesPage() {
                                                                 await updateTrusteeMutation.mutateAsync(
                                                                     {
                                                                         id: t.id,
+                                                                        entityId:
+                                                                            selectedEntity!,
                                                                         data: {
                                                                             email: val,
                                                                         },
@@ -568,6 +592,8 @@ export default function TrusteesPage() {
                                                                 await updateTrusteeMutation.mutateAsync(
                                                                     {
                                                                         id: t.id,
+                                                                        entityId:
+                                                                            selectedEntity!,
                                                                         data: {
                                                                             phone: val,
                                                                         },
@@ -588,6 +614,8 @@ export default function TrusteesPage() {
                                                                 await updateTrusteeMutation.mutateAsync(
                                                                     {
                                                                         id: t.id,
+                                                                        entityId:
+                                                                            selectedEntity!,
                                                                         data: {
                                                                             dob: val,
                                                                         },
@@ -605,6 +633,8 @@ export default function TrusteesPage() {
                                                             await updateTrusteeMutation.mutateAsync(
                                                                 {
                                                                     id: t.id,
+                                                                    entityId:
+                                                                        selectedEntity!,
                                                                     data: {
                                                                         status: asTrusteeStatus(
                                                                             val as string,
@@ -622,6 +652,8 @@ export default function TrusteesPage() {
                                                             await updateTrusteeMutation.mutateAsync(
                                                                 {
                                                                     id: t.id,
+                                                                    entityId:
+                                                                        selectedEntity!,
                                                                     data: {
                                                                         startDate:
                                                                             val,

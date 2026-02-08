@@ -1,6 +1,8 @@
 'use client'
 
+import * as Sentry from '@sentry/nextjs'
 import { useState } from 'react'
+import { toast } from 'sonner'
 
 interface UseEditableCellOptions<T> {
     value: T
@@ -91,6 +93,10 @@ export function useEditableCell<T>(
             setEditing(false)
         } catch (e) {
             console.error('Save failed:', e)
+            toast.error('Failed to save changes')
+            Sentry.captureException(e, {
+                tags: { component: 'editable-cell' },
+            })
         } finally {
             setSaving(false)
         }
@@ -98,9 +104,13 @@ export function useEditableCell<T>(
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter') {
+            e.preventDefault()
+            e.stopPropagation()
             handleSave()
         }
         if (e.key === 'Escape') {
+            e.preventDefault()
+            e.stopPropagation()
             cancelEditing()
         }
     }

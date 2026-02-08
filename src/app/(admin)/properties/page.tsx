@@ -225,7 +225,12 @@ export default function PropertiesPage() {
 
     // Wrapper functions for inline edits
     const updateRental = async (id: number, data: Partial<RentalProperty>) => {
-        await updateRentalMutation.mutateAsync({ id, data })
+        if (!selectedEntity) return
+        await updateRentalMutation.mutateAsync({
+            id,
+            entityId: selectedEntity,
+            data,
+        })
     }
 
     // Track editing IDs
@@ -273,6 +278,7 @@ export default function PropertiesPage() {
             if (homesteadForm.isEditing && editingHomesteadId) {
                 await updateHomesteadMutation.mutateAsync({
                     id: editingHomesteadId,
+                    entityId: selectedEntity,
                     data: payload,
                 })
             } else {
@@ -359,6 +365,7 @@ export default function PropertiesPage() {
             if (rentalForm.isEditing && editingRentalId) {
                 await updateRentalMutation.mutateAsync({
                     id: editingRentalId,
+                    entityId: selectedEntity,
                     data: payload,
                 })
             } else {
@@ -410,8 +417,12 @@ export default function PropertiesPage() {
 
     const handleDeleteHomestead = async (id: number) => {
         if (!confirm('Are you sure you want to delete this homestead?')) return
+        if (!selectedEntity) return
         try {
-            await deleteHomesteadMutation.mutateAsync(id)
+            await deleteHomesteadMutation.mutateAsync({
+                id,
+                entityId: selectedEntity,
+            })
         } catch (err) {
             console.error('Failed to delete homestead:', err)
         }
@@ -420,8 +431,12 @@ export default function PropertiesPage() {
     const handleDeleteRental = async (id: number) => {
         if (!confirm('Are you sure you want to delete this rental property?'))
             return
+        if (!selectedEntity) return
         try {
-            await deleteRentalMutation.mutateAsync(id)
+            await deleteRentalMutation.mutateAsync({
+                id,
+                entityId: selectedEntity,
+            })
         } catch (err) {
             console.error('Failed to delete rental:', err)
         }

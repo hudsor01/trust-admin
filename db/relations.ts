@@ -12,6 +12,8 @@ import {
     homestead,
     insurancePolicy,
     investmentAccount,
+    liability,
+    liabilityPayment,
     pendingInventoryItem,
     personalProperty,
     rentalProperty,
@@ -54,6 +56,7 @@ export const entityRelations = relations(entity, ({ one, many }) => ({
     hemsRequests: many(hemsRequest),
     trusteeFeeSchedules: many(trusteeFeeSchedule),
     trusteeFeeEntries: many(trusteeFeeEntry),
+    liabilities: many(liability),
     pendingInventoryItems: many(pendingInventoryItem),
 }))
 
@@ -325,6 +328,36 @@ export const trustAccountingRelations = relations(
         entity: one(entity, {
             fields: [trustAccounting.entityId],
             references: [entity.id],
+        }),
+    }),
+)
+
+export const liabilityRelations = relations(liability, ({ one, many }) => ({
+    entity: one(entity, {
+        fields: [liability.entityId],
+        references: [entity.id],
+    }),
+    payments: many(liabilityPayment),
+    homestead: one(homestead, {
+        fields: [liability.homesteadId],
+        references: [homestead.id],
+    }),
+    rentalProperty: one(rentalProperty, {
+        fields: [liability.rentalPropertyId],
+        references: [rentalProperty.id],
+    }),
+    vehicle: one(vehicle, {
+        fields: [liability.vehicleId],
+        references: [vehicle.id],
+    }),
+}))
+
+export const liabilityPaymentRelations = relations(
+    liabilityPayment,
+    ({ one }) => ({
+        liability: one(liability, {
+            fields: [liabilityPayment.liabilityId],
+            references: [liability.id],
         }),
     }),
 )

@@ -1,4 +1,5 @@
-import { eq } from 'drizzle-orm'
+import { TRPCError } from '@trpc/server'
+import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '../../../../db'
 import { getTrusteeFeeEntriesWithSchedule } from '../../../../db/queries'
@@ -11,29 +12,31 @@ import { adminProcedure, createTRPCRouter } from '../index'
 
 export const trusteeFeeEntryRouter = createTRPCRouter({
     list: adminProcedure
-        .input(z.object({ entityId: z.coerce.number().optional() }).optional())
+        .input(z.object({ entityId: z.coerce.number() }))
         .query(async ({ input }) => {
-            if (input?.entityId) {
-                return db
-                    .select()
-                    .from(trusteeFeeEntry)
-                    .where(eq(trusteeFeeEntry.entityId, input.entityId))
-            }
-            return db.select().from(trusteeFeeEntry)
+            return db
+                .select()
+                .from(trusteeFeeEntry)
+                .where(eq(trusteeFeeEntry.entityId, input.entityId))
         }),
 
     // List with schedule info
     listWithSchedule: adminProcedure
-        .input(z.object({ entityId: z.coerce.number().optional() }).optional())
+        .input(z.object({ entityId: z.coerce.number() }))
         .query(async ({ input }) => {
-            return getTrusteeFeeEntriesWithSchedule(input?.entityId)
+            return getTrusteeFeeEntriesWithSchedule(input.entityId)
         }),
 
-    byId: adminProcedure.input(z.coerce.number()).query(async ({ input }) => {
-        return db.query.trusteeFeeEntry.findFirst({
-            where: eq(trusteeFeeEntry.id, input),
-        })
-    }),
+    byId: adminProcedure
+        .input(z.object({ id: z.coerce.number(), entityId: z.coerce.number() }))
+        .query(async ({ input }) => {
+            return db.query.trusteeFeeEntry.findFirst({
+                where: and(
+                    eq(trusteeFeeEntry.id, input.id),
+                    eq(trusteeFeeEntry.entityId, input.entityId),
+                ),
+            })
+        }),
 
     create: adminProcedure
         .input(insertTrusteeFeeEntrySchema)
@@ -42,6 +45,11 @@ export const trusteeFeeEntryRouter = createTRPCRouter({
                 .insert(trusteeFeeEntry)
                 .values({ ...input, updatedAt: new Date().toISOString() })
                 .returning()
+            if (!created)
+                throw new TRPCError({
+                    code: 'INTERNAL_SERVER_ERROR',
+                    message: 'Failed to create trustee fee entry',
+                })
             return created
         }),
 
@@ -49,6 +57,7 @@ export const trusteeFeeEntryRouter = createTRPCRouter({
         .input(
             z.object({
                 id: z.coerce.number(),
+                entityId: z.coerce.number(),
                 data: updateTrusteeFeeEntrySchema,
             }),
         )
@@ -56,18 +65,38 @@ export const trusteeFeeEntryRouter = createTRPCRouter({
             const [updated] = await db
                 .update(trusteeFeeEntry)
                 .set({ ...input.data, updatedAt: new Date().toISOString() })
-                .where(eq(trusteeFeeEntry.id, input.id))
+                .where(
+                    and(
+                        eq(trusteeFeeEntry.id, input.id),
+                        eq(trusteeFeeEntry.entityId, input.entityId),
+                    ),
+                )
                 .returning()
+            if (!updated)
+                throw new TRPCError({
+                    code: 'NOT_FOUND',
+                    message: 'Record not found in this entity',
+                })
             return updated
         }),
 
     delete: adminProcedure
-        .input(z.coerce.number())
+        .input(z.object({ id: z.coerce.number(), entityId: z.coerce.number() }))
         .mutation(async ({ input }) => {
             const [deleted] = await db
                 .delete(trusteeFeeEntry)
-                .where(eq(trusteeFeeEntry.id, input))
+                .where(
+                    and(
+                        eq(trusteeFeeEntry.id, input.id),
+                        eq(trusteeFeeEntry.entityId, input.entityId),
+                    ),
+                )
                 .returning()
+            if (!deleted)
+                throw new TRPCError({
+                    code: 'NOT_FOUND',
+                    message: 'Record not found in this entity',
+                })
             return deleted
         }),
 })

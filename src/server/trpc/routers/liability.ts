@@ -1,11 +1,12 @@
-import { eq } from 'drizzle-orm'
+import { TRPCError } from '@trpc/server'
+import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '../../../../db'
 import {
     getLiabilityPayments,
     recordLiabilityPayment,
 } from '../../../../db/queries'
-import { liability } from '../../../../db/schema'
+import { bankAccount, liability } from '../../../../db/schema'
 import {
     insertLiabilitySchema,
     updateLiabilitySchema,
@@ -31,6 +32,7 @@ const bulkLiabilityRowSchema = z.object({
 })
 
 const recordPaymentSchema = z.object({
+    entityId: z.coerce.number(),
     liabilityId: z.coerce.number(),
     paymentDate: z.string(),
     amount: z.string(),
@@ -48,26 +50,25 @@ const recordPaymentSchema = z.object({
 
 export const liabilityRouter = createTRPCRouter({
     list: adminProcedure
-        .input(z.object({ entityId: z.coerce.number().optional() }).optional())
+        .input(z.object({ entityId: z.coerce.number() }))
         .query(async ({ input }) => {
-            if (input?.entityId) {
-                return db
-                    .select()
-                    .from(liability)
-                    .where(eq(liability.entityId, input.entityId))
-            }
-            return db.select().from(liability)
+            return db
+                .select()
+                .from(liability)
+                .where(eq(liability.entityId, input.entityId))
         }),
 
-    byId: adminProcedure.input(z.coerce.number()).query(async ({ input }) => {
-        return db.query.liability.findFirst({
-            where: eq(liability.id, input),
-            with: {
-                entity: true,
-                payments: true,
-            },
-        })
-    }),
+    byId: adminProcedure
+        .input(z.object({ id: z.coerce.number(), entityId: z.coerce.number() }))
+        .query(async ({ input }) => {
+            return db.query.liability.findFirst({
+                where: and(
+                    eq(liability.id, input.id),
+                    eq(liability.entityId, input.entityId),
+                ),
+                with: { entity: true, payments: true },
+            })
+        }),
 
     create: adminProcedure
         .input(insertLiabilitySchema)
@@ -76,27 +77,58 @@ export const liabilityRouter = createTRPCRouter({
                 .insert(liability)
                 .values({ ...input, updatedAt: new Date().toISOString() })
                 .returning()
+            if (!created)
+                throw new TRPCError({
+                    code: 'INTERNAL_SERVER_ERROR',
+                    message: 'Failed to create liability',
+                })
             return created
         }),
 
     update: adminProcedure
-        .input(z.object({ id: z.coerce.number(), data: updateLiabilitySchema }))
+        .input(
+            z.object({
+                id: z.coerce.number(),
+                entityId: z.coerce.number(),
+                data: updateLiabilitySchema,
+            }),
+        )
         .mutation(async ({ input }) => {
             const [updated] = await db
                 .update(liability)
                 .set({ ...input.data, updatedAt: new Date().toISOString() })
-                .where(eq(liability.id, input.id))
+                .where(
+                    and(
+                        eq(liability.id, input.id),
+                        eq(liability.entityId, input.entityId),
+                    ),
+                )
                 .returning()
+            if (!updated)
+                throw new TRPCError({
+                    code: 'NOT_FOUND',
+                    message: 'Record not found in this entity',
+                })
             return updated
         }),
 
     delete: adminProcedure
-        .input(z.coerce.number())
+        .input(z.object({ id: z.coerce.number(), entityId: z.coerce.number() }))
         .mutation(async ({ input }) => {
             const [deleted] = await db
                 .delete(liability)
-                .where(eq(liability.id, input))
+                .where(
+                    and(
+                        eq(liability.id, input.id),
+                        eq(liability.entityId, input.entityId),
+                    ),
+                )
                 .returning()
+            if (!deleted)
+                throw new TRPCError({
+                    code: 'NOT_FOUND',
+                    message: 'Record not found in this entity',
+                })
             return deleted
         }),
 
@@ -156,7 +188,15 @@ export const liabilityRouter = createTRPCRouter({
                                     updatedAt: new Date().toISOString(),
                                 })
                                 .returning()
-                                .then(([created]) => created)
+                                .then(([created]) => {
+                                    if (!created)
+                                        throw new TRPCError({
+                                            code: 'INTERNAL_SERVER_ERROR',
+                                            message:
+                                                'Failed to create liability',
+                                        })
+                                    return created
+                                })
                         }),
                     )
                     return results
@@ -168,6 +208,34 @@ export const liabilityRouter = createTRPCRouter({
     recordPayment: adminProcedure
         .input(recordPaymentSchema)
         .mutation(async ({ input }) => {
+            // Validate liability belongs to this entity
+            const liabilityRecord = await db.query.liability.findFirst({
+                where: and(
+                    eq(liability.id, input.liabilityId),
+                    eq(liability.entityId, input.entityId),
+                ),
+            })
+            if (!liabilityRecord) {
+                throw new TRPCError({
+                    code: 'NOT_FOUND',
+                    message: 'Liability not found in this entity',
+                })
+            }
+
+            // Validate bank account belongs to same entity
+            const account = await db.query.bankAccount.findFirst({
+                where: and(
+                    eq(bankAccount.id, input.bankAccountId),
+                    eq(bankAccount.entityId, input.entityId),
+                ),
+            })
+            if (!account) {
+                throw new TRPCError({
+                    code: 'BAD_REQUEST',
+                    message: 'Bank account does not belong to this entity',
+                })
+            }
+
             addBreadcrumb('liability', 'Recording liability payment', {
                 liabilityId: input.liabilityId,
                 amount: input.amount,
@@ -189,17 +257,38 @@ export const liabilityRouter = createTRPCRouter({
 
     // Special: Get payments for a liability
     getPayments: adminProcedure
-        .input(z.coerce.number())
+        .input(
+            z.object({
+                liabilityId: z.coerce.number(),
+                entityId: z.coerce.number(),
+            }),
+        )
         .query(async ({ input }) => {
-            return getLiabilityPayments(input)
+            // Validate liability belongs to entity
+            const liabilityRecord = await db.query.liability.findFirst({
+                where: and(
+                    eq(liability.id, input.liabilityId),
+                    eq(liability.entityId, input.entityId),
+                ),
+            })
+            if (!liabilityRecord) {
+                throw new TRPCError({
+                    code: 'NOT_FOUND',
+                    message: 'Liability not found in this entity',
+                })
+            }
+            return getLiabilityPayments(input.liabilityId)
         }),
 
     // Special: Get payoff projection for a liability
     getPayoffProjection: adminProcedure
-        .input(z.coerce.number())
+        .input(z.object({ id: z.coerce.number(), entityId: z.coerce.number() }))
         .query(async ({ input }) => {
             const liabilityRecord = await db.query.liability.findFirst({
-                where: eq(liability.id, input),
+                where: and(
+                    eq(liability.id, input.id),
+                    eq(liability.entityId, input.entityId),
+                ),
             })
             if (
                 !liabilityRecord ||

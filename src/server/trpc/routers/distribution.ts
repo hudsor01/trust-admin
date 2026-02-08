@@ -1,4 +1,5 @@
-import { eq } from 'drizzle-orm'
+import { TRPCError } from '@trpc/server'
+import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '../../../../db'
 import {
@@ -19,16 +20,21 @@ import {
 
 export const distributionRouter = createTRPCRouter({
     list: adminProcedure
-        .input(z.object({ entityId: z.coerce.number().optional() }).optional())
+        .input(z.object({ entityId: z.coerce.number() }))
         .query(async ({ input }) => {
-            return getDistributions(input?.entityId)
+            return getDistributions(input.entityId)
         }),
 
-    byId: adminProcedure.input(z.coerce.number()).query(async ({ input }) => {
-        return db.query.distribution.findFirst({
-            where: eq(distribution.id, input),
-        })
-    }),
+    byId: adminProcedure
+        .input(z.object({ id: z.coerce.number(), entityId: z.coerce.number() }))
+        .query(async ({ input }) => {
+            return db.query.distribution.findFirst({
+                where: and(
+                    eq(distribution.id, input.id),
+                    eq(distribution.entityId, input.entityId),
+                ),
+            })
+        }),
 
     create: adminProcedure
         .input(insertDistributionSchema)
@@ -54,6 +60,11 @@ export const distributionRouter = createTRPCRouter({
                             updatedAt: new Date().toISOString(),
                         })
                         .returning()
+                    if (!created)
+                        throw new TRPCError({
+                            code: 'INTERNAL_SERVER_ERROR',
+                            message: 'Failed to create distribution',
+                        })
                     return created
                 },
             )
@@ -61,24 +72,48 @@ export const distributionRouter = createTRPCRouter({
 
     update: adminProcedure
         .input(
-            z.object({ id: z.coerce.number(), data: updateDistributionSchema }),
+            z.object({
+                id: z.coerce.number(),
+                entityId: z.coerce.number(),
+                data: updateDistributionSchema,
+            }),
         )
         .mutation(async ({ input }) => {
             const [updated] = await db
                 .update(distribution)
                 .set({ ...input.data, updatedAt: new Date().toISOString() })
-                .where(eq(distribution.id, input.id))
+                .where(
+                    and(
+                        eq(distribution.id, input.id),
+                        eq(distribution.entityId, input.entityId),
+                    ),
+                )
                 .returning()
+            if (!updated)
+                throw new TRPCError({
+                    code: 'NOT_FOUND',
+                    message: 'Record not found in this entity',
+                })
             return updated
         }),
 
     delete: adminProcedure
-        .input(z.coerce.number())
+        .input(z.object({ id: z.coerce.number(), entityId: z.coerce.number() }))
         .mutation(async ({ input }) => {
             const [deleted] = await db
                 .delete(distribution)
-                .where(eq(distribution.id, input))
+                .where(
+                    and(
+                        eq(distribution.id, input.id),
+                        eq(distribution.entityId, input.entityId),
+                    ),
+                )
                 .returning()
+            if (!deleted)
+                throw new TRPCError({
+                    code: 'NOT_FOUND',
+                    message: 'Record not found in this entity',
+                })
             return deleted
         }),
 

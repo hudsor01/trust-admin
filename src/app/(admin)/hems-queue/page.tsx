@@ -16,6 +16,7 @@ import {
     XCircle,
 } from 'lucide-react'
 import { useMemo, useOptimistic, useState } from 'react'
+import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -80,19 +81,22 @@ export default function HemsQueuePage() {
         trpc.entity.list.useQuery()
     const [entityId, setEntityId] = useEntityFilter()
 
-    // Query params: pass entityId only when a specific entity is selected
-    // When entityId is null or empty, fetch all HEMS requests
-    const queryParams = entityId ? { entityId: Number(entityId) } : undefined
+    // Derive numeric entity ID: use selected entity or fall back to first entity
+    const selectedEntity = entityId ? Number(entityId) : entities[0]?.id
+    const queryEnabled = !!selectedEntity
 
     const { data: requests = [], isLoading: requestsLoading } =
-        trpc.hemsRequest.listWithBeneficiary.useQuery(queryParams)
+        trpc.hemsRequest.listWithBeneficiary.useQuery(
+            { entityId: selectedEntity! },
+            { enabled: queryEnabled },
+        )
 
     // API returns joined beneficiary data
     const requestsWithBeneficiary =
         requests as unknown as HemsRequestWithBeneficiary[]
 
     // Optimistic state for instant UI updates on approval/denial
-    const [optimisticRequests, setOptimisticRequest] = useOptimistic(
+    const [optimisticRequests] = useOptimistic(
         requestsWithBeneficiary,
         (
             current,
@@ -168,7 +172,8 @@ export default function HemsQueuePage() {
                 return (
                     <div>
                         <p className="font-medium">
-                            {beneficiary.firstName} {beneficiary.lastName}
+                            {beneficiary.firstName ?? ''}{' '}
+                            {beneficiary.lastName ?? ''}
                         </p>
                         {beneficiary.email && (
                             <p className="text-xs text-muted-foreground">
@@ -246,21 +251,16 @@ export default function HemsQueuePage() {
     const handleApprove = async () => {
         if (!reviewingRequest) return
         setSubmitting(true)
-        // Optimistic update - shows instantly
-        setOptimisticRequest({
-            id: reviewingRequest.id,
-            status: 'APPROVED',
-            approvedAmount,
-        })
-        setReviewingRequest(null)
         try {
             await approveRequestMutation.mutateAsync({
                 id: reviewingRequest.id,
+                entityId: selectedEntity!,
                 approvedAmount,
                 reviewNotes,
             })
-        } catch (err) {
-            console.error('Failed to approve request:', err)
+            setReviewingRequest(null)
+        } catch {
+            toast.error('Failed to approve request')
         } finally {
             setSubmitting(false)
         }
@@ -269,19 +269,15 @@ export default function HemsQueuePage() {
     const handleDeny = async () => {
         if (!reviewingRequest) return
         setSubmitting(true)
-        // Optimistic update - shows instantly
-        setOptimisticRequest({
-            id: reviewingRequest.id,
-            status: 'DENIED',
-        })
-        setReviewingRequest(null)
         try {
             await denyRequestMutation.mutateAsync({
                 id: reviewingRequest.id,
+                entityId: selectedEntity!,
                 reviewNotes,
             })
-        } catch (err) {
-            console.error('Failed to deny request:', err)
+            setReviewingRequest(null)
+        } catch {
+            toast.error('Failed to deny request')
         } finally {
             setSubmitting(false)
         }

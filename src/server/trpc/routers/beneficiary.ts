@@ -1,4 +1,5 @@
-import { eq } from 'drizzle-orm'
+import { TRPCError } from '@trpc/server'
+import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '../../../../db'
 import {
@@ -21,27 +22,31 @@ import {
 
 export const beneficiaryRouter = createTRPCRouter({
     list: adminProcedure
-        .input(z.object({ entityId: z.coerce.number().optional() }).optional())
+        .input(z.object({ entityId: z.coerce.number() }))
         .query(async ({ input }) => {
-            if (input?.entityId) {
-                return db
-                    .select()
-                    .from(beneficiary)
-                    .where(eq(beneficiary.entityId, input.entityId))
-            }
-            return db.select().from(beneficiary)
+            return db
+                .select()
+                .from(beneficiary)
+                .where(eq(beneficiary.entityId, input.entityId))
         }),
 
     // Optimized query that includes distributions in a single query (avoids N+1)
     listWithDistributions: adminProcedure
-        .input(z.object({ entityId: z.coerce.number().optional() }).optional())
+        .input(z.object({ entityId: z.coerce.number() }))
         .query(async ({ input }) => {
-            return getBeneficiariesWithDistributions(input?.entityId)
+            return getBeneficiariesWithDistributions(input.entityId)
         }),
 
-    byId: adminProcedure.input(z.coerce.number()).query(async ({ input }) => {
-        return getBeneficiaryById(input)
-    }),
+    byId: adminProcedure
+        .input(z.object({ id: z.coerce.number(), entityId: z.coerce.number() }))
+        .query(async ({ input }) => {
+            return db.query.beneficiary.findFirst({
+                where: and(
+                    eq(beneficiary.id, input.id),
+                    eq(beneficiary.entityId, input.entityId),
+                ),
+            })
+        }),
 
     create: adminProcedure
         .input(insertBeneficiarySchema)
@@ -50,29 +55,58 @@ export const beneficiaryRouter = createTRPCRouter({
                 .insert(beneficiary)
                 .values({ ...input, updatedAt: new Date().toISOString() })
                 .returning()
+            if (!created)
+                throw new TRPCError({
+                    code: 'INTERNAL_SERVER_ERROR',
+                    message: 'Failed to create beneficiary',
+                })
             return created
         }),
 
     update: adminProcedure
         .input(
-            z.object({ id: z.coerce.number(), data: updateBeneficiarySchema }),
+            z.object({
+                id: z.coerce.number(),
+                entityId: z.coerce.number(),
+                data: updateBeneficiarySchema,
+            }),
         )
         .mutation(async ({ input }) => {
             const [updated] = await db
                 .update(beneficiary)
                 .set({ ...input.data, updatedAt: new Date().toISOString() })
-                .where(eq(beneficiary.id, input.id))
+                .where(
+                    and(
+                        eq(beneficiary.id, input.id),
+                        eq(beneficiary.entityId, input.entityId),
+                    ),
+                )
                 .returning()
+            if (!updated)
+                throw new TRPCError({
+                    code: 'NOT_FOUND',
+                    message: 'Record not found in this entity',
+                })
             return updated
         }),
 
     delete: adminProcedure
-        .input(z.coerce.number())
+        .input(z.object({ id: z.coerce.number(), entityId: z.coerce.number() }))
         .mutation(async ({ input }) => {
             const [deleted] = await db
                 .delete(beneficiary)
-                .where(eq(beneficiary.id, input))
+                .where(
+                    and(
+                        eq(beneficiary.id, input.id),
+                        eq(beneficiary.entityId, input.entityId),
+                    ),
+                )
                 .returning()
+            if (!deleted)
+                throw new TRPCError({
+                    code: 'NOT_FOUND',
+                    message: 'Record not found in this entity',
+                })
             return deleted
         }),
 

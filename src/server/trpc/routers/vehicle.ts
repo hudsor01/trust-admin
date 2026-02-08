@@ -1,4 +1,5 @@
-import { eq } from 'drizzle-orm'
+import { TRPCError } from '@trpc/server'
+import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '../../../../db'
 import { vehicle } from '../../../../db/schema'
@@ -10,27 +11,29 @@ import { adminProcedure, createTRPCRouter } from '../index'
 
 export const vehicleRouter = createTRPCRouter({
     list: adminProcedure
-        .input(z.object({ entityId: z.coerce.number().optional() }).optional())
+        .input(z.object({ entityId: z.coerce.number() }))
         .query(async ({ input }) => {
-            if (input?.entityId) {
-                return db
-                    .select()
-                    .from(vehicle)
-                    .where(eq(vehicle.entityId, input.entityId))
-            }
-            return db.select().from(vehicle)
+            return db
+                .select()
+                .from(vehicle)
+                .where(eq(vehicle.entityId, input.entityId))
         }),
 
-    byId: adminProcedure.input(z.coerce.number()).query(async ({ input }) => {
-        return db.query.vehicle.findFirst({
-            where: eq(vehicle.id, input),
-            with: {
-                entity: true,
-                valuations: true,
-                documents: true,
-            },
-        })
-    }),
+    byId: adminProcedure
+        .input(z.object({ id: z.coerce.number(), entityId: z.coerce.number() }))
+        .query(async ({ input }) => {
+            return db.query.vehicle.findFirst({
+                where: and(
+                    eq(vehicle.id, input.id),
+                    eq(vehicle.entityId, input.entityId),
+                ),
+                with: {
+                    entity: true,
+                    valuations: true,
+                    documents: true,
+                },
+            })
+        }),
 
     create: adminProcedure
         .input(insertVehicleSchema)
@@ -39,27 +42,58 @@ export const vehicleRouter = createTRPCRouter({
                 .insert(vehicle)
                 .values({ ...input, updatedAt: new Date().toISOString() })
                 .returning()
+            if (!created)
+                throw new TRPCError({
+                    code: 'INTERNAL_SERVER_ERROR',
+                    message: 'Failed to create vehicle',
+                })
             return created
         }),
 
     update: adminProcedure
-        .input(z.object({ id: z.coerce.number(), data: updateVehicleSchema }))
+        .input(
+            z.object({
+                id: z.coerce.number(),
+                entityId: z.coerce.number(),
+                data: updateVehicleSchema,
+            }),
+        )
         .mutation(async ({ input }) => {
             const [updated] = await db
                 .update(vehicle)
                 .set({ ...input.data, updatedAt: new Date().toISOString() })
-                .where(eq(vehicle.id, input.id))
+                .where(
+                    and(
+                        eq(vehicle.id, input.id),
+                        eq(vehicle.entityId, input.entityId),
+                    ),
+                )
                 .returning()
+            if (!updated)
+                throw new TRPCError({
+                    code: 'NOT_FOUND',
+                    message: 'Record not found in this entity',
+                })
             return updated
         }),
 
     delete: adminProcedure
-        .input(z.coerce.number())
+        .input(z.object({ id: z.coerce.number(), entityId: z.coerce.number() }))
         .mutation(async ({ input }) => {
             const [deleted] = await db
                 .delete(vehicle)
-                .where(eq(vehicle.id, input))
+                .where(
+                    and(
+                        eq(vehicle.id, input.id),
+                        eq(vehicle.entityId, input.entityId),
+                    ),
+                )
                 .returning()
+            if (!deleted)
+                throw new TRPCError({
+                    code: 'NOT_FOUND',
+                    message: 'Record not found in this entity',
+                })
             return deleted
         }),
 })

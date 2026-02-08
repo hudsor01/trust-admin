@@ -1,3 +1,4 @@
+import { TRPCError } from '@trpc/server'
 import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '../../../../db'
@@ -25,6 +26,11 @@ export const entityRouter = createTRPCRouter({
                 .insert(entity)
                 .values({ ...input, updatedAt: new Date().toISOString() })
                 .returning()
+            if (!created)
+                throw new TRPCError({
+                    code: 'INTERNAL_SERVER_ERROR',
+                    message: 'Failed to create entity',
+                })
             return created
         }),
 
@@ -36,6 +42,11 @@ export const entityRouter = createTRPCRouter({
                 .set({ ...input.data, updatedAt: new Date().toISOString() })
                 .where(eq(entity.id, input.id))
                 .returning()
+            if (!updated)
+                throw new TRPCError({
+                    code: 'NOT_FOUND',
+                    message: 'Entity not found',
+                })
             return updated
         }),
 
@@ -46,6 +57,11 @@ export const entityRouter = createTRPCRouter({
                 .delete(entity)
                 .where(eq(entity.id, input))
                 .returning()
+            if (!deleted)
+                throw new TRPCError({
+                    code: 'NOT_FOUND',
+                    message: 'Entity not found',
+                })
             return deleted
         }),
 })

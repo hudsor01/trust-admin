@@ -12,6 +12,7 @@
  * Note: Neon Auth native role (session.user.role) is only used by
  * layout guards for routing. tRPC authorization uses userProfile.role.
  */
+import * as Sentry from '@sentry/nextjs'
 import { initTRPC, TRPCError } from '@trpc/server'
 import { eq } from 'drizzle-orm'
 import { ZodError, z } from 'zod'
@@ -41,9 +42,9 @@ export type AppUser = {
  * Context creation for each request
  * Uses userProfile.role as source of truth for tRPC authorization.
  *
- * IMPORTANT: This initializes the JWT session for RLS policies.
- * The session token is passed to auth.jwt_session_init() so that
- * auth.user_id() returns the correct user ID in RLS policies.
+ * IMPORTANT: This fetches a JWT from Neon Auth's /token endpoint and passes
+ * it to setRequestAuthToken() + initJwtSession() so that auth.user_id()
+ * returns the correct user ID in RLS policies.
  */
 export async function createContext(_opts: { headers: Headers }) {
     const { data: session } = await authServer.getSession()
@@ -51,18 +52,56 @@ export async function createContext(_opts: { headers: Headers }) {
     // If we have a session, initialize JWT for RLS and fetch beneficiary link
     let appUser: AppUser | null = null
     if (session?.user && session?.session?.token) {
-        // Set auth token for RLS enforcement via Neon Authorize
-        // This binds the JWT to the current async context so all neon() HTTP
-        // queries in this request run as the `authenticated` role with
-        // auth.user_id() set — making RLS policies apply.
-        setRequestAuthToken(session.session.token)
-
-        // Also initialize JWT on postgres.js client (for raw SQL/tests)
+        // Fetch JWT from Neon Auth for RLS enforcement via Neon Authorize.
+        // session.session.token is an opaque session token, NOT a JWT.
+        // The /token endpoint returns a signed JWT with the user's sub claim.
+        let jwtToken: string | null = null
         try {
-            await initJwtSession(session.session.token)
+            const { data: tokenData } = await authServer.token()
+            jwtToken = tokenData?.token ?? null
         } catch (error) {
-            console.error('Failed to initialize JWT session for RLS:', error)
-            // Continue without RLS on postgres.js - neon HTTP still has authToken
+            Sentry.captureException(error, {
+                level: 'fatal',
+                tags: { subsystem: 'rls', userId: session.user.id },
+                extra: { action: 'jwt_fetch_for_rls' },
+            })
+            throw new TRPCError({
+                code: 'INTERNAL_SERVER_ERROR',
+                message: 'Authentication system error. Please try again.',
+            })
+        }
+
+        if (!jwtToken) {
+            const err = new Error('JWT token was null after successful fetch')
+            Sentry.captureException(err, {
+                level: 'fatal',
+                tags: { subsystem: 'rls', userId: session.user.id },
+            })
+            throw new TRPCError({
+                code: 'INTERNAL_SERVER_ERROR',
+                message: 'Authentication system error. Please try again.',
+            })
+        }
+
+        if (jwtToken) {
+            // Set JWT for RLS enforcement via Neon Authorize
+            // This binds the JWT to the current async context so all neon() HTTP
+            // queries in this request run as the `authenticated` role with
+            // auth.user_id() set — making RLS policies apply.
+            setRequestAuthToken(jwtToken)
+
+            // Also initialize JWT on postgres.js client (for raw SQL/tests)
+            try {
+                await initJwtSession(jwtToken)
+            } catch (error) {
+                Sentry.captureException(error, {
+                    level: 'error',
+                    tags: { subsystem: 'rls', userId: session.user.id },
+                    extra: { action: 'init_jwt_session' },
+                })
+                // neon HTTP still has authToken via setRequestAuthToken, so this is degraded but not bypassed
+                // Log but don't throw — the HTTP driver path still enforces RLS
+            }
         }
 
         // Fetch role and beneficiaryId from userProfile (app-managed)

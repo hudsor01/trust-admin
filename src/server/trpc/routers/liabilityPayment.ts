@@ -1,3 +1,4 @@
+import { TRPCError } from '@trpc/server'
 import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '../../../../db'
@@ -36,6 +37,11 @@ export const liabilityPaymentRouter = createTRPCRouter({
                 .insert(liabilityPayment)
                 .values(input)
                 .returning()
+            if (!created)
+                throw new TRPCError({
+                    code: 'INTERNAL_SERVER_ERROR',
+                    message: 'Failed to create liability payment',
+                })
             return created
         }),
 
@@ -52,6 +58,11 @@ export const liabilityPaymentRouter = createTRPCRouter({
                 .set(input.data)
                 .where(eq(liabilityPayment.id, input.id))
                 .returning()
+            if (!updated)
+                throw new TRPCError({
+                    code: 'NOT_FOUND',
+                    message: 'Liability payment not found',
+                })
             return updated
         }),
 
@@ -62,6 +73,11 @@ export const liabilityPaymentRouter = createTRPCRouter({
                 .delete(liabilityPayment)
                 .where(eq(liabilityPayment.id, input))
                 .returning()
+            if (!deleted)
+                throw new TRPCError({
+                    code: 'NOT_FOUND',
+                    message: 'Liability payment not found',
+                })
             return deleted
         }),
 })

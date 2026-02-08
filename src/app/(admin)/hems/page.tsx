@@ -132,8 +132,15 @@ export default function DistributionsPage() {
         onSuccess: () => utils.distribution.list.invalidate(),
     })
 
+    const deleteDistributionMutation = trpc.distribution.delete.useMutation({
+        onSuccess: () => utils.distribution.list.invalidate(),
+    })
+
     const { data: withdrawalRecords = [] } =
-        trpc.withdrawalRecord.list.useQuery()
+        trpc.withdrawalRecord.list.useQuery(
+            { entityId: selectedEntity! },
+            { enabled: !!selectedEntity },
+        )
 
     const updateWithdrawalRecordMutation =
         trpc.withdrawalRecord.update.useMutation({
@@ -170,6 +177,7 @@ export default function DistributionsPage() {
                 isWithdrawal: false,
                 paymentMethod: asPaymentMethod(data.paymentMethod),
                 notes: data.notes || null,
+                approvalDate: new Date().toISOString(),
             })
         },
     })
@@ -189,8 +197,8 @@ export default function DistributionsPage() {
 
             // Create distribution first
             const distData = await createDistributionMutation.mutateAsync({
-                beneficiaryId: selectedWithdrawal?.beneficiaryId,
-                entityId: selectedWithdrawal?.entityId,
+                beneficiaryId: selectedWithdrawal.beneficiaryId,
+                entityId: selectedWithdrawal.entityId,
                 distributionDate: new Date().toISOString(),
                 amount: amount.toString(),
                 distributionType: 'PRINCIPAL',
@@ -199,23 +207,34 @@ export default function DistributionsPage() {
                 paymentMethod: asPaymentMethod(data.paymentMethod),
                 notes:
                     data.notes ||
-                    `${selectedWithdrawal?.withdrawalType} withdrawal`,
+                    `${selectedWithdrawal.withdrawalType} withdrawal`,
+                approvalDate: new Date().toISOString(),
             })
 
             if (!distData) {
                 throw new Error('Failed to create distribution')
             }
 
-            // Then update the withdrawal record
-            await updateWithdrawalRecordMutation.mutateAsync({
-                id: selectedWithdrawal?.id,
-                data: {
-                    status: 'COMPLETE',
-                    withdrawnAmount: amount.toString(),
-                    exercisedDate: new Date().toISOString(),
-                    distributionId: distData.id,
-                },
-            })
+            // Then update the withdrawal record — if this fails, clean up the distribution
+            try {
+                await updateWithdrawalRecordMutation.mutateAsync({
+                    id: selectedWithdrawal.id,
+                    entityId: selectedWithdrawal.entityId,
+                    data: {
+                        status: 'COMPLETE',
+                        withdrawnAmount: amount.toString(),
+                        exercisedDate: new Date().toISOString(),
+                        distributionId: distData.id,
+                    },
+                })
+            } catch (err) {
+                // Rollback: delete the orphaned distribution
+                await deleteDistributionMutation.mutateAsync({
+                    id: distData.id,
+                    entityId: selectedWithdrawal.entityId,
+                })
+                throw err
+            }
 
             setSelectedWithdrawal(null)
         },
@@ -232,7 +251,11 @@ export default function DistributionsPage() {
         id: number,
         updates: Partial<Distribution>,
     ) => {
-        await updateDistributionMutation.mutateAsync({ id, data: updates })
+        await updateDistributionMutation.mutateAsync({
+            id,
+            entityId: selectedEntity!,
+            data: updates,
+        })
     }
 
     const eligibleWithdrawals = withdrawalRecords.filter((w) => {

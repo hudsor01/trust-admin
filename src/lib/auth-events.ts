@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/nextjs'
 import { after } from 'next/server'
 import { db } from '../../db'
 import { activityLog } from '../../db/schema'
@@ -38,6 +39,10 @@ export function recordAuthEvent(
         } catch (error) {
             // Don't fail requests if audit logging fails
             logger.db.error('Failed to record auth event', { action, error })
+            Sentry.captureException(error, {
+                tags: { subsystem: 'auth-events' },
+                extra: { action },
+            })
         }
     })
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useStore } from '@tanstack/react-store'
+import { type Store, useStore } from '@tanstack/react-store'
 import type { ColumnDef } from '@tanstack/react-table'
 import {
     DollarSign,
@@ -110,29 +110,36 @@ const hasLoanTermFields = (type: string) =>
     type === 'MORTGAGE' || type === 'LOAN'
 
 /**
+ * Hook to subscribe to form values from a FormApi instance.
+ * Encapsulates the untyped store access since FormApi has 12 generic params.
+ */
+// biome-ignore lint/suspicious/noExplicitAny: FormApi generics are too complex for prop typing
+function useFormValues(formInstance: any) {
+    const store = formInstance.store as Store<{ values: LiabilityFormData }>
+    return useStore(store, (s) => ({
+        originalAmount: s.values.originalAmount,
+        interestRate: s.values.interestRate,
+        loanTermMonths: s.values.loanTermMonths,
+        liabilityType: s.values.liabilityType,
+    }))
+}
+
+/**
  * PaymentPreview component - shows estimated monthly payment as user types loan terms.
  * Uses useDeferredValue for smooth typing experience without calculation lag.
  */
 // biome-ignore lint/suspicious/noExplicitAny: FormApi has complex generics, using any for formInstance
 function PaymentPreview({ formInstance }: { formInstance: any }) {
     // Subscribe to relevant form values - all hooks must be called unconditionally
-    const principal = formInstance.useStore(
-        (s: { values: LiabilityFormData }) => s.values.originalAmount,
-    )
-    const rate = formInstance.useStore(
-        (s: { values: LiabilityFormData }) => s.values.interestRate,
-    )
-    const term = formInstance.useStore(
-        (s: { values: LiabilityFormData }) => s.values.loanTermMonths,
-    )
-    const liabilityType = formInstance.useStore(
-        (s: { values: LiabilityFormData }) => s.values.liabilityType,
-    )
+    // FormApi has 12 generic params; this component accepts any form with LiabilityFormData values.
+    // We extract the store and use typed selectors via a helper to avoid scattered any annotations.
+    const { originalAmount, interestRate, loanTermMonths, liabilityType } =
+        useFormValues(formInstance)
 
     // Defer inputs for smooth typing - hooks must be called before any early returns
-    const deferredPrincipal = useDeferredValue(principal)
-    const deferredRate = useDeferredValue(rate)
-    const deferredTerm = useDeferredValue(term)
+    const deferredPrincipal = useDeferredValue(originalAmount)
+    const deferredRate = useDeferredValue(interestRate)
+    const deferredTerm = useDeferredValue(loanTermMonths)
 
     // Calculate payment only when deferred values settle
     const calculated = useMemo(() => {
@@ -431,7 +438,7 @@ export default function LiabilitiesPage() {
 
     // Fetch bank accounts for payment form
     const { data: bankAccounts = [] } = trpc.bankAccount.list.useQuery(
-        { entityId: selectedEntity },
+        { entityId: selectedEntity! },
         { enabled: !!selectedEntity },
     )
 
@@ -477,7 +484,11 @@ export default function LiabilitiesPage() {
 
     // Wrapper function to match inline cell API
     const updateLiability = async (id: number, data: Partial<Liability>) => {
-        await updateLiabilityMutation.mutateAsync({ id, data })
+        await updateLiabilityMutation.mutateAsync({
+            id,
+            entityId: selectedEntity!,
+            data,
+        })
     }
 
     const [editingLiabilityId, setEditingLiabilityId] = useState<number | null>(
@@ -526,6 +537,7 @@ export default function LiabilitiesPage() {
             if (liabilityForm.isEditing && editingLiabilityId) {
                 await updateLiabilityMutation.mutateAsync({
                     id: editingLiabilityId,
+                    entityId: selectedEntity!,
                     data: payload,
                 })
             } else {
@@ -575,6 +587,7 @@ export default function LiabilitiesPage() {
                           | 'OTHER')
 
             await recordPaymentMutation.mutateAsync({
+                entityId: selectedEntity!,
                 liabilityId: payingLiabilityId,
                 paymentDate: data.paymentDate,
                 amount: data.amount,
@@ -616,7 +629,10 @@ export default function LiabilitiesPage() {
     const handleDelete = async (id: number) => {
         if (!confirm('Are you sure you want to delete this liability?')) return
         try {
-            await deleteLiabilityMutation.mutateAsync(id)
+            await deleteLiabilityMutation.mutateAsync({
+                id,
+                entityId: selectedEntity!,
+            })
         } catch (err) {
             console.error('Failed to delete liability:', err)
         }

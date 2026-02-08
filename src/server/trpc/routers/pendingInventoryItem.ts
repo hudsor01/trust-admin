@@ -1,3 +1,4 @@
+import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
 import { pendingInventoryItemCrud, personalPropertyCrud } from '@/db/queries'
 import { updatePendingInventoryItemSchema } from '@/db/validation'
@@ -78,7 +79,10 @@ export const pendingInventoryItemRouter = createTRPCRouter({
             // Get the pending item
             const pendingItem = await pendingInventoryItemCrud.getById(input.id)
             if (!pendingItem) {
-                throw new Error('Pending item not found')
+                throw new TRPCError({
+                    code: 'NOT_FOUND',
+                    message: 'Pending item not found',
+                })
             }
 
             // Create personalProperty record

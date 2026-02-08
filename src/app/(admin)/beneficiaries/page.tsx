@@ -12,6 +12,7 @@ import {
     Plus,
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { toast } from 'sonner'
 import { CopyButton } from '@/components/copy-button'
 import {
     EditablePercentCell,
@@ -178,7 +179,11 @@ export default function BeneficiariesPage() {
         id: number,
         data: Partial<Beneficiary>,
     ) => {
-        return await updateBeneficiaryMutation.mutateAsync({ id, data })
+        return await updateBeneficiaryMutation.mutateAsync({
+            id,
+            entityId: selectedEntity!,
+            data,
+        })
     }
 
     // Cast to include distributions (already fetched by listWithDistributions)
@@ -213,6 +218,7 @@ export default function BeneficiariesPage() {
             // The mutation invalidates the query, so beneficiaries will reload
         } catch (error) {
             console.error('Failed to mark deceased:', error)
+            toast.error('Failed to mark beneficiary as deceased')
         }
     }
 
@@ -236,6 +242,7 @@ export default function BeneficiariesPage() {
                 hemsJustification: newDistribution.hemsJustification || null,
                 isWithdrawal: false,
                 notes: newDistribution.notes || null,
+                approvalDate: new Date().toISOString(),
             })
 
             setShowDistributionForm(false)
@@ -248,17 +255,21 @@ export default function BeneficiariesPage() {
             })
 
             // Refresh distributions for selected beneficiary using tRPC
-            const updated = await utils.beneficiary.byId.fetch(
-                selectedBeneficiary.id,
-            )
+            const updated = await utils.beneficiary.byId.fetch({
+                id: selectedBeneficiary.id,
+                entityId: selectedEntity!,
+            })
             if (updated) {
                 setSelectedBeneficiary({
                     ...selectedBeneficiary,
-                    distributions: updated.distributions || [],
+                    distributions:
+                        (updated as BeneficiaryWithDistributions)
+                            .distributions || [],
                 })
             }
         } catch (error) {
             console.error('Failed to record distribution:', error)
+            toast.error('Failed to record distribution')
         }
     }
 

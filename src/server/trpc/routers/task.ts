@@ -1,3 +1,4 @@
+import { TRPCError } from '@trpc/server'
 import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '../../../../db'
@@ -23,6 +24,11 @@ export const taskRouter = createTRPCRouter({
                 .insert(task)
                 .values({ ...input, updatedAt: new Date().toISOString() })
                 .returning()
+            if (!created)
+                throw new TRPCError({
+                    code: 'INTERNAL_SERVER_ERROR',
+                    message: 'Failed to create task',
+                })
             return created
         }),
 
@@ -34,6 +40,11 @@ export const taskRouter = createTRPCRouter({
                 .set({ ...input.data, updatedAt: new Date().toISOString() })
                 .where(eq(task.id, input.id))
                 .returning()
+            if (!updated)
+                throw new TRPCError({
+                    code: 'NOT_FOUND',
+                    message: 'Task not found',
+                })
             return updated
         }),
 
@@ -44,6 +55,11 @@ export const taskRouter = createTRPCRouter({
                 .delete(task)
                 .where(eq(task.id, input))
                 .returning()
+            if (!deleted)
+                throw new TRPCError({
+                    code: 'NOT_FOUND',
+                    message: 'Task not found',
+                })
             return deleted
         }),
 })

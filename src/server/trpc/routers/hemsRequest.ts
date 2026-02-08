@@ -1,11 +1,9 @@
-import { eq } from 'drizzle-orm'
+import { TRPCError } from '@trpc/server'
+import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '../../../../db'
-import {
-    getHemsRequestsWithBeneficiary,
-    getPendingHemsRequests,
-} from '../../../../db/queries'
-import { hemsRequest } from '../../../../db/schema'
+import { getHemsRequestsWithBeneficiary } from '../../../../db/queries'
+import { beneficiary, hemsRequest } from '../../../../db/schema'
 import {
     insertHemsRequestSchema,
     updateHemsRequestSchema,
@@ -20,56 +18,69 @@ import {
 export const hemsRequestRouter = createTRPCRouter({
     list: adminProcedure
         .input(
-            z
-                .object({
-                    beneficiaryId: z.coerce.number().optional(),
-                    entityId: z.coerce.number().optional(),
-                })
-                .optional(),
+            z.object({
+                entityId: z.coerce.number(),
+                beneficiaryId: z.coerce.number().optional(),
+            }),
         )
         .query(async ({ input }) => {
-            if (input?.beneficiaryId) {
+            if (input.beneficiaryId) {
                 return db
                     .select()
                     .from(hemsRequest)
-                    .where(eq(hemsRequest.beneficiaryId, input.beneficiaryId))
+                    .where(
+                        and(
+                            eq(hemsRequest.entityId, input.entityId),
+                            eq(hemsRequest.beneficiaryId, input.beneficiaryId),
+                        ),
+                    )
             }
-            if (input?.entityId) {
-                return db
-                    .select()
-                    .from(hemsRequest)
-                    .where(eq(hemsRequest.entityId, input.entityId))
-            }
-            return db.select().from(hemsRequest)
+            return db
+                .select()
+                .from(hemsRequest)
+                .where(eq(hemsRequest.entityId, input.entityId))
         }),
 
     // List with beneficiary info
     listWithBeneficiary: adminProcedure
         .input(
-            z
-                .object({
-                    beneficiaryId: z.coerce.number().optional(),
-                    entityId: z.coerce.number().optional(),
-                })
-                .optional(),
+            z.object({
+                entityId: z.coerce.number(),
+                beneficiaryId: z.coerce.number().optional(),
+            }),
         )
         .query(async ({ input }) => {
             return getHemsRequestsWithBeneficiary({
-                beneficiaryId: input?.beneficiaryId,
-                entityId: input?.entityId,
+                beneficiaryId: input.beneficiaryId,
+                entityId: input.entityId,
             })
         }),
 
     // Get pending requests for queue
-    pending: adminProcedure.query(async () => {
-        return getPendingHemsRequests()
-    }),
+    pending: adminProcedure
+        .input(z.object({ entityId: z.coerce.number() }))
+        .query(async ({ input }) => {
+            return db
+                .select()
+                .from(hemsRequest)
+                .where(
+                    and(
+                        eq(hemsRequest.entityId, input.entityId),
+                        eq(hemsRequest.status, 'PENDING'),
+                    ),
+                )
+        }),
 
-    byId: adminProcedure.input(z.coerce.number()).query(async ({ input }) => {
-        return db.query.hemsRequest.findFirst({
-            where: eq(hemsRequest.id, input),
-        })
-    }),
+    byId: adminProcedure
+        .input(z.object({ id: z.coerce.number(), entityId: z.coerce.number() }))
+        .query(async ({ input }) => {
+            return db.query.hemsRequest.findFirst({
+                where: and(
+                    eq(hemsRequest.id, input.id),
+                    eq(hemsRequest.entityId, input.entityId),
+                ),
+            })
+        }),
 
     create: adminProcedure
         .input(insertHemsRequestSchema)
@@ -78,29 +89,58 @@ export const hemsRequestRouter = createTRPCRouter({
                 .insert(hemsRequest)
                 .values({ ...input, updatedAt: new Date().toISOString() })
                 .returning()
+            if (!created)
+                throw new TRPCError({
+                    code: 'INTERNAL_SERVER_ERROR',
+                    message: 'Failed to create HEMS request',
+                })
             return created
         }),
 
     update: adminProcedure
         .input(
-            z.object({ id: z.coerce.number(), data: updateHemsRequestSchema }),
+            z.object({
+                id: z.coerce.number(),
+                entityId: z.coerce.number(),
+                data: updateHemsRequestSchema,
+            }),
         )
         .mutation(async ({ input }) => {
             const [updated] = await db
                 .update(hemsRequest)
                 .set({ ...input.data, updatedAt: new Date().toISOString() })
-                .where(eq(hemsRequest.id, input.id))
+                .where(
+                    and(
+                        eq(hemsRequest.id, input.id),
+                        eq(hemsRequest.entityId, input.entityId),
+                    ),
+                )
                 .returning()
+            if (!updated)
+                throw new TRPCError({
+                    code: 'NOT_FOUND',
+                    message: 'Record not found in this entity',
+                })
             return updated
         }),
 
     delete: adminProcedure
-        .input(z.coerce.number())
+        .input(z.object({ id: z.coerce.number(), entityId: z.coerce.number() }))
         .mutation(async ({ input }) => {
             const [deleted] = await db
                 .delete(hemsRequest)
-                .where(eq(hemsRequest.id, input))
+                .where(
+                    and(
+                        eq(hemsRequest.id, input.id),
+                        eq(hemsRequest.entityId, input.entityId),
+                    ),
+                )
                 .returning()
+            if (!deleted)
+                throw new TRPCError({
+                    code: 'NOT_FOUND',
+                    message: 'Record not found in this entity',
+                })
             return deleted
         }),
 
@@ -109,6 +149,7 @@ export const hemsRequestRouter = createTRPCRouter({
         .input(
             z.object({
                 id: z.coerce.number(),
+                entityId: z.coerce.number(),
                 approvedAmount: z.string().optional(),
                 reviewNotes: z.string().optional(),
             }),
@@ -125,6 +166,25 @@ export const hemsRequestRouter = createTRPCRouter({
                     approvedAmount: input.approvedAmount ?? 'full',
                 },
                 async () => {
+                    // Verify request exists and is in PENDING status
+                    const existing = await db.query.hemsRequest.findFirst({
+                        where: and(
+                            eq(hemsRequest.id, input.id),
+                            eq(hemsRequest.entityId, input.entityId),
+                        ),
+                    })
+                    if (!existing)
+                        throw new TRPCError({
+                            code: 'NOT_FOUND',
+                            message: 'Request not found in this entity',
+                        })
+                    if (existing.status !== 'PENDING') {
+                        throw new TRPCError({
+                            code: 'CONFLICT',
+                            message: `Cannot approve a request with status: ${existing.status}`,
+                        })
+                    }
+
                     const [updated] = await db
                         .update(hemsRequest)
                         .set({
@@ -134,8 +194,18 @@ export const hemsRequestRouter = createTRPCRouter({
                             reviewedAt: new Date().toISOString(),
                             updatedAt: new Date().toISOString(),
                         })
-                        .where(eq(hemsRequest.id, input.id))
+                        .where(
+                            and(
+                                eq(hemsRequest.id, input.id),
+                                eq(hemsRequest.entityId, input.entityId),
+                            ),
+                        )
                         .returning()
+                    if (!updated)
+                        throw new TRPCError({
+                            code: 'NOT_FOUND',
+                            message: 'Request not found in this entity',
+                        })
                     return updated
                 },
             )
@@ -146,6 +216,7 @@ export const hemsRequestRouter = createTRPCRouter({
         .input(
             z.object({
                 id: z.coerce.number(),
+                entityId: z.coerce.number(),
                 reviewNotes: z.string().optional(),
             }),
         )
@@ -156,6 +227,25 @@ export const hemsRequestRouter = createTRPCRouter({
                 'hems.deny',
                 { requestId: input.id },
                 async () => {
+                    // Verify request exists and is in PENDING status
+                    const existing = await db.query.hemsRequest.findFirst({
+                        where: and(
+                            eq(hemsRequest.id, input.id),
+                            eq(hemsRequest.entityId, input.entityId),
+                        ),
+                    })
+                    if (!existing)
+                        throw new TRPCError({
+                            code: 'NOT_FOUND',
+                            message: 'Request not found in this entity',
+                        })
+                    if (existing.status !== 'PENDING') {
+                        throw new TRPCError({
+                            code: 'CONFLICT',
+                            message: `Cannot deny a request with status: ${existing.status}`,
+                        })
+                    }
+
                     const [updated] = await db
                         .update(hemsRequest)
                         .set({
@@ -164,8 +254,18 @@ export const hemsRequestRouter = createTRPCRouter({
                             reviewedAt: new Date().toISOString(),
                             updatedAt: new Date().toISOString(),
                         })
-                        .where(eq(hemsRequest.id, input.id))
+                        .where(
+                            and(
+                                eq(hemsRequest.id, input.id),
+                                eq(hemsRequest.entityId, input.entityId),
+                            ),
+                        )
                         .returning()
+                    if (!updated)
+                        throw new TRPCError({
+                            code: 'NOT_FOUND',
+                            message: 'Request not found in this entity',
+                        })
                     return updated
                 },
             )
@@ -176,8 +276,29 @@ export const hemsRequestRouter = createTRPCRouter({
         .input(insertHemsRequestSchema)
         .mutation(async ({ input, ctx }) => {
             // Ensure beneficiary can only submit for themselves
-            if (input.beneficiaryId !== ctx.user.beneficiaryId) {
-                throw new Error('Can only submit requests for yourself')
+            if (
+                !ctx.user.beneficiaryId ||
+                input.beneficiaryId !== ctx.user.beneficiaryId
+            ) {
+                throw new TRPCError({
+                    code: 'FORBIDDEN',
+                    message: 'Can only submit requests for yourself',
+                })
+            }
+
+            // Verify entityId matches the beneficiary's actual entity
+            if (input.entityId) {
+                const [ben] = await db
+                    .select({ entityId: beneficiary.entityId })
+                    .from(beneficiary)
+                    .where(eq(beneficiary.id, ctx.user.beneficiaryId))
+                    .limit(1)
+                if (!ben || ben.entityId !== input.entityId) {
+                    throw new TRPCError({
+                        code: 'FORBIDDEN',
+                        message: 'Invalid entity for this beneficiary',
+                    })
+                }
             }
 
             addBreadcrumb('hems', 'Beneficiary submitting HEMS request', {
@@ -200,6 +321,11 @@ export const hemsRequestRouter = createTRPCRouter({
                             updatedAt: new Date().toISOString(),
                         })
                         .returning()
+                    if (!created)
+                        throw new TRPCError({
+                            code: 'INTERNAL_SERVER_ERROR',
+                            message: 'Failed to submit HEMS request',
+                        })
                     return created
                 },
             )

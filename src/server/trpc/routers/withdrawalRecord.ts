@@ -1,4 +1,5 @@
-import { eq } from 'drizzle-orm'
+import { TRPCError } from '@trpc/server'
+import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '../../../../db'
 import { withdrawalRecord } from '../../../../db/schema'
@@ -11,27 +12,42 @@ import { adminProcedure, createTRPCRouter } from '../index'
 export const withdrawalRecordRouter = createTRPCRouter({
     list: adminProcedure
         .input(
-            z
-                .object({ beneficiaryId: z.coerce.number().optional() })
-                .optional(),
+            z.object({
+                entityId: z.coerce.number(),
+                beneficiaryId: z.coerce.number().optional(),
+            }),
         )
         .query(async ({ input }) => {
-            if (input?.beneficiaryId) {
+            if (input.beneficiaryId) {
                 return db
                     .select()
                     .from(withdrawalRecord)
                     .where(
-                        eq(withdrawalRecord.beneficiaryId, input.beneficiaryId),
+                        and(
+                            eq(withdrawalRecord.entityId, input.entityId),
+                            eq(
+                                withdrawalRecord.beneficiaryId,
+                                input.beneficiaryId,
+                            ),
+                        ),
                     )
             }
-            return db.select().from(withdrawalRecord)
+            return db
+                .select()
+                .from(withdrawalRecord)
+                .where(eq(withdrawalRecord.entityId, input.entityId))
         }),
 
-    byId: adminProcedure.input(z.coerce.number()).query(async ({ input }) => {
-        return db.query.withdrawalRecord.findFirst({
-            where: eq(withdrawalRecord.id, input),
-        })
-    }),
+    byId: adminProcedure
+        .input(z.object({ id: z.coerce.number(), entityId: z.coerce.number() }))
+        .query(async ({ input }) => {
+            return db.query.withdrawalRecord.findFirst({
+                where: and(
+                    eq(withdrawalRecord.id, input.id),
+                    eq(withdrawalRecord.entityId, input.entityId),
+                ),
+            })
+        }),
 
     create: adminProcedure
         .input(insertWithdrawalRecordSchema)
@@ -40,6 +56,11 @@ export const withdrawalRecordRouter = createTRPCRouter({
                 .insert(withdrawalRecord)
                 .values({ ...input, updatedAt: new Date().toISOString() })
                 .returning()
+            if (!created)
+                throw new TRPCError({
+                    code: 'INTERNAL_SERVER_ERROR',
+                    message: 'Failed to create withdrawal record',
+                })
             return created
         }),
 
@@ -47,6 +68,7 @@ export const withdrawalRecordRouter = createTRPCRouter({
         .input(
             z.object({
                 id: z.coerce.number(),
+                entityId: z.coerce.number(),
                 data: updateWithdrawalRecordSchema,
             }),
         )
@@ -54,18 +76,38 @@ export const withdrawalRecordRouter = createTRPCRouter({
             const [updated] = await db
                 .update(withdrawalRecord)
                 .set({ ...input.data, updatedAt: new Date().toISOString() })
-                .where(eq(withdrawalRecord.id, input.id))
+                .where(
+                    and(
+                        eq(withdrawalRecord.id, input.id),
+                        eq(withdrawalRecord.entityId, input.entityId),
+                    ),
+                )
                 .returning()
+            if (!updated)
+                throw new TRPCError({
+                    code: 'NOT_FOUND',
+                    message: 'Record not found in this entity',
+                })
             return updated
         }),
 
     delete: adminProcedure
-        .input(z.coerce.number())
+        .input(z.object({ id: z.coerce.number(), entityId: z.coerce.number() }))
         .mutation(async ({ input }) => {
             const [deleted] = await db
                 .delete(withdrawalRecord)
-                .where(eq(withdrawalRecord.id, input))
+                .where(
+                    and(
+                        eq(withdrawalRecord.id, input.id),
+                        eq(withdrawalRecord.entityId, input.entityId),
+                    ),
+                )
                 .returning()
+            if (!deleted)
+                throw new TRPCError({
+                    code: 'NOT_FOUND',
+                    message: 'Record not found in this entity',
+                })
             return deleted
         }),
 })

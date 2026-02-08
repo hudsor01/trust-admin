@@ -352,6 +352,8 @@ export default function SettingsPage() {
                                                         await updateBeneficiaryMutation.mutateAsync(
                                                             {
                                                                 id: b.id,
+                                                                entityId:
+                                                                    selectedEntity!,
                                                                 data: {
                                                                     dob: val,
                                                                 },
@@ -364,6 +366,8 @@ export default function SettingsPage() {
                                                         await updateBeneficiaryMutation.mutateAsync(
                                                             {
                                                                 id: b.id,
+                                                                entityId:
+                                                                    selectedEntity!,
                                                                 data: {
                                                                     email: val,
                                                                 },
@@ -376,6 +380,8 @@ export default function SettingsPage() {
                                                         await updateBeneficiaryMutation.mutateAsync(
                                                             {
                                                                 id: b.id,
+                                                                entityId:
+                                                                    selectedEntity!,
                                                                 data: {
                                                                     phone: val,
                                                                 },
@@ -424,6 +430,8 @@ export default function SettingsPage() {
                                                         await updateTrusteeMutation.mutateAsync(
                                                             {
                                                                 id: t.id,
+                                                                entityId:
+                                                                    selectedEntity!,
                                                                 data: {
                                                                     dob: val,
                                                                 },
@@ -436,6 +444,8 @@ export default function SettingsPage() {
                                                         await updateTrusteeMutation.mutateAsync(
                                                             {
                                                                 id: t.id,
+                                                                entityId:
+                                                                    selectedEntity!,
                                                                 data: {
                                                                     email: val,
                                                                 },
@@ -448,6 +458,8 @@ export default function SettingsPage() {
                                                         await updateTrusteeMutation.mutateAsync(
                                                             {
                                                                 id: t.id,
+                                                                entityId:
+                                                                    selectedEntity!,
                                                                 data: {
                                                                     phone: val,
                                                                 },

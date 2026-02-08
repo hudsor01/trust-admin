@@ -10,6 +10,7 @@ import {
     Trash2,
 } from 'lucide-react'
 import { useCallback, useMemo, useState } from 'react'
+import { toast } from 'sonner'
 import {
     EditableCurrencyCell,
     EditableTextCell,
@@ -156,7 +157,7 @@ export default function AccountingPage() {
         // Use the first bank account for the conversion entry
         const defaultBankAccount = bankAccounts[0]
         if (!defaultBankAccount) {
-            console.error(
+            toast.error(
                 'No bank account available for income-to-principal conversion',
             )
             return
@@ -170,6 +171,7 @@ export default function AccountingPage() {
             })
         } catch (error) {
             console.error('Failed to convert income:', error)
+            toast.error('Failed to convert income to principal')
         } finally {
             setConvertingYear(null)
         }
@@ -228,6 +230,7 @@ export default function AccountingPage() {
             if (isEditing && editingId) {
                 await updateEntryMutation.mutateAsync({
                     id: editingId,
+                    entityId: numericEntityId!,
                     data: payload,
                 })
             } else {
@@ -256,7 +259,10 @@ export default function AccountingPage() {
     const deleteEntry = async (id: number) => {
         if (!confirm('Are you sure you want to delete this entry?')) return
         try {
-            await deleteEntryMutation.mutateAsync(id)
+            await deleteEntryMutation.mutateAsync({
+                id,
+                entityId: selectedEntity!,
+            })
         } catch (error) {
             console.error('Failed to delete entry:', error)
         }
@@ -266,7 +272,11 @@ export default function AccountingPage() {
         id: number,
         updates: Partial<TrustAccounting>,
     ) => {
-        await updateEntryMutation.mutateAsync({ id, data: updates })
+        await updateEntryMutation.mutateAsync({
+            id,
+            entityId: selectedEntity!,
+            data: updates,
+        })
     }
 
     // Calculate totals - Texas 113.152(2) requires categorization by principal and income

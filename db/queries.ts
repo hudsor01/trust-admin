@@ -5,13 +5,27 @@
  * No generic factory - just straightforward type-safe queries.
  */
 import { and, desc, eq, sql } from 'drizzle-orm'
+import type postgres from 'postgres'
 import { calculatePaymentSplit } from '../src/lib/amortization'
 import {
     type ExpenseType,
     type IncomeType,
     isPrincipalTransaction,
 } from '../src/lib/classification-rules'
-import { db } from './index'
+import { addBreadcrumb, traceBusinessOperation } from '../src/lib/sentry'
+import { db, getClient } from './index'
+
+/**
+ * Type for postgres.js transaction SQL parameter.
+ * TransactionSql uses Omit<Sql, ...> which strips the call signature in TypeScript.
+ * This type re-adds the tagged template literal call signature for use in transactions.
+ */
+type TxSql = postgres.TransactionSql &
+    (<T extends readonly (object | undefined)[] = postgres.Row[]>(
+        template: TemplateStringsArray,
+        ...parameters: readonly postgres.ParameterOrFragment<never>[]
+    ) => postgres.PendingQuery<T>)
+
 import {
     activityLog,
     artwork,
@@ -1256,136 +1270,179 @@ interface RecordPaymentData {
 }
 
 export async function recordLiabilityPayment(data: RecordPaymentData) {
-    const liabilityRecord = await db.query.liability.findFirst({
-        where: eq(liability.id, data.liabilityId),
-    })
+    return traceBusinessOperation(
+        'liability.recordPayment',
+        { liabilityId: data.liabilityId, amount: data.amount },
+        async () => {
+            const client = getClient()
 
-    if (!liabilityRecord) {
-        throw new Error('Liability not found')
-    }
+            return client.begin(async (_tx) => {
+                const tx = _tx as TxSql
 
-    const shouldAutoCalculate =
-        liabilityRecord.interestRate &&
-        parseFloat(liabilityRecord.interestRate) > 0 &&
-        !liabilityRecord.isRevolvingCredit &&
-        !data.principalPortion &&
-        !data.interestPortion
+                // Step 1: Lock the liability row with FOR UPDATE to prevent concurrent modifications
+                addBreadcrumb(
+                    'db.transaction',
+                    'Acquiring lock on liability row',
+                    {
+                        liabilityId: data.liabilityId,
+                    },
+                )
+                const [liabilityRecord] = await tx`
+                    SELECT * FROM liability
+                    WHERE id = ${data.liabilityId}
+                    FOR UPDATE
+                `
 
-    let calculatedSplit: {
-        principal: string
-        interest: string
-        escrow: string
-        newBalance: string
-    } | null = null
+                if (!liabilityRecord) {
+                    throw new Error('Liability not found')
+                }
 
-    if (shouldAutoCalculate && liabilityRecord.interestRate) {
-        calculatedSplit = calculatePaymentSplit(
-            liabilityRecord.currentBalance || '0',
-            liabilityRecord.interestRate,
-            data.amount,
-            data.escrowPortion || liabilityRecord.escrowMonthly || undefined,
-        )
-    }
+                const shouldAutoCalculate =
+                    liabilityRecord.interestRate &&
+                    parseFloat(liabilityRecord.interestRate) > 0 &&
+                    !liabilityRecord.isRevolvingCredit &&
+                    !data.principalPortion &&
+                    !data.interestPortion
 
-    const principalPortion =
-        data.principalPortion || calculatedSplit?.principal || null
-    const interestPortion =
-        data.interestPortion || calculatedSplit?.interest || null
-    const escrowPortion = data.escrowPortion || calculatedSplit?.escrow || null
+                let calculatedSplit: {
+                    principal: string
+                    interest: string
+                    escrow: string
+                    newBalance: string
+                } | null = null
 
-    const paymentAmount = parseFloat(data.amount) || 0
-    const currentBalance =
-        parseFloat(liabilityRecord.currentBalance || '0') || 0
-    const newBalance = calculatedSplit
-        ? parseFloat(calculatedSplit.newBalance)
-        : Math.max(0, currentBalance - paymentAmount)
+                if (shouldAutoCalculate && liabilityRecord.interestRate) {
+                    calculatedSplit = calculatePaymentSplit(
+                        liabilityRecord.currentBalance || '0',
+                        liabilityRecord.interestRate,
+                        data.amount,
+                        data.escrowPortion ??
+                            liabilityRecord.escrowMonthly ??
+                            undefined,
+                    )
+                }
 
-    const [payment] = await db
-        .insert(liabilityPayment)
-        .values({
-            liabilityId: data.liabilityId,
-            paymentDate: data.paymentDate,
-            amount: data.amount,
-            principalPortion,
-            interestPortion,
-            escrowPortion,
-            paymentMethod: data.paymentMethod || null,
-            checkNumber: data.checkNumber || null,
-            confirmationNumber: data.confirmationNumber || null,
-            notes: data.notes || null,
-        })
-        .returning()
-    if (!payment) throw new Error('Failed to create payment record')
+                const principalPortion =
+                    data.principalPortion ?? calculatedSplit?.principal ?? null
+                const interestPortion =
+                    data.interestPortion ?? calculatedSplit?.interest ?? null
+                const escrowPortion =
+                    data.escrowPortion ?? calculatedSplit?.escrow ?? null
 
-    await db
-        .update(liability)
-        .set({
-            currentBalance: newBalance.toFixed(2),
-            currentBalanceDate: data.paymentDate,
-        })
-        .where(eq(liability.id, data.liabilityId))
+                const paymentAmount = parseFloat(data.amount) || 0
+                const currentBalance =
+                    parseFloat(liabilityRecord.currentBalance || '0') || 0
+                const newBalance = calculatedSplit
+                    ? parseFloat(calculatedSplit.newBalance)
+                    : Math.max(0, currentBalance - paymentAmount)
 
-    let accountingEntry: { id: number } | null = null
-    if (data.createExpenseEntry !== false) {
-        const expenseDescription = `${liabilityRecord.liabilityType.replace(/_/g, ' ')} payment to ${liabilityRecord.creditor}`
+                // Step 2: Insert the payment record
+                addBreadcrumb('db.transaction', 'Inserting liability payment', {
+                    amount: data.amount,
+                })
+                const [payment] = await tx`
+                    INSERT INTO liability_payment (
+                        "liabilityId", "paymentDate", amount,
+                        "principalPortion", "interestPortion", "escrowPortion",
+                        "paymentMethod", "checkNumber", "confirmationNumber", notes
+                    ) VALUES (
+                        ${data.liabilityId}, ${data.paymentDate}, ${data.amount},
+                        ${principalPortion}, ${interestPortion}, ${escrowPortion},
+                        ${data.paymentMethod || null}, ${data.checkNumber || null},
+                        ${data.confirmationNumber || null}, ${data.notes || null}
+                    )
+                    RETURNING *
+                `
+                if (!payment) throw new Error('Failed to create payment record')
 
-        const effectiveAllocation =
-            data.allocationClass ||
-            liabilityRecord.allocationClass ||
-            'PRINCIPAL'
-        const isPrincipal = effectiveAllocation === 'PRINCIPAL'
+                // Step 3: Update the liability balance
+                addBreadcrumb('db.transaction', 'Updating liability balance', {
+                    newBalance: newBalance.toFixed(2),
+                })
+                await tx`
+                    UPDATE liability
+                    SET "currentBalance" = ${newBalance.toFixed(2)},
+                        "currentBalanceDate" = ${data.paymentDate}
+                    WHERE id = ${data.liabilityId}
+                `
 
-        const expenseType =
-            liabilityRecord.liabilityType === 'TAX_OWED' ? 'TAX' : 'OTHER'
+                // Step 4: Create the accounting entry if requested
+                let accountingEntry: { id: number } | null = null
+                if (data.createExpenseEntry !== false) {
+                    const expenseDescription = `${liabilityRecord.liabilityType.replace(/_/g, ' ')} payment to ${liabilityRecord.creditor}`
 
-        const [entry] = await db
-            .insert(trustAccounting)
-            .values({
-                entityId: liabilityRecord.entityId,
-                accountingDate: data.paymentDate,
-                entryType: 'EXPENSE',
-                expenseType,
-                amount: data.amount,
-                description: expenseDescription,
-                bankAccountId: data.bankAccountId,
-                isPrincipal,
-                taxDeductible:
-                    liabilityRecord.liabilityType === 'MORTGAGE' ||
-                    liabilityRecord.liabilityType === 'TAX_OWED',
-                checkNumber:
-                    data.checkNumber || data.confirmationNumber || null,
-                fiscalYear: new Date(data.paymentDate).getFullYear(),
-                sourceAssetType: 'LIABILITY',
-                sourceAssetId: data.liabilityId,
-                updatedAt: new Date().toISOString(),
+                    const effectiveAllocation =
+                        data.allocationClass ||
+                        liabilityRecord.allocationClass ||
+                        'PRINCIPAL'
+                    const isPrincipal = effectiveAllocation === 'PRINCIPAL'
+
+                    const expenseType =
+                        liabilityRecord.liabilityType === 'TAX_OWED'
+                            ? 'TAX'
+                            : 'OTHER'
+
+                    const taxDeductible =
+                        liabilityRecord.liabilityType === 'MORTGAGE' ||
+                        liabilityRecord.liabilityType === 'TAX_OWED'
+
+                    const checkNum =
+                        data.checkNumber || data.confirmationNumber || null
+                    const fiscalYear = new Date(data.paymentDate).getFullYear()
+                    const now = new Date().toISOString()
+
+                    addBreadcrumb(
+                        'db.transaction',
+                        'Inserting trust accounting entry',
+                        {
+                            expenseType,
+                            isPrincipal,
+                        },
+                    )
+                    const [entry] = await tx`
+                        INSERT INTO trust_accounting (
+                            "entityId", "accountingDate", "entryType", "expenseType",
+                            amount, description, "bankAccountId", "isPrincipal",
+                            "taxDeductible", "checkNumber", "fiscalYear",
+                            "sourceAssetType", "sourceAssetId", "updatedAt"
+                        ) VALUES (
+                            ${liabilityRecord.entityId}, ${data.paymentDate}, 'EXPENSE', ${expenseType},
+                            ${data.amount}, ${expenseDescription}, ${data.bankAccountId}, ${isPrincipal},
+                            ${taxDeductible}, ${checkNum}, ${fiscalYear},
+                            'LIABILITY', ${data.liabilityId}, ${now}
+                        )
+                        RETURNING *
+                    `
+                    if (!entry)
+                        throw new Error('Failed to create accounting entry')
+
+                    accountingEntry = { id: entry.id }
+                }
+
+                return {
+                    payment: {
+                        id: payment.id,
+                        ...data,
+                        principalPortion,
+                        interestPortion,
+                        escrowPortion,
+                    },
+                    liability: {
+                        id: liabilityRecord.id,
+                        currentBalance: newBalance.toFixed(2),
+                    },
+                    accountingEntry,
+                    autoCalculated: calculatedSplit
+                        ? {
+                              principal: calculatedSplit.principal,
+                              interest: calculatedSplit.interest,
+                              escrow: calculatedSplit.escrow,
+                          }
+                        : null,
+                }
             })
-            .returning()
-        if (!entry) throw new Error('Failed to create accounting entry')
-
-        accountingEntry = { id: entry.id }
-    }
-
-    return {
-        payment: {
-            id: payment.id,
-            ...data,
-            principalPortion,
-            interestPortion,
-            escrowPortion,
         },
-        liability: {
-            id: liabilityRecord.id,
-            currentBalance: newBalance.toFixed(2),
-        },
-        accountingEntry,
-        autoCalculated: calculatedSplit
-            ? {
-                  principal: calculatedSplit.principal,
-                  interest: calculatedSplit.interest,
-                  escrow: calculatedSplit.escrow,
-              }
-            : null,
-    }
+    )
 }
 
 interface LiabilityPaymentOptions {
@@ -1557,74 +1614,102 @@ export async function recalculateBeneficiaryShares(
     entityId: number,
     excludeBeneficiaryId: number,
 ) {
-    const allBeneficiaries = await db.query.beneficiary.findMany({
-        where: eq(beneficiary.entityId, entityId),
-    })
+    return traceBusinessOperation(
+        'beneficiary.recalculateShares',
+        { entityId, excludeBeneficiaryId },
+        async () => {
+            const client = getClient()
 
-    const deceased = allBeneficiaries.find((b) => b.id === excludeBeneficiaryId)
-    const living = allBeneficiaries.filter(
-        (b) => b.id !== excludeBeneficiaryId && !b.deceasedDate,
+            return client.begin(async (_tx) => {
+                const tx = _tx as TxSql
+
+                // Lock all beneficiary rows for this entity to prevent concurrent share modifications
+                addBreadcrumb(
+                    'db.transaction',
+                    'Acquiring locks on beneficiary rows',
+                    {
+                        entityId,
+                    },
+                )
+                interface BeneficiaryRow {
+                    id: number
+                    sharePercent: string | null
+                    deceasedDate: string | null
+                }
+                const allBeneficiaries = await tx<BeneficiaryRow[]>`
+                    SELECT * FROM beneficiary
+                    WHERE "entityId" = ${entityId}
+                    FOR UPDATE
+                `
+
+                const deceased = allBeneficiaries.find(
+                    (b) => b.id === excludeBeneficiaryId,
+                )
+                const living = allBeneficiaries.filter(
+                    (b) => b.id !== excludeBeneficiaryId && !b.deceasedDate,
+                )
+
+                if (!deceased || !deceased.sharePercent) {
+                    return { success: true, shareRecalculated: false }
+                }
+
+                const deceasedShare = parseFloat(deceased.sharePercent)
+
+                const totalLivingShares = living.reduce(
+                    (sum, b) => sum + (parseFloat(b.sharePercent || '0') || 0),
+                    0,
+                )
+
+                if (totalLivingShares <= 0) {
+                    return {
+                        success: true,
+                        shareRecalculated: false,
+                        error: 'No living beneficiaries',
+                    }
+                }
+
+                const updates: { id: number; newShare: string }[] = []
+                const now = new Date().toISOString()
+
+                // Calculate new shares for all living beneficiaries
+                for (const b of living) {
+                    const currentShare = parseFloat(b.sharePercent || '0') || 0
+                    const proportion = currentShare / totalLivingShares
+                    const additionalShare = deceasedShare * proportion
+                    const newShare = (currentShare + additionalShare).toFixed(2)
+                    updates.push({ id: b.id, newShare })
+                }
+
+                // Update all living beneficiaries within the transaction
+                addBreadcrumb('db.transaction', 'Updating beneficiary shares', {
+                    updateCount: updates.length,
+                })
+                for (const u of updates) {
+                    await tx`
+                        UPDATE beneficiary
+                        SET "sharePercent" = ${u.newShare},
+                            "updatedAt" = ${now}
+                        WHERE id = ${u.id}
+                    `
+                }
+
+                // Update deceased beneficiary share to 0
+                await tx`
+                    UPDATE beneficiary
+                    SET "sharePercent" = '0.00',
+                        "updatedAt" = ${now}
+                    WHERE id = ${excludeBeneficiaryId}
+                `
+
+                return {
+                    success: true,
+                    shareRecalculated: true,
+                    deceasedShare,
+                    updates,
+                }
+            })
+        },
     )
-
-    if (!deceased || !deceased.sharePercent) {
-        return { success: true, shareRecalculated: false }
-    }
-
-    const deceasedShare = parseFloat(deceased.sharePercent)
-
-    const totalLivingShares = living.reduce((sum, b) => {
-        return sum + (parseFloat(b.sharePercent || '0') || 0)
-    }, 0)
-
-    if (totalLivingShares <= 0) {
-        return {
-            success: true,
-            shareRecalculated: false,
-            error: 'No living beneficiaries',
-        }
-    }
-
-    const updates: { id: number; newShare: string }[] = []
-    const now = new Date().toISOString()
-
-    // Calculate new shares for all living beneficiaries
-    for (const b of living) {
-        const currentShare = parseFloat(b.sharePercent || '0') || 0
-        const proportion = currentShare / totalLivingShares
-        const additionalShare = deceasedShare * proportion
-        const newShare = (currentShare + additionalShare).toFixed(2)
-        updates.push({ id: b.id, newShare })
-    }
-
-    // PERF: Use individual parameterized updates instead of raw SQL CASE
-    // This is safer (no SQL injection) and still efficient for typical beneficiary counts (<100)
-    // For extremely large beneficiary lists, consider a stored procedure
-    if (updates.length > 0) {
-        await Promise.all(
-            updates.map((u) =>
-                db
-                    .update(beneficiary)
-                    .set({ sharePercent: u.newShare, updatedAt: now })
-                    .where(eq(beneficiary.id, u.id)),
-            ),
-        )
-    }
-
-    // Update deceased beneficiary share to 0
-    await db
-        .update(beneficiary)
-        .set({
-            sharePercent: '0.00',
-            updatedAt: now,
-        })
-        .where(eq(beneficiary.id, excludeBeneficiaryId))
-
-    return {
-        success: true,
-        shareRecalculated: true,
-        deceasedShare,
-        updates,
-    }
 }
 
 // =============================================================================
@@ -1636,73 +1721,112 @@ export async function convertIncomeToPrincipal(
     fiscalYear: number,
     bankAccountId: number,
 ) {
-    const incomeEntries = await db.query.trustAccounting.findMany({
-        where: (ta, { and, eq: eqOp }) =>
-            and(
-                eqOp(ta.entityId, entityId),
-                eqOp(ta.entryType, 'INCOME'),
-                eqOp(ta.isPrincipal, false),
-                eqOp(ta.convertedToPrincipal, false),
-                eqOp(ta.fiscalYear, fiscalYear),
-            ),
-    })
+    return traceBusinessOperation(
+        'accounting.convertIncomeToPrincipal',
+        { entityId, fiscalYear, bankAccountId },
+        async () => {
+            const client = getClient()
 
-    if (incomeEntries.length === 0) {
-        return {
-            success: true,
-            converted: 0,
-            totalAmount: '0.00',
-            entries: [],
-        }
-    }
+            return client.begin(async (_tx) => {
+                const tx = _tx as TxSql
 
-    const totalIncome = incomeEntries.reduce(
-        (sum, entry) => sum + (parseFloat(entry.amount) || 0),
-        0,
-    )
+                // Lock all unconverted income entries for this entity/fiscal year
+                addBreadcrumb(
+                    'db.transaction',
+                    'Acquiring locks on trust accounting rows',
+                    {
+                        entityId,
+                        fiscalYear,
+                    },
+                )
+                interface AccountingRow {
+                    id: number
+                    amount: string
+                }
+                const incomeEntries = await tx<AccountingRow[]>`
+                    SELECT * FROM trust_accounting
+                    WHERE "entityId" = ${entityId}
+                      AND "entryType" = 'INCOME'
+                      AND "isPrincipal" = false
+                      AND "convertedToPrincipal" = false
+                      AND "fiscalYear" = ${fiscalYear}
+                    FOR UPDATE
+                `
 
-    const now = new Date().toISOString()
+                if (incomeEntries.length === 0) {
+                    return {
+                        success: true,
+                        converted: 0,
+                        totalAmount: '0.00',
+                        entries: [],
+                    }
+                }
 
-    const [principalEntry] = await db
-        .insert(trustAccounting)
-        .values({
-            entityId,
-            accountingDate: now,
-            entryType: 'INCOME',
-            incomeType: 'INCOME_TO_PRINCIPAL_CONVERSION',
-            amount: totalIncome.toFixed(2),
-            description: `FY${fiscalYear} undistributed income added to principal per Trust Section 7.10(c)`,
-            bankAccountId,
-            isPrincipal: true,
-            fiscalYear,
-            notes: `Converted ${incomeEntries.length} income entries totaling $${totalIncome.toFixed(2)}`,
-            updatedAt: now,
-        })
-        .returning()
-    if (!principalEntry) throw new Error('Failed to create principal entry')
+                const totalIncome = incomeEntries.reduce(
+                    (sum, entry) => sum + (parseFloat(entry.amount) || 0),
+                    0,
+                )
 
-    // Batch update: Mark all income entries as converted in a single query
-    const convertedIds = incomeEntries.map((entry) => entry.id)
+                const now = new Date().toISOString()
+                const description = `FY${fiscalYear} undistributed income added to principal per Trust Section 7.10(c)`
+                const notes = `Converted ${incomeEntries.length} income entries totaling $${totalIncome.toFixed(2)}`
 
-    if (convertedIds.length > 0) {
-        await db
-            .update(trustAccounting)
-            .set({
-                convertedToPrincipal: true,
-                conversionDate: now,
-                conversionEntryId: principalEntry.id,
-                updatedAt: now,
+                // Insert the principal conversion entry
+                addBreadcrumb(
+                    'db.transaction',
+                    'Inserting principal conversion entry',
+                    {
+                        totalIncome: totalIncome.toFixed(2),
+                        entryCount: incomeEntries.length,
+                    },
+                )
+                interface InsertedRow {
+                    id: number
+                }
+                const [principalEntry] = await tx<InsertedRow[]>`
+                    INSERT INTO trust_accounting (
+                        "entityId", "accountingDate", "entryType", "incomeType",
+                        amount, description, "bankAccountId", "isPrincipal",
+                        "fiscalYear", notes, "updatedAt"
+                    ) VALUES (
+                        ${entityId}, ${now}, 'INCOME', 'INCOME_TO_PRINCIPAL_CONVERSION',
+                        ${totalIncome.toFixed(2)}, ${description}, ${bankAccountId}, true,
+                        ${fiscalYear}, ${notes}, ${now}
+                    )
+                    RETURNING *
+                `
+                if (!principalEntry)
+                    throw new Error('Failed to create principal entry')
+
+                // Mark all income entries as converted using parameterized query (no SQL injection)
+                const convertedIds = incomeEntries.map((entry) => entry.id)
+
+                addBreadcrumb(
+                    'db.transaction',
+                    'Marking income entries as converted',
+                    {
+                        convertedCount: convertedIds.length,
+                    },
+                )
+                await tx`
+                    UPDATE trust_accounting
+                    SET "convertedToPrincipal" = true,
+                        "conversionDate" = ${now},
+                        "conversionEntryId" = ${principalEntry.id},
+                        "updatedAt" = ${now}
+                    WHERE id = ANY(${convertedIds})
+                `
+
+                return {
+                    success: true,
+                    converted: incomeEntries.length,
+                    totalAmount: totalIncome.toFixed(2),
+                    principalEntryId: principalEntry.id,
+                    convertedIds,
+                }
             })
-            .where(sql`id IN (${sql.raw(convertedIds.join(','))})`)
-    }
-
-    return {
-        success: true,
-        converted: incomeEntries.length,
-        totalAmount: totalIncome.toFixed(2),
-        principalEntryId: principalEntry.id,
-        convertedIds,
-    }
+        },
+    )
 }
 
 export async function getUnconvertedIncomeSummary(entityId: number) {

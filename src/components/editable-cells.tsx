@@ -11,8 +11,10 @@
  * in table contexts where parent state changes frequently.
  */
 
+import * as Sentry from '@sentry/nextjs'
 import { Loader2 } from 'lucide-react'
 import { memo, useState } from 'react'
+import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
@@ -189,6 +191,10 @@ export const EditableSelectCell = memo(function EditableSelectCell({
             setEditing(false)
         } catch (err) {
             console.error('Save failed:', err)
+            toast.error('Failed to save changes')
+            Sentry.captureException(err, {
+                tags: { component: 'editable-select-cell' },
+            })
         } finally {
             setSaving(false)
         }

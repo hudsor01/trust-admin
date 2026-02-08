@@ -451,13 +451,23 @@ export default function AccountsPage() {
         id: number,
         data: Partial<BankAccount>,
     ) => {
-        await updateBankAccountMutation.mutateAsync({ id, data })
+        if (!selectedEntity) return
+        await updateBankAccountMutation.mutateAsync({
+            id,
+            entityId: selectedEntity,
+            data,
+        })
     }
     const updateInvestmentAccount = async (
         id: number,
         data: Partial<InvestmentAccount>,
     ) => {
-        await updateInvestmentAccountMutation.mutateAsync({ id, data })
+        if (!selectedEntity) return
+        await updateInvestmentAccountMutation.mutateAsync({
+            id,
+            entityId: selectedEntity,
+            data,
+        })
     }
 
     // Bank Account Dialog - useResourceForm hook
@@ -483,6 +493,7 @@ export default function AccountsPage() {
             if (bankForm.isEditing && editingBankId) {
                 await updateBankAccountMutation.mutateAsync({
                     id: editingBankId,
+                    entityId: selectedEntity,
                     data: payload,
                 })
             } else {
@@ -521,6 +532,7 @@ export default function AccountsPage() {
             if (investmentForm.isEditing && editingInvestmentId) {
                 await updateInvestmentAccountMutation.mutateAsync({
                     id: editingInvestmentId,
+                    entityId: selectedEntity,
                     data: payload,
                 })
             } else {
@@ -569,8 +581,12 @@ export default function AccountsPage() {
     const handleDeleteBank = async (id: number) => {
         if (!confirm('Are you sure you want to delete this bank account?'))
             return
+        if (!selectedEntity) return
         try {
-            await deleteBankAccountMutation.mutateAsync(id)
+            await deleteBankAccountMutation.mutateAsync({
+                id,
+                entityId: selectedEntity,
+            })
         } catch (err) {
             console.error('Failed to delete bank account:', err)
         }
@@ -581,8 +597,12 @@ export default function AccountsPage() {
             !confirm('Are you sure you want to delete this investment account?')
         )
             return
+        if (!selectedEntity) return
         try {
-            await deleteInvestmentAccountMutation.mutateAsync(id)
+            await deleteInvestmentAccountMutation.mutateAsync({
+                id,
+                entityId: selectedEntity,
+            })
         } catch (err) {
             console.error('Failed to delete investment account:', err)
         }

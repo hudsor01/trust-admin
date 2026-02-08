@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import { authServer } from '@/lib/auth'
 import {
     analyzeInventoryImageWithCompressed,
     type InventoryAnalysisResult,
@@ -74,6 +75,15 @@ export async function POST(
     request: NextRequest,
 ): Promise<NextResponse<AnalyzeResponse>> {
     try {
+        // Auth check - only admins can analyze inventory
+        const { data: session } = await authServer.getSession()
+        if (!session?.user || session.user.role !== 'admin') {
+            return NextResponse.json(
+                { success: false, error: 'Unauthorized' },
+                { status: 401 },
+            )
+        }
+
         // Check for API key
         if (!process.env.ANTHROPIC_API_KEY) {
             return NextResponse.json(

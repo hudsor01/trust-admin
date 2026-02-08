@@ -13,6 +13,7 @@ import {
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { useCallback, useMemo, useOptimistic, useState } from 'react'
+import { toast } from 'sonner'
 
 // PERF: Lazy load heavy chart components (recharts ~100KB gzipped)
 // Charts are below the fold, so this reduces initial bundle significantly
@@ -92,6 +93,10 @@ export default function DashboardPage() {
     const { data: tasks = [], isLoading: tasksLoading } =
         trpc.task.list.useQuery()
 
+    // Derive primary entity ID for all entity-scoped queries
+    const selectedEntity = allEntities[0]?.id
+    const queryEnabled = !!selectedEntity
+
     // Optimistic state for instant UI updates on task completion toggle
     const [optimisticTasks, setOptimisticTask] = useOptimistic(
         tasks,
@@ -102,29 +107,59 @@ export default function DashboardPage() {
     )
 
     const { data: beneficiaries = [], isLoading: beneficiariesLoading } =
-        trpc.beneficiary.list.useQuery()
+        trpc.beneficiary.list.useQuery(
+            { entityId: selectedEntity! },
+            { enabled: queryEnabled },
+        )
     const {
         data: withdrawalRecords = [],
         isLoading: withdrawalRecordsLoading,
-    } = trpc.withdrawalRecord.list.useQuery()
+    } = trpc.withdrawalRecord.list.useQuery(
+        { entityId: selectedEntity! },
+        { enabled: queryEnabled },
+    )
     const { data: accountingEntries = [], isLoading: accountingLoading } =
-        trpc.trustAccounting.list.useQuery()
+        trpc.trustAccounting.list.useQuery(
+            { entityId: selectedEntity! },
+            { enabled: queryEnabled },
+        )
     const { data: hemsRequests = [], isLoading: hemsLoading } =
-        trpc.hemsRequest.list.useQuery()
+        trpc.hemsRequest.list.useQuery(
+            { entityId: selectedEntity! },
+            { enabled: queryEnabled },
+        )
 
     // Asset queries for charts
     const { data: bankAccounts = [], isLoading: bankAccountsLoading } =
-        trpc.bankAccount.list.useQuery()
+        trpc.bankAccount.list.useQuery(
+            { entityId: selectedEntity! },
+            { enabled: queryEnabled },
+        )
     const { data: investmentAccounts = [], isLoading: investmentsLoading } =
-        trpc.investmentAccount.list.useQuery()
+        trpc.investmentAccount.list.useQuery(
+            { entityId: selectedEntity! },
+            { enabled: queryEnabled },
+        )
     const { data: homesteads = [], isLoading: homesteadsLoading } =
-        trpc.homestead.list.useQuery()
+        trpc.homestead.list.useQuery(
+            { entityId: selectedEntity! },
+            { enabled: queryEnabled },
+        )
     const { data: rentalProperties = [], isLoading: rentalsLoading } =
-        trpc.rentalProperty.list.useQuery()
+        trpc.rentalProperty.list.useQuery(
+            { entityId: selectedEntity! },
+            { enabled: queryEnabled },
+        )
     const { data: vehicles = [], isLoading: vehiclesLoading } =
-        trpc.vehicle.list.useQuery()
+        trpc.vehicle.list.useQuery(
+            { entityId: selectedEntity! },
+            { enabled: queryEnabled },
+        )
     const { data: liabilities = [], isLoading: liabilitiesLoading } =
-        trpc.liability.list.useQuery()
+        trpc.liability.list.useQuery(
+            { entityId: selectedEntity! },
+            { enabled: queryEnabled },
+        )
 
     const utils = trpc.useUtils()
     const createTaskMutation = trpc.task.create.useMutation({
@@ -168,9 +203,12 @@ export default function DashboardPage() {
                 })
             } catch (error) {
                 console.error('Failed to update task:', error)
+                toast.error('Failed to update task')
+                // Revert optimistic state by re-fetching real data
+                utils.task.list.invalidate()
             }
         },
-        [setOptimisticTask, updateTaskMutation],
+        [setOptimisticTask, updateTaskMutation, utils.task.list],
     )
 
     const addTask = useCallback(async () => {
