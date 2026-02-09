@@ -23,7 +23,7 @@ import {
     SidebarMenuSubButton,
     SidebarMenuSubItem,
 } from '@/components/ui/sidebar'
-import { authClient } from '@/lib/auth'
+import { authClient } from '@/lib/auth/client'
 
 export function AppSidebar() {
     const pathname = usePathname()
