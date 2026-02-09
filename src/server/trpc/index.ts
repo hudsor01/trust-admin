@@ -18,12 +18,7 @@ import { eq } from 'drizzle-orm'
 import { ZodError, z } from 'zod'
 import { authServer } from '@/lib/auth'
 import { clearSentryUser, setSentryUser } from '@/lib/sentry'
-import {
-    db,
-    getPublicDb,
-    initJwtSession,
-    setRequestAuthToken,
-} from '../../../db'
+import { getPublicDb, initJwtSession, setRequestAuthToken } from '../../../db'
 import { userProfile } from '../../../db/schema'
 
 /**
