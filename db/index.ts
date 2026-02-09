@@ -88,7 +88,7 @@ function getDatabaseUrl(): string {
  * No authToken — runs as neondb_owner with BYPASSRLS.
  * Used for tests, public procedures, and setup queries.
  */
-function getPublicDb(): NeonHttpDatabase<Schema> {
+export function getPublicDb(): NeonHttpDatabase<Schema> {
     if (_dbPublic) return _dbPublic
     _sqlPublic = neon(getDatabaseUrl())
     _dbPublic = drizzleHttp(_sqlPublic, { schema: drizzleSchema })

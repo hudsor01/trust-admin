@@ -18,7 +18,12 @@ import { eq } from 'drizzle-orm'
 import { ZodError, z } from 'zod'
 import { authServer } from '@/lib/auth'
 import { clearSentryUser, setSentryUser } from '@/lib/sentry'
-import { db, initJwtSession, setRequestAuthToken } from '../../../db'
+import {
+    db,
+    getPublicDb,
+    initJwtSession,
+    setRequestAuthToken,
+} from '../../../db'
 import { userProfile } from '../../../db/schema'
 
 /**
@@ -105,7 +110,10 @@ export async function createContext(_opts: { headers: Headers }) {
         }
 
         // Fetch role and beneficiaryId from userProfile (app-managed)
-        const [profile] = await db
+        // Uses public DB (bypasses RLS) because this is a system-level bootstrap
+        // query — we need the user's role to set up auth context BEFORE RLS can work.
+        const publicDb = getPublicDb()
+        const [profile] = await publicDb
             .select({
                 role: userProfile.role,
                 beneficiaryId: userProfile.beneficiaryId,
