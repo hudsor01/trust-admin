@@ -1,8 +1,8 @@
 'use client'
 
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight, LogOut } from 'lucide-react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useState } from 'react'
 import {
     Collapsible,
@@ -23,9 +23,11 @@ import {
     SidebarMenuSubButton,
     SidebarMenuSubItem,
 } from '@/components/ui/sidebar'
+import { authClient } from '@/lib/auth'
 
 export function AppSidebar() {
     const pathname = usePathname()
+    const router = useRouter()
     const [distributionsOpen, setDistributionsOpen] = useState(true)
     const [assetsOpen, setAssetsOpen] = useState(true)
 
@@ -326,6 +328,18 @@ export function AppSidebar() {
                             <Link href="/settings">
                                 <span>Settings</span>
                             </Link>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton
+                            tooltip="Sign Out"
+                            onClick={async () => {
+                                await authClient.signOut()
+                                router.push('/login')
+                            }}
+                        >
+                            <LogOut className="h-4 w-4" />
+                            <span>Sign Out</span>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                 </SidebarMenu>
