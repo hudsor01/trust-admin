@@ -168,17 +168,6 @@ export default function UsersPage() {
 
     const columns: ColumnDef<ProvisionedUser>[] = [
         {
-            accessorKey: 'userId',
-            header: ({ column }) => (
-                <DataTableColumnHeader column={column} title="User ID" />
-            ),
-            cell: ({ row }) => (
-                <span className="font-mono text-xs text-muted-foreground">
-                    {row.original.userId.slice(0, 8)}...
-                </span>
-            ),
-        },
-        {
             id: 'name',
             header: ({ column }) => (
                 <DataTableColumnHeader column={column} title="Name" />
