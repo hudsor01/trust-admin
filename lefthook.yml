@@ -27,17 +27,6 @@ pre-commit:
         - merge
         - rebase
 
-    lint:
-      glob: "*.{js,ts,jsx,tsx}"
-      run: bun run lint {staged_files}
-      stage_fixed: true
-      fail_text: "Lint check failed. Run 'bun run lint:fix' to auto-fix."
-
-    typecheck:
-      glob: "*.{ts,tsx}"
-      run: bun run typecheck
-      fail_text: "TypeScript errors found. Fix type errors before committing."
-
     test:
       glob: "*.{ts,tsx}"
       run: bun test tests/lib/
@@ -46,5 +35,15 @@ pre-commit:
 # Note: Integration tests (auth, rls, neon-auth) require proper RLS auth context.
 # These run in CI with proper database setup, not in pre-commit.
 
-# pre-push hooks removed - pre-commit already runs lint, typecheck, and tests
-# No code changes between commit and push, so duplicate checks waste time
+pre-push:
+  parallel: true
+  commands:
+    lint:
+      glob: "*.{js,ts,jsx,tsx}"
+      run: bun run lint
+      fail_text: "Lint check failed. Run 'bun run lint:fix' to auto-fix."
+
+    typecheck:
+      glob: "*.{ts,tsx}"
+      run: bun run typecheck
+      fail_text: "TypeScript errors found. Fix type errors before pushing."
