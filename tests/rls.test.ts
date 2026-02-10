@@ -9,6 +9,7 @@
  *
  * These tests verify database-level security, not just application-level checks.
  */
+import './helpers/db-guard'
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import { eq, sql } from 'drizzle-orm'
 import { db, getClient, initJwtSession } from '../db'

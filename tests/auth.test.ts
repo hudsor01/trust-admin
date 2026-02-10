@@ -1,3 +1,4 @@
+import './helpers/db-guard'
 /**
  * Authentication Integration Tests (Neon Auth)
  *

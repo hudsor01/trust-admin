@@ -1,3 +1,4 @@
+import '../helpers/db-guard'
 /**
  * tRPC Business Logic Tests
  *

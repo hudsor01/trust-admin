@@ -1,3 +1,4 @@
+import '../helpers/db-guard'
 /**
  * tRPC CRUD Operations Tests - Liability & Beneficiary Routers
  *

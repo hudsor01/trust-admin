@@ -1,3 +1,4 @@
+import '../helpers/db-guard'
 /**
  * tRPC Admin Operations Tests - activityLog & userManagement Routers
  *
