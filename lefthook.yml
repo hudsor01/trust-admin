@@ -1,32 +1,6 @@
 pre-commit:
   parallel: true
   commands:
-    claude-md-reminder:
-      priority: 1
-      run: |
-        echo ""
-        echo "╔══════════════════════════════════════════════════════════════════════════════╗"
-        echo "║  CLAUDE.md UPDATE REMINDER                                                   ║"
-        echo "╠══════════════════════════════════════════════════════════════════════════════╣"
-        echo "║  Before committing, ensure CLAUDE.md reflects these changes:                 ║"
-        echo "║                                                                              ║"
-        echo "║  1. Read CLAUDE.md to understand current documentation                       ║"
-        echo "║  2. If this commit adds/changes:                                             ║"
-        echo "║     - New tables/fields → Update 'Data Model' section                        ║"
-        echo "║     - New API endpoints → Update 'API Pattern' or 'Key Workflows'            ║"
-        echo "║     - New pages/routes → Update 'All Pages' reference                        ║"
-        echo "║     - New patterns/conventions → Update relevant section                     ║"
-        echo "║     - Bug fixes/gotchas → Update 'Gotchas' table                             ║"
-        echo "║  3. REPLACE outdated content, don't duplicate                                ║"
-        echo "║  4. Keep same structure and concise style                                    ║"
-        echo "║                                                                              ║"
-        echo "║  Staged files: $(git diff --cached --name-only | tr '\n' ' ')               ║"
-        echo "╚══════════════════════════════════════════════════════════════════════════════╝"
-        echo ""
-      skip:
-        - merge
-        - rebase
-
     test:
       glob: "*.{ts,tsx}"
       run: bun test tests/lib/
