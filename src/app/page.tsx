@@ -15,7 +15,14 @@ import { authServer } from '@/lib/auth'
  * to promote users to "admin" role.
  */
 export default async function RootPage() {
-    const { data: session } = await authServer.getSession()
+    let session: Awaited<ReturnType<typeof authServer.getSession>>['data']
+    try {
+        const result = await authServer.getSession()
+        session = result.data
+    } catch {
+        // If auth service is unreachable, show login page
+        session = null
+    }
 
     // Redirect authenticated users to their appropriate dashboard
     if (session?.user) {
