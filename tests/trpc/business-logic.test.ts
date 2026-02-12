@@ -1,4 +1,3 @@
-import { isProductionDb } from '../helpers/db-guard'
 /**
  * tRPC Business Logic Tests
  *
@@ -31,6 +30,7 @@ import {
 } from '../../db/schema'
 import { createCallerFactory } from '../../src/server/trpc/index'
 import { appRouter } from '../../src/server/trpc/router'
+import { isProductionDb } from '../helpers/db-guard'
 
 // =============================================================================
 // TEST CONFIGURATION

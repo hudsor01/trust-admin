@@ -9,7 +9,7 @@
  *
  * These tests verify database-level security, not just application-level checks.
  */
-import { isProductionDb } from './helpers/db-guard'
+
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import { eq, sql } from 'drizzle-orm'
 import { db, getClient, initJwtSession } from '../db'
@@ -20,6 +20,7 @@ import {
     hemsRequest,
     userProfile,
 } from '../db/schema'
+import { isProductionDb } from './helpers/db-guard'
 
 // =============================================================================
 // TEST CONFIGURATION

@@ -1,4 +1,3 @@
-import { isProductionDb } from './helpers/db-guard'
 /**
  * Authentication Integration Tests (Neon Auth)
  *
@@ -15,6 +14,7 @@ import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import { eq } from 'drizzle-orm'
 import { db, getClient } from '../db'
 import { beneficiary, entity, userProfile } from '../db/schema'
+import { isProductionDb } from './helpers/db-guard'
 
 const TEST_TIMEOUT = 30000
 

@@ -1,4 +1,3 @@
-import { isProductionDb } from './helpers/db-guard'
 /**
  * Neon Auth Integration Tests
  *
@@ -13,6 +12,7 @@ import { isProductionDb } from './helpers/db-guard'
  */
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import { getClient, initJwtSession } from '../db'
+import { isProductionDb } from './helpers/db-guard'
 import {
     authJwtSessionInitExists,
     authUserIdFunctionExists,
