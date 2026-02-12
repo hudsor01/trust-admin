@@ -1,4 +1,4 @@
-import '../helpers/db-guard'
+import { isProductionDb } from '../helpers/db-guard'
 /**
  * tRPC CRUD Operations Tests - Core & Asset Routers
  *
@@ -101,7 +101,7 @@ const testIds = {
 // SETUP / TEARDOWN
 // =============================================================================
 
-describe('CRUD Operations - Core & Asset Routers', () => {
+describe.skipIf(isProductionDb)('CRUD Operations - Core & Asset Routers', () => {
     beforeAll(async () => {
         // Create a parent entity that asset routers will reference via entityId
         const [parentEntity] = await db

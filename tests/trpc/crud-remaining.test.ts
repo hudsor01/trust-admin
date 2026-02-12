@@ -1,4 +1,4 @@
-import '../helpers/db-guard'
+import { isProductionDb } from '../helpers/db-guard'
 /**
  * tRPC CRUD Operations Tests - Remaining Routers
  *
@@ -94,7 +94,7 @@ const testData = {
 // SETUP / TEARDOWN
 // =============================================================================
 
-describe('CRUD Operations - Remaining Routers', () => {
+describe.skipIf(isProductionDb)('CRUD Operations - Remaining Routers', () => {
     beforeAll(async () => {
         const now = new Date().toISOString()
 

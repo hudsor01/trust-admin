@@ -1,4 +1,4 @@
-import '../helpers/db-guard'
+import { isProductionDb } from '../helpers/db-guard'
 /**
  * tRPC CRUD Operations Tests - Liability & Beneficiary Routers
  *
@@ -116,7 +116,7 @@ const testData = {
 // SETUP / TEARDOWN
 // =============================================================================
 
-describe('CRUD Operations - Liability & Beneficiary Routers', () => {
+describe.skipIf(isProductionDb)('CRUD Operations - Liability & Beneficiary Routers', () => {
     beforeAll(async () => {
         // Create a parent entity for all tests
         const [testEntity] = await db

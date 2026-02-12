@@ -1,4 +1,4 @@
-import '../helpers/db-guard'
+import { isProductionDb } from '../helpers/db-guard'
 /**
  * tRPC Router EntityId Validation Tests
  *
@@ -88,7 +88,7 @@ const testData = {
 // SETUP / TEARDOWN
 // =============================================================================
 
-describe('EntityId Validation', () => {
+describe.skipIf(isProductionDb)('EntityId Validation', () => {
     beforeAll(async () => {
         const now = new Date().toISOString()
         const ts = Date.now().toString().slice(-8)

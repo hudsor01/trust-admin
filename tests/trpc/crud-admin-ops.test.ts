@@ -1,4 +1,4 @@
-import '../helpers/db-guard'
+import { isProductionDb } from '../helpers/db-guard'
 /**
  * tRPC Admin Operations Tests - activityLog & userManagement Routers
  *
@@ -76,7 +76,7 @@ const testIds = {
 // SETUP / TEARDOWN
 // =============================================================================
 
-describe('Admin Operations - activityLog & userManagement Routers', () => {
+describe.skipIf(isProductionDb)('Admin Operations - activityLog & userManagement Routers', () => {
     beforeAll(async () => {
         // 1. Create a parent entity for beneficiaries
         const [createdEntity] = await db

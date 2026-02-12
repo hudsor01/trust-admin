@@ -1,4 +1,4 @@
-import '../helpers/db-guard'
+import { isProductionDb } from '../helpers/db-guard'
 /**
  * tRPC Business Logic Tests
  *
@@ -90,7 +90,7 @@ const testData = {
 // SETUP / TEARDOWN
 // =============================================================================
 
-describe('Business Logic', () => {
+describe.skipIf(isProductionDb)('Business Logic', () => {
     beforeAll(async () => {
         const now = new Date().toISOString()
         const ts = Date.now().toString().slice(-8)
