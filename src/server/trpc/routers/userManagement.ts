@@ -1,27 +1,107 @@
 /**
  * User Management tRPC Router
  *
- * Admin procedures for provisioning beneficiary portal accounts.
- * Uses Neon Auth Admin plugin for user creation and password management.
+ * Owner-only procedures for managing all user accounts.
+ * Uses Neon Auth Admin plugin for user CRUD and Better Auth admin APIs.
  * Uses userProfile table to link Neon Auth users to beneficiary records.
  *
- * Two-step provisioning:
- * 1. Create Neon Auth user via authServer.admin.createUser()
- * 2. Insert userProfile record linking userId to beneficiaryId
- *
- * Note: Neon Auth native role is always "user" for beneficiaries.
- * App-level role ("beneficiary") lives in userProfile.role.
+ * Access: All mutation procedures require the trust owner (ownerProcedure).
+ * Read-only isOwner check uses adminProcedure so any admin can query it.
  */
 import { TRPCError } from '@trpc/server'
 import { desc, eq } from 'drizzle-orm'
 import { z } from 'zod'
+import { OWNER_EMAIL } from '@/lib/constants'
 import { db } from '../../../../db'
 import { createActivityLog } from '../../../../db/queries'
 import { beneficiary, userProfile } from '../../../../db/schema'
 import { authServer } from '../../../lib/auth/server'
-import { adminProcedure, createTRPCRouter } from '../index'
+import { adminProcedure, createTRPCRouter, ownerProcedure } from '../index'
 
 export const userManagementRouter = createTRPCRouter({
+    /**
+     * Check if current user is the trust owner.
+     * Used by the frontend to gate CRUD controls.
+     */
+    isOwner: adminProcedure.query(async ({ ctx }) => {
+        return {
+            isOwner: ctx.user.email === OWNER_EMAIL,
+            userId: ctx.user.id,
+        }
+    }),
+
+    /**
+     * List ALL users from Neon Auth, enriched with userProfile data.
+     * Shows both admin and beneficiary users.
+     */
+    listAllUsers: ownerProcedure.query(async () => {
+        // 1. Fetch all users from Neon Auth
+        const { data, error } = await authServer.admin.listUsers({
+            query: {
+                limit: 100,
+                sortBy: 'createdAt',
+                sortDirection: 'desc',
+            },
+        })
+
+        if (error) {
+            throw new TRPCError({
+                code: 'INTERNAL_SERVER_ERROR',
+                message: `Failed to list users: ${error.message}`,
+            })
+        }
+
+        const neonUsers = data?.users ?? []
+
+        // 2. Fetch all userProfiles for enrichment
+        const profiles = await db
+            .select({
+                userId: userProfile.userId,
+                role: userProfile.role,
+                beneficiaryId: userProfile.beneficiaryId,
+            })
+            .from(userProfile)
+
+        // 3. Fetch all beneficiaries for name resolution
+        const beneficiaries = await db
+            .select({
+                id: beneficiary.id,
+                firstName: beneficiary.firstName,
+                lastName: beneficiary.lastName,
+            })
+            .from(beneficiary)
+
+        // 4. Build lookup maps
+        const profileMap = new Map(profiles.map((p) => [p.userId, p]))
+        const beneficiaryMap = new Map(beneficiaries.map((b) => [b.id, b]))
+
+        // 5. Merge and return
+        return neonUsers.map((u) => {
+            const profile = profileMap.get(u.id)
+            const ben = profile?.beneficiaryId
+                ? beneficiaryMap.get(profile.beneficiaryId)
+                : null
+
+            return {
+                id: u.id,
+                name: u.name,
+                email: u.email,
+                emailVerified: u.emailVerified,
+                image: u.image,
+                createdAt: u.createdAt,
+                neonRole: u.role,
+                banned: u.banned ?? false,
+                banReason: u.banReason ?? null,
+                banExpires: u.banExpires ?? null,
+                appRole: profile?.role ?? null,
+                beneficiaryId: profile?.beneficiaryId ?? null,
+                beneficiaryName: ben
+                    ? `${ben.firstName} ${ben.lastName}`
+                    : null,
+            }
+        })
+    }),
+
     /**
      * Create a beneficiary portal account
      *
@@ -31,7 +111,7 @@ export const userManagementRouter = createTRPCRouter({
      * 4. Creates userProfile with "beneficiary" app role
      * 5. Logs activity for audit trail
      */
-    createBeneficiaryUser: adminProcedure
+    createBeneficiaryUser: ownerProcedure
         .input(
             z.object({
                 beneficiaryId: z.number(),
@@ -135,14 +215,8 @@ export const userManagementRouter = createTRPCRouter({
         }),
 
     /**
-     * List all provisioned users with linked beneficiary info
-     *
-     * Left joins userProfile with beneficiary to show:
-     * - userProfile fields (userId, role, beneficiaryId, createdAt)
-     * - beneficiary fields (firstName, lastName, email)
-     *
-     * Note: We don't query neon_auth.user directly — userProfile is
-     * the source of truth for app-level users.
+     * List provisioned users with linked beneficiary info (legacy).
+     * Kept for backward compatibility. Prefer listAllUsers.
      */
     listProvisionedUsers: adminProcedure.query(async () => {
         const results = await db
@@ -166,12 +240,124 @@ export const userManagementRouter = createTRPCRouter({
     }),
 
     /**
-     * Reset a user's password via Neon Auth Admin API
-     *
-     * Requires admin session cookies (auto-forwarded by Neon Auth
-     * when called from route handler context).
+     * Update user name or email via Neon Auth Admin API
      */
-    resetUserPassword: adminProcedure
+    updateUser: ownerProcedure
+        .input(
+            z.object({
+                userId: z.string(),
+                name: z.string().min(1).optional(),
+                email: z.string().email().optional(),
+            }),
+        )
+        .mutation(async ({ input, ctx }) => {
+            // Block owner from changing their own email (would lock out of ownerProcedure)
+            if (input.userId === ctx.user.id && input.email) {
+                throw new TRPCError({
+                    code: 'BAD_REQUEST',
+                    message:
+                        'Cannot change your own email — this would revoke owner access',
+                })
+            }
+
+            const fields: Record<string, string> = {}
+            if (input.name) fields.name = input.name
+            if (input.email) fields.email = input.email
+
+            if (Object.keys(fields).length === 0) {
+                throw new TRPCError({
+                    code: 'BAD_REQUEST',
+                    message: 'No fields to update',
+                })
+            }
+
+            const { error } = await authServer.admin.updateUser({
+                userId: input.userId,
+                data: fields,
+            })
+
+            if (error) {
+                throw new TRPCError({
+                    code: 'BAD_REQUEST',
+                    message: `Failed to update user: ${error.message}`,
+                })
+            }
+
+            await createActivityLog({
+                tableName: 'user',
+                recordId: input.userId,
+                action: 'UPDATE',
+                changedBy: ctx.user.id,
+                newValues: fields,
+            })
+
+            return { success: true }
+        }),
+
+    /**
+     * Change Neon Auth native role AND userProfile app role
+     */
+    setUserRole: ownerProcedure
+        .input(
+            z.object({
+                userId: z.string(),
+                role: z.enum(['admin', 'user']),
+            }),
+        )
+        .mutation(async ({ input, ctx }) => {
+            if (input.userId === ctx.user.id) {
+                throw new TRPCError({
+                    code: 'BAD_REQUEST',
+                    message: 'Cannot change your own role',
+                })
+            }
+
+            // 1. Set Neon Auth native role
+            const { error } = await authServer.admin.setRole({
+                userId: input.userId,
+                role: input.role,
+            })
+
+            if (error) {
+                throw new TRPCError({
+                    code: 'BAD_REQUEST',
+                    message: `Failed to set role: ${error.message}`,
+                })
+            }
+
+            // 2. Update userProfile app role if profile exists
+            const appRole = input.role === 'admin' ? 'admin' : 'beneficiary'
+            const [existing] = await db
+                .select()
+                .from(userProfile)
+                .where(eq(userProfile.userId, input.userId))
+                .limit(1)
+
+            if (existing) {
+                await db
+                    .update(userProfile)
+                    .set({
+                        role: appRole as 'admin' | 'beneficiary',
+                        updatedAt: new Date(),
+                    })
+                    .where(eq(userProfile.userId, input.userId))
+            }
+
+            await createActivityLog({
+                tableName: 'user',
+                recordId: input.userId,
+                action: 'UPDATE',
+                changedBy: ctx.user.id,
+                newValues: { neonRole: input.role, appRole },
+            })
+
+            return { success: true }
+        }),
+
+    /**
+     * Reset a user's password via Neon Auth Admin API
+     */
+    resetUserPassword: ownerProcedure
         .input(
             z.object({
                 userId: z.string(),
@@ -179,21 +365,13 @@ export const userManagementRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ input, ctx }) => {
-            // 1. Verify userProfile exists for this userId
-            const [profile] = await db
-                .select()
-                .from(userProfile)
-                .where(eq(userProfile.userId, input.userId))
-                .limit(1)
-
-            if (!profile) {
+            if (input.userId === ctx.user.id) {
                 throw new TRPCError({
-                    code: 'NOT_FOUND',
-                    message: 'User profile not found',
+                    code: 'BAD_REQUEST',
+                    message: 'Cannot reset your own password from this page',
                 })
             }
 
-            // 2. Call Neon Auth Admin API to reset password
             const { error } = await authServer.admin.setUserPassword({
                 userId: input.userId,
                 newPassword: input.newPassword,
@@ -206,13 +384,156 @@ export const userManagementRouter = createTRPCRouter({
                 })
             }
 
-            // 3. Log activity
             await createActivityLog({
-                tableName: 'user_profile',
+                tableName: 'user',
                 recordId: input.userId,
                 action: 'UPDATE',
                 changedBy: ctx.user.id,
                 newValues: { passwordReset: true },
+            })
+
+            return { success: true }
+        }),
+
+    /**
+     * Ban a user (temporarily restrict access)
+     */
+    banUser: ownerProcedure
+        .input(
+            z.object({
+                userId: z.string(),
+                banReason: z.string().optional(),
+            }),
+        )
+        .mutation(async ({ input, ctx }) => {
+            if (input.userId === ctx.user.id) {
+                throw new TRPCError({
+                    code: 'BAD_REQUEST',
+                    message: 'Cannot ban yourself',
+                })
+            }
+
+            const { error } = await authServer.admin.banUser({
+                userId: input.userId,
+                banReason: input.banReason,
+            })
+
+            if (error) {
+                throw new TRPCError({
+                    code: 'BAD_REQUEST',
+                    message: `Failed to ban user: ${error.message}`,
+                })
+            }
+
+            await createActivityLog({
+                tableName: 'user',
+                recordId: input.userId,
+                action: 'UPDATE',
+                changedBy: ctx.user.id,
+                newValues: { banned: true, banReason: input.banReason },
+            })
+
+            return { success: true }
+        }),
+
+    /**
+     * Unban a user (lift access restriction)
+     */
+    unbanUser: ownerProcedure
+        .input(z.object({ userId: z.string() }))
+        .mutation(async ({ input, ctx }) => {
+            const { error } = await authServer.admin.unbanUser({
+                userId: input.userId,
+            })
+
+            if (error) {
+                throw new TRPCError({
+                    code: 'BAD_REQUEST',
+                    message: `Failed to unban user: ${error.message}`,
+                })
+            }
+
+            await createActivityLog({
+                tableName: 'user',
+                recordId: input.userId,
+                action: 'UPDATE',
+                changedBy: ctx.user.id,
+                newValues: { banned: false },
+            })
+
+            return { success: true }
+        }),
+
+    /**
+     * Permanently delete a user from both userProfile and Neon Auth
+     */
+    removeUser: ownerProcedure
+        .input(z.object({ userId: z.string() }))
+        .mutation(async ({ input, ctx }) => {
+            if (input.userId === ctx.user.id) {
+                throw new TRPCError({
+                    code: 'BAD_REQUEST',
+                    message: 'Cannot delete yourself',
+                })
+            }
+
+            // 1. Remove from Neon Auth first
+            const { error } = await authServer.admin.removeUser({
+                userId: input.userId,
+            })
+
+            if (error) {
+                throw new TRPCError({
+                    code: 'BAD_REQUEST',
+                    message: `Failed to remove user: ${error.message}`,
+                })
+            }
+
+            // 2. Delete userProfile if it exists
+            const [deletedProfile] = await db
+                .delete(userProfile)
+                .where(eq(userProfile.userId, input.userId))
+                .returning()
+
+            await createActivityLog({
+                tableName: 'user',
+                recordId: input.userId,
+                action: 'DELETE',
+                changedBy: ctx.user.id,
+                oldValues: deletedProfile
+                    ? {
+                          appRole: deletedProfile.role,
+                          beneficiaryId: deletedProfile.beneficiaryId,
+                      }
+                    : {},
+            })
+
+            return { success: true }
+        }),
+
+    /**
+     * Revoke all active sessions for a user (force logout)
+     */
+    revokeUserSessions: ownerProcedure
+        .input(z.object({ userId: z.string() }))
+        .mutation(async ({ input, ctx }) => {
+            const { error } = await authServer.admin.revokeUserSessions({
+                userId: input.userId,
+            })
+
+            if (error) {
+                throw new TRPCError({
+                    code: 'BAD_REQUEST',
+                    message: `Failed to revoke sessions: ${error.message}`,
+                })
+            }
+
+            await createActivityLog({
+                tableName: 'session',
+                recordId: input.userId,
+                action: 'DELETE',
+                changedBy: ctx.user.id,
+                newValues: { action: 'revoke_all_sessions' },
             })
 
             return { success: true }
