@@ -1,4 +1,3 @@
-import '../helpers/db-guard'
 /**
  * tRPC CRUD Operations Tests - Remaining Routers
  *
@@ -30,6 +29,7 @@ import {
 } from '../../db/schema'
 import { createCallerFactory } from '../../src/server/trpc/index'
 import { appRouter } from '../../src/server/trpc/router'
+import { isProductionDb } from '../helpers/db-guard'
 
 // =============================================================================
 // TEST CONFIGURATION
@@ -94,7 +94,7 @@ const testData = {
 // SETUP / TEARDOWN
 // =============================================================================
 
-describe('CRUD Operations - Remaining Routers', () => {
+describe.skipIf(isProductionDb)('CRUD Operations - Remaining Routers', () => {
     beforeAll(async () => {
         const now = new Date().toISOString()
 

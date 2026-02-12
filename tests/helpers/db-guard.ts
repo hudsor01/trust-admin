@@ -2,19 +2,16 @@
  * Production Database Guard
  *
  * Import this module at the top of any test file that writes to the database.
- * It throws immediately if DATABASE_URL points to the production pooler endpoint,
- * preventing test data from polluting production.
+ * It detects when DATABASE_URL points to a production pooler endpoint and
+ * exports a flag so test files can skip DB tests accordingly.
  *
  * Usage:
- *   import '../helpers/db-guard'  // must be first import
+ *   import { isProductionDb } from '../helpers/db-guard'
+ *
+ *   describe.skipIf(isProductionDb)('My DB tests', () => { ... })
  */
 const dbUrl = process.env.DATABASE_URL ?? ''
-const isProductionDb = dbUrl.includes('-pooler.') && !dbUrl.includes('/br-')
-
-if (isProductionDb && !process.env.ALLOW_PRODUCTION_DB_TESTS) {
-    throw new Error(
-        'DATABASE_URL points to a production pooler endpoint. ' +
-            'Tests must use a Neon branch or non-pooler dev database. ' +
-            'Set DATABASE_URL to a branch endpoint, or set ALLOW_PRODUCTION_DB_TESTS=true to override.',
-    )
-}
+export const isProductionDb =
+    dbUrl.includes('-pooler.') &&
+    !dbUrl.includes('/br-') &&
+    !process.env.ALLOW_PRODUCTION_DB_TESTS

@@ -1,4 +1,3 @@
-import './helpers/db-guard'
 /**
  * Neon Auth Integration Tests
  *
@@ -13,6 +12,7 @@ import './helpers/db-guard'
  */
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import { getClient, initJwtSession } from '../db'
+import { isProductionDb } from './helpers/db-guard'
 import {
     authJwtSessionInitExists,
     authUserIdFunctionExists,
@@ -39,7 +39,7 @@ const TEST_TIMEOUT = 30000
 // NEON AUTH INFRASTRUCTURE TESTS
 // =============================================================================
 
-describe('Neon Auth Infrastructure', () => {
+describe.skipIf(isProductionDb)('Neon Auth Infrastructure', () => {
     test('neon_auth schema exists', async () => {
         const installed = await isNeonAuthInstalled()
         expect(installed).toBe(true)
@@ -80,7 +80,7 @@ describe('Neon Auth Infrastructure', () => {
 // USER PROFILE TESTS
 // =============================================================================
 
-describe('User Profile Management', () => {
+describe.skipIf(isProductionDb)('User Profile Management', () => {
     const testData = {
         entityId: null as number | null,
         beneficiaryId: null as number | null,
@@ -170,7 +170,7 @@ describe('User Profile Management', () => {
 // APP SCHEMA HELPER FUNCTIONS TESTS
 // =============================================================================
 
-describe('App Schema Helper Functions', () => {
+describe.skipIf(isProductionDb)('App Schema Helper Functions', () => {
     test('app.is_admin() function exists', async () => {
         const client = getClient()
         const result = await client`
@@ -223,7 +223,7 @@ describe('App Schema Helper Functions', () => {
 // JWT SESSION INITIALIZATION TESTS
 // =============================================================================
 
-describe('JWT Session Initialization', () => {
+describe.skipIf(isProductionDb)('JWT Session Initialization', () => {
     test('initJwtSession function is exported from db module', async () => {
         expect(typeof initJwtSession).toBe('function')
     })
@@ -251,7 +251,7 @@ describe('JWT Session Initialization', () => {
 // AUTO USER PROFILE CREATION TRIGGER TESTS
 // =============================================================================
 
-describe('Auto User Profile Creation', () => {
+describe.skipIf(isProductionDb)('Auto User Profile Creation', () => {
     test('trigger function exists for auto profile creation', async () => {
         const client = getClient()
         const result = await client`
@@ -365,10 +365,13 @@ describe('Environment Configuration', () => {
 // SERVER AVAILABILITY TESTS
 // =============================================================================
 
-// Check server availability at module load time (top-level await)
-const serverRunning = await isServerAvailable()
-
 describe('Server Availability', () => {
+    let serverRunning = false
+
+    beforeAll(async () => {
+        serverRunning = await isServerAvailable()
+    })
+
     test('reports server status', async () => {
         if (serverRunning) {
             console.log('✓ Server is running')

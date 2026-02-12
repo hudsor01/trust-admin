@@ -1,4 +1,3 @@
-import '../helpers/db-guard'
 /**
  * tRPC Router EntityId Validation Tests
  *
@@ -28,6 +27,7 @@ import {
 } from '../../db/schema'
 import { createCallerFactory } from '../../src/server/trpc/index'
 import { appRouter } from '../../src/server/trpc/router'
+import { isProductionDb } from '../helpers/db-guard'
 
 // =============================================================================
 // TEST CONFIGURATION
@@ -88,7 +88,7 @@ const testData = {
 // SETUP / TEARDOWN
 // =============================================================================
 
-describe('EntityId Validation', () => {
+describe.skipIf(isProductionDb)('EntityId Validation', () => {
     beforeAll(async () => {
         const now = new Date().toISOString()
         const ts = Date.now().toString().slice(-8)

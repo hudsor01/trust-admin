@@ -1,4 +1,3 @@
-import './helpers/db-guard'
 /**
  * Authentication Integration Tests (Neon Auth)
  *
@@ -15,6 +14,7 @@ import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import { eq } from 'drizzle-orm'
 import { db, getClient } from '../db'
 import { beneficiary, entity, userProfile } from '../db/schema'
+import { isProductionDb } from './helpers/db-guard'
 
 const TEST_TIMEOUT = 30000
 
@@ -115,7 +115,7 @@ afterAll(async () => {
 // USER PROFILE TESTS
 // =============================================================================
 
-describe('User Profile Schema', () => {
+describe.skipIf(isProductionDb)('User Profile Schema', () => {
     test('user_profile table has correct columns', async () => {
         const client = getClient()
         const columns = await client`
@@ -164,7 +164,7 @@ describe('User Profile Schema', () => {
 // ROLE ASSIGNMENT TESTS
 // =============================================================================
 
-describe('Role Assignment', () => {
+describe.skipIf(isProductionDb)('Role Assignment', () => {
     test('admin user has admin role', async () => {
         const [profile] = await db
             .select()
@@ -221,7 +221,7 @@ describe('Role Assignment', () => {
 // RLS HELPER FUNCTION TESTS
 // =============================================================================
 
-describe('RLS Helper Functions', () => {
+describe.skipIf(isProductionDb)('RLS Helper Functions', () => {
     test('app.is_admin() returns falsy value without session', async () => {
         const client = getClient()
         const result = await client`SELECT app.is_admin() as is_admin`
@@ -256,7 +256,7 @@ describe('RLS Helper Functions', () => {
 // NEON AUTH INFRASTRUCTURE TESTS
 // =============================================================================
 
-describe('Neon Auth Infrastructure', () => {
+describe.skipIf(isProductionDb)('Neon Auth Infrastructure', () => {
     test('neon_auth schema exists', async () => {
         const client = getClient()
         const result = await client`
@@ -315,7 +315,7 @@ describe('Neon Auth Infrastructure', () => {
 // AUTO USER PROFILE CREATION TRIGGER
 // =============================================================================
 
-describe('Auto User Profile Creation', () => {
+describe.skipIf(isProductionDb)('Auto User Profile Creation', () => {
     test('trigger function exists', async () => {
         const client = getClient()
         const result = await client`
@@ -356,7 +356,7 @@ describe('Auto User Profile Creation', () => {
 // FOREIGN KEY CONSTRAINT TESTS
 // =============================================================================
 
-describe('Foreign Key Constraints', () => {
+describe.skipIf(isProductionDb)('Foreign Key Constraints', () => {
     test('user_profile.beneficiary_id references beneficiary.id', async () => {
         const client = getClient()
         const result = await client`
@@ -388,7 +388,7 @@ describe('Foreign Key Constraints', () => {
 // AUTH MODULE EXPORTS TESTS
 // =============================================================================
 
-describe('Auth Utility Functions', () => {
+describe.skipIf(isProductionDb)('Auth Utility Functions', () => {
     // These tests verify the utility functions that work independently
     // of the Neon Auth client/server instances.
     // Note: authServer and authClient require Next.js runtime context.

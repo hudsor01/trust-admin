@@ -15,7 +15,13 @@ export default async function PortalLayout({
 }: {
     children: React.ReactNode
 }) {
-    const { data: session } = await authServer.getSession()
+    let session: Awaited<ReturnType<typeof authServer.getSession>>['data']
+    try {
+        const result = await authServer.getSession()
+        session = result.data
+    } catch {
+        redirect('/auth/sign-in')
+    }
 
     // Redirect to login if not authenticated
     if (!session?.user) {

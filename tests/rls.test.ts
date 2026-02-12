@@ -9,7 +9,7 @@
  *
  * These tests verify database-level security, not just application-level checks.
  */
-import './helpers/db-guard'
+
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import { eq, sql } from 'drizzle-orm'
 import { db, getClient, initJwtSession } from '../db'
@@ -20,6 +20,7 @@ import {
     hemsRequest,
     userProfile,
 } from '../db/schema'
+import { isProductionDb } from './helpers/db-guard'
 
 // =============================================================================
 // TEST CONFIGURATION
@@ -137,7 +138,7 @@ async function resetJwtSession(): Promise<void> {
 // TEST SETUP
 // =============================================================================
 
-describe('Row-Level Security', () => {
+describe.skipIf(isProductionDb)('Row-Level Security', () => {
     beforeAll(async () => {
         // Create test entity
         const now = new Date().toISOString()
