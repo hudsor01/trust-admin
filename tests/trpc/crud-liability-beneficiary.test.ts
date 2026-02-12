@@ -24,6 +24,10 @@ import { bankAccount, beneficiary, entity, liability } from '../../db/schema'
 import { createCallerFactory } from '../../src/server/trpc/index'
 import { appRouter } from '../../src/server/trpc/router'
 import { isProductionDb } from '../helpers/db-guard'
+import {
+    createAdminContext,
+    createBeneficiaryContext,
+} from '../helpers/mock-context'
 
 // =============================================================================
 // TEST CONFIGURATION
@@ -37,64 +41,24 @@ const TS = Date.now().toString().slice(-8)
 
 /** Create a tRPC caller with admin context (no real auth session) */
 function adminCaller() {
-    return createCaller({
-        session: {
-            user: {
-                id: '997',
-                name: 'LiaBen Test Admin',
-                email: 'liaben-admin@test.com',
-                emailVerified: true,
-                image: null,
-                createdAt: new Date(),
-                updatedAt: new Date(),
-                role: 'admin',
-            },
-            session: { token: 'fake-token' },
-            // biome-ignore lint/suspicious/noExplicitAny: mock session for tests
-        } as any,
-        user: {
+    return createCaller(
+        createAdminContext({
             id: '997',
             name: 'LiaBen Test Admin',
             email: 'liaben-admin@test.com',
-            emailVerified: true,
-            image: null,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-            role: 'admin',
-            beneficiaryId: null,
-        },
-    })
+        }),
+    )
 }
 
 /** Create a tRPC caller with beneficiary context */
 function beneficiaryCaller(beneficiaryId: number | null) {
-    return createCaller({
-        session: {
-            user: {
-                id: '996',
-                name: 'Test Beneficiary',
-                email: 'ben-test@test.com',
-                emailVerified: true,
-                image: null,
-                createdAt: new Date(),
-                updatedAt: new Date(),
-                role: 'beneficiary',
-            },
-            session: { token: 'fake-token' },
-            // biome-ignore lint/suspicious/noExplicitAny: mock session for tests
-        } as any,
-        user: {
+    return createCaller(
+        createBeneficiaryContext(beneficiaryId, {
             id: '996',
             name: 'Test Beneficiary',
             email: 'ben-test@test.com',
-            emailVerified: true,
-            image: null,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-            role: 'beneficiary',
-            beneficiaryId,
-        },
-    })
+        }),
+    )
 }
 
 // Track all created record IDs for cleanup

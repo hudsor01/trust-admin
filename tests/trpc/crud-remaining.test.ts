@@ -30,6 +30,7 @@ import {
 import { createCallerFactory } from '../../src/server/trpc/index'
 import { appRouter } from '../../src/server/trpc/router'
 import { isProductionDb } from '../helpers/db-guard'
+import { createAdminContext } from '../helpers/mock-context'
 
 // =============================================================================
 // TEST CONFIGURATION
@@ -40,33 +41,13 @@ const createCaller = createCallerFactory(appRouter)
 
 /** Create a tRPC caller with admin context (no real auth session) */
 function adminCaller() {
-    return createCaller({
-        session: {
-            user: {
-                id: '998',
-                name: 'CRUD Remaining Admin',
-                email: 'crud-remaining@test.com',
-                emailVerified: true,
-                image: null,
-                createdAt: new Date(),
-                updatedAt: new Date(),
-                role: 'admin',
-            },
-            session: { token: 'fake-token' },
-            // biome-ignore lint/suspicious/noExplicitAny: mock session for tests
-        } as any,
-        user: {
+    return createCaller(
+        createAdminContext({
             id: '998',
             name: 'CRUD Remaining Admin',
             email: 'crud-remaining@test.com',
-            emailVerified: true,
-            image: null,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-            role: 'admin',
-            beneficiaryId: null,
-        },
-    })
+        }),
+    )
 }
 
 /** Unique suffix to avoid collisions with parallel test runs */

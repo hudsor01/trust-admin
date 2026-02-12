@@ -15,12 +15,15 @@
  *   - resetUserPassword validation (NOT_FOUND)
  */
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
+import type { TRPCError } from '@trpc/server'
 import { eq } from 'drizzle-orm'
 import { db } from '../../db'
 import { activityLog, beneficiary, entity, userProfile } from '../../db/schema'
+import { OWNER_EMAIL } from '../../src/lib/constants'
 import { createCallerFactory } from '../../src/server/trpc/index'
 import { appRouter } from '../../src/server/trpc/router'
 import { isProductionDb } from '../helpers/db-guard'
+import { createAdminContext } from '../helpers/mock-context'
 
 // =============================================================================
 // TEST CONFIGURATION
@@ -31,33 +34,24 @@ const createCaller = createCallerFactory(appRouter)
 
 /** Create a tRPC caller with admin context (no real auth session) */
 function adminCaller() {
-    return createCaller({
-        session: {
-            user: {
-                id: '995',
-                name: 'AdminOps Test',
-                email: 'adminops@test.com',
-                emailVerified: true,
-                image: null,
-                createdAt: new Date(),
-                updatedAt: new Date(),
-                role: 'admin',
-            },
-            session: { token: 'fake-token' },
-            // biome-ignore lint/suspicious/noExplicitAny: mock session for tests
-        } as any,
-        user: {
+    return createCaller(
+        createAdminContext({
             id: '995',
             name: 'AdminOps Test',
             email: 'adminops@test.com',
-            emailVerified: true,
-            image: null,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-            role: 'admin',
-            beneficiaryId: null,
-        },
-    })
+        }),
+    )
+}
+
+/** Create a tRPC caller with owner context (ownerProcedure requires OWNER_EMAIL) */
+function ownerCaller() {
+    return createCaller(
+        createAdminContext({
+            id: '996',
+            name: 'Owner Test',
+            email: OWNER_EMAIL,
+        }),
+    )
 }
 
 /** Unique suffix to avoid collisions with parallel test runs */
@@ -305,8 +299,10 @@ describe.skipIf(isProductionDb)(
 
                     expect(result).toBeDefined()
                     expect(result?.newValues).toBeDefined()
-                    // biome-ignore lint/suspicious/noExplicitAny: JSONB values
-                    const newValues = result?.newValues as any
+                    const newValues = result?.newValues as Record<
+                        string,
+                        unknown
+                    >
                     expect(newValues.name).toBe(`Test Entity ${TS}`)
                     expect(newValues.status).toBe('ACTIVE')
                 },
@@ -326,10 +322,14 @@ describe.skipIf(isProductionDb)(
                     expect(result?.oldValues).toBeDefined()
                     expect(result?.newValues).toBeDefined()
 
-                    // biome-ignore lint/suspicious/noExplicitAny: JSONB values
-                    const oldValues = result?.oldValues as any
-                    // biome-ignore lint/suspicious/noExplicitAny: JSONB values
-                    const newValues = result?.newValues as any
+                    const oldValues = result?.oldValues as Record<
+                        string,
+                        unknown
+                    >
+                    const newValues = result?.newValues as Record<
+                        string,
+                        unknown
+                    >
                     expect(oldValues.status).toBe('PENDING')
                     expect(newValues.status).toBe('ACTIVE')
                 },
@@ -449,8 +449,8 @@ describe.skipIf(isProductionDb)(
                     const caller = adminCaller()
                     try {
                         await caller.activityLog.search({
-                            // biome-ignore lint/suspicious/noExplicitAny: testing invalid input
-                            fieldName: 'tableName' as any,
+                            fieldName:
+                                'tableName' as 'status' /* intentionally invalid value for test */,
                             fieldValue: 'entity',
                         })
                         // Should not reach here - tableName is not in the searchable allowlist
@@ -516,7 +516,7 @@ describe.skipIf(isProductionDb)(
             test(
                 'createBeneficiaryUser throws NOT_FOUND for non-existent beneficiaryId',
                 async () => {
-                    const caller = adminCaller()
+                    const caller = ownerCaller()
                     try {
                         await caller.userManagement.createBeneficiaryUser({
                             beneficiaryId: 999999999,
@@ -526,8 +526,7 @@ describe.skipIf(isProductionDb)(
                         // Should not reach here
                         expect(true).toBe(false)
                     } catch (error: unknown) {
-                        // biome-ignore lint/suspicious/noExplicitAny: TRPCError check
-                        const trpcError = error as any
+                        const trpcError = error as TRPCError
                         expect(trpcError.code).toBe('NOT_FOUND')
                         expect(trpcError.message).toBe('Beneficiary not found')
                     }
@@ -538,7 +537,7 @@ describe.skipIf(isProductionDb)(
             test(
                 'createBeneficiaryUser throws CONFLICT when beneficiary already has a userProfile',
                 async () => {
-                    const caller = adminCaller()
+                    const caller = ownerCaller()
                     try {
                         // beneficiary2 already has a userProfile from beforeAll setup
                         await caller.userManagement.createBeneficiaryUser({
@@ -549,8 +548,7 @@ describe.skipIf(isProductionDb)(
                         // Should not reach here
                         expect(true).toBe(false)
                     } catch (error: unknown) {
-                        // biome-ignore lint/suspicious/noExplicitAny: TRPCError check
-                        const trpcError = error as any
+                        const trpcError = error as TRPCError
                         expect(trpcError.code).toBe('CONFLICT')
                         expect(trpcError.message).toBe(
                             'Beneficiary already has a portal account',
@@ -563,7 +561,7 @@ describe.skipIf(isProductionDb)(
             test(
                 'createBeneficiaryUser validates tempPassword minimum length',
                 async () => {
-                    const caller = adminCaller()
+                    const caller = ownerCaller()
                     try {
                         await caller.userManagement.createBeneficiaryUser({
                             beneficiaryId: testIds.beneficiary1Id!,
@@ -583,7 +581,7 @@ describe.skipIf(isProductionDb)(
             test(
                 'createBeneficiaryUser validates email format',
                 async () => {
-                    const caller = adminCaller()
+                    const caller = ownerCaller()
                     try {
                         await caller.userManagement.createBeneficiaryUser({
                             beneficiaryId: testIds.beneficiary1Id!,
@@ -603,7 +601,7 @@ describe.skipIf(isProductionDb)(
             test(
                 'resetUserPassword throws NOT_FOUND for non-existent userId',
                 async () => {
-                    const caller = adminCaller()
+                    const caller = ownerCaller()
                     try {
                         await caller.userManagement.resetUserPassword({
                             userId: `non-existent-user-${TS}`,
@@ -612,8 +610,7 @@ describe.skipIf(isProductionDb)(
                         // Should not reach here
                         expect(true).toBe(false)
                     } catch (error: unknown) {
-                        // biome-ignore lint/suspicious/noExplicitAny: TRPCError check
-                        const trpcError = error as any
+                        const trpcError = error as TRPCError
                         expect(trpcError.code).toBe('NOT_FOUND')
                         expect(trpcError.message).toBe('User profile not found')
                     }
@@ -624,7 +621,7 @@ describe.skipIf(isProductionDb)(
             test(
                 'resetUserPassword validates newPassword minimum length',
                 async () => {
-                    const caller = adminCaller()
+                    const caller = ownerCaller()
                     try {
                         await caller.userManagement.resetUserPassword({
                             userId: testIds.userProfileUserId!,

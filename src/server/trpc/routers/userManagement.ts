@@ -14,7 +14,7 @@ import { z } from 'zod'
 import { OWNER_EMAIL } from '@/lib/constants'
 import { db } from '../../../../db'
 import { createActivityLog } from '../../../../db/queries'
-import { beneficiary, userProfile } from '../../../../db/schema'
+import { beneficiary, user, userProfile } from '../../../../db/schema'
 import { authServer } from '../../../lib/auth/server'
 import { adminProcedure, createTRPCRouter, ownerProcedure } from '../index'
 
@@ -260,7 +260,7 @@ export const userManagementRouter = createTRPCRouter({
                 })
             }
 
-            const fields: Record<string, string> = {}
+            const fields: Partial<{ name: string; email: string }> = {}
             if (input.name) fields.name = input.name
             if (input.email) fields.email = input.email
 
@@ -271,15 +271,17 @@ export const userManagementRouter = createTRPCRouter({
                 })
             }
 
-            const { error } = await authServer.admin.updateUser({
-                userId: input.userId,
-                data: fields,
-            })
+            // Update user table directly (more reliable than admin API proxy)
+            const [updated] = await db
+                .update(user)
+                .set({ ...fields, updatedAt: new Date() })
+                .where(eq(user.id, input.userId))
+                .returning({ id: user.id })
 
-            if (error) {
+            if (!updated) {
                 throw new TRPCError({
-                    code: 'BAD_REQUEST',
-                    message: `Failed to update user: ${error.message}`,
+                    code: 'NOT_FOUND',
+                    message: 'User not found',
                 })
             }
 
@@ -369,6 +371,20 @@ export const userManagementRouter = createTRPCRouter({
                 throw new TRPCError({
                     code: 'BAD_REQUEST',
                     message: 'Cannot reset your own password from this page',
+                })
+            }
+
+            // Verify user exists before calling external auth API
+            const [profile] = await db
+                .select()
+                .from(userProfile)
+                .where(eq(userProfile.userId, input.userId))
+                .limit(1)
+
+            if (!profile) {
+                throw new TRPCError({
+                    code: 'NOT_FOUND',
+                    message: 'User profile not found',
                 })
             }
 

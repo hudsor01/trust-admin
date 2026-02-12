@@ -1,6 +1,6 @@
 'use client'
 
-import { type Store, useStore } from '@tanstack/react-store'
+import { useStore } from '@tanstack/react-store'
 import type { ColumnDef } from '@tanstack/react-table'
 import {
     DollarSign,
@@ -47,7 +47,10 @@ import {
 } from '@/components/ui/tooltip'
 import type { Liability } from '@/db/schema'
 import { useEntityFilter } from '@/hooks/use-entity-filter'
-import { useResourceForm } from '@/hooks/use-resource-form'
+import {
+    type UseResourceFormReturn,
+    useResourceForm,
+} from '@/hooks/use-resource-form'
 import {
     calculateMonthlyPayment,
     calculatePaymentSplit,
@@ -109,14 +112,16 @@ const isRevolvingType = (type: string) => type === 'CREDIT_CARD'
 const hasLoanTermFields = (type: string) =>
     type === 'MORTGAGE' || type === 'LOAN'
 
+/** Shorthand for the TanStack Form instance returned by useResourceForm */
+type LiabilityFormInstance =
+    UseResourceFormReturn<LiabilityFormData>['formInstance']
+
 /**
  * Hook to subscribe to form values from a FormApi instance.
- * Encapsulates the untyped store access since FormApi has 12 generic params.
+ * Encapsulates the store access since FormApi has 12 generic params.
  */
-// biome-ignore lint/suspicious/noExplicitAny: FormApi generics are too complex for prop typing
-function useFormValues(formInstance: any) {
-    const store = formInstance.store as Store<{ values: LiabilityFormData }>
-    return useStore(store, (s) => ({
+function useFormValues(formInstance: LiabilityFormInstance) {
+    return useStore(formInstance.store, (s) => ({
         originalAmount: s.values.originalAmount,
         interestRate: s.values.interestRate,
         loanTermMonths: s.values.loanTermMonths,
@@ -128,8 +133,11 @@ function useFormValues(formInstance: any) {
  * PaymentPreview component - shows estimated monthly payment as user types loan terms.
  * Uses useDeferredValue for smooth typing experience without calculation lag.
  */
-// biome-ignore lint/suspicious/noExplicitAny: FormApi has complex generics, using any for formInstance
-function PaymentPreview({ formInstance }: { formInstance: any }) {
+function PaymentPreview({
+    formInstance,
+}: {
+    formInstance: LiabilityFormInstance
+}) {
     // Subscribe to relevant form values - all hooks must be called unconditionally
     // FormApi has 12 generic params; this component accepts any form with LiabilityFormData values.
     // We extract the store and use typed selectors via a helper to avoid scattered any annotations.
@@ -202,17 +210,19 @@ function PaymentPreview({ formInstance }: { formInstance: any }) {
  * Uses useDeferredValue for smooth typing experience without calculation lag.
  * Displays: Principal, Interest, Escrow, New Balance, and estimated payoff date.
  */
+/** Shorthand for the TanStack Form instance returned by useResourceForm for payments */
+type PaymentFormInstance =
+    UseResourceFormReturn<PaymentFormData>['formInstance']
+
 function PaymentImpactPreview({
     formInstance,
     liability,
 }: {
-    // biome-ignore lint/suspicious/noExplicitAny: FormApi has complex generics
-    formInstance: any
+    formInstance: PaymentFormInstance
     liability: Liability
 }) {
     // Subscribe to payment amount - hooks must be called unconditionally
-    // biome-ignore lint/suspicious/noExplicitAny: TanStack Form store has complex generics
-    const amount = useStore(formInstance.store, (s: any) => s.values.amount) as
+    const amount = useStore(formInstance.store, (s) => s.values.amount) as
         | string
         | undefined
 
