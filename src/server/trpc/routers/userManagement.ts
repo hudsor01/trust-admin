@@ -12,9 +12,9 @@ import { TRPCError } from '@trpc/server'
 import { desc, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { OWNER_EMAIL } from '@/lib/constants'
-import { db, getPublicDb } from '../../../../db'
+import { db, getSql } from '../../../../db'
 import { createActivityLog } from '../../../../db/queries'
-import { beneficiary, user, userProfile } from '../../../../db/schema'
+import { beneficiary, userProfile } from '../../../../db/schema'
 import { authServer } from '../../../lib/auth/server'
 import { adminProcedure, createTRPCRouter, ownerProcedure } from '../index'
 
@@ -271,17 +271,32 @@ export const userManagementRouter = createTRPCRouter({
                 })
             }
 
-            // Update user table directly (more reliable than admin API proxy)
-            // Use publicDb to bypass RLS — the user table is managed by Neon Auth
-            // and RLS policies prevent authenticated users from updating other users
-            const publicDb = getPublicDb()
-            const [updated] = await publicDb
-                .update(user)
-                .set({ ...fields, updatedAt: new Date() })
-                .where(eq(user.id, input.userId))
-                .returning({ id: user.id })
+            // Update neon_auth."user" directly via raw SQL.
+            // Neon Auth stores users in the neon_auth schema, not public.user.
+            // The admin API proxy (authServer.admin.updateUser) returns 400.
+            const sql = getSql()
+            const now = new Date().toISOString()
+            const setClauses: string[] = []
+            const params: (string | null)[] = []
 
-            if (!updated) {
+            if (fields.name) {
+                params.push(fields.name)
+                setClauses.push(`"name" = $${params.length}`)
+            }
+            if (fields.email) {
+                params.push(fields.email)
+                setClauses.push(`"email" = $${params.length}`)
+            }
+            params.push(now)
+            setClauses.push(`"updated_at" = $${params.length}`)
+            params.push(input.userId)
+
+            const result = (await sql.query(
+                `UPDATE neon_auth."user" SET ${setClauses.join(', ')} WHERE "id" = $${params.length} RETURNING "id"`,
+                params,
+            )) as Record<string, unknown>[]
+
+            if (result.length === 0) {
                 throw new TRPCError({
                     code: 'NOT_FOUND',
                     message: 'User not found',
