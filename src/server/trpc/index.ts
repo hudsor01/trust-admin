@@ -17,6 +17,7 @@ import { initTRPC, TRPCError } from '@trpc/server'
 import { eq } from 'drizzle-orm'
 import { ZodError, z } from 'zod'
 import { authServer } from '@/lib/auth'
+import { OWNER_EMAIL } from '@/lib/constants'
 import { clearSentryUser, setSentryUser } from '@/lib/sentry'
 import { getPublicDb, initJwtSession, setRequestAuthToken } from '../../../db'
 import { userProfile } from '../../../db/schema'
@@ -220,6 +221,21 @@ export const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
         throw new TRPCError({
             code: 'FORBIDDEN',
             message: 'You must be an admin to perform this action',
+        })
+    }
+
+    return next({ ctx })
+})
+
+/**
+ * Owner procedure - requires the trust owner (rhudsontspr@gmail.com)
+ * Use for sensitive operations like user management CRUD
+ */
+export const ownerProcedure = adminProcedure.use(async ({ ctx, next }) => {
+    if (ctx.user.email !== OWNER_EMAIL) {
+        throw new TRPCError({
+            code: 'FORBIDDEN',
+            message: 'Only the trust owner can perform this action',
         })
     }
 

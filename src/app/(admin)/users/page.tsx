@@ -1,9 +1,22 @@
 'use client'
 
 import type { ColumnDef } from '@tanstack/react-table'
-import { Eye, EyeOff, KeyRound, Plus, UserPlus } from 'lucide-react'
+import {
+    Ban,
+    Eye,
+    EyeOff,
+    KeyRound,
+    LogOut,
+    MoreHorizontal,
+    Pencil,
+    Plus,
+    Shield,
+    Trash2,
+    UserPlus,
+} from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import { CopyButton } from '@/components/copy-button'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -17,6 +30,13 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog'
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -29,39 +49,75 @@ import {
 import { trpc } from '@/lib/trpc'
 import { formatDate } from '@/utils/formatters'
 
-type ProvisionedUser = {
-    userId: string
-    role: string | null
+// =============================================================================
+// Types
+// =============================================================================
+
+type NeonAuthUser = {
+    id: string
+    name: string | null
+    email: string
+    emailVerified: boolean
+    image?: string | null
+    createdAt: string
+    neonRole: string | null
+    banned: boolean
+    banReason?: string | null
+    banExpires?: string | null
+    appRole: string | null
     beneficiaryId: number | null
-    createdAt: string | null
-    firstName: string | null
-    lastName: string | null
-    beneficiaryEmail: string | null
+    beneficiaryName: string | null
 }
+
+// =============================================================================
+// Page Component
+// =============================================================================
 
 export default function UsersPage() {
     const utils = trpc.useUtils()
 
-    // Fetch entities to get the default entityId for beneficiary queries
+    // Owner check for gating CRUD controls
+    const { data: ownerCheck } = trpc.userManagement.isOwner.useQuery()
+    const isOwner = ownerCheck?.isOwner ?? false
+
+    // Fetch entities for beneficiary queries
     const { data: entities = [] } = trpc.entity.list.useQuery()
     const defaultEntityId = entities[0]?.id
 
-    // Fetch provisioned users
-    const { data: provisionedUsers = [], isLoading: usersLoading } =
-        trpc.userManagement.listProvisionedUsers.useQuery()
+    // Fetch all users (owner-only, shows Neon Auth users enriched with app data)
+    const {
+        data: allUsers = [],
+        isLoading: usersLoading,
+        error: usersError,
+    } = trpc.userManagement.listAllUsers.useQuery(undefined, {
+        enabled: isOwner,
+    })
 
-    // Fetch all beneficiaries for the default entity
-    const { data: allBeneficiaries = [], isLoading: beneficiariesLoading } =
-        trpc.beneficiary.list.useQuery(
-            { entityId: defaultEntityId! },
-            { enabled: !!defaultEntityId },
-        )
+    // Fallback: non-owner admins see provisioned users only
+    const { data: provisionedUsers = [], isLoading: provisionedLoading } =
+        trpc.userManagement.listProvisionedUsers.useQuery(undefined, {
+            enabled: !isOwner,
+        })
 
+    // Fetch all beneficiaries for create dialog
+    const { data: allBeneficiaries = [] } = trpc.beneficiary.list.useQuery(
+        { entityId: defaultEntityId! },
+        { enabled: !!defaultEntityId && isOwner },
+    )
+
+    // ==========================================================================
     // Dialog state
+    // ==========================================================================
     const [createDialogOpen, setCreateDialogOpen] = useState(false)
+    const [editDialogOpen, setEditDialogOpen] = useState(false)
+    const [roleDialogOpen, setRoleDialogOpen] = useState(false)
     const [resetDialogOpen, setResetDialogOpen] = useState(false)
-    const [resetUserId, setResetUserId] = useState<string | null>(null)
-    const [resetUserName, setResetUserName] = useState('')
+    const [banDialogOpen, setBanDialogOpen] = useState(false)
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+    const [revokeDialogOpen, setRevokeDialogOpen] = useState(false)
+
+    // Selected user for actions
+    const [selectedUser, setSelectedUser] = useState<NeonAuthUser | null>(null)
 
     // Create form state
     const [selectedBeneficiaryId, setSelectedBeneficiaryId] = useState<
@@ -71,28 +127,43 @@ export default function UsersPage() {
     const [tempPassword, setTempPassword] = useState('')
     const [showPassword, setShowPassword] = useState(false)
 
-    // Reset form state
+    // Edit form state
+    const [editName, setEditName] = useState('')
+    const [editEmail, setEditEmail] = useState('')
+
+    // Role form state
+    const [newRole, setNewRole] = useState<'admin' | 'user'>('user')
+
+    // Reset password state
     const [newPassword, setNewPassword] = useState('')
     const [showNewPassword, setShowNewPassword] = useState(false)
 
-    // Success state for showing the temp password once
+    // Ban form state
+    const [banReason, setBanReason] = useState('')
+
+    // Success state for temp password
     const [createdCredentials, setCreatedCredentials] = useState<{
         email: string
         tempPassword: string
     } | null>(null)
 
+    // ==========================================================================
     // Mutations
+    // ==========================================================================
+    const invalidateUsers = () => {
+        utils.userManagement.listAllUsers.invalidate()
+        utils.userManagement.listProvisionedUsers.invalidate()
+    }
+
     const createUserMutation =
         trpc.userManagement.createBeneficiaryUser.useMutation({
             onSuccess: (_data, variables) => {
-                utils.userManagement.listProvisionedUsers.invalidate()
+                invalidateUsers()
                 setCreateDialogOpen(false)
-                // Show credentials in a success dialog
                 setCreatedCredentials({
                     email: variables.email,
                     tempPassword: variables.tempPassword,
                 })
-                // Reset form
                 setSelectedBeneficiaryId(null)
                 setEmail('')
                 setTempPassword('')
@@ -103,40 +174,96 @@ export default function UsersPage() {
             },
         })
 
+    const updateUserMutation = trpc.userManagement.updateUser.useMutation({
+        onSuccess: () => {
+            invalidateUsers()
+            setEditDialogOpen(false)
+            setSelectedUser(null)
+            toast.success('User updated')
+        },
+        onError: (err) => toast.error(err.message),
+    })
+
+    const setRoleMutation = trpc.userManagement.setUserRole.useMutation({
+        onSuccess: () => {
+            invalidateUsers()
+            setRoleDialogOpen(false)
+            setSelectedUser(null)
+            toast.success('Role updated')
+        },
+        onError: (err) => toast.error(err.message),
+    })
+
     const resetPasswordMutation =
         trpc.userManagement.resetUserPassword.useMutation({
             onSuccess: () => {
                 setResetDialogOpen(false)
-                setResetUserId(null)
-                setResetUserName('')
+                setSelectedUser(null)
                 setNewPassword('')
                 setShowNewPassword(false)
                 toast.success('Password reset successfully')
             },
-            onError: (error) => {
-                toast.error(error.message || 'Failed to reset password')
-            },
+            onError: (err) => toast.error(err.message),
         })
 
-    // Beneficiaries that don't have accounts yet
+    const banUserMutation = trpc.userManagement.banUser.useMutation({
+        onSuccess: () => {
+            invalidateUsers()
+            setBanDialogOpen(false)
+            setSelectedUser(null)
+            setBanReason('')
+            toast.success('User banned')
+        },
+        onError: (err) => toast.error(err.message),
+    })
+
+    const unbanUserMutation = trpc.userManagement.unbanUser.useMutation({
+        onSuccess: () => {
+            invalidateUsers()
+            toast.success('User unbanned')
+        },
+        onError: (err) => toast.error(err.message),
+    })
+
+    const removeUserMutation = trpc.userManagement.removeUser.useMutation({
+        onSuccess: () => {
+            invalidateUsers()
+            setDeleteDialogOpen(false)
+            setSelectedUser(null)
+            toast.success('User deleted')
+        },
+        onError: (err) => toast.error(err.message),
+    })
+
+    const revokeSessionsMutation =
+        trpc.userManagement.revokeUserSessions.useMutation({
+            onSuccess: () => {
+                setRevokeDialogOpen(false)
+                setSelectedUser(null)
+                toast.success('All sessions revoked')
+            },
+            onError: (err) => toast.error(err.message),
+        })
+
+    // ==========================================================================
+    // Derived data
+    // ==========================================================================
     const unlinkedBeneficiaries = useMemo(() => {
         const linkedIds = new Set(
-            provisionedUsers
+            allUsers
                 .map((u) => u.beneficiaryId)
                 .filter((id): id is number => id !== null),
         )
         return allBeneficiaries.filter((b) => !linkedIds.has(b.id))
-    }, [provisionedUsers, allBeneficiaries])
+    }, [allUsers, allBeneficiaries])
 
-    // Pre-fill email when beneficiary is selected
+    // ==========================================================================
+    // Action handlers
+    // ==========================================================================
     const handleBeneficiarySelect = (beneficiaryId: string) => {
         setSelectedBeneficiaryId(beneficiaryId)
         const ben = allBeneficiaries.find((b) => b.id === Number(beneficiaryId))
-        if (ben?.email) {
-            setEmail(ben.email)
-        } else {
-            setEmail('')
-        }
+        setEmail(ben?.email ?? '')
     }
 
     const handleCreateSubmit = () => {
@@ -148,79 +275,115 @@ export default function UsersPage() {
         })
     }
 
-    const handleResetSubmit = () => {
-        if (!resetUserId || newPassword.length < 8) return
-        resetPasswordMutation.mutate({
-            userId: resetUserId,
-            newPassword,
-        })
+    const openEditDialog = (user: NeonAuthUser) => {
+        setSelectedUser(user)
+        setEditName(user.name ?? '')
+        setEditEmail(user.email)
+        setEditDialogOpen(true)
     }
 
-    const openResetDialog = (userId: string, name: string) => {
-        setResetUserId(userId)
-        setResetUserName(name)
+    const openRoleDialog = (user: NeonAuthUser) => {
+        setSelectedUser(user)
+        setNewRole((user.neonRole as 'admin' | 'user') ?? 'user')
+        setRoleDialogOpen(true)
+    }
+
+    const openResetDialog = (user: NeonAuthUser) => {
+        setSelectedUser(user)
         setNewPassword('')
         setShowNewPassword(false)
         setResetDialogOpen(true)
     }
 
-    const loading = usersLoading || beneficiariesLoading
+    const openBanDialog = (user: NeonAuthUser) => {
+        setSelectedUser(user)
+        setBanReason('')
+        setBanDialogOpen(true)
+    }
 
-    const columns: ColumnDef<ProvisionedUser>[] = [
+    const openDeleteDialog = (user: NeonAuthUser) => {
+        setSelectedUser(user)
+        setDeleteDialogOpen(true)
+    }
+
+    const openRevokeDialog = (user: NeonAuthUser) => {
+        setSelectedUser(user)
+        setRevokeDialogOpen(true)
+    }
+
+    const displayName = (user: NeonAuthUser | null) =>
+        user?.name || user?.email || 'this user'
+
+    // ==========================================================================
+    // Table columns (full view for owner)
+    // ==========================================================================
+    const ownerColumns: ColumnDef<NeonAuthUser>[] = [
         {
             id: 'name',
             header: ({ column }) => (
                 <DataTableColumnHeader column={column} title="Name" />
             ),
-            cell: ({ row }) => {
-                const { firstName, lastName } = row.original
-                if (!firstName && !lastName)
-                    return <span className="text-muted-foreground">—</span>
-                return (
-                    <span className="font-medium">
-                        {firstName} {lastName}
-                    </span>
-                )
-            },
+            cell: ({ row }) => (
+                <span className="font-medium">
+                    {row.original.name || (
+                        <span className="text-muted-foreground">--</span>
+                    )}
+                </span>
+            ),
             filterFn: (row, _columnId, filterValue) => {
-                const fullName =
-                    `${row.original.firstName ?? ''} ${row.original.lastName ?? ''}`.toLowerCase()
-                return fullName.includes(filterValue.toLowerCase())
+                const name = (row.original.name ?? '').toLowerCase()
+                return name.includes(filterValue.toLowerCase())
             },
         },
         {
-            accessorKey: 'beneficiaryEmail',
+            accessorKey: 'email',
             header: ({ column }) => (
                 <DataTableColumnHeader column={column} title="Email" />
             ),
             cell: ({ row }) => (
-                <span className="text-sm">
-                    {row.original.beneficiaryEmail || '—'}
-                </span>
+                <span className="text-sm">{row.original.email}</span>
             ),
         },
         {
-            accessorKey: 'role',
+            id: 'role',
             header: 'Role',
-            cell: ({ row }) => (
-                <Badge variant="secondary" className="capitalize">
-                    {row.original.role || 'user'}
-                </Badge>
-            ),
+            cell: ({ row }) => {
+                const role = row.original.neonRole
+                return (
+                    <Badge
+                        variant={role === 'admin' ? 'default' : 'secondary'}
+                        className="capitalize"
+                    >
+                        {role || 'user'}
+                    </Badge>
+                )
+            },
+        },
+        {
+            id: 'status',
+            header: 'Status',
+            cell: ({ row }) => {
+                if (row.original.banned) {
+                    return (
+                        <Badge variant="destructive" className="gap-1">
+                            <Ban className="h-3 w-3" />
+                            Banned
+                        </Badge>
+                    )
+                }
+                return <Badge variant="outline">Active</Badge>
+            },
         },
         {
             id: 'linkedBeneficiary',
             header: 'Linked Beneficiary',
-            cell: ({ row }) => {
-                const { firstName, lastName, beneficiaryId } = row.original
-                if (!beneficiaryId)
-                    return <span className="text-muted-foreground">—</span>
-                return (
-                    <span className="text-sm">
-                        {firstName} {lastName}
-                    </span>
-                )
-            },
+            cell: ({ row }) => (
+                <span className="text-sm">
+                    {row.original.beneficiaryName || (
+                        <span className="text-muted-foreground">--</span>
+                    )}
+                </span>
+            ),
         },
         {
             accessorKey: 'createdAt',
@@ -237,26 +400,114 @@ export default function UsersPage() {
             id: 'actions',
             header: '',
             cell: ({ row }) => {
-                const displayName =
-                    [row.original.firstName, row.original.lastName]
-                        .filter(Boolean)
-                        .join(' ') || 'this user'
+                const user = row.original
+                const isSelf = user.id === ownerCheck?.userId
+
                 return (
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 gap-1.5"
-                        onClick={() =>
-                            openResetDialog(row.original.userId, displayName)
-                        }
-                    >
-                        <KeyRound className="h-3.5 w-3.5" />
-                        Reset Password
-                    </Button>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                            >
+                                <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                                onClick={() => openEditDialog(user)}
+                            >
+                                <Pencil className="mr-2 h-4 w-4" />
+                                Edit
+                            </DropdownMenuItem>
+                            {!isSelf && (
+                                <>
+                                    <DropdownMenuItem
+                                        onClick={() => openRoleDialog(user)}
+                                    >
+                                        <Shield className="mr-2 h-4 w-4" />
+                                        Change Role
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                        onClick={() => openResetDialog(user)}
+                                    >
+                                        <KeyRound className="mr-2 h-4 w-4" />
+                                        Reset Password
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                        onClick={() => openRevokeDialog(user)}
+                                    >
+                                        <LogOut className="mr-2 h-4 w-4" />
+                                        Revoke Sessions
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    {user.banned ? (
+                                        <DropdownMenuItem
+                                            onClick={() =>
+                                                unbanUserMutation.mutate({
+                                                    userId: user.id,
+                                                })
+                                            }
+                                        >
+                                            <Ban className="mr-2 h-4 w-4" />
+                                            Unban
+                                        </DropdownMenuItem>
+                                    ) : (
+                                        <DropdownMenuItem
+                                            onClick={() => openBanDialog(user)}
+                                        >
+                                            <Ban className="mr-2 h-4 w-4" />
+                                            Ban
+                                        </DropdownMenuItem>
+                                    )}
+                                    <DropdownMenuItem
+                                        className="text-destructive focus:text-destructive"
+                                        onClick={() => openDeleteDialog(user)}
+                                    >
+                                        <Trash2 className="mr-2 h-4 w-4" />
+                                        Delete
+                                    </DropdownMenuItem>
+                                </>
+                            )}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 )
             },
         },
     ]
+
+    // ==========================================================================
+    // Read-only columns for non-owner admins
+    // ==========================================================================
+    const readOnlyColumns: ColumnDef<NeonAuthUser>[] = ownerColumns.filter(
+        (c) => c.id !== 'actions',
+    )
+
+    // Adapt provisioned users to NeonAuthUser shape for non-owner view
+    const readOnlyData: NeonAuthUser[] = useMemo(
+        () =>
+            provisionedUsers.map((u) => ({
+                id: u.userId,
+                name:
+                    [u.firstName, u.lastName].filter(Boolean).join(' ') || null,
+                email: u.beneficiaryEmail ?? '',
+                emailVerified: true,
+                createdAt: u.createdAt ?? '',
+                neonRole: 'user',
+                banned: false,
+                appRole: u.role,
+                beneficiaryId: u.beneficiaryId,
+                beneficiaryName:
+                    [u.firstName, u.lastName].filter(Boolean).join(' ') || null,
+            })),
+        [provisionedUsers],
+    )
+
+    const loading = isOwner ? usersLoading : provisionedLoading
+    const tableData = isOwner ? (allUsers as NeonAuthUser[]) : readOnlyData
+    const columns = isOwner ? ownerColumns : readOnlyColumns
+    const userCount = tableData.length
 
     return (
         <div className="space-y-6">
@@ -267,33 +518,51 @@ export default function UsersPage() {
                         Users
                     </h2>
                     <p className="text-sm text-muted-foreground">
-                        {provisionedUsers.length} provisioned portal account
-                        {provisionedUsers.length !== 1 ? 's' : ''}
+                        {userCount} user{userCount !== 1 ? 's' : ''}
                     </p>
                 </div>
-                <Button onClick={() => setCreateDialogOpen(true)}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Create Portal Account
-                </Button>
+                {isOwner && (
+                    <Button onClick={() => setCreateDialogOpen(true)}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Create Portal Account
+                    </Button>
+                )}
             </div>
+
+            {/* Non-owner info banner */}
+            {!isOwner && !loading && (
+                <div className="rounded-md border border-muted bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
+                    User management is restricted to the trust owner. You are
+                    viewing provisioned accounts in read-only mode.
+                </div>
+            )}
+
+            {/* Error state */}
+            {usersError && isOwner && (
+                <div className="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                    Failed to load users: {usersError.message}
+                </div>
+            )}
 
             {/* User List */}
             <Card>
                 <CardContent className="pt-6">
                     <DataTable
-                        data={provisionedUsers as ProvisionedUser[]}
+                        data={tableData}
                         columns={columns}
                         searchKey="name"
                         searchPlaceholder="Filter by name..."
                         isLoading={loading}
-                        emptyMessage="No portal accounts provisioned yet"
+                        emptyMessage="No users found"
                         enableColumnVisibility={true}
                         enablePagination={true}
                     />
                 </CardContent>
             </Card>
 
-            {/* Create Portal Account Dialog */}
+            {/* ================================================================ */}
+            {/* Create Portal Account Dialog                                     */}
+            {/* ================================================================ */}
             <Dialog
                 open={createDialogOpen}
                 onOpenChange={(open) => {
@@ -313,13 +582,10 @@ export default function UsersPage() {
                             Create Portal Account
                         </DialogTitle>
                         <DialogDescription>
-                            Provision a portal login for a beneficiary. They
-                            will use these credentials to access their
-                            beneficiary portal.
+                            Provision a portal login for a beneficiary.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">
-                        {/* Beneficiary Select */}
                         <div className="space-y-2">
                             <Label htmlFor="beneficiary">Beneficiary</Label>
                             <Select
@@ -347,8 +613,6 @@ export default function UsersPage() {
                                 </SelectContent>
                             </Select>
                         </div>
-
-                        {/* Email */}
                         <div className="space-y-2">
                             <Label htmlFor="email">Email</Label>
                             <Input
@@ -359,8 +623,6 @@ export default function UsersPage() {
                                 placeholder="beneficiary@example.com"
                             />
                         </div>
-
-                        {/* Temporary Password */}
                         <div className="space-y-2">
                             <Label htmlFor="tempPassword">
                                 Temporary Password
@@ -399,8 +661,6 @@ export default function UsersPage() {
                                     </p>
                                 )}
                         </div>
-
-                        {/* Submit */}
                         <div className="flex justify-end gap-2 pt-2">
                             <Button
                                 variant="outline"
@@ -426,7 +686,9 @@ export default function UsersPage() {
                 </DialogContent>
             </Dialog>
 
-            {/* Created Credentials Dialog (shown once after successful creation) */}
+            {/* ================================================================ */}
+            {/* Created Credentials Dialog                                       */}
+            {/* ================================================================ */}
             <Dialog
                 open={!!createdCredentials}
                 onOpenChange={(open) => {
@@ -489,14 +751,157 @@ export default function UsersPage() {
                 </DialogContent>
             </Dialog>
 
-            {/* Reset Password Dialog */}
+            {/* ================================================================ */}
+            {/* Edit User Dialog                                                 */}
+            {/* ================================================================ */}
+            <Dialog
+                open={editDialogOpen}
+                onOpenChange={(open) => {
+                    setEditDialogOpen(open)
+                    if (!open) setSelectedUser(null)
+                }}
+            >
+                <DialogContent className="max-w-sm">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Pencil className="h-5 w-5" />
+                            Edit User
+                        </DialogTitle>
+                        <DialogDescription>
+                            Update details for {displayName(selectedUser)}.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="editName">Name</Label>
+                            <Input
+                                id="editName"
+                                value={editName}
+                                onChange={(e) => setEditName(e.target.value)}
+                                placeholder="Full name"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="editEmail">Email</Label>
+                            <Input
+                                id="editEmail"
+                                type="email"
+                                value={editEmail}
+                                onChange={(e) => setEditEmail(e.target.value)}
+                                placeholder="email@example.com"
+                            />
+                        </div>
+                        <div className="flex justify-end gap-2">
+                            <Button
+                                variant="outline"
+                                onClick={() => setEditDialogOpen(false)}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                onClick={() => {
+                                    if (!selectedUser) return
+                                    updateUserMutation.mutate({
+                                        userId: selectedUser.id,
+                                        ...(editName !==
+                                        (selectedUser.name ?? '')
+                                            ? { name: editName }
+                                            : {}),
+                                        ...(editEmail !== selectedUser.email
+                                            ? { email: editEmail }
+                                            : {}),
+                                    })
+                                }}
+                                disabled={
+                                    updateUserMutation.isPending ||
+                                    (editName === (selectedUser?.name ?? '') &&
+                                        editEmail === selectedUser?.email)
+                                }
+                            >
+                                {updateUserMutation.isPending
+                                    ? 'Saving...'
+                                    : 'Save'}
+                            </Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* ================================================================ */}
+            {/* Change Role Dialog                                               */}
+            {/* ================================================================ */}
+            <Dialog
+                open={roleDialogOpen}
+                onOpenChange={(open) => {
+                    setRoleDialogOpen(open)
+                    if (!open) setSelectedUser(null)
+                }}
+            >
+                <DialogContent className="max-w-sm">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Shield className="h-5 w-5" />
+                            Change Role
+                        </DialogTitle>
+                        <DialogDescription>
+                            Change role for {displayName(selectedUser)}.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <Label>Role</Label>
+                            <Select
+                                value={newRole}
+                                onValueChange={(v) =>
+                                    setNewRole(v as 'admin' | 'user')
+                                }
+                            >
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="admin">Admin</SelectItem>
+                                    <SelectItem value="user">
+                                        User (Beneficiary)
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="flex justify-end gap-2">
+                            <Button
+                                variant="outline"
+                                onClick={() => setRoleDialogOpen(false)}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                onClick={() => {
+                                    if (!selectedUser) return
+                                    setRoleMutation.mutate({
+                                        userId: selectedUser.id,
+                                        role: newRole,
+                                    })
+                                }}
+                                disabled={setRoleMutation.isPending}
+                            >
+                                {setRoleMutation.isPending
+                                    ? 'Updating...'
+                                    : 'Update Role'}
+                            </Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* ================================================================ */}
+            {/* Reset Password Dialog                                            */}
+            {/* ================================================================ */}
             <Dialog
                 open={resetDialogOpen}
                 onOpenChange={(open) => {
                     setResetDialogOpen(open)
                     if (!open) {
-                        setResetUserId(null)
-                        setResetUserName('')
+                        setSelectedUser(null)
                         setNewPassword('')
                         setShowNewPassword(false)
                     }
@@ -509,7 +914,7 @@ export default function UsersPage() {
                             Reset Password
                         </DialogTitle>
                         <DialogDescription>
-                            Set a new password for {resetUserName}.
+                            Set a new password for {displayName(selectedUser)}.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">
@@ -557,7 +962,13 @@ export default function UsersPage() {
                                 Cancel
                             </Button>
                             <Button
-                                onClick={handleResetSubmit}
+                                onClick={() => {
+                                    if (!selectedUser) return
+                                    resetPasswordMutation.mutate({
+                                        userId: selectedUser.id,
+                                        newPassword,
+                                    })
+                                }}
                                 disabled={
                                     newPassword.length < 8 ||
                                     resetPasswordMutation.isPending
@@ -571,6 +982,106 @@ export default function UsersPage() {
                     </div>
                 </DialogContent>
             </Dialog>
+
+            {/* ================================================================ */}
+            {/* Ban User Dialog                                                  */}
+            {/* ================================================================ */}
+            <Dialog
+                open={banDialogOpen}
+                onOpenChange={(open) => {
+                    setBanDialogOpen(open)
+                    if (!open) {
+                        setSelectedUser(null)
+                        setBanReason('')
+                    }
+                }}
+            >
+                <DialogContent className="max-w-sm">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Ban className="h-5 w-5" />
+                            Ban User
+                        </DialogTitle>
+                        <DialogDescription>
+                            Ban {displayName(selectedUser)} from accessing the
+                            application.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="banReason">Reason (optional)</Label>
+                            <Input
+                                id="banReason"
+                                value={banReason}
+                                onChange={(e) => setBanReason(e.target.value)}
+                                placeholder="Reason for ban..."
+                            />
+                        </div>
+                        <div className="flex justify-end gap-2">
+                            <Button
+                                variant="outline"
+                                onClick={() => setBanDialogOpen(false)}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                variant="destructive"
+                                onClick={() => {
+                                    if (!selectedUser) return
+                                    banUserMutation.mutate({
+                                        userId: selectedUser.id,
+                                        banReason: banReason || undefined,
+                                    })
+                                }}
+                                disabled={banUserMutation.isPending}
+                            >
+                                {banUserMutation.isPending
+                                    ? 'Banning...'
+                                    : 'Ban User'}
+                            </Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* ================================================================ */}
+            {/* Delete Confirmation                                              */}
+            {/* ================================================================ */}
+            <ConfirmDialog
+                open={deleteDialogOpen}
+                onOpenChange={(open) => {
+                    setDeleteDialogOpen(open)
+                    if (!open) setSelectedUser(null)
+                }}
+                title="Delete User"
+                description={`Are you sure you want to permanently delete ${displayName(selectedUser)}? This will remove them from both the application and Neon Auth. This action cannot be undone.`}
+                confirmText="Delete"
+                variant="destructive"
+                isLoading={removeUserMutation.isPending}
+                onConfirm={() => {
+                    if (!selectedUser) return
+                    removeUserMutation.mutate({ userId: selectedUser.id })
+                }}
+            />
+
+            {/* ================================================================ */}
+            {/* Revoke Sessions Confirmation                                     */}
+            {/* ================================================================ */}
+            <ConfirmDialog
+                open={revokeDialogOpen}
+                onOpenChange={(open) => {
+                    setRevokeDialogOpen(open)
+                    if (!open) setSelectedUser(null)
+                }}
+                title="Revoke All Sessions"
+                description={`This will force ${displayName(selectedUser)} to log out from all devices. They will need to sign in again.`}
+                confirmText="Revoke Sessions"
+                isLoading={revokeSessionsMutation.isPending}
+                onConfirm={() => {
+                    if (!selectedUser) return
+                    revokeSessionsMutation.mutate({ userId: selectedUser.id })
+                }}
+            />
         </div>
     )
 }

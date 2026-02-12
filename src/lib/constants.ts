@@ -13,6 +13,16 @@ import {
 } from './type-utils'
 
 // =============================================================================
+// AUTH
+// =============================================================================
+
+/**
+ * The trust owner's email address.
+ * This user has elevated privileges for user management.
+ */
+export const OWNER_EMAIL = 'rhudsontspr@gmail.com' as const
+
+// =============================================================================
 // SELECT OPTIONS (derived from schema enums)
 // =============================================================================
 
