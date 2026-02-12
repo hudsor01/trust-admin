@@ -12,7 +12,7 @@ import { TRPCError } from '@trpc/server'
 import { desc, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { OWNER_EMAIL } from '@/lib/constants'
-import { db } from '../../../../db'
+import { db, getPublicDb } from '../../../../db'
 import { createActivityLog } from '../../../../db/queries'
 import { beneficiary, user, userProfile } from '../../../../db/schema'
 import { authServer } from '../../../lib/auth/server'
@@ -272,7 +272,10 @@ export const userManagementRouter = createTRPCRouter({
             }
 
             // Update user table directly (more reliable than admin API proxy)
-            const [updated] = await db
+            // Use publicDb to bypass RLS — the user table is managed by Neon Auth
+            // and RLS policies prevent authenticated users from updating other users
+            const publicDb = getPublicDb()
+            const [updated] = await publicDb
                 .update(user)
                 .set({ ...fields, updatedAt: new Date() })
                 .where(eq(user.id, input.userId))
