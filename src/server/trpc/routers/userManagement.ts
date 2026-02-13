@@ -288,7 +288,7 @@ export const userManagementRouter = createTRPCRouter({
                 setClauses.push(`"email" = $${params.length}`)
             }
             params.push(now)
-            setClauses.push(`"updated_at" = $${params.length}`)
+            setClauses.push(`"updatedAt" = $${params.length}`)
             params.push(input.userId)
 
             const result = (await sql.query(
