@@ -10,8 +10,11 @@
 import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { authServer } from '@/lib/auth'
+import { logger } from '@/lib/logger'
 import { db } from '../../../../db'
 import { beneficiary, hemsRequest, userProfile } from '../../../../db/schema'
+
+const log = logger.create('HemsRequest')
 
 const schema = z.object({
     beneficiaryId: z.coerce.number().positive(),
@@ -101,7 +104,7 @@ export async function submitHemsRequest(
         })
         return { error: null, success: true }
     } catch (e) {
-        console.error('HEMS request submission failed:', e)
+        log.error('HEMS request submission failed', { error: e })
         return {
             error: 'Failed to submit request. Please try again.',
             success: false,

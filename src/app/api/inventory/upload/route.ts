@@ -2,6 +2,9 @@ import { randomUUID } from 'node:crypto'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { type NextRequest, NextResponse } from 'next/server'
+import { logger } from '@/lib/logger'
+
+const log = logger.create('Upload')
 
 const UPLOAD_DIR = join(process.cwd(), 'public', 'uploads', 'inventory')
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
@@ -70,7 +73,7 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json({ success: true, paths })
     } catch (error) {
-        console.error('Upload error:', error)
+        log.error('Upload error', { error })
         return NextResponse.json(
             { success: false, error: 'Upload failed' },
             { status: 500 },

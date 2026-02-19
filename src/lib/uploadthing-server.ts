@@ -1,5 +1,7 @@
 import { UTApi } from 'uploadthing/server'
+import { logger } from '@/lib/logger'
 
+const log = logger.create('UploadThing')
 const utapi = new UTApi()
 
 /**
@@ -31,7 +33,7 @@ export async function uploadInventoryImages(
             if (result.data) {
                 return result.data.ufsUrl
             }
-            console.error('Upload failed for file:', result.error)
+            log.error('Upload failed for file', { error: result.error })
             return null
         })
         .filter((url): url is string => url !== null)

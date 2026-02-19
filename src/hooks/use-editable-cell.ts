@@ -3,6 +3,9 @@
 import * as Sentry from '@sentry/nextjs'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { logger } from '@/lib/logger'
+
+const log = logger.create('EditableCell')
 
 interface UseEditableCellOptions<T> {
     value: T
@@ -92,7 +95,7 @@ export function useEditableCell<T>(
             await onSave(parsed)
             setEditing(false)
         } catch (e) {
-            console.error('Save failed:', e)
+            log.error('Save failed', { error: e })
             toast.error('Failed to save changes')
             Sentry.captureException(e, {
                 tags: { component: 'editable-cell' },

@@ -19,8 +19,11 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { useEditableCell } from '@/hooks/use-editable-cell'
+import { logger } from '@/lib/logger'
 import { cn } from '@/lib/utils'
 import { formatCurrency, formatDate } from '@/utils/formatters'
+
+const log = logger.create('EditableCells')
 
 // =============================================================================
 // EDITABLE TEXT CELL
@@ -190,7 +193,7 @@ export const EditableSelectCell = memo(function EditableSelectCell({
             await onSave(newValue)
             setEditing(false)
         } catch (err) {
-            console.error('Save failed:', err)
+            log.error('Save failed', { error: err })
             toast.error('Failed to save changes')
             Sentry.captureException(err, {
                 tags: { component: 'editable-select-cell' },

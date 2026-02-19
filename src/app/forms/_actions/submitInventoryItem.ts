@@ -1,8 +1,11 @@
 'use server'
 
 import { z } from 'zod'
+import { logger } from '@/lib/logger'
 import { db } from '../../../../db'
 import { pendingInventoryItem } from '../../../../db/schema'
+
+const log = logger.create('Inventory')
 
 const formSchema = z.object({
     name: z.string().min(1, 'Item name is required'),
@@ -128,7 +131,7 @@ export async function submitInventoryItem(
             itemId: item.id,
         }
     } catch (error) {
-        console.error('Failed to create inventory item:', error)
+        log.error('Failed to create inventory item', { error })
         return {
             success: false,
             error: 'Failed to submit item. Please try again.',
