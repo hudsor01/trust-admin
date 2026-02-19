@@ -9,6 +9,7 @@ Trust administration application for managing the Hudson Living Trust. Systemati
 - ✅ **v1.0 Neon Platform Integration** - Phases 1-6 (shipped 2026-01-23)
 - ✅ **v8.0 Public Inventory Form** - Phases 46-48 (shipped 2026-01-22)
 - 🚧 **v9.0 Email/Password Auth Migration** - Phases 49-53 (in progress)
+- 🚧 **v10.0 Production Hardening** - Phase 54 (in progress)
 
 ## Phases
 
@@ -82,10 +83,23 @@ Plans:
 Plans:
 - [ ] 53-01: TBD
 
+### 🚧 v10.0 Production Hardening (In Progress)
+
+**Milestone Goal:** Clean up the codebase for production: structured logging, CSP security header, split 9 god-page files into colocated _components/, add per-route error boundaries, and component tests.
+
+#### Phase 54: codebase-cleanup
+
+**Goal**: Production hardening — logger migration, CSP, page splitting, error boundaries, component tests
+**Depends on**: Nothing (parallel track on chore/codebase-cleanup branch)
+**Plans**: 1
+
+Plans:
+- [ ] 54-01: Full production hardening (in progress)
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 49 → 50 → 51 → 52 → 53
+Phases execute in numeric order: 49 → 50 → 51 → 52 → 53 → 54
 
 | Phase | Milestone | Plans | Status | Completed |
 |-------|-----------|-------|--------|-----------|
@@ -100,3 +114,4 @@ Phases execute in numeric order: 49 → 50 → 51 → 52 → 53
 | 51. admin-user-provisioning | v9.0 | 1/2 | In progress | - |
 | 52. forced-password-change | v9.0 | 0/? | Not started | - |
 | 53. beneficiary-data-isolation | v9.0 | 0/? | Not started | - |
+| 54. codebase-cleanup | v10.0 | 0/1 | In progress | - |
