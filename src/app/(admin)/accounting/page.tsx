@@ -48,10 +48,13 @@ import type {
 } from '@/db/schema'
 import { useEntityFilter } from '@/hooks/use-entity-filter'
 import { useResourceForm } from '@/hooks/use-resource-form'
+import { logger } from '@/lib/logger'
 import { isNegative, subtractMoney, sumStrings } from '@/lib/money'
 import { trpc } from '@/lib/trpc'
 import { cn } from '@/lib/utils'
 import { formatCurrency, formatDate } from '@/utils/formatters'
+
+const log = logger.create('Accounting')
 
 const INCOME_TYPES = [
     { value: 'DIVIDEND', label: 'Dividend' },
@@ -170,7 +173,7 @@ export default function AccountingPage() {
                 bankAccountId: defaultBankAccount.id,
             })
         } catch (error) {
-            console.error('Failed to convert income:', error)
+            log.error('Failed to convert income', { error })
             toast.error('Failed to convert income to principal')
         } finally {
             setConvertingYear(null)
@@ -264,7 +267,7 @@ export default function AccountingPage() {
                 entityId: selectedEntity!,
             })
         } catch (error) {
-            console.error('Failed to delete entry:', error)
+            log.error('Failed to delete entry', { error })
         }
     }
 
@@ -426,7 +429,7 @@ export default function AccountingPage() {
                 reportWindow.document.close()
             }
         } catch (error) {
-            console.error('Failed to generate report:', error)
+            log.error('Failed to generate report', { error })
         } finally {
             setGeneratingReport(false)
         }

@@ -33,6 +33,7 @@ import {
 } from '@/lib/constants'
 import { toDateInput, vehicleFormDefaults } from '@/lib/form-factory'
 import { getFieldError } from '@/lib/form-helpers'
+import { logger } from '@/lib/logger'
 import { sumStrings } from '@/lib/money'
 import { trpc } from '@/lib/trpc'
 import {
@@ -45,6 +46,8 @@ import {
     TITLE_STATUS_VALUES,
 } from '@/lib/type-utils'
 import { formatCurrency } from '@/utils/formatters'
+
+const log = logger.create('Vehicles')
 
 // Derive options from schema enums (single source of truth)
 const TITLE_STATUS = enumToOptions(TITLE_STATUS_VALUES)
@@ -145,7 +148,7 @@ export default function VehiclesPage() {
                     entityId: selectedEntity,
                 })
             } catch (err) {
-                console.error('Failed to delete vehicle:', err)
+                log.error('Failed to delete vehicle', { error: err })
             }
         },
         [deleteVehicleMutation, selectedEntity],
@@ -161,7 +164,7 @@ export default function VehiclesPage() {
                     data: updates,
                 })
             } catch (err) {
-                console.error('Failed to update vehicle:', err)
+                log.error('Failed to update vehicle', { error: err })
             }
         },
         [updateVehicleMutation, selectedEntity],

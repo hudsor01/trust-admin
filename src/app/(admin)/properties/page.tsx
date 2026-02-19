@@ -43,6 +43,7 @@ import {
     TRANSFER_STATUS,
 } from '@/lib/constants'
 import { toDateInput } from '@/lib/form-factory'
+import { logger } from '@/lib/logger'
 import { trpc } from '@/lib/trpc'
 import {
     asPropertyType,
@@ -55,6 +56,8 @@ import {
     RECORD_STATUS_VALUES,
 } from '@/lib/type-utils'
 import { formatCurrency, formatDate } from '@/utils/formatters'
+
+const log = logger.create('Properties')
 
 // Derive options from schema enums (single source of truth)
 const PROPERTY_TYPES = enumToOptions(PROPERTY_TYPE_VALUES)
@@ -424,7 +427,7 @@ export default function PropertiesPage() {
                 entityId: selectedEntity,
             })
         } catch (err) {
-            console.error('Failed to delete homestead:', err)
+            log.error('Failed to delete homestead', { error: err })
         }
     }
 
@@ -438,7 +441,7 @@ export default function PropertiesPage() {
                 entityId: selectedEntity,
             })
         } catch (err) {
-            console.error('Failed to delete rental:', err)
+            log.error('Failed to delete rental', { error: err })
         }
     }
 

@@ -37,6 +37,7 @@ import {
 import { useEntityFilter } from '@/hooks/use-entity-filter'
 import { useResourceForm } from '@/hooks/use-resource-form'
 import { trusteeFormDefaults } from '@/lib/form-factory'
+import { logger } from '@/lib/logger'
 import { trpc } from '@/lib/trpc'
 import {
     asTrusteeStatus,
@@ -44,6 +45,8 @@ import {
     TRUSTEE_STATUS_VALUES,
 } from '@/lib/type-utils'
 import { formatDate } from '@/utils/formatters'
+
+const log = logger.create('Trustees')
 
 type Trustee = {
     id: number
@@ -139,7 +142,7 @@ export default function TrusteesPage() {
                 entityId: selectedEntity!,
             })
         } catch (error) {
-            console.error('Failed to delete trustee:', error)
+            log.error('Failed to delete trustee', { error })
         }
     }
 

@@ -55,6 +55,7 @@ import {
 // import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import type { Beneficiary } from '@/db/schema'
 import { useEntityFilter } from '@/hooks/use-entity-filter'
+import { logger } from '@/lib/logger'
 import { isPositive, sumStrings } from '@/lib/money'
 import { trpc } from '@/lib/trpc'
 import {
@@ -65,6 +66,8 @@ import {
 } from '@/lib/type-utils'
 import { cn } from '@/lib/utils'
 import { calculateAge, formatCurrency, formatDate } from '@/utils/formatters'
+
+const log = logger.create('Beneficiaries')
 
 interface Distribution {
     id: number
@@ -217,7 +220,7 @@ export default function BeneficiariesPage() {
             setSelectedBeneficiary(null)
             // The mutation invalidates the query, so beneficiaries will reload
         } catch (error) {
-            console.error('Failed to mark deceased:', error)
+            log.error('Failed to mark deceased', { error })
             toast.error('Failed to mark beneficiary as deceased')
         }
     }
@@ -268,7 +271,7 @@ export default function BeneficiariesPage() {
                 })
             }
         } catch (error) {
-            console.error('Failed to record distribution:', error)
+            log.error('Failed to record distribution', { error })
             toast.error('Failed to record distribution')
         }
     }

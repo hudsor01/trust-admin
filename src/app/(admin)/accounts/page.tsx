@@ -33,10 +33,13 @@ import {
     investmentAccountFormDefaults,
     toDateInput,
 } from '@/lib/form-factory'
+import { logger } from '@/lib/logger'
 import { sumStrings } from '@/lib/money'
 import { trpc } from '@/lib/trpc'
 import { asRecordStatus, asTransferStatus } from '@/lib/type-utils'
 import { formatCurrency } from '@/utils/formatters'
+
+const log = logger.create('Accounts')
 
 const BANK_ACCOUNT_TYPES = [
     { value: 'CHECKING', label: 'Checking' },
@@ -588,7 +591,7 @@ export default function AccountsPage() {
                 entityId: selectedEntity,
             })
         } catch (err) {
-            console.error('Failed to delete bank account:', err)
+            log.error('Failed to delete bank account', { error: err })
         }
     }
 
@@ -604,7 +607,7 @@ export default function AccountsPage() {
                 entityId: selectedEntity,
             })
         } catch (err) {
-            console.error('Failed to delete investment account:', err)
+            log.error('Failed to delete investment account', { error: err })
         }
     }
 

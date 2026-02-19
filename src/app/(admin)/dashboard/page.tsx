@@ -67,6 +67,7 @@ import {
 import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
+import { logger } from '@/lib/logger'
 import { isNegative, isPositive, subtractMoney, sumStrings } from '@/lib/money'
 import { trpc } from '@/lib/trpc'
 import { cn } from '@/lib/utils'
@@ -76,6 +77,8 @@ import {
     formatDate,
     getWithdrawalStatus,
 } from '@/utils/formatters'
+
+const log = logger.create('Dashboard')
 
 const CATEGORIES = [
     { value: 'INVENTORY', label: 'Inventory & Documentation' },
@@ -202,7 +205,7 @@ export default function DashboardPage() {
                     data: { completed: !task.completed },
                 })
             } catch (error) {
-                console.error('Failed to update task:', error)
+                log.error('Failed to update task', { error })
                 toast.error('Failed to update task')
                 // Revert optimistic state by re-fetching real data
                 utils.task.list.invalidate()
@@ -222,7 +225,7 @@ export default function DashboardPage() {
             })
             setNewTaskTitle('')
         } catch (error) {
-            console.error('Failed to add task:', error)
+            log.error('Failed to add task', { error })
         }
     }, [
         newTaskTitle,
@@ -239,7 +242,7 @@ export default function DashboardPage() {
                     data: { notes },
                 })
             } catch (error) {
-                console.error('Failed to update notes:', error)
+                log.error('Failed to update notes', { error })
             }
         },
         [updateTaskMutation],

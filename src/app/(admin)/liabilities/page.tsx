@@ -58,6 +58,7 @@ import {
 } from '@/lib/amortization'
 import { STATUS_VARIANTS } from '@/lib/constants'
 import { toDateInput } from '@/lib/form-factory'
+import { logger } from '@/lib/logger'
 import { sumStrings } from '@/lib/money'
 import { trpc } from '@/lib/trpc'
 import {
@@ -70,6 +71,8 @@ import {
     RECORD_STATUS_VALUES,
 } from '@/lib/type-utils'
 import { formatCurrency } from '@/utils/formatters'
+
+const log = logger.create('Liabilities')
 
 // Derive options from schema enums (single source of truth)
 const LIABILITY_TYPES = enumToOptions(LIABILITY_TYPE_VALUES)
@@ -644,7 +647,7 @@ export default function LiabilitiesPage() {
                 entityId: selectedEntity!,
             })
         } catch (err) {
-            console.error('Failed to delete liability:', err)
+            log.error('Failed to delete liability', { error: err })
         }
     }
 

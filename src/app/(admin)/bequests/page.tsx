@@ -38,8 +38,11 @@ import type { SpecificBequest } from '@/db/schema'
 import { useCrudMutations } from '@/hooks/use-crud-mutations'
 import { useEntityFilter } from '@/hooks/use-entity-filter'
 import { useResourceForm } from '@/hooks/use-resource-form'
+import { logger } from '@/lib/logger'
 import { trpc } from '@/lib/trpc'
 import { formatDate } from '@/utils/formatters'
+
+const log = logger.create('Bequests')
 
 const BEQUEST_CATEGORIES = [
     { value: 'PET', label: 'Pet' },
@@ -143,7 +146,7 @@ export default function BequestsPage() {
                 entityId: selectedEntity!,
             })
         } catch (error) {
-            console.error('Failed to delete bequest:', error)
+            log.error('Failed to delete bequest', { error })
         }
     }
 
@@ -166,7 +169,7 @@ export default function BequestsPage() {
                 data: { dateDistributed: new Date().toISOString() },
             })
         } catch (error) {
-            console.error('Failed to mark as distributed:', error)
+            log.error('Failed to mark as distributed', { error })
         }
     }
 
