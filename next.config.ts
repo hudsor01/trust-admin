@@ -11,11 +11,6 @@ const securityHeaders = [
         value: 'nosniff',
     },
     {
-        // Prevent clickjacking
-        key: 'X-Frame-Options',
-        value: 'DENY',
-    },
-    {
         // Disable XSS filter (modern browsers don't need it, can cause issues)
         key: 'X-XSS-Protection',
         value: '0',
@@ -29,6 +24,22 @@ const securityHeaders = [
         // Permissions Policy (formerly Feature-Policy)
         key: 'Permissions-Policy',
         value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()',
+    },
+    {
+        // Content Security Policy (supersedes X-Frame-Options via frame-ancestors)
+        key: 'Content-Security-Policy',
+        value: [
+            "default-src 'self'",
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+            "style-src 'self' 'unsafe-inline'",
+            "img-src 'self' data: blob: https://utfs.io https://*.ufs.sh",
+            "font-src 'self'",
+            "connect-src 'self' https://*.ingest.sentry.io https://*.neon.tech wss://*.neon.tech",
+            "frame-ancestors 'none'",
+            "object-src 'none'",
+            "base-uri 'self'",
+            "form-action 'self'",
+        ].join('; '),
     },
 ]
 
