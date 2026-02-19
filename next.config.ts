@@ -41,9 +41,7 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 const nextConfig: NextConfig = {
-    // Temporarily disable React Strict Mode to avoid Radix UI + React 19 compatibility issue
-    // See: https://github.com/radix-ui/primitives/issues/3675
-    reactStrictMode: false,
+    reactStrictMode: true,
 
     // Native Node.js packages that should not be bundled by the serverless bundler
     serverExternalPackages: ['sharp'],
