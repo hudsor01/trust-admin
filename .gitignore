@@ -2,11 +2,8 @@
 node_modules
 .serena/
 .claude/
-
 config/
 public/
-
-
 
 # output
 out
@@ -14,7 +11,6 @@ dist
 .next
 *.tgz
 docs/
-.env.example
 
 
 # code coverage
@@ -39,16 +35,9 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 .cache
 *.tsbuildinfo
 
-# IntelliJ based IDEs
-.idea
-
 # Finder (MacOS) folder config
 .DS_Store
-
 /generated/prisma
-
-# Database backups stored on Desktop (iCloud synced)
-# /Users/richard/Desktop/trust-admin-backups/
 
 # Docker secrets - NEVER commit these
 /secrets/*
@@ -57,4 +46,6 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 # Planning files - private development notes
 .vercel
 .vercel/
-.env*.local
+
+# Git worktrees
+.worktrees/
