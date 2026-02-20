@@ -25,9 +25,7 @@ const envSchema = z.object({
         .default('development'),
 
     // Logging
-    LOG_LEVEL: z
-        .enum(['debug', 'info', 'warn', 'error'])
-        .default('info'),
+    LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
 
     // AI — inventory image analysis (optional)
     ANTHROPIC_API_KEY: z.string().optional(),
