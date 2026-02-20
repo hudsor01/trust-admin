@@ -48,19 +48,22 @@ test.describe('Sign-in page', () => {
     })
 })
 
-test.describe('Deleted stale routes return 404', () => {
-    test('/login returns 404', async ({ page }) => {
-        const response = await page.goto('/login')
-        expect(response?.status()).toBe(404)
+// These stale routes were deleted. The proxy intercepts all unauthenticated
+// requests and redirects to /auth/sign-in, so deleted routes still redirect
+// rather than 404. This confirms no stale page content is served.
+test.describe('Deleted stale routes redirect to canonical sign-in', () => {
+    test('/login redirects to /auth/sign-in (no stale page)', async ({ page }) => {
+        await page.goto('/login')
+        await expect(page).toHaveURL(/\/auth\/sign-in/)
     })
 
-    test('/portal/login returns 404', async ({ page }) => {
-        const response = await page.goto('/portal/login')
-        expect(response?.status()).toBe(404)
+    test('/portal/login redirects to /auth/sign-in (no stale page)', async ({ page }) => {
+        await page.goto('/portal/login')
+        await expect(page).toHaveURL(/\/auth\/sign-in/)
     })
 
-    test('/account/sign-in returns 404', async ({ page }) => {
-        const response = await page.goto('/account/sign-in')
-        expect(response?.status()).toBe(404)
+    test('/account/sign-in redirects to /auth/sign-in (no stale page)', async ({ page }) => {
+        await page.goto('/account/sign-in')
+        await expect(page).toHaveURL(/\/auth\/sign-in/)
     })
 })
