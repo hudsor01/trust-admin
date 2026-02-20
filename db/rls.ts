@@ -1,8 +1,17 @@
 /**
  * Row-Level Security (RLS) Patterns
  *
- * This file documents RLS patterns for future multi-tenant or role-based access.
- * Currently not implemented, but provides a reference for future use.
+ * Policies are ACTIVE on: beneficiary, distribution, hems_request, withdrawal_record
+ * Applied via: db/migrations/add-rls-helpers.sql + db/migrations/add-rls-policies.sql
+ *
+ * How it works:
+ * - tRPC context fetches JWT → setRequestAuthToken() → Neon Authorize validates JWT
+ * - Queries run as `authenticated` role → app.is_admin() / app.get_user_beneficiary_id() used in policies
+ * - getPublicDb() / neondb_owner → BYPASSRLS (admin system queries, bootstrap)
+ *
+ * Two-layer isolation:
+ * 1. Application layer — all beneficiaryProcedure queries scope by ctx.user.beneficiaryId
+ * 2. Database layer — these RLS policies as a backstop (defense in depth)
  *
  * @see https://orm.drizzle.team/docs/rls
  */
