@@ -1,26 +1,10 @@
 'use client'
 
-import type { ColumnDef } from '@tanstack/react-table'
-import { AlertCircle, Plus } from 'lucide-react'
+import { AlertCircle } from 'lucide-react'
 import { useState } from 'react'
-import { z } from 'zod'
-import { EditableTextCell } from '@/components/editable-cells'
-import { ResourceDialog } from '@/components/resource-dialog'
 import { SummaryCard } from '@/components/summary-card'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card'
-import { DataTable } from '@/components/ui/data-table'
-import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import {
     Select,
     SelectContent,
@@ -29,74 +13,19 @@ import {
     SelectValue,
 } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Textarea } from '@/components/ui/textarea'
-import type { Beneficiary, Distribution, WithdrawalRecord } from '@/db/schema'
+import type { Distribution, WithdrawalRecord } from '@/db/schema'
 import { useEntityFilter } from '@/hooks/use-entity-filter'
 import { useResourceForm } from '@/hooks/use-resource-form'
 import { addMoney, sumStrings } from '@/lib/money'
 import { trpc } from '@/lib/trpc'
-import {
-    asPaymentMethod,
-    enumToOptions,
-    PAYMENT_METHOD_VALUES,
-} from '@/lib/type-utils'
-import { cn } from '@/lib/utils'
-import {
-    calculateAge,
-    formatCurrency,
-    formatDate,
-    getWithdrawalStatus,
-} from '@/utils/formatters'
-
-interface GrandchildWithdrawal {
-    beneficiary: Beneficiary
-    age25: WithdrawalRecord | null
-    age30: WithdrawalRecord | null
-}
-
-// HEMS categories with descriptions (not a schema enum, kept as constant)
-const HEMS_CATEGORIES = [
-    {
-        value: 'HEALTH',
-        label: 'Health',
-        description: 'Medical expenses, insurance, treatments',
-    },
-    {
-        value: 'EDUCATION',
-        label: 'Education',
-        description: 'Tuition, books, educational programs',
-    },
-    {
-        value: 'MAINTENANCE',
-        label: 'Maintenance',
-        description: 'Living expenses, housing, utilities',
-    },
-    {
-        value: 'SUPPORT',
-        label: 'Support',
-        description: 'General support and welfare',
-    },
-]
-
-// Derive from schema - filter to common payment methods
-const PAYMENT_METHODS = enumToOptions(PAYMENT_METHOD_VALUES, (v) =>
-    ['CHECK', 'ACH', 'WIRE'].includes(v),
-)
-
-const _hemsFormSchema = z.object({
-    beneficiaryId: z.string().min(1, 'Beneficiary is required'),
-    amount: z.string().min(1, 'Amount is required'),
-    hemsCategory: z.string(),
-    hemsJustification: z.string().min(1, 'Justification is required'),
-    paymentMethod: z.string(),
-    notes: z.string().optional(),
-})
-
-const _withdrawalFormSchema = z.object({
-    amount: z.string().min(1, 'Amount is required'),
-    paymentMethod: z.string(),
-    notes: z.string().optional(),
-})
+import { asPaymentMethod } from '@/lib/type-utils'
+import { formatCurrency, getWithdrawalStatus } from '@/utils/formatters'
+import { HemsDialog } from './_components/HemsDialog'
+import { HemsTable } from './_components/HemsTable'
+import { HistoryTable } from './_components/HistoryTable'
+import { WithdrawalDialog } from './_components/WithdrawalDialog'
+import { WithdrawalsTable } from './_components/WithdrawalsTable'
+import type { WithdrawalRow } from './_components/WithdrawalsTable'
 
 export default function DistributionsPage() {
     const utils = trpc.useUtils()
@@ -285,20 +214,7 @@ export default function DistributionsPage() {
             })
         }
         return acc
-    }, [] as GrandchildWithdrawal[])
-
-    const getStatusVariant = (
-        status: string,
-    ): 'default' | 'secondary' | 'destructive' | 'outline' => {
-        switch (status) {
-            case 'ELIGIBLE':
-                return 'default'
-            case 'COMPLETE':
-                return 'secondary'
-            default:
-                return 'outline'
-        }
-    }
+    }, [] as WithdrawalRow[])
 
     const hemsDistributions = distributions.filter(
         (d) => d.hemsCategory && !d.isWithdrawal,
@@ -314,282 +230,6 @@ export default function DistributionsPage() {
         hemsTotalDistributed,
         withdrawalsTotalProcessed,
     )
-
-    const hemsColumns: ColumnDef<Distribution>[] = [
-        {
-            accessorKey: 'distributionDate',
-            header: ({ column }) => (
-                <DataTableColumnHeader column={column} title="Date" />
-            ),
-            cell: ({ row }) => formatDate(row.original.distributionDate),
-        },
-        {
-            accessorKey: 'beneficiaryId',
-            header: ({ column }) => (
-                <DataTableColumnHeader column={column} title="Beneficiary" />
-            ),
-            cell: ({ row }) => {
-                const beneficiary = beneficiaries.find(
-                    (b) => b.id === row.original.beneficiaryId,
-                )
-                return beneficiary
-                    ? `${beneficiary.firstName} ${beneficiary.lastName}`
-                    : '—'
-            },
-        },
-        {
-            accessorKey: 'hemsCategory',
-            header: ({ column }) => (
-                <DataTableColumnHeader column={column} title="Category" />
-            ),
-            cell: ({ row }) => (
-                <Badge variant="secondary">{row.original.hemsCategory}</Badge>
-            ),
-        },
-        {
-            accessorKey: 'amount',
-            header: ({ column }) => (
-                <DataTableColumnHeader column={column} title="Amount" />
-            ),
-            cell: ({ row }) => (
-                <span className="font-medium">
-                    {formatCurrency(row.original.amount)}
-                </span>
-            ),
-        },
-        {
-            accessorKey: 'hemsJustification',
-            header: 'Justification',
-            cell: ({ row }) => (
-                <span className="text-muted-foreground">
-                    {row.original.hemsJustification || '—'}
-                </span>
-            ),
-        },
-    ]
-
-    const historyColumns: ColumnDef<Distribution>[] = [
-        {
-            accessorKey: 'distributionDate',
-            header: ({ column }) => (
-                <DataTableColumnHeader column={column} title="Date" />
-            ),
-            cell: ({ row }) => formatDate(row.original.distributionDate),
-        },
-        {
-            accessorKey: 'beneficiaryId',
-            header: ({ column }) => (
-                <DataTableColumnHeader column={column} title="Beneficiary" />
-            ),
-            cell: ({ row }) => {
-                const beneficiary = beneficiaries.find(
-                    (b) => b.id === row.original.beneficiaryId,
-                )
-                return beneficiary
-                    ? `${beneficiary.firstName} ${beneficiary.lastName}`
-                    : '—'
-            },
-        },
-        {
-            accessorKey: 'distributionType',
-            header: ({ column }) => (
-                <DataTableColumnHeader column={column} title="Type" />
-            ),
-            cell: ({ row }) => (
-                <Badge
-                    variant={
-                        row.original.isWithdrawal ? 'default' : 'secondary'
-                    }
-                    className={cn(
-                        row.original.isWithdrawal &&
-                            'bg-violet-100 text-violet-800 dark:bg-violet-900 dark:text-violet-100',
-                    )}
-                >
-                    {row.original.isWithdrawal
-                        ? 'Withdrawal'
-                        : row.original.hemsCategory ||
-                          row.original.distributionType}
-                </Badge>
-            ),
-        },
-        {
-            accessorKey: 'amount',
-            header: ({ column }) => (
-                <DataTableColumnHeader column={column} title="Amount" />
-            ),
-            cell: ({ row }) => (
-                <span className="font-medium">
-                    {formatCurrency(row.original.amount)}
-                </span>
-            ),
-        },
-        {
-            accessorKey: 'paymentMethod',
-            header: 'Method',
-            cell: ({ row }) => row.original.paymentMethod,
-        },
-        {
-            accessorKey: 'notes',
-            header: 'Notes',
-            cell: ({ row }) => (
-                <EditableTextCell
-                    value={row.original.notes}
-                    onSave={async (val) => {
-                        await updateDistribution(row.original.id, {
-                            notes: val,
-                        })
-                    }}
-                />
-            ),
-        },
-    ]
-
-    type WithdrawalRow = {
-        beneficiary: Beneficiary
-        age25: WithdrawalRecord | null
-        age30: WithdrawalRecord | null
-    }
-    const withdrawalColumns: ColumnDef<WithdrawalRow>[] = [
-        {
-            id: 'beneficiary',
-            header: ({ column }) => (
-                <DataTableColumnHeader column={column} title="Beneficiary" />
-            ),
-            cell: ({ row }) => (
-                <span className="font-medium">
-                    {row.original.beneficiary.firstName}{' '}
-                    {row.original.beneficiary.lastName}
-                </span>
-            ),
-        },
-        {
-            id: 'age',
-            header: ({ column }) => (
-                <DataTableColumnHeader column={column} title="Age" />
-            ),
-            cell: ({ row }) =>
-                row.original.beneficiary.dob
-                    ? calculateAge(row.original.beneficiary.dob)
-                    : '—',
-        },
-        {
-            id: 'share',
-            header: ({ column }) => (
-                <DataTableColumnHeader column={column} title="Share" />
-            ),
-            cell: ({ row }) => `${row.original.beneficiary.sharePercent}%`,
-        },
-        {
-            id: 'age25',
-            header: 'Age 25 (50%)',
-            cell: ({ row }) => {
-                if (!row.original.age25) return '—'
-                const status = getWithdrawalStatus(
-                    row.original.age25.eligibleDate,
-                )
-                return (
-                    <div className="flex items-center gap-2">
-                        <Badge
-                            variant={
-                                row.original.age25.status === 'COMPLETE'
-                                    ? 'secondary'
-                                    : getStatusVariant(status?.status || '')
-                            }
-                            className={cn(
-                                row.original.age25.status !== 'COMPLETE' &&
-                                    status?.isEligible &&
-                                    'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100',
-                            )}
-                        >
-                            {row.original.age25.status === 'COMPLETE'
-                                ? 'WITHDRAWN'
-                                : status?.status}
-                        </Badge>
-                        <span className="text-xs text-muted-foreground">
-                            {formatDate(row.original.age25.eligibleDate)}
-                        </span>
-                    </div>
-                )
-            },
-        },
-        {
-            id: 'age30',
-            header: 'Age 30 (50%)',
-            cell: ({ row }) => {
-                if (!row.original.age30) return '—'
-                const status = getWithdrawalStatus(
-                    row.original.age30.eligibleDate,
-                )
-                return (
-                    <div className="flex items-center gap-2">
-                        <Badge
-                            variant={
-                                row.original.age30.status === 'COMPLETE'
-                                    ? 'secondary'
-                                    : getStatusVariant(status?.status || '')
-                            }
-                            className={cn(
-                                row.original.age30.status !== 'COMPLETE' &&
-                                    status?.isEligible &&
-                                    'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100',
-                            )}
-                        >
-                            {row.original.age30.status === 'COMPLETE'
-                                ? 'WITHDRAWN'
-                                : status?.status}
-                        </Badge>
-                        <span className="text-xs text-muted-foreground">
-                            {formatDate(row.original.age30.eligibleDate)}
-                        </span>
-                    </div>
-                )
-            },
-        },
-        {
-            id: 'actions',
-            header: 'Actions',
-            cell: ({ row }) => {
-                const age25Status = row.original.age25
-                    ? getWithdrawalStatus(row.original.age25.eligibleDate)
-                    : null
-                const age30Status = row.original.age30
-                    ? getWithdrawalStatus(row.original.age30.eligibleDate)
-                    : null
-                return (
-                    <div className="flex gap-2">
-                        {row.original.age25 &&
-                            age25Status?.isEligible &&
-                            row.original.age25.status !== 'COMPLETE' && (
-                                <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="border-green-300 text-green-700 hover:bg-green-50 dark:border-green-700 dark:text-green-300"
-                                    onClick={() =>
-                                        openWithdrawalForm(row.original.age25!)
-                                    }
-                                >
-                                    Process 25
-                                </Button>
-                            )}
-                        {row.original.age30 &&
-                            age30Status?.isEligible &&
-                            row.original.age30.status !== 'COMPLETE' && (
-                                <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="border-green-300 text-green-700 hover:bg-green-50 dark:border-green-700 dark:text-green-300"
-                                    onClick={() =>
-                                        openWithdrawalForm(row.original.age30!)
-                                    }
-                                >
-                                    Process 30
-                                </Button>
-                            )}
-                    </div>
-                )
-            },
-        },
-    ]
 
     return (
         <div className="space-y-6">
@@ -679,364 +319,58 @@ export default function DistributionsPage() {
                     </TabsTrigger>
                 </TabsList>
 
-                {/* HEMS Tab */}
                 <TabsContent value="hems" className="space-y-4">
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-                            <div>
-                                <CardTitle className="text-lg">
-                                    HEMS Distribution Request
-                                </CardTitle>
-                                <CardDescription>
-                                    Health, Education, Maintenance, and Support
-                                    distributions
-                                </CardDescription>
-                            </div>
-                            <Button
-                                onClick={() => hemsForm.open()}
-                                disabled={!selectedEntity}
-                            >
-                                <Plus className="mr-2 h-4 w-4" />
-                                New HEMS Request
-                            </Button>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                                {HEMS_CATEGORIES.map((cat) => (
-                                    <Card
-                                        key={cat.value}
-                                        className="bg-muted/50"
-                                    >
-                                        <CardContent className="p-4">
-                                            <p className="font-medium">
-                                                {cat.label}
-                                            </p>
-                                            <p className="text-xs text-muted-foreground">
-                                                {cat.description}
-                                            </p>
-                                        </CardContent>
-                                    </Card>
-                                ))}
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    {/* Recent HEMS Distributions */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-lg">
-                                Recent HEMS Distributions
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <DataTable
-                                data={hemsDistributions.slice(0, 10)}
-                                columns={hemsColumns}
-                                isLoading={loading}
-                                emptyMessage="No HEMS distributions recorded"
-                            />
-                        </CardContent>
-                    </Card>
+                    <HemsTable
+                        hemsDistributions={hemsDistributions}
+                        beneficiaries={beneficiaries}
+                        isLoading={loading}
+                        selectedEntity={selectedEntity}
+                        onNewRequest={() => hemsForm.open()}
+                    />
                 </TabsContent>
 
-                {/* Withdrawals Tab */}
                 <TabsContent value="withdrawals">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-lg">
-                                Grandchild Age-Based Withdrawals
-                            </CardTitle>
-                            <CardDescription>
-                                Per trust terms: 50% at age 25, remaining 50% at
-                                age 30
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <DataTable
-                                data={grandchildrenWithdrawals}
-                                columns={withdrawalColumns}
-                                isLoading={loading}
-                                emptyMessage="No grandchild withdrawal schedules found."
-                            />
-                        </CardContent>
-                    </Card>
+                    <WithdrawalsTable
+                        grandchildrenWithdrawals={grandchildrenWithdrawals}
+                        isLoading={loading}
+                        onProcessWithdrawal={openWithdrawalForm}
+                    />
                 </TabsContent>
 
-                {/* History Tab */}
                 <TabsContent value="history">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-lg">
-                                All Distributions
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <DataTable
-                                data={distributions}
-                                columns={historyColumns}
-                                isLoading={loading}
-                                emptyMessage="No distributions recorded"
-                            />
-                        </CardContent>
-                    </Card>
+                    <HistoryTable
+                        distributions={distributions}
+                        beneficiaries={beneficiaries}
+                        isLoading={loading}
+                        onUpdateDistribution={updateDistribution}
+                    />
                 </TabsContent>
             </Tabs>
 
             {/* HEMS Request Modal */}
-            <ResourceDialog
-                open={hemsForm.isOpen}
+            <HemsDialog
+                isOpen={hemsForm.isOpen}
+                isSubmitting={hemsForm.isSubmitting}
+                hemsBeneficiaries={hemsBeneficiaries}
                 onOpenChange={hemsForm.close}
-                title="New HEMS Distribution Request"
                 onSubmit={hemsForm.handleSave}
-                isLoading={hemsForm.isSubmitting}
-            >
-                <div className="space-y-4">
-                    <hemsFormInstance.Field name="beneficiaryId">
-                        {(field) => (
-                            <div className="space-y-2">
-                                <Label>Beneficiary *</Label>
-                                <Select
-                                    value={field.state.value}
-                                    onValueChange={(v) => field.handleChange(v)}
-                                >
-                                    <SelectTrigger onBlur={field.handleBlur}>
-                                        <SelectValue placeholder="Select beneficiary" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {hemsBeneficiaries.map((b) => (
-                                            <SelectItem
-                                                key={b.id}
-                                                value={b.id.toString()}
-                                            >
-                                                {b.firstName} {b.lastName}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                {field.state.meta.errors?.[0] && (
-                                    <p className="text-sm text-destructive">
-                                        {field.state.meta.errors[0]}
-                                    </p>
-                                )}
-                            </div>
-                        )}
-                    </hemsFormInstance.Field>
-
-                    <hemsFormInstance.Field name="hemsCategory">
-                        {(field) => (
-                            <div className="space-y-2">
-                                <Label>HEMS Category</Label>
-                                <Select
-                                    value={field.state.value}
-                                    onValueChange={(v) => field.handleChange(v)}
-                                >
-                                    <SelectTrigger onBlur={field.handleBlur}>
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {HEMS_CATEGORIES.map((cat) => (
-                                            <SelectItem
-                                                key={cat.value}
-                                                value={cat.value}
-                                            >
-                                                {cat.label}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        )}
-                    </hemsFormInstance.Field>
-
-                    <hemsFormInstance.Field name="amount">
-                        {(field) => (
-                            <div className="space-y-2">
-                                <Label>Amount *</Label>
-                                <Input
-                                    type="text"
-                                    placeholder="$0.00"
-                                    value={field.state.value}
-                                    onChange={(e) =>
-                                        field.handleChange(e.target.value)
-                                    }
-                                    onBlur={field.handleBlur}
-                                />
-                                {field.state.meta.errors?.[0] && (
-                                    <p className="text-sm text-destructive">
-                                        {field.state.meta.errors[0]}
-                                    </p>
-                                )}
-                            </div>
-                        )}
-                    </hemsFormInstance.Field>
-
-                    <hemsFormInstance.Field name="hemsJustification">
-                        {(field) => (
-                            <div className="space-y-2">
-                                <Label>Justification *</Label>
-                                <Textarea
-                                    placeholder="Explain why this distribution qualifies under HEMS..."
-                                    value={field.state.value}
-                                    onChange={(e) =>
-                                        field.handleChange(e.target.value)
-                                    }
-                                    onBlur={field.handleBlur}
-                                    rows={3}
-                                />
-                                {field.state.meta.errors?.[0] && (
-                                    <p className="text-sm text-destructive">
-                                        {field.state.meta.errors[0]}
-                                    </p>
-                                )}
-                            </div>
-                        )}
-                    </hemsFormInstance.Field>
-
-                    <hemsFormInstance.Field name="paymentMethod">
-                        {(field) => (
-                            <div className="space-y-2">
-                                <Label>Payment Method</Label>
-                                <Select
-                                    value={field.state.value}
-                                    onValueChange={(v) => field.handleChange(v)}
-                                >
-                                    <SelectTrigger onBlur={field.handleBlur}>
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {PAYMENT_METHODS.map((pm) => (
-                                            <SelectItem
-                                                key={pm.value}
-                                                value={pm.value}
-                                            >
-                                                {pm.label}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        )}
-                    </hemsFormInstance.Field>
-
-                    <hemsFormInstance.Field name="notes">
-                        {(field) => (
-                            <div className="space-y-2">
-                                <Label>Additional Notes</Label>
-                                <Textarea
-                                    placeholder="Optional notes..."
-                                    value={field.state.value || ''}
-                                    onChange={(e) =>
-                                        field.handleChange(e.target.value)
-                                    }
-                                    onBlur={field.handleBlur}
-                                />
-                            </div>
-                        )}
-                    </hemsFormInstance.Field>
-                </div>
-            </ResourceDialog>
+                formInstance={hemsFormInstance}
+            />
 
             {/* Withdrawal Processing Modal */}
-            <ResourceDialog
-                open={withdrawalForm.isOpen}
+            <WithdrawalDialog
+                isOpen={withdrawalForm.isOpen}
+                isSubmitting={withdrawalForm.isSubmitting}
+                selectedWithdrawal={selectedWithdrawal}
                 onOpenChange={(open) => {
                     if (!open) {
                         withdrawalForm.close()
                         setSelectedWithdrawal(null)
                     }
                 }}
-                title={
-                    selectedWithdrawal
-                        ? `Process ${selectedWithdrawal?.withdrawalType === 'AGE_25' ? 'Age 25' : 'Age 30'} Withdrawal`
-                        : 'Process Withdrawal'
-                }
                 onSubmit={withdrawalForm.handleSave}
-                isLoading={withdrawalForm.isSubmitting}
-            >
-                {selectedWithdrawal && (
-                    <div className="space-y-4">
-                        <Alert>
-                            <AlertCircle className="h-4 w-4" />
-                            <AlertDescription>
-                                Processing{' '}
-                                {selectedWithdrawal?.withdrawalType === 'AGE_25'
-                                    ? '50%'
-                                    : '50%'}{' '}
-                                withdrawal for beneficiary. Eligible since:{' '}
-                                {formatDate(selectedWithdrawal?.eligibleDate)}
-                            </AlertDescription>
-                        </Alert>
-
-                        <withdrawalFormInstance.Field name="amount">
-                            {(field) => (
-                                <div className="space-y-2">
-                                    <Label>Withdrawal Amount *</Label>
-                                    <Input
-                                        type="text"
-                                        placeholder="$0.00"
-                                        value={field.state.value}
-                                        onChange={(e) =>
-                                            field.handleChange(e.target.value)
-                                        }
-                                        onBlur={field.handleBlur}
-                                    />
-                                    {field.state.meta.errors?.[0] && (
-                                        <p className="text-sm text-destructive">
-                                            {field.state.meta.errors[0]}
-                                        </p>
-                                    )}
-                                </div>
-                            )}
-                        </withdrawalFormInstance.Field>
-
-                        <withdrawalFormInstance.Field name="paymentMethod">
-                            {(field) => (
-                                <div className="space-y-2">
-                                    <Label>Payment Method</Label>
-                                    <Select
-                                        value={field.state.value}
-                                        onValueChange={(v) =>
-                                            field.handleChange(v)
-                                        }
-                                    >
-                                        <SelectTrigger
-                                            onBlur={field.handleBlur}
-                                        >
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {PAYMENT_METHODS.map((pm) => (
-                                                <SelectItem
-                                                    key={pm.value}
-                                                    value={pm.value}
-                                                >
-                                                    {pm.label}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            )}
-                        </withdrawalFormInstance.Field>
-
-                        <withdrawalFormInstance.Field name="notes">
-                            {(field) => (
-                                <div className="space-y-2">
-                                    <Label>Notes</Label>
-                                    <Textarea
-                                        placeholder="Optional notes..."
-                                        value={field.state.value || ''}
-                                        onChange={(e) =>
-                                            field.handleChange(e.target.value)
-                                        }
-                                        onBlur={field.handleBlur}
-                                    />
-                                </div>
-                            )}
-                        </withdrawalFormInstance.Field>
-                    </div>
-                )}
-            </ResourceDialog>
+                formInstance={withdrawalFormInstance}
+            />
         </div>
     )
 }
