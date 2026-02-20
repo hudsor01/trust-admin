@@ -419,6 +419,11 @@ export const userManagementRouter = createTRPCRouter({
                 })
             }
 
+            await db
+                .update(userProfile)
+                .set({ forcePasswordChange: true, updatedAt: new Date() })
+                .where(eq(userProfile.userId, input.userId))
+
             await createActivityLog({
                 tableName: 'user',
                 recordId: input.userId,
