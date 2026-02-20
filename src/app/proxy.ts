@@ -33,10 +33,15 @@ export async function proxy(request: NextRequest) {
         (path) => pathname === path || pathname.startsWith(`${path}/`),
     )
 
+    // Inject x-pathname into the REQUEST headers so Server Components
+    // can read it via headers(). Response headers are NOT visible to
+    // Server Components — only request headers are.
+    const requestHeaders = new Headers(request.headers)
+    requestHeaders.set('x-pathname', pathname)
+    const nextConfig = { request: { headers: requestHeaders } }
+
     if (isPublicPath) {
-        const response = NextResponse.next()
-        response.headers.set('x-pathname', pathname)
-        return response
+        return NextResponse.next(nextConfig)
     }
 
     // Check for session cookie (optimistic check)
@@ -50,9 +55,7 @@ export async function proxy(request: NextRequest) {
         if (!sessionCookie) {
             return NextResponse.redirect(new URL('/portal/login', request.url))
         }
-        const response = NextResponse.next()
-        response.headers.set('x-pathname', pathname)
-        return response
+        return NextResponse.next(nextConfig)
     }
 
     // Admin routes - require session (role check done in pages)
@@ -60,9 +63,7 @@ export async function proxy(request: NextRequest) {
         return NextResponse.redirect(new URL('/login', request.url))
     }
 
-    const response = NextResponse.next()
-    response.headers.set('x-pathname', pathname)
-    return response
+    return NextResponse.next(nextConfig)
 }
 
 export const config = {
