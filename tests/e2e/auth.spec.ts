@@ -52,17 +52,23 @@ test.describe('Sign-in page', () => {
 // requests and redirects to /auth/sign-in, so deleted routes still redirect
 // rather than 404. This confirms no stale page content is served.
 test.describe('Deleted stale routes redirect to canonical sign-in', () => {
-    test('/login redirects to /auth/sign-in (no stale page)', async ({ page }) => {
+    test('/login redirects to /auth/sign-in (no stale page)', async ({
+        page,
+    }) => {
         await page.goto('/login')
         await expect(page).toHaveURL(/\/auth\/sign-in/)
     })
 
-    test('/portal/login redirects to /auth/sign-in (no stale page)', async ({ page }) => {
+    test('/portal/login redirects to /auth/sign-in (no stale page)', async ({
+        page,
+    }) => {
         await page.goto('/portal/login')
         await expect(page).toHaveURL(/\/auth\/sign-in/)
     })
 
-    test('/account/sign-in redirects to /auth/sign-in (no stale page)', async ({ page }) => {
+    test('/account/sign-in redirects to /auth/sign-in (no stale page)', async ({
+        page,
+    }) => {
         await page.goto('/account/sign-in')
         await expect(page).toHaveURL(/\/auth\/sign-in/)
     })
