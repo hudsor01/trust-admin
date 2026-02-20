@@ -431,7 +431,8 @@ bun run db:push      # Sync schema to DB (dev only, not db:migrate)
 bun run db:studio    # Drizzle Studio GUI
 bun run db:seed      # Seed Hudson Trust test data
 bun run typecheck    # TypeScript type check
-bun run lint         # Biome lint check
+bun run lint         # Biome lint check (version pinned in package.json — do not upgrade without testing)
+bun run test:e2e     # Playwright E2E tests (requires running app on :3000)
 bun test             # Run tests
 ```
 
@@ -555,4 +556,7 @@ FRONTEND_URL=https://trust.thehudsonfam.com
 - Other: Luis Fernando (15%), Lois Greer (5%)
 - Grandchildren: various shares
 
-**Not implemented:** beneficiary data isolation (RLS phase 53)
+**Beneficiary data isolation:** Two-layer security implemented.
+- App layer: all `beneficiaryProcedure` queries scope by `ctx.user.beneficiaryId`
+- DB layer: RLS policies on `beneficiary`, `distribution`, `hems_request`, `withdrawal_record` tables
+- Apply SQL migrations once via Drizzle Studio or psql: `db/migrations/add-rls-helpers.sql` then `db/migrations/add-rls-policies.sql`
