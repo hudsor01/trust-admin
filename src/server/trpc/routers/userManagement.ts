@@ -16,7 +16,7 @@ import { db, getSql } from '../../../../db'
 import { createActivityLog } from '../../../../db/queries'
 import { beneficiary, userProfile } from '../../../../db/schema'
 import { authServer } from '../../../lib/auth/server'
-import { adminProcedure, createTRPCRouter, ownerProcedure } from '../index'
+import { adminProcedure, createTRPCRouter, ownerProcedure, protectedProcedure } from '../index'
 
 export const userManagementRouter = createTRPCRouter({
     /**
@@ -550,6 +550,20 @@ export const userManagementRouter = createTRPCRouter({
 
             return { success: true }
         }),
+
+    /**
+     * Clear forcePasswordChange flag after beneficiary successfully changes password.
+     * Uses protectedProcedure so it's callable during the password change flow,
+     * before the beneficiary has full portal access.
+     */
+    clearForcePasswordChange: protectedProcedure.mutation(async ({ ctx }) => {
+        await db
+            .update(userProfile)
+            .set({ forcePasswordChange: false, updatedAt: new Date() })
+            .where(eq(userProfile.userId, ctx.user.id))
+
+        return { success: true }
+    }),
 
     /**
      * Revoke all active sessions for a user (force logout)
