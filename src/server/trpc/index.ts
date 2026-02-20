@@ -37,6 +37,8 @@ export type AppUser = {
     role: 'admin' | 'beneficiary' | 'user'
     // App-specific: links user to beneficiary record (from userProfile table)
     beneficiaryId: number | null
+    // Flag set when admin provisions/resets password — forces change on first login
+    forcePasswordChange: boolean
 }
 
 /**
@@ -113,6 +115,7 @@ export async function createContext(_opts: { headers: Headers }) {
             .select({
                 role: userProfile.role,
                 beneficiaryId: userProfile.beneficiaryId,
+                forcePasswordChange: userProfile.forcePasswordChange,
             })
             .from(userProfile)
             .where(eq(userProfile.userId, session.user.id))
@@ -140,6 +143,7 @@ export async function createContext(_opts: { headers: Headers }) {
             updatedAt: session.user.updatedAt,
             role,
             beneficiaryId: profile?.beneficiaryId ?? null,
+            forcePasswordChange: profile?.forcePasswordChange ?? false,
         }
 
         // Set Sentry user context for error tracking and performance monitoring
