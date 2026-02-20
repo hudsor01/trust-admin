@@ -3,6 +3,11 @@
  *
  * Handles route protection with optimistic cookie-based checks.
  * Full session validation should be done in pages/routes.
+ *
+ * Also injects x-pathname header on every pass-through response so
+ * Server Components (e.g. portal layout) can read the current route
+ * without needing to parse the request URL directly (which is unavailable
+ * in Server Component headers in some Next.js versions).
  */
 
 import { getSessionCookie } from 'better-auth/cookies'
@@ -29,7 +34,9 @@ export async function proxy(request: NextRequest) {
     )
 
     if (isPublicPath) {
-        return NextResponse.next()
+        const response = NextResponse.next()
+        response.headers.set('x-pathname', pathname)
+        return response
     }
 
     // Check for session cookie (optimistic check)
@@ -43,7 +50,9 @@ export async function proxy(request: NextRequest) {
         if (!sessionCookie) {
             return NextResponse.redirect(new URL('/portal/login', request.url))
         }
-        return NextResponse.next()
+        const response = NextResponse.next()
+        response.headers.set('x-pathname', pathname)
+        return response
     }
 
     // Admin routes - require session (role check done in pages)
@@ -51,7 +60,9 @@ export async function proxy(request: NextRequest) {
         return NextResponse.redirect(new URL('/login', request.url))
     }
 
-    return NextResponse.next()
+    const response = NextResponse.next()
+    response.headers.set('x-pathname', pathname)
+    return response
 }
 
 export const config = {
