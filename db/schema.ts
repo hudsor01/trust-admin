@@ -2190,6 +2190,10 @@ export const userProfile = pgTable(
         userId: t.text('user_id').primaryKey().notNull(),
         role: userRole().notNull().default('beneficiary'),
         beneficiaryId: bigint('beneficiary_id', { mode: 'number' }),
+        forcePasswordChange: t
+            .boolean('force_password_change')
+            .notNull()
+            .default(false),
         createdAt: t
             .timestamp('created_at', { withTimezone: true })
             .notNull()
