@@ -16,7 +16,12 @@ import { db, getSql } from '../../../../db'
 import { createActivityLog } from '../../../../db/queries'
 import { beneficiary, userProfile } from '../../../../db/schema'
 import { authServer } from '../../../lib/auth/server'
-import { adminProcedure, createTRPCRouter, ownerProcedure, protectedProcedure } from '../index'
+import {
+    adminProcedure,
+    createTRPCRouter,
+    ownerProcedure,
+    protectedProcedure,
+} from '../index'
 
 export const userManagementRouter = createTRPCRouter({
     /**

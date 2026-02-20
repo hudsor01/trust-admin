@@ -1,6 +1,6 @@
+import { eq } from 'drizzle-orm'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { eq } from 'drizzle-orm'
 import { AppErrorBoundary } from '@/components/error-boundary'
 import { authServer } from '@/lib/auth'
 import { getPublicDb } from '../../../db'
