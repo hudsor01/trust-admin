@@ -1,7 +1,5 @@
 # Trust Admin
-
 ## What This Is
-
 A trust administration application for managing the **Hudson Living Trust**, a Texas Irrevocable Trust. The grantor (Richard Hudson) died 2025-12-28, making this an **estate settlement** followed by **ongoing trust administration**.
 
 **Two user types:**
@@ -52,10 +50,7 @@ A trust administration application for managing the **Hudson Living Trust**, a T
 2. Liabilities require payments → trustAccounting (EXPENSE entries)
 3. Beneficiaries receive distributions → distribution records
 
----
-
 ## Data Model
-
 ### Core Tables
 
 | Table | Purpose | Key Fields |
@@ -108,169 +103,198 @@ All have: `entityId`, `dodValue`, `dodValueDate`, `status`, `transferStatus`
 | `document` | File references (upload not yet implemented) |
 | `activityLog` | Immutable audit trail |
 
-### Auth (Better Auth)
+### Auth Tables
 
-`user` (role: admin/beneficiary, links to `beneficiaryId`), `session`, `account`, `verification`
+**Do NOT write directly to `neon_auth.*` tables** — use the Admin plugin API only.
 
----
+| Table | Location | Notes |
+|-------|----------|-------|
+| `neon_auth."user"` | Neon Auth managed | camelCase columns: `emailVerified`, `updatedAt`, etc. |
+| `user_profile` | `public.user_profile` | App-managed: `role`, `beneficiaryId`, `forcePasswordChange` |
+| `neon_auth.session` | Neon Auth managed | Session tokens |
+| `neon_auth.account` | Neon Auth managed | Password hashes |
+**`public.user`** — leftover table from schema migration, has 0 rows. Ignore it.
 
 ## Neon Auth (Next.js App Router)
+Neon Auth is a managed Better Auth service. Auth is entirely managed — no local Better Auth config.
 
-Neon Auth is a managed Better Auth service. User data lives in `neon_auth.user` table.
-
-### Native Roles
-
-Roles are stored natively on `session.user.role`:
-- `"admin"` - Trust administrator
-- `"user"` (default) - Beneficiary
-
-**To promote a user to admin:** Use Neon Console or `authClient.admin.setRole()`
-
-### Server-Side Session
-
-Use `authServer.getSession()` in Server Components:
-
-```tsx
-// src/app/page.tsx or any Server Component
-import { authServer } from "@/lib/auth"
-import { redirect } from "next/navigation"
-
-export default async function ProtectedPage() {
-  const { data: session } = await authServer.getSession()
-
-  if (!session?.user) {
-    redirect("/auth/sign-in")
-  }
-
-  // Native role from Neon Auth
-  if (session.user.role === "admin") {
-    redirect("/dashboard")
-  }
-  redirect("/portal")
-}
-```
-
-### Auth File Locations
+### Auth Packages
 
 ```
-src/lib/
-├── auth.ts           # Re-exports from auth/client and auth/server
-├── auth/
-│   ├── client.ts     # createAuthClient() for client components
-│   └── server.ts     # createAuthServer() for server components
+@neondatabase/auth         # Main package
+@neondatabase/auth/next    # createAuthClient()
+@neondatabase/auth/next/server  # createAuthServer(), neonAuthMiddleware
+@neondatabase/auth/react   # AuthView component (sign-in UI)
 ```
-
-### RLS Integration
-
-JWT session initialization for Row-Level Security:
-
-```typescript
-import { initJwtSession } from '@/db'
-
-// In tRPC context creation
-await initJwtSession(session.session.token)
-// Now auth.user_id() works in RLS policies
-```
-
-### Optional: Proxy for Optimistic Redirects (UX only)
-
-```ts
-// src/proxy.ts (Next.js 16 - replaces deprecated middleware.ts)
-import { NextRequest, NextResponse } from "next/server"
-import { getSessionCookie } from "better-auth/cookies"
-
-export async function proxy(request: NextRequest) {
-  const sessionCookie = getSessionCookie(request, {
-    cookiePrefix: "trust-admin"  // must match auth.ts config
-  })
-
-  // Fast check - prevents flash of protected content
-  // ⚠️ NOT SECURE - anyone can create a fake cookie
-  if (!sessionCookie) {
-    return NextResponse.redirect(new URL("/", request.url))
-  }
-
-  return NextResponse.next()
-}
-
-export const config = {
-  matcher: ["/dashboard/:path*", "/portal/:path*"],
-}
-```
-
-**Warning from docs:** "The `getSessionCookie` function only checks for the existence of a session cookie; it does **not** validate it. Relying solely on this check for security is dangerous."
-
-### Client-Side Session (React Components)
-
-For client components that need session state:
-
-```tsx
-"use client"
-import { useSession } from "@/lib/auth-client"
-
-export function UserMenu() {
-  const { data: session, isPending } = useSession()
-
-  if (isPending) return <Spinner />
-  if (!session) return <LoginButton />
-
-  return <div>{session.user.name}</div>
-}
-```
-
-**Performance note from docs:** "For performance reasons, do not use this hook on your `layout.tsx` file. We recommend using RSC and use your server auth instance to get the session data via `auth.api.getSession`."
 
 ### Auth File Locations
 
 ```
 src/
+├── proxy.ts                          # Next.js 16 proxy (route protection + x-pathname header)
 ├── lib/
-│   ├── auth.ts          # Server: Better Auth instance + config
-│   └── auth-client.ts   # Client: createAuthClient + useSession
+│   ├── auth.ts                       # Type definitions + re-exports
+│   ├── auth/
+│   │   ├── client.ts                 # createAuthClient() for client components
+│   │   └── server.ts                 # createAuthServer() for server components
+│   └── constants.ts                  # OWNER_EMAIL from process.env.ADMIN_EMAIL
 ├── app/
-│   ├── api/auth/[...all]/route.ts  # Auth API routes
-│   ├── page.tsx         # Root: auth gateway (redirects by role)
-│   ├── login/page.tsx   # Admin login (magic link)
+│   ├── page.tsx                      # Root: auth gateway (redirects by role)
+│   ├── auth/[path]/page.tsx          # Single login page (AuthView component)
+│   ├── api/auth/[...all]/route.ts    # Neon Auth API handler
 │   └── portal/
-│       └── login/page.tsx  # Beneficiary login
+│       ├── layout.tsx                # forcePasswordChange guard + x-pathname check
+│       └── change-password/page.tsx  # Forced password change page
 ```
 
-### Cookie Configuration
+### Native Roles
+`session.user.role` values from Neon Auth:
+- `"admin"` - set via `authServer.admin.setRole()`
+- `"user"` (default) - all new users
 
-From `src/lib/auth.ts`:
+**tRPC role source of truth is `user_profile.role`**, not the native Neon Auth role.
+Layout guards (routing) use the native Neon Auth role.
 
-```ts
-advanced: {
-  cookiePrefix: "trust-admin",  // Used in getSessionCookie()
-  useSecureCookies: process.env.NODE_ENV === "production",
-  defaultCookieAttributes: {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-  },
-},
+### RBAC: Email-Based Owner Override
+The trust owner (`ADMIN_EMAIL` env var) always gets admin access regardless of DB state.
+This is enforced in tRPC context creation (`src/server/trpc/index.ts`):
+
+```typescript
+let role: 'admin' | 'beneficiary' | 'user' = 'user'
+if (session.user.email === OWNER_EMAIL) {
+    role = 'admin'  // Owner email always wins
+} else if (profile) {
+    role = profile.role  // Everyone else uses user_profile.role
+}
 ```
 
-### DO NOT Use (Deprecated)
+**Required env var:** `ADMIN_EMAIL=rhudsontspr@gmail.com`
 
-```ts
+### Server-Side Session
+```tsx
+import { authServer } from "@/lib/auth"
+import { redirect } from "next/navigation"
+
+export default async function ProtectedPage() {
+    const { data: session } = await authServer.getSession()
+
+    if (!session?.user) {
+        redirect("/auth/sign-in")
+    }
+
+    // Native role for layout routing
+    if (session.user.role === "admin") {
+        redirect("/dashboard")
+    }
+    redirect("/portal")
+}
+```
+
+### Client-Side Session
+```tsx
+"use client"
+import { authClient } from "@/lib/auth"
+
+export function UserMenu() {
+    const { data: session, isPending } = authClient.useSession()
+    // ...
+}
+```
+
+**Do not use `useSession` in layouts** — use Server Component `authServer.getSession()` instead.
+
+### Sign-In Flow
+Single login page at `/auth/sign-in` using `AuthView` from `@neondatabase/auth/react`:
+
+```tsx
+// src/app/auth/[path]/page.tsx
+<AuthView path={path} redirectTo="/" />
+```
+
+After sign-in:
+1. `AuthView` redirects to `/`
+2. Root page checks session role → redirects to `/dashboard` (admin) or `/portal` (beneficiary)
+3. For beneficiaries with `forcePasswordChange=true` → portal layout redirects to `/portal/change-password`
+All sign-out redirects go to `/auth/sign-in`.
+
+### Proxy (Route Protection)
+`src/proxy.ts` — Next.js 16 proxy (replaces deprecated `middleware.ts`):
+
+```typescript
+// Checks for Neon Auth session cookie
+const sessionCookie = request.cookies.get('__Secure-neon-auth.session_token')
+
+// Also injects x-pathname header on every request
+requestHeaders.set('x-pathname', pathname)
+```
+
+**Key facts:**
+- Neon Auth cookie name: `__Secure-neon-auth.session_token` (works on localhost too)
+- `x-pathname` header enables portal layout to detect current route (avoids redirect loops)
+- This is an optimistic check only — real validation happens in Server Components
+
+### forcePasswordChange Flow
+Admin-created beneficiary accounts have `user_profile.forcePasswordChange = true`.
+On first sign-in, portal layout detects this and redirects to `/portal/change-password`.
+Loop prevention: portal layout reads `x-pathname` header (set by proxy) to skip redirect when already on the change-password page.
+
+```typescript
+// src/app/portal/layout.tsx
+const pathname = headersList.get('x-pathname') ?? ''
+if (pathname !== '/portal/change-password') {
+    const [profile] = await publicDb.select(...)...
+    if (profile?.forcePasswordChange) {
+        redirect('/portal/change-password')
+    }
+}
+```
+
+### Creating Beneficiary Accounts
+Use `trpc.userManagement.createBeneficiaryUser`:
+
+```typescript
+// Admin-only mutation
+createBeneficiaryUser.mutate({
+    email: "user@example.com",
+    name: "First Last",
+    password: "temp-password",
+    beneficiaryId: 123,
+})
+```
+
+The mutation:
+1. Calls `authServer.admin.createUser()` → creates Neon Auth user
+2. Sets `emailVerified = true` via raw SQL (required or sign-in returns 403)
+3. Upserts `user_profile` with `role: 'beneficiary'`, `forcePasswordChange: true`
+
+**Critical:** Admin-created users must have `emailVerified = true` or Better Auth returns 403.
+
+### DO NOT Use
+
+```typescript
+// ❌ WRONG - uses Better Auth cookie, not Neon Auth cookie
+import { getSessionCookie } from 'better-auth/cookies'
+getSessionCookie(request, { cookiePrefix: 'trust-admin' })  // Cookie doesn't exist!
+
 // ❌ WRONG - doesn't work in Server Components
-import { authClient } from "@/lib/auth-client"
-const session = await authClient.getSession()  // Can't access cookies!
+import { authClient } from "@/lib/auth"
+authClient.getSession()
 
-// ✅ CORRECT - use server-side auth
-import { auth } from "@/lib/auth"
-const session = await auth.api.getSession({ headers: await headers() })
+// ❌ WRONG - Neon Auth proxy doesn't support updateUser()
+authServer.admin.updateUser(userId, { name: "..." })  // Returns 400
+
+// ✅ CORRECT - update neon_auth.user directly via raw SQL
+await getSql().query(
+    `UPDATE neon_auth."user" SET "updatedAt" = $1 WHERE id = $2`,
+    [new Date(), userId],
+)
+// Note: neon_auth.user uses camelCase columns ("updatedAt", "emailVerified")
 ```
-
----
 
 ## Key Workflows
-
 ### 1. Recording a Liability Payment
 
 ```typescript
-// Using tRPC mutation
 const recordPayment = trpc.liability.recordPayment.useMutation({
   onSuccess: () => utils.liability.list.invalidate()
 })
@@ -297,49 +321,32 @@ recordPayment.mutate({
 [Beneficiary]                    [Admin]                         [System]
      │                              │                                │
      │ trpc.hemsRequest.submit()    │                                │
-     │ (category, amount,           │                                │
-     │  justification)              │                                │
      │─────────────────────────────►│                                │
-     │                              │                                │
      │                              │ trpc.hemsRequest.pending()     │
      │                              │◄───────────────────────────────│
-     │                              │                                │
      │                              │ trpc.hemsRequest.approve()     │
-     │                              │ (approvedAmount, reviewNotes)  │
      │                              │───────────────────────────────►│
-     │                              │                                │
      │                              │ Create distribution record     │
-     │                              │ Link hemsRequest.distributionId│
      │                              │ Set status=DISTRIBUTED         │
 ```
 
 ### 3. Entity Filtering Pattern
 
-**Every resource query should include entityId:**
+Every resource query includes entityId. Entity list is ordered by `asc(entity.id)` so `entities[0]` is always The Hudson Living Trust (entity ID 1).
 
 ```typescript
-// tRPC query with entityId filter
 const { data } = trpc.liability.list.useQuery({ entityId })
-
-// tRPC mutation with entityId
-const create = trpc.liability.create.useMutation()
 create.mutate({ entityId, creditor: "...", amount: "..." })
-
-// CRUD factory (how it's configured)
-createCrud(liability, { filterColumn: "entityId" })
 ```
 
----
-
 ## Architecture
-
 ### Stack
 
 | Layer | Technology |
 |-------|------------|
 | Runtime | Bun |
-| Framework | Next.js 16 (App Router) |
-| API | tRPC + Next.js API routes |
+| Framework | Next.js 16.1 (App Router, webpack) |
+| API | tRPC v11 + Next.js API routes |
 | Database | PostgreSQL (Neon serverless) |
 | DB Driver | @neondatabase/serverless (HTTP) + postgres.js (transactions) |
 | ORM | Drizzle ORM (drizzle-orm/neon-http) |
@@ -347,7 +354,8 @@ createCrud(liability, { filterColumn: "entityId" })
 | Frontend | React 19 + TailwindCSS |
 | UI | Radix UI + shadcn/ui |
 | Data Fetching | tRPC + TanStack Query |
-| Auth | Neon Auth (managed Better Auth, magic link) |
+| Auth | Neon Auth (managed Better Auth, email/password + magic link) |
+| Linting | Biome (no ESLint) |
 | Email | Resend |
 | Deployment | Vercel (with Neon Postgres integration) |
 
@@ -369,121 +377,54 @@ Production Queries (Drizzle)     Raw SQL/Tests (postgres.js)
 
 **Key exports from `db/index.ts`:**
 - `db` - Drizzle ORM instance (uses HTTP driver)
-- `getClient()` - postgres.js for raw SQL with transactions
+- `getClient()` / `getSql()` - postgres.js for raw SQL with transactions
+- `getPublicDb()` - Drizzle bypassing RLS (for system-level queries)
 - `initJwtSession(token)` - Initialize RLS session
+- `setRequestAuthToken(token)` - Set JWT for neon() HTTP driver
 
 **Time travel queries** (`db/time-travel.ts`):
 - `queryAtTime(table, timestamp)` - Query historical data
 - `compareWithHistory(table, timestamp, id)` - Diff current vs past
 
-### File Structure
-
-```
-trust-admin/
-├── db/
-│   ├── index.ts          # DB connections (neon HTTP + postgres.js)
-│   ├── schema.ts         # 34 Drizzle tables + enums + type guards
-│   ├── relations.ts      # Drizzle relations
-│   ├── validation.ts     # Zod schemas from drizzle-zod
-│   ├── queries.ts        # CRUD instances + custom queries
-│   ├── crud-factory.ts   # Generic CRUD with filtering + pagination
-│   └── time-travel.ts    # Historical query utilities
-├── src/
-│   ├── app/                        # Next.js App Router
-│   │   ├── page.tsx                # Root: auth gateway (redirects by role)
-│   │   ├── layout.tsx              # Root layout with TRPCProvider
-│   │   ├── login/page.tsx          # Admin login
-│   │   ├── (admin)/                # Admin route group (with sidebar layout)
-│   │   │   ├── layout.tsx          # Admin layout with AppSidebar
-│   │   │   ├── dashboard/page.tsx  # Admin dashboard
-│   │   │   ├── accounts/page.tsx
-│   │   │   ├── beneficiaries/page.tsx
-│   │   │   └── ...                 # Other admin pages
-│   │   ├── portal/                 # Beneficiary portal
-│   │   │   ├── page.tsx            # Portal dashboard
-│   │   │   └── login/page.tsx      # Beneficiary login
-│   │   └── api/
-│   │       ├── auth/[...all]/route.ts  # Better Auth API
-│   │       └── trpc/[trpc]/route.ts    # tRPC API
-│   ├── server/
-│   │   └── trpc/
-│   │       ├── index.ts            # tRPC init + procedures
-│   │       └── routers/            # tRPC routers by resource
-│   ├── components/
-│   │   ├── ui/                     # shadcn/ui
-│   │   └── app-sidebar.tsx         # Admin navigation
-│   └── lib/
-│       ├── auth.ts                 # Better Auth server config
-│       ├── auth-client.ts          # Better Auth client
-│       ├── trpc.ts                 # tRPC client hooks
-│       ├── trpc-provider.tsx       # TRPCProvider component
-│       └── middleware.ts           # requireAdmin(), requireBeneficiary()
-```
+### tRPC Procedure Types
+| Procedure | Access |
+|-----------|--------|
+| `publicProcedure` | No auth required |
+| `protectedProcedure` | Any authenticated user |
+| `adminProcedure` | Admin role (includes owner email override) |
+| `ownerProcedure` | Trust owner only (ADMIN_EMAIL) |
+| `beneficiaryProcedure` | Beneficiary role only |
 
 ### API Pattern (tRPC)
-
-**tRPC routers** in `src/server/trpc/routers/` - type-safe API:
 
 ```typescript
 // src/server/trpc/routers/liability.ts
 export const liabilityRouter = createTRPCRouter({
-  list: protectedProcedure.query(async () => {
-    return liabilityCrud.findAll()
-  }),
-  get: protectedProcedure
-    .input(z.object({ id: z.string() }))
-    .query(async ({ input }) => {
-      return liabilityCrud.findById(input.id)
-    }),
-  create: adminProcedure
-    .input(insertLiabilitySchema)
-    .mutation(async ({ input }) => {
-      return liabilityCrud.create(input)
-    }),
-  update: adminProcedure
-    .input(z.object({ id: z.string(), data: updateLiabilitySchema }))
-    .mutation(async ({ input }) => {
-      return liabilityCrud.update(input.id, input.data)
-    }),
+    list: adminProcedure
+        .input(z.object({ entityId: z.coerce.number() }))
+        .query(async ({ input }) => liabilityCrud.getAllArray(input.entityId)),
+
+    create: adminProcedure
+        .input(insertLiabilitySchema)
+        .mutation(async ({ input }) => liabilityCrud.create(input)),
 })
 ```
-
-**Procedure types:**
-- `publicProcedure` - No auth required
-- `protectedProcedure` - Any authenticated user
-- `adminProcedure` - Admin role required
-- `beneficiaryProcedure` - Beneficiary role required
 
 ### Frontend Pattern (tRPC)
-
-**Data fetching** - tRPC hooks (auto-generated from routers):
 ```typescript
-// In any component
 import { trpc } from "@/lib/trpc"
 
-const { data, isLoading } = trpc.liability.list.useQuery()
+const { data, isLoading } = trpc.liability.list.useQuery({ entityId: selectedEntity! })
 const update = trpc.liability.update.useMutation({
-  onSuccess: () => utils.liability.list.invalidate()
+    onSuccess: () => utils.liability.list.invalidate()
 })
-update.mutate({ id, data: { currentBalance: "5000" } })
+update.mutate({ id, entityId: selectedEntity!, data: { currentBalance: "5000" } })
 ```
-
-**Inline editing** - click cell to edit:
-```typescript
-<EditableCurrencyCell
-  value={item.currentBalance}
-  onSave={(val) => update.mutateAsync({ id, data: { currentBalance: val } })}
-/>
-```
-
----
-
-## Development
 
 ### Commands
 
 ```bash
-bun run dev          # Next.js dev server on :3000 (Turbopack)
+bun run dev          # Next.js dev server on :3000 (webpack)
 bun run build        # Production build
 bun run start        # Start production server
 bun run db:push      # Sync schema to DB (dev only, not db:migrate)
@@ -494,52 +435,38 @@ bun run lint         # Biome lint check
 bun test             # Run tests
 ```
 
-**Always use `bun`** - not npm/node/npx. Bun auto-loads `.env`.
+**Always use `bun`** — not npm/node/npx. Bun auto-loads `.env`.
 
 ### Adding a New Resource
-
 1. **Schema** (`db/schema.ts`): Add pgTable with indexes + FKs
 2. **Relations** (`db/relations.ts`): Add relations
 3. **Validation** (`db/validation.ts`): Add insert/update Zod schemas
 4. **CRUD** (`db/queries.ts`): `export const newCrud = createCrud(table, { filterColumn: "entityId" })`
 5. **tRPC Router** (`src/server/trpc/routers/new.ts`): Create router with procedures
-6. **Register** (`src/server/trpc/index.ts`): Add router to `appRouter`
+6. **Register** (`src/server/trpc/routers/index.ts`): Add router to `appRouter`
 7. **Push**: `bun run db:push`
 
 ### Common Patterns
-
-**Error handling:**
-```typescript
-throw ApiError.notFound("Liability", id)
-throw ApiError.validationError("Invalid", { field: "message" })
-const data = validateWithSchema(schema, body)  // Throws on invalid
-```
-
-**Auth middleware:**
-```typescript
-await requireAdmin(req)        // Throws if not admin
-await requireBeneficiary(req)  // Throws if not beneficiary
-```
-
 **Type guards for enums:**
 ```typescript
 import { isPaymentMethod } from "@/db/schema"
 if (isPaymentMethod(value)) { /* value is typed */ }
 ```
 
-### Numbers Are Strings
+**Auth middleware helpers** (for non-tRPC API routes):
+```typescript
+import { requireAdmin, requireBeneficiary } from "@/lib/middleware"
+await requireAdmin(req)        // Throws if not admin
+await requireBeneficiary(req)  // Throws if not beneficiary
+```
 
-Database stores all money/decimal fields as strings (`"1500.00"` not `1500`). This is intentional for precision.
+### Numbers Are Strings
+Database stores all money/decimal fields as strings (`"1500.00"` not `1500`). Intentional for precision.
 
 ```typescript
-// Display: use formatters
 formatCurrency(liability.currentBalance)  // "$1,500.00"
-
-// Math: parse first
-const total = parseFloat(a) + parseFloat(b)
-
-// Save: send as string
-update.mutate({ id, data: { currentBalance: "1500.00" } })
+const total = parseFloat(a) + parseFloat(b)  // Math: parse first
+update.mutate({ id, data: { currentBalance: "1500.00" } })  // Save as string
 ```
 
 ### Gotchas
@@ -549,35 +476,32 @@ update.mutate({ id, data: { currentBalance: "1500.00" } })
 | Mutations missing entityId | Most creates need `entityId` in payload |
 | Date input issues | Form→API: `new Date(val).toISOString()`, API→Form: `iso.split("T")[0]` |
 | Enum type errors | Cast: `paymentMethod as "CHECK" \| "ACH"` or use type guards |
-| Stale data after related update | `queryClient.invalidateQueries({ queryKey: ["other-resource"] })` |
-
----
+| Stale data after related update | Invalidate related queries in `onSuccess` |
+| Beneficiary sign-in 403 | Admin-created users need `emailVerified = true` in `neon_auth."user"` |
+| Wrong Neon Auth cookie | Cookie is `__Secure-neon-auth.session_token`, NOT `trust-admin.*` |
+| `neon_auth.user` columns | camelCase: `"emailVerified"`, `"updatedAt"` (not snake_case) |
 
 ## Reference
 
 ### All 34 Tables
 
 **Core:** entity, contact, contactAssociation, activityLog
-
 **Assets:** homestead, rentalProperty, vehicle, bankAccount, investmentAccount, insurancePolicy, personalProperty, artwork
-
 **Liabilities:** liability, liabilityPayment
-
 **Accounting:** trustAccounting, transaction, valuation, document
-
 **Beneficiaries:** beneficiary, distribution, specificBequest, withdrawalRecord, hemsRequest
-
 **Administration:** trustee, trusteeFeeSchedule, trusteeFeeEntry, task
-
-**Auth:** user, session, account, verification
+**App Auth:** user_profile (role, beneficiaryId, forcePasswordChange)
+**Neon Auth (managed, do not write directly):** neon_auth.user, neon_auth.session, neon_auth.account, neon_auth.verification
 
 ### All Pages
 
 | Route | Purpose |
 |-------|---------|
-| `/` | Auth gateway - redirects to `/dashboard` (admin) or `/portal` (beneficiary) |
-| `/login` | Admin login (magic link) |
-| `/dashboard` | Admin dashboard - overview, tasks, accounting summary |
+| `/` | Auth gateway — redirects to `/dashboard` (admin) or `/portal` (beneficiary) |
+| `/auth/sign-in` | Single sign-in page for all users (Neon Auth UI) |
+| `/dashboard` | Admin dashboard — overview, tasks, accounting summary |
+| `/users` | User management CRUD (owner-only) |
 | `/accounts` | Bank + investment accounts |
 | `/properties` | Homestead + rental properties |
 | `/liabilities` | Debts with payment recording |
@@ -592,7 +516,7 @@ update.mutate({ id, data: { currentBalance: "1500.00" } })
 | `/activity-log` | Audit trail |
 | `/settings` | App settings |
 | `/portal` | Beneficiary portal dashboard |
-| `/portal/login` | Beneficiary login (magic link) |
+| `/portal/change-password` | Forced password change (first login gate) |
 
 ### Key Enums
 
@@ -606,17 +530,14 @@ update.mutate({ id, data: { currentBalance: "1500.00" } })
 | `DistributionType` | INCOME, PRINCIPAL, CAPITAL_GAIN, EXPENSE_REIMBURSEMENT, OTHER |
 | `DistributionStandard` | HEMS, HEMS_PLUS_WITHDRAWAL, BROADER, WITHDRAWAL_ONLY |
 
-### Environment Variables
-
 ```bash
 # Database (use -pooler endpoint for production)
 DATABASE_URL=postgresql://user:pass@ep-xxx-pooler.region.aws.neon.tech/neondb?sslmode=require
-DATABASE_URL_DIRECT=postgresql://user:pass@ep-xxx.region.aws.neon.tech/neondb?sslmode=require  # For migrations
-
-# Neon Auth
 NEON_AUTH_BASE_URL=https://ep-xxx.neonauth.region.aws.neon.tech/neondb/auth
 
-# Email (optional in dev)
+# Trust owner — always gets admin role regardless of DB state
+ADMIN_EMAIL=rhudsontspr@gmail.com
+UPLOADTHING_TOKEN=<token>
 RESEND_API_KEY=<key>
 
 # URLs
@@ -627,37 +548,11 @@ FRONTEND_URL=https://trust.thehudsonfam.com
 ### Seed Data
 
 `bun run db:seed` creates **The Hudson Living Trust**:
-- Grantor: Richard Hudson (DOD: 2025-12-28)
+- Grantor: Richard Hudson Sr. (DOD: 2025-12-28)
 - ~20 beneficiaries with HEMS + withdrawal rights
 - Children: Richard Jr (8.5%), Ashley (4.5%), Wendy (4.5%)
 - Stepchildren: Ricky, Timothy, Alicia (4.5% each)
 - Other: Luis Fernando (15%), Lois Greer (5%)
 - Grandchildren: various shares
 
----
-
-## Current State
-
-**Stack:** Next.js 16.1 (App Router) + tRPC v11 + Drizzle ORM + Neon Auth + @neondatabase/serverless
-
-**Working:**
-- 24 tRPC routers for all resources
-- Neon Auth with native roles (admin/user)
-- RLS policies with JWT session initialization
-- Payment recording with auto-accounting
-- HEMS workflow (request → approve → distribute)
-- Year-end income-to-principal conversion (Section 7.10(c))
-- Beneficiary death handling with share redistribution (Section 7.01)
-- Texas compliance fields (principal/income allocation)
-- Activity log audit trail
-- Inline editable cells with optimistic updates
-- Time travel queries for audit (db/time-travel.ts)
-- Neon serverless driver (HTTP for Drizzle, postgres.js for transactions)
-
-**Neon Features Enabled:**
-- Serverless driver (neon HTTP)
-- Connection pooling ready (-pooler endpoint)
-- Time travel queries utility
-- Vercel preview branching ready (needs console config)
-
-**Not implemented:** File upload, email notifications in prod, reporting/export, multi-entity support
+**Not implemented:** beneficiary data isolation (RLS phase 53)

@@ -335,7 +335,7 @@ export function AppSidebar() {
                             tooltip="Sign Out"
                             onClick={async () => {
                                 await authClient.signOut()
-                                router.push('/login')
+                                router.push('/auth/sign-in')
                             }}
                         >
                             <LogOut className="h-4 w-4" />

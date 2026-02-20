@@ -16,13 +16,17 @@ import {
     Loader2,
     LogOut,
     Mail,
+    MapPin,
+    Pencil,
     Percent,
     Phone,
     Plus,
     User,
+    X,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -32,6 +36,8 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
     Table,
     TableBody,
@@ -53,6 +59,26 @@ export default function PortalDashboardPage() {
     const { data: session, isPending: sessionPending } = useSession()
     const router = useRouter()
     const [showRequestForm, setShowRequestForm] = useState(false)
+    const [editingContact, setEditingContact] = useState(false)
+    const [contactForm, setContactForm] = useState({
+        email: '',
+        phone: '',
+        streetAddress: '',
+        city: '',
+        state: '',
+        zip: '',
+    })
+
+    const updateContact = trpc.beneficiary.updateMyContact.useMutation({
+        onSuccess: () => {
+            toast.success('Contact information updated')
+            setEditingContact(false)
+            refetch()
+        },
+        onError: (err) => {
+            toast.error(err.message)
+        },
+    })
 
     // Fetch beneficiary data via tRPC
     const {
@@ -67,13 +93,13 @@ export default function PortalDashboardPage() {
     // Redirect to login if not authenticated
     useEffect(() => {
         if (!sessionPending && !session?.user) {
-            router.push('/portal/login')
+            router.push('/auth/sign-in')
         }
     }, [sessionPending, session, router])
 
     const handleSignOut = async () => {
         await signOut()
-        router.push('/portal/login')
+        router.push('/auth/sign-in')
     }
 
     const handleRequestSuccess = () => {
@@ -252,30 +278,206 @@ export default function PortalDashboardPage() {
 
                     {/* Contact Information */}
                     <Card>
-                        <CardHeader>
-                            <CardTitle className="text-lg">
-                                Your Information
-                            </CardTitle>
-                            <CardDescription>
-                                Contact your trustee if any information needs to
-                                be updated
-                            </CardDescription>
+                        <CardHeader className="flex flex-row items-start justify-between">
+                            <div>
+                                <CardTitle className="text-lg">
+                                    Your Information
+                                </CardTitle>
+                                <CardDescription>
+                                    Keep your contact details up to date
+                                </CardDescription>
+                            </div>
+                            {!editingContact && (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                        setContactForm({
+                                            email: beneficiary.email ?? '',
+                                            phone: beneficiary.phone ?? '',
+                                            streetAddress:
+                                                beneficiary.streetAddress ?? '',
+                                            city: beneficiary.city ?? '',
+                                            state: beneficiary.state ?? '',
+                                            zip: beneficiary.zip ?? '',
+                                        })
+                                        setEditingContact(true)
+                                    }}
+                                    className="gap-2 shrink-0"
+                                >
+                                    <Pencil className="h-3.5 w-3.5" />
+                                    Edit
+                                </Button>
+                            )}
                         </CardHeader>
                         <CardContent>
-                            <div className="grid gap-4 md:grid-cols-2">
-                                <div className="flex items-center gap-3">
-                                    <User className="h-5 w-5 text-muted-foreground" />
-                                    <div>
-                                        <p className="text-sm text-muted-foreground">
-                                            Name
-                                        </p>
-                                        <p className="font-medium">
-                                            {fullName}
-                                        </p>
+                            {editingContact ? (
+                                <div className="space-y-4">
+                                    <div className="grid gap-4 md:grid-cols-2">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="contact-email">
+                                                Email
+                                            </Label>
+                                            <Input
+                                                id="contact-email"
+                                                type="email"
+                                                value={contactForm.email}
+                                                onChange={(e) =>
+                                                    setContactForm((f) => ({
+                                                        ...f,
+                                                        email: e.target.value,
+                                                    }))
+                                                }
+                                                placeholder="email@example.com"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="contact-phone">
+                                                Phone
+                                            </Label>
+                                            <Input
+                                                id="contact-phone"
+                                                type="tel"
+                                                value={contactForm.phone}
+                                                onChange={(e) =>
+                                                    setContactForm((f) => ({
+                                                        ...f,
+                                                        phone: e.target.value,
+                                                    }))
+                                                }
+                                                placeholder="(555) 000-0000"
+                                            />
+                                        </div>
+                                        <div className="space-y-2 md:col-span-2">
+                                            <Label htmlFor="contact-street">
+                                                Street Address
+                                            </Label>
+                                            <Input
+                                                id="contact-street"
+                                                value={
+                                                    contactForm.streetAddress
+                                                }
+                                                onChange={(e) =>
+                                                    setContactForm((f) => ({
+                                                        ...f,
+                                                        streetAddress:
+                                                            e.target.value,
+                                                    }))
+                                                }
+                                                placeholder="123 Main St"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="contact-city">
+                                                City
+                                            </Label>
+                                            <Input
+                                                id="contact-city"
+                                                value={contactForm.city}
+                                                onChange={(e) =>
+                                                    setContactForm((f) => ({
+                                                        ...f,
+                                                        city: e.target.value,
+                                                    }))
+                                                }
+                                                placeholder="City"
+                                            />
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <div className="space-y-2">
+                                                <Label htmlFor="contact-state">
+                                                    State
+                                                </Label>
+                                                <Input
+                                                    id="contact-state"
+                                                    value={contactForm.state}
+                                                    onChange={(e) =>
+                                                        setContactForm((f) => ({
+                                                            ...f,
+                                                            state: e.target
+                                                                .value,
+                                                        }))
+                                                    }
+                                                    placeholder="TX"
+                                                    maxLength={2}
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label htmlFor="contact-zip">
+                                                    Zip
+                                                </Label>
+                                                <Input
+                                                    id="contact-zip"
+                                                    value={contactForm.zip}
+                                                    onChange={(e) =>
+                                                        setContactForm((f) => ({
+                                                            ...f,
+                                                            zip: e.target.value,
+                                                        }))
+                                                    }
+                                                    placeholder="78701"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <Button
+                                            onClick={() =>
+                                                updateContact.mutate({
+                                                    email:
+                                                        contactForm.email ||
+                                                        null,
+                                                    phone:
+                                                        contactForm.phone ||
+                                                        null,
+                                                    streetAddress:
+                                                        contactForm.streetAddress ||
+                                                        null,
+                                                    city:
+                                                        contactForm.city ||
+                                                        null,
+                                                    state:
+                                                        contactForm.state ||
+                                                        null,
+                                                    zip:
+                                                        contactForm.zip || null,
+                                                })
+                                            }
+                                            disabled={updateContact.isPending}
+                                            size="sm"
+                                        >
+                                            {updateContact.isPending && (
+                                                <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
+                                            )}
+                                            Save Changes
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() =>
+                                                setEditingContact(false)
+                                            }
+                                            disabled={updateContact.isPending}
+                                        >
+                                            <X className="h-3.5 w-3.5 mr-1" />
+                                            Cancel
+                                        </Button>
                                     </div>
                                 </div>
+                            ) : (
+                                <div className="grid gap-4 md:grid-cols-2">
+                                    <div className="flex items-center gap-3">
+                                        <User className="h-5 w-5 text-muted-foreground" />
+                                        <div>
+                                            <p className="text-sm text-muted-foreground">
+                                                Name
+                                            </p>
+                                            <p className="font-medium">
+                                                {fullName}
+                                            </p>
+                                        </div>
+                                    </div>
 
-                                {beneficiary.email && (
                                     <div className="flex items-center gap-3">
                                         <Mail className="h-5 w-5 text-muted-foreground" />
                                         <div>
@@ -283,13 +485,15 @@ export default function PortalDashboardPage() {
                                                 Email
                                             </p>
                                             <p className="font-medium">
-                                                {beneficiary.email}
+                                                {beneficiary.email || (
+                                                    <span className="text-muted-foreground italic">
+                                                        Not set
+                                                    </span>
+                                                )}
                                             </p>
                                         </div>
                                     </div>
-                                )}
 
-                                {beneficiary.phone && (
                                     <div className="flex items-center gap-3">
                                         <Phone className="h-5 w-5 text-muted-foreground" />
                                         <div>
@@ -297,28 +501,60 @@ export default function PortalDashboardPage() {
                                                 Phone
                                             </p>
                                             <p className="font-medium">
-                                                {beneficiary.phone}
+                                                {beneficiary.phone || (
+                                                    <span className="text-muted-foreground italic">
+                                                        Not set
+                                                    </span>
+                                                )}
                                             </p>
                                         </div>
                                     </div>
-                                )}
 
-                                {beneficiary.distributionStandard && (
                                     <div className="flex items-center gap-3">
-                                        <DollarSign className="h-5 w-5 text-muted-foreground" />
+                                        <MapPin className="h-5 w-5 text-muted-foreground" />
                                         <div>
                                             <p className="text-sm text-muted-foreground">
-                                                Distribution Standard
+                                                Address
                                             </p>
-                                            <Badge variant="secondary">
-                                                {
-                                                    beneficiary.distributionStandard
-                                                }
-                                            </Badge>
+                                            {beneficiary.streetAddress ? (
+                                                <p className="font-medium">
+                                                    {beneficiary.streetAddress}
+                                                    <br />
+                                                    {[
+                                                        beneficiary.city,
+                                                        beneficiary.state,
+                                                    ]
+                                                        .filter(Boolean)
+                                                        .join(', ')}
+                                                    {beneficiary.zip
+                                                        ? ` ${beneficiary.zip}`
+                                                        : ''}
+                                                </p>
+                                            ) : (
+                                                <p className="text-muted-foreground italic">
+                                                    Not set
+                                                </p>
+                                            )}
                                         </div>
                                     </div>
-                                )}
-                            </div>
+
+                                    {beneficiary.distributionStandard && (
+                                        <div className="flex items-center gap-3">
+                                            <DollarSign className="h-5 w-5 text-muted-foreground" />
+                                            <div>
+                                                <p className="text-sm text-muted-foreground">
+                                                    Distribution Standard
+                                                </p>
+                                                <Badge variant="secondary">
+                                                    {
+                                                        beneficiary.distributionStandard
+                                                    }
+                                                </Badge>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
 

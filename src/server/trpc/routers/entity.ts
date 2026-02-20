@@ -1,5 +1,5 @@
 import { TRPCError } from '@trpc/server'
-import { eq } from 'drizzle-orm'
+import { asc, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '../../../../db'
 import { getEntityById } from '../../../../db/queries'
@@ -12,7 +12,7 @@ import { adminProcedure, createTRPCRouter } from '../index'
 
 export const entityRouter = createTRPCRouter({
     list: adminProcedure.query(async () => {
-        return db.select().from(entity)
+        return db.select().from(entity).orderBy(asc(entity.id))
     }),
 
     byId: adminProcedure.input(z.coerce.number()).query(async ({ input }) => {

@@ -118,6 +118,64 @@ export const beneficiaryRouter = createTRPCRouter({
         return getBeneficiaryById(ctx.user.beneficiaryId)
     }),
 
+    // Portal: Update own contact info (email, phone, address)
+    updateMyContact: beneficiaryProcedure
+        .input(
+            z.object({
+                email: z
+                    .string()
+                    .email('Invalid email format')
+                    .optional()
+                    .nullable(),
+                phone: z.string().optional().nullable(),
+                streetAddress: z
+                    .string()
+                    .min(5, 'Street address must be at least 5 characters')
+                    .regex(
+                        /^[A-Za-z0-9\s#.',-]+$/,
+                        'Street address must contain only letters, numbers, and common punctuation',
+                    )
+                    .optional()
+                    .nullable(),
+                city: z
+                    .string()
+                    .min(2, 'City must be at least 2 characters')
+                    .regex(/^[A-Za-z\s'.-]+$/, 'City must contain only letters')
+                    .optional()
+                    .nullable(),
+                state: z
+                    .string()
+                    .regex(
+                        /^[A-Z]{2}$/,
+                        'State must be 2 uppercase letters (e.g. TX)',
+                    )
+                    .optional()
+                    .nullable(),
+                zip: z
+                    .string()
+                    .regex(/^\d{5}$/, 'ZIP code must be exactly 5 digits')
+                    .optional()
+                    .nullable(),
+            }),
+        )
+        .mutation(async ({ ctx, input }) => {
+            if (!ctx.user.beneficiaryId) {
+                throw new TRPCError({
+                    code: 'FORBIDDEN',
+                    message: 'No beneficiary profile linked to this account',
+                })
+            }
+            const [updated] = await db
+                .update(beneficiary)
+                .set({ ...input, updatedAt: new Date().toISOString() })
+                .where(eq(beneficiary.id, ctx.user.beneficiaryId))
+                .returning()
+            if (!updated) {
+                throw new TRPCError({ code: 'NOT_FOUND' })
+            }
+            return updated
+        }),
+
     // =========================================================================
     // DEATH HANDLING - Trust Section 7.01
     // If beneficiary dies before complete distribution, share goes pro-rata

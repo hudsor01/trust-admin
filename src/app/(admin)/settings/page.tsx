@@ -628,7 +628,7 @@ export default function SettingsPage() {
                                                         onBlur={
                                                             field.handleBlur
                                                         }
-                                                        placeholder="john@example.com"
+                                                        placeholder="name@gmail.com"
                                                     />
                                                 </div>
                                             )}

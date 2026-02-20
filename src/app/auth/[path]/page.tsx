@@ -58,7 +58,7 @@ export default async function AuthPage({
                 {/* Auth form container */}
                 <main className="flex flex-1 flex-col items-center justify-center p-6 md:p-10">
                     <div className="w-full max-w-md">
-                        <AuthView path={path} />
+                        <AuthView path={path} redirectTo="/" />
                     </div>
                 </main>
             </div>

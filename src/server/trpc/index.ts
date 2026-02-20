@@ -121,15 +121,12 @@ export async function createContext(_opts: { headers: Headers }) {
             .where(eq(userProfile.userId, session.user.id))
             .limit(1)
 
-        // Determine role from userProfile (source of truth for tRPC authorization)
-        // - If userProfile exists: use profile.role ("admin" or "beneficiary")
-        // - If no profile but Neon Auth role is "admin": use "admin" (backwards compat)
-        // - Otherwise: "user" fallback (no beneficiary access)
+        // Determine role — owner email always gets admin regardless of DB state
         let role: 'admin' | 'beneficiary' | 'user' = 'user'
-        if (profile) {
-            role = profile.role
-        } else if (session.user.role === 'admin') {
+        if (session.user.email === OWNER_EMAIL) {
             role = 'admin'
+        } else if (profile) {
+            role = profile.role
         }
 
         // Build app user with userProfile role

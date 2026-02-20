@@ -89,13 +89,39 @@ const vinValidation = z
 
 const zipValidation = z
     .string()
-    .regex(/^\d{5}(-\d{4})?$/, 'Invalid ZIP code format')
+    .regex(/^\d{5}$/, 'ZIP code must be exactly 5 digits')
     .nullable()
     .optional()
 
 const requiredZipValidation = z
     .string()
-    .regex(/^\d{5}(-\d{4})?$/, 'Invalid ZIP code format')
+    .regex(/^\d{5}$/, 'ZIP code must be exactly 5 digits')
+
+// City: letters, spaces, hyphens, apostrophes, periods (handles "Fort Worth", "St. Paul", "O'Brien")
+const cityValidation = z
+    .string()
+    .min(2, 'City must be at least 2 characters')
+    .regex(/^[A-Za-z\s'.-]+$/, 'City must contain only letters')
+    .nullable()
+    .optional()
+
+// State: exactly 2 uppercase letters (US state abbreviation)
+const stateValidation = z
+    .string()
+    .regex(/^[A-Z]{2}$/, 'State must be 2 uppercase letters (e.g. TX)')
+    .nullable()
+    .optional()
+
+// Street address: letters, numbers, spaces, and common address characters (#, ., -)
+const streetAddressValidation = z
+    .string()
+    .min(5, 'Street address must be at least 5 characters')
+    .regex(
+        /^[A-Za-z0-9\s#.',-]+$/,
+        'Street address must contain only letters, numbers, and common punctuation',
+    )
+    .nullable()
+    .optional()
 
 export const insertActivityLogSchema = createInsertSchema(activityLog, {
     createdAt: (schema) => schema.optional(),
@@ -120,6 +146,9 @@ export const insertBeneficiarySchema = createInsertSchema(beneficiary, {
     email: () => emailValidation,
     phone: () => phoneValidation,
     zip: () => zipValidation,
+    city: () => cityValidation,
+    state: () => stateValidation,
+    streetAddress: () => streetAddressValidation,
     sharePercent: () => percentageValidation,
 })
 export const selectBeneficiarySchema = createSelectSchema(beneficiary)

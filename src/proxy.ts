@@ -10,7 +10,6 @@
  * in Server Component headers in some Next.js versions).
  */
 
-import { getSessionCookie } from 'better-auth/cookies'
 import { type NextRequest, NextResponse } from 'next/server'
 
 export async function proxy(request: NextRequest) {
@@ -19,11 +18,10 @@ export async function proxy(request: NextRequest) {
     // Public routes - no auth check needed
     const publicPaths = [
         '/',
-        '/login',
+        '/auth',
         '/api/auth',
         '/api/trpc',
         '/api/inventory',
-        '/portal/login',
         '/forms',
         '/_next',
         '/favicon.ico',
@@ -44,23 +42,15 @@ export async function proxy(request: NextRequest) {
         return NextResponse.next(nextConfig)
     }
 
-    // Check for session cookie (optimistic check)
-    // Must match cookiePrefix in auth.ts
-    const sessionCookie = getSessionCookie(request, {
-        cookiePrefix: 'trust-admin',
-    })
+    // Check for Neon Auth session cookie (optimistic check)
+    // Neon Auth uses "__Secure-neon-auth.session_token" (works on localhost too)
+    const sessionCookie = request.cookies.get(
+        '__Secure-neon-auth.session_token',
+    )
 
-    // Portal routes - require session
-    if (pathname.startsWith('/portal')) {
-        if (!sessionCookie) {
-            return NextResponse.redirect(new URL('/portal/login', request.url))
-        }
-        return NextResponse.next(nextConfig)
-    }
-
-    // Admin routes - require session (role check done in pages)
+    // All protected routes redirect to the single sign-in page
     if (!sessionCookie) {
-        return NextResponse.redirect(new URL('/login', request.url))
+        return NextResponse.redirect(new URL('/auth/sign-in', request.url))
     }
 
     return NextResponse.next(nextConfig)
