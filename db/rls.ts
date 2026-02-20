@@ -1,208 +1,110 @@
 /**
- * Row-Level Security (RLS) Patterns
+ * Row-Level Security (RLS) — Live Configuration Reference
  *
- * Policies are ACTIVE on: beneficiary, distribution, hems_request, withdrawal_record
- * Applied via: db/migrations/add-rls-helpers.sql + db/migrations/add-rls-policies.sql
+ * THIS FILE IS DOCUMENTATION ONLY — no Drizzle pgRole/pgPolicy objects are used here.
+ * All policies are managed via raw SQL in db/migrations/.
  *
- * How it works:
- * - tRPC context fetches JWT → setRequestAuthToken() → Neon Authorize validates JWT
- * - Queries run as `authenticated` role → app.is_admin() / app.get_user_beneficiary_id() used in policies
- * - getPublicDb() / neondb_owner → BYPASSRLS (admin system queries, bootstrap)
+ * ============================================================
+ * HOW IT WORKS
+ * ============================================================
  *
- * Two-layer isolation:
- * 1. Application layer — all beneficiaryProcedure queries scope by ctx.user.beneficiaryId
- * 2. Database layer — these RLS policies as a backstop (defense in depth)
+ * Every tRPC request that carries a session token calls setRequestAuthToken(jwt).
+ * This causes Neon Authorize to validate the JWT and run the query as the
+ * `authenticated` role. RLS policies then filter rows based on the user's identity.
  *
- * @see https://orm.drizzle.team/docs/rls
- */
-
-import { sql } from 'drizzle-orm'
-import { pgPolicy, pgRole } from 'drizzle-orm/pg-core'
-
-// =============================================================================
-// ROLE DEFINITIONS
-// =============================================================================
-
-/**
- * Application roles for RLS policies
+ * Without a token (public procedures, system queries, seeds), getPublicDb() is
+ * used — which connects as neondb_owner (BYPASSRLS), bypassing all policies.
  *
- * Note: Use .existing() for roles managed outside Drizzle (e.g., by Supabase/Neon)
- */
-
-// Admin role - full access
-export const adminRole = pgRole('admin', {
-    createRole: false,
-    createDb: false,
-    inherit: true,
-})
-
-// Trustee role - access to assigned trusts
-export const trusteeRole = pgRole('trustee', {
-    createRole: false,
-    createDb: false,
-    inherit: true,
-})
-
-// Beneficiary role - limited read access
-export const beneficiaryRole = pgRole('beneficiary_user', {
-    createRole: false,
-    createDb: false,
-    inherit: true,
-})
-
-// Read-only role for auditors
-export const auditorRole = pgRole('auditor', {
-    createRole: false,
-    createDb: false,
-    inherit: true,
-})
-
-// =============================================================================
-// POLICY PATTERNS
-// =============================================================================
-
-/**
- * Example: Entity access policy
+ * ============================================================
+ * ROLES
+ * ============================================================
  *
- * Trustees can only see entities they are assigned to.
- * Admin can see all entities.
- */
-export const entityAccessPolicy = pgPolicy('entity_access_policy', {
-    as: 'permissive',
-    for: 'select',
-    to: trusteeRole,
-    using: sql`
-    EXISTS (
-      SELECT 1 FROM "Trustee" t
-      WHERE t."entityId" = "Entity".id
-      AND t."contactId" = current_setting('app.current_user_id')::uuid
-      AND t.status = 'ACTIVE'
-    )
-  `,
-})
-
-/**
- * Example: Beneficiary data access policy
+ * | Role          | BYPASSRLS | Notes                                        |
+ * |---------------|-----------|----------------------------------------------|
+ * | neondb_owner  | YES       | Used by getPublicDb() — system queries, seeds |
+ * | authenticated | NO        | All signed-in users — policies enforced      |
+ * | anonymous     | NO        | Unauthenticated Neon Authorize requests       |
+ * | authenticator | NO        | Neon Authorize internal role                  |
  *
- * Beneficiaries can only see their own records.
- */
-export const beneficiaryAccessPolicy = pgPolicy('beneficiary_self_access', {
-    as: 'permissive',
-    for: 'select',
-    to: beneficiaryRole,
-    using: sql`id = current_setting('app.current_user_id')::uuid`,
-})
-
-/**
- * Example: Admin full access policy
+ * ============================================================
+ * APP SCHEMA FUNCTIONS (policy helpers)
+ * ============================================================
  *
- * Admin role has unrestricted access.
- */
-export const adminFullAccessPolicy = pgPolicy('admin_full_access', {
-    as: 'permissive',
-    for: 'all',
-    to: adminRole,
-    using: sql`true`,
-    withCheck: sql`true`,
-})
-
-/**
- * Example: Auditor read-only policy
+ * All functions are STABLE SECURITY DEFINER in the `app` schema.
  *
- * Auditors can read all data but cannot modify.
- */
-export const auditorReadOnlyPolicy = pgPolicy('auditor_read_only', {
-    as: 'permissive',
-    for: 'select',
-    to: auditorRole,
-    using: sql`true`,
-})
-
-// =============================================================================
-// IMPLEMENTATION GUIDE
-// =============================================================================
-
-/**
- * To enable RLS on a table:
+ * app.effective_user_id() → text
+ *   Returns auth.user_id() in production, or app.test_user_id setting in test mode.
  *
- * 1. Add .enableRLS() to table definition:
- *    ```typescript
- *    export const entity = pgTable("Entity", {
- *      // columns...
- *    }).enableRLS();
- *    ```
+ * app.is_admin() → boolean
+ *   Returns true if current user has role='admin' in user_profile.
  *
- * 2. Or use pgTable.withRLS():
- *    ```typescript
- *    export const entity = pgTable.withRLS("Entity", {
- *      // columns...
- *    });
- *    ```
+ * app.get_user_beneficiary_id() → bigint
+ *   Returns the beneficiary_id linked to the current user, or NULL.
  *
- * 3. Link policies to tables:
- *    ```typescript
- *    entityAccessPolicy.link(entity);
- *    adminFullAccessPolicy.link(entity);
- *    ```
+ * app.get_user_role() → UserRole
+ *   Returns the role enum value from user_profile.
  *
- * 4. Set current user context in application:
- *    ```sql
- *    SET app.current_user_id = 'user-uuid-here';
- *    ```
+ * app.user_entity_ids() → SETOF bigint
+ *   Returns entity IDs accessible to the current beneficiary.
  *
- * 5. Configure drizzle.config.ts for role management:
- *    ```typescript
- *    export default defineConfig({
- *      // ...
- *      entities: {
- *        roles: true
- *      }
- *    });
- *    ```
- */
-
-// =============================================================================
-// SUPABASE / NEON INTEGRATION
-// =============================================================================
-
-/**
- * For Supabase integration:
+ * app.set_test_user(p_user_id text) / app.clear_test_user()
+ *   Set/clear app.test_user_id for use in tests (not SECURITY DEFINER).
  *
- * ```typescript
- * import { authenticatedRole, authUid } from "drizzle-orm/supabase";
+ * ============================================================
+ * POLICY MAP (as of 2026-02-20)
+ * ============================================================
  *
- * export const entityPolicy = pgPolicy("authenticated_entity_access", {
- *   for: "select",
- *   to: authenticatedRole,
- *   using: sql`auth.uid() = owner_id`,
- * });
- * ```
+ * Tables with FORCE ROW LEVEL SECURITY (even table owner enforced):
+ *   bank_account, beneficiary, distribution, entity, hems_request,
+ *   homestead, investment_account, liability, trust_accounting,
+ *   vehicle, withdrawal_record
  *
- * For Neon integration:
+ * -- ADMIN-ONLY TABLES --
+ * All four operations (SELECT/INSERT/UPDATE/DELETE) restricted to app.is_admin():
+ *   bank_account, entity, homestead, investment_account, liability,
+ *   trust_accounting, vehicle
  *
- * ```typescript
- * import { authenticatedRole, authUid } from "drizzle-orm/neon";
+ * -- BENEFICIARY-SCOPED TABLES --
+ * SELECT: app.is_admin() OR [beneficiary col] = app.get_user_beneficiary_id()
+ * INSERT/UPDATE/DELETE: app.is_admin() only
+ *   beneficiary     (col: id)
+ *   distribution    (col: "beneficiaryId")
+ *   hems_request    (col: "beneficiaryId")
+ *   withdrawal_record (col: "beneficiaryId")
  *
- * export const entityPolicy = pgPolicy("authenticated_entity_access", {
- *   for: "select",
- *   to: authenticatedRole,
- *   using: authUid(entity.ownerId),
- * });
- * ```
- */
-
-// =============================================================================
-// MIGRATION NOTES
-// =============================================================================
-
-/**
- * When adding RLS to existing tables:
+ * -- USER PROFILE --
+ * user_profile:
+ *   SELECT: all authenticated (true)
+ *   INSERT/UPDATE/DELETE: neondb_owner only
  *
- * 1. Create roles first
- * 2. Add policies that allow existing operations
- * 3. Enable RLS on tables (this will start enforcing policies)
- * 4. Test thoroughly with each role
- * 5. Add restrictive policies as needed
+ * -- NO AUTHENTICATED POLICIES (default deny for authenticated role) --
+ * RLS is enabled on these tables but no authenticated-role policy exists.
+ * These tables are accessed exclusively via getPublicDb() (neondb_owner BYPASSRLS)
+ * or via adminProcedure tRPC routes that call getPublicDb() directly.
+ *   account, activity_log, artwork, contact, contact_association, document,
+ *   insurance_policy, liability_payment, pending_inventory_item,
+ *   personal_property, rental_property, session, specific_bequest, task,
+ *   transaction, trustee, trustee_fee_entry, trustee_fee_schedule,
+ *   user, valuation, verification
  *
- * IMPORTANT: Enabling RLS without proper policies will block all access!
+ * ============================================================
+ * TWO-LAYER ISOLATION (beneficiary data)
+ * ============================================================
+ *
+ * Layer 1 — Application (tRPC):
+ *   All beneficiaryProcedure queries add WHERE beneficiaryId = ctx.user.beneficiaryId
+ *
+ * Layer 2 — Database (RLS):
+ *   PostgreSQL enforces the same constraint via policies on the `authenticated` role.
+ *   Even if layer 1 is bypassed, the DB denies cross-beneficiary access.
+ *
+ * ============================================================
+ * MIGRATION FILES
+ * ============================================================
+ *
+ * db/migrations/add-rls-helpers.sql   — app schema functions
+ * db/migrations/add-rls-policies.sql  — all table policies
+ *
+ * Apply once via Drizzle Studio query runner or psql.
+ * Do NOT use bun run db:push — Drizzle push does not manage raw policies.
  */

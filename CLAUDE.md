@@ -376,11 +376,26 @@ Production Queries (Drizzle)     Raw SQL/Tests (postgres.js)
 ```
 
 **Key exports from `db/index.ts`:**
-- `db` - Drizzle ORM instance (uses HTTP driver)
-- `getClient()` / `getSql()` - postgres.js for raw SQL with transactions
-- `getPublicDb()` - Drizzle bypassing RLS (for system-level queries)
-- `initJwtSession(token)` - Initialize RLS session
-- `setRequestAuthToken(token)` - Set JWT for neon() HTTP driver
+- `db` - Drizzle ORM proxy: routes to auth-enabled instance when JWT is set, else `getPublicDb()`
+- `getPublicDb()` - Drizzle as `neondb_owner` (BYPASSRLS) — seeds, migrations, system queries
+- `getClient()` / `getSql()` - postgres.js for raw SQL and transactions
+- `setRequestAuthToken(token)` - Bind JWT to current async context (called in tRPC createContext)
+- `initJwtSession(token)` - Initialize RLS session on postgres.js connection
+
+**RLS enforcement flow:**
+1. tRPC `createContext` calls `setRequestAuthToken(sessionJwt)`
+2. `db` proxy detects token → returns auth-enabled Drizzle instance
+3. Neon Authorize validates JWT → runs query as `authenticated` role
+4. `app.is_admin()` / `app.get_user_beneficiary_id()` filter rows in policies
+5. Without token → `getPublicDb()` → `neondb_owner` → BYPASSRLS
+
+**RLS policy scope (all 33 tables have RLS enabled):**
+- **Admin-only** (SELECT/mutations all require `app.is_admin()`): `bank_account`, `entity`, `homestead`, `investment_account`, `liability`, `trust_accounting`, `vehicle`
+- **Beneficiary-scoped** (SELECT: admin OR own row; mutations: admin only): `beneficiary`, `distribution`, `hems_request`, `withdrawal_record`
+- **user_profile**: SELECT open to all authenticated; mutations neondb_owner only
+- **No authenticated policy** (accessed via `getPublicDb()` BYPASSRLS path): all other tables (`contact`, `artwork`, `activity_log`, `task`, etc.)
+- Full policy SQL: `db/migrations/add-rls-policies.sql` | Functions: `db/migrations/add-rls-helpers.sql`
+- Reference: `db/rls.ts`
 
 **Time travel queries** (`db/time-travel.ts`):
 - `queryAtTime(table, timestamp)` - Query historical data
@@ -556,7 +571,7 @@ FRONTEND_URL=https://trust.thehudsonfam.com
 - Other: Luis Fernando (15%), Lois Greer (5%)
 - Grandchildren: various shares
 
-**Beneficiary data isolation:** Two-layer security implemented.
-- App layer: all `beneficiaryProcedure` queries scope by `ctx.user.beneficiaryId`
-- DB layer: RLS policies on `beneficiary`, `distribution`, `hems_request`, `withdrawal_record` tables
-- Apply SQL migrations once via Drizzle Studio or psql: `db/migrations/add-rls-helpers.sql` then `db/migrations/add-rls-policies.sql`
+**Beneficiary data isolation:** Two-layer security — fully active.
+- App layer: `beneficiaryProcedure` scopes all queries by `ctx.user.beneficiaryId`
+- DB layer: RLS policies on `beneficiary`, `distribution`, `hems_request`, `withdrawal_record` enforce the same constraint at the Postgres level
+- See `db/rls.ts` for the complete policy map and architecture reference
