@@ -50,7 +50,7 @@ export function validateEnvironment(): Env {
     const result = envSchema.safeParse(process.env)
 
     if (!result.success) {
-        console.error('\n' + '='.repeat(80))
+        console.error(`\n${'='.repeat(80)}`)
         console.error('❌ ENVIRONMENT VALIDATION FAILED')
         console.error('='.repeat(80))
         console.error('\nMissing or invalid environment variables:\n')
@@ -67,7 +67,7 @@ export function validateEnvironment(): Env {
         }
 
         console.error('\nSee .env.example for required variables.')
-        console.error('='.repeat(80) + '\n')
+        console.error(`${'='.repeat(80)}\n`)
         process.exit(1)
     }
 
