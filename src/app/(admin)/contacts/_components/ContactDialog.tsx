@@ -1,0 +1,265 @@
+'use client'
+
+import { ResourceDialog } from '@/components/resource-dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
+import { getFieldError } from '@/lib/form-helpers'
+import { ROLE_LABELS } from './ContactTable'
+
+interface ContactDialogProps {
+    isOpen: boolean
+    isEditing: boolean
+    isSubmitting: boolean
+    onOpenChange: (open: boolean) => void
+    onSubmit: () => void
+    // biome-ignore lint/suspicious/noExplicitAny: TanStack Form Field type is complex; passed through from page.tsx
+    formInstance: any
+}
+
+export function ContactDialog({
+    isOpen,
+    isEditing,
+    isSubmitting,
+    onOpenChange,
+    onSubmit,
+    formInstance,
+}: ContactDialogProps) {
+    return (
+        <ResourceDialog
+            open={isOpen}
+            onOpenChange={onOpenChange}
+            title={isEditing ? 'Edit Contact' : 'Add Contact'}
+            onSubmit={onSubmit}
+            isLoading={isSubmitting}
+        >
+            <div className="space-y-4">
+                {/* Name */}
+                <formInstance.Field name="name">
+                    {(field: any) => (
+                        <div className="space-y-2">
+                            <Label htmlFor="name">Name *</Label>
+                            <Input
+                                id="name"
+                                placeholder="Full name"
+                                value={field.state.value || ''}
+                                onChange={(e) =>
+                                    field.handleChange(e.target.value)
+                                }
+                                onBlur={field.handleBlur}
+                            />
+                            {field.state.meta.errors &&
+                                field.state.meta.errors.length > 0 && (
+                                    <p className="text-sm text-red-500">
+                                        {getFieldError(field)}
+                                    </p>
+                                )}
+                        </div>
+                    )}
+                </formInstance.Field>
+
+                {/* Company */}
+                <formInstance.Field name="company">
+                    {(field: any) => (
+                        <div className="space-y-2">
+                            <Label htmlFor="company">Company</Label>
+                            <Input
+                                id="company"
+                                placeholder="Company name"
+                                value={field.state.value || ''}
+                                onChange={(e) =>
+                                    field.handleChange(e.target.value)
+                                }
+                                onBlur={field.handleBlur}
+                            />
+                        </div>
+                    )}
+                </formInstance.Field>
+
+                {/* Role */}
+                <formInstance.Field name="role">
+                    {(field: any) => (
+                        <div className="space-y-2">
+                            <Label htmlFor="role">Role</Label>
+                            <Select
+                                value={field.state.value || ''}
+                                onValueChange={(v) => field.handleChange(v)}
+                            >
+                                <SelectTrigger
+                                    id="role"
+                                    onBlur={field.handleBlur}
+                                >
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {Object.entries(ROLE_LABELS).map(
+                                        ([value, label]) => (
+                                            <SelectItem
+                                                key={value}
+                                                value={value}
+                                            >
+                                                {label}
+                                            </SelectItem>
+                                        ),
+                                    )}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    )}
+                </formInstance.Field>
+
+                {/* Email */}
+                <formInstance.Field name="email">
+                    {(field: any) => (
+                        <div className="space-y-2">
+                            <Label htmlFor="email">Email</Label>
+                            <Input
+                                id="email"
+                                type="email"
+                                placeholder="email@example.com"
+                                value={field.state.value || ''}
+                                onChange={(e) =>
+                                    field.handleChange(e.target.value)
+                                }
+                                onBlur={field.handleBlur}
+                            />
+                            {field.state.meta.errors &&
+                                field.state.meta.errors.length > 0 && (
+                                    <p className="text-sm text-red-500">
+                                        {getFieldError(field)}
+                                    </p>
+                                )}
+                        </div>
+                    )}
+                </formInstance.Field>
+
+                {/* Phone */}
+                <formInstance.Field name="phone">
+                    {(field: any) => (
+                        <div className="space-y-2">
+                            <Label htmlFor="phone">Phone</Label>
+                            <Input
+                                id="phone"
+                                placeholder="(555) 123-4567"
+                                value={field.state.value || ''}
+                                onChange={(e) =>
+                                    field.handleChange(e.target.value)
+                                }
+                                onBlur={field.handleBlur}
+                            />
+                            {field.state.meta.errors &&
+                                field.state.meta.errors.length > 0 && (
+                                    <p className="text-sm text-red-500">
+                                        {getFieldError(field)}
+                                    </p>
+                                )}
+                        </div>
+                    )}
+                </formInstance.Field>
+
+                {/* Street Address */}
+                <formInstance.Field name="streetAddress">
+                    {(field: any) => (
+                        <div className="space-y-2">
+                            <Label htmlFor="streetAddress">Street Address</Label>
+                            <Input
+                                id="streetAddress"
+                                placeholder="123 Main St"
+                                value={field.state.value || ''}
+                                onChange={(e) =>
+                                    field.handleChange(e.target.value)
+                                }
+                                onBlur={field.handleBlur}
+                            />
+                        </div>
+                    )}
+                </formInstance.Field>
+
+                {/* City, State, ZIP */}
+                <div className="grid grid-cols-3 gap-3">
+                    <formInstance.Field name="city">
+                        {(field: any) => (
+                            <div className="space-y-2">
+                                <Label htmlFor="city">City</Label>
+                                <Input
+                                    id="city"
+                                    placeholder="City"
+                                    value={field.state.value || ''}
+                                    onChange={(e) =>
+                                        field.handleChange(e.target.value)
+                                    }
+                                    onBlur={field.handleBlur}
+                                />
+                            </div>
+                        )}
+                    </formInstance.Field>
+
+                    <formInstance.Field name="state">
+                        {(field: any) => (
+                            <div className="space-y-2">
+                                <Label htmlFor="state">State</Label>
+                                <Input
+                                    id="state"
+                                    placeholder="ST"
+                                    value={field.state.value || ''}
+                                    onChange={(e) =>
+                                        field.handleChange(e.target.value)
+                                    }
+                                    onBlur={field.handleBlur}
+                                />
+                            </div>
+                        )}
+                    </formInstance.Field>
+
+                    <formInstance.Field name="zip">
+                        {(field: any) => (
+                            <div className="space-y-2">
+                                <Label htmlFor="zip">ZIP</Label>
+                                <Input
+                                    id="zip"
+                                    placeholder="12345"
+                                    value={field.state.value || ''}
+                                    onChange={(e) =>
+                                        field.handleChange(e.target.value)
+                                    }
+                                    onBlur={field.handleBlur}
+                                />
+                                {field.state.meta.errors &&
+                                    field.state.meta.errors.length > 0 && (
+                                        <p className="text-sm text-red-500">
+                                            {getFieldError(field)}
+                                        </p>
+                                    )}
+                            </div>
+                        )}
+                    </formInstance.Field>
+                </div>
+
+                {/* Notes */}
+                <formInstance.Field name="notes">
+                    {(field: any) => (
+                        <div className="space-y-2">
+                            <Label htmlFor="notes">Notes</Label>
+                            <Textarea
+                                id="notes"
+                                placeholder="Additional notes about this contact..."
+                                value={field.state.value || ''}
+                                onChange={(e) =>
+                                    field.handleChange(e.target.value)
+                                }
+                                onBlur={field.handleBlur}
+                            />
+                        </div>
+                    )}
+                </formInstance.Field>
+            </div>
+        </ResourceDialog>
+    )
+}
