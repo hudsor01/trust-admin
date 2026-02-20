@@ -1,34 +1,31 @@
 /// <reference types="bun-types" />
 
 /**
- * Type-safe environment variables for Trust Admin
- * Bun automatically loads .env files, so no dotenv package is needed.
- * Access via process.env.VAR_NAME or Bun.env.VAR_NAME
+ * Type-safe environment variables for Trust Admin.
+ * Bun automatically loads .env — no dotenv needed.
  */
 declare module 'bun' {
     interface Env {
-        // Database
+        // Required
         DATABASE_URL: string
+        NEON_AUTH_BASE_URL: string
+        ADMIN_EMAIL: string
 
         // Server
-        PORT?: string
         NODE_ENV?: 'development' | 'production' | 'test'
-
-        // Authentication (Neon Auth)
-        NEON_AUTH_BASE_URL?: string // Required: Neon Auth service URL (auto-set by Neon)
-
-        // Email (Optional - for magic links)
-        RESEND_API_KEY?: string
-        EMAIL_FROM?: string
-
-        // URLs
-        FRONTEND_URL?: string
-        API_URL?: string
-        TRUSTED_ORIGINS?: string // comma-separated
-        ALLOWED_ORIGINS?: string // comma-separated for CORS
-
-        // Monitoring
         LOG_LEVEL?: 'debug' | 'info' | 'warn' | 'error'
+
+        // Optional features
+        ANTHROPIC_API_KEY?: string
+        INVENTORY_ACCESS_CODE?: string
+        UPLOADTHING_TOKEN?: string
+
+        // Sentry (optional)
+        NEXT_PUBLIC_SENTRY_DSN?: string
+        SENTRY_DSN?: string
+        SENTRY_ORG?: string
+        SENTRY_PROJECT?: string
+        SENTRY_AUTH_TOKEN?: string
     }
 }
 
