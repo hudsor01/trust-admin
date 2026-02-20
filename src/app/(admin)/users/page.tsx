@@ -1,35 +1,13 @@
 'use client'
 
 import type { ColumnDef } from '@tanstack/react-table'
-import {
-    Ban,
-    Eye,
-    EyeOff,
-    KeyRound,
-    LogOut,
-    MoreHorizontal,
-    Pencil,
-    Plus,
-    Shield,
-    Trash2,
-    UserPlus,
-} from 'lucide-react'
+import { Ban, KeyRound, LogOut, MoreHorizontal, Pencil, Shield, Trash2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { ConfirmDialog } from '@/components/confirm-dialog'
-import { CopyButton } from '@/components/copy-button'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { DataTable } from '@/components/ui/data-table'
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog'
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -37,37 +15,16 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select'
 import { trpc } from '@/lib/trpc'
 import { formatDate } from '@/utils/formatters'
-
-// =============================================================================
-// Types
-// =============================================================================
-
-type NeonAuthUser = {
-    id: string
-    name: string | null
-    email: string
-    emailVerified: boolean
-    image?: string | null
-    createdAt: string
-    neonRole: string | null
-    banned: boolean
-    banReason?: string | null
-    banExpires?: string | null
-    appRole: string | null
-    beneficiaryId: number | null
-    beneficiaryName: string | null
-}
+import { BanUserDialog } from './_components/BanUserDialog'
+import { ChangeRoleDialog } from './_components/ChangeRoleDialog'
+import { CreatePortalAccountDialog } from './_components/CreatePortalAccountDialog'
+import { CreatedCredentialsDialog } from './_components/CreatedCredentialsDialog'
+import { EditUserDialog } from './_components/EditUserDialog'
+import { ResetPasswordDialog } from './_components/ResetPasswordDialog'
+import { UsersTable } from './_components/UsersTable'
+import type { NeonAuthUser } from './_components/types'
 
 // =============================================================================
 // Page Component
@@ -507,63 +464,19 @@ export default function UsersPage() {
     const loading = isOwner ? usersLoading : provisionedLoading
     const tableData = isOwner ? (allUsers as NeonAuthUser[]) : readOnlyData
     const columns = isOwner ? ownerColumns : readOnlyColumns
-    const userCount = tableData.length
 
     return (
         <div className="space-y-6">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-2xl font-semibold tracking-tight text-balance">
-                        Users
-                    </h2>
-                    <p className="text-sm text-muted-foreground">
-                        {userCount} user{userCount !== 1 ? 's' : ''}
-                    </p>
-                </div>
-                {isOwner && (
-                    <Button onClick={() => setCreateDialogOpen(true)}>
-                        <Plus className="mr-2 h-4 w-4" />
-                        Create Portal Account
-                    </Button>
-                )}
-            </div>
+            <UsersTable
+                isOwner={isOwner}
+                loading={loading}
+                tableData={tableData}
+                columns={columns}
+                usersError={usersError}
+                onCreateClick={() => setCreateDialogOpen(true)}
+            />
 
-            {/* Non-owner info banner */}
-            {!isOwner && !loading && (
-                <div className="rounded-md border border-muted bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
-                    User management is restricted to the trust owner. You are
-                    viewing provisioned accounts in read-only mode.
-                </div>
-            )}
-
-            {/* Error state */}
-            {usersError && isOwner && (
-                <div className="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                    Failed to load users: {usersError.message}
-                </div>
-            )}
-
-            {/* User List */}
-            <Card>
-                <CardContent className="pt-6">
-                    <DataTable
-                        data={tableData}
-                        columns={columns}
-                        searchKey="name"
-                        searchPlaceholder="Filter by name..."
-                        isLoading={loading}
-                        emptyMessage="No users found"
-                        enableColumnVisibility={true}
-                        enablePagination={true}
-                    />
-                </CardContent>
-            </Card>
-
-            {/* ================================================================ */}
-            {/* Create Portal Account Dialog                                     */}
-            {/* ================================================================ */}
-            <Dialog
+            <CreatePortalAccountDialog
                 open={createDialogOpen}
                 onOpenChange={(open) => {
                     setCreateDialogOpen(open)
@@ -574,329 +487,70 @@ export default function UsersPage() {
                         setShowPassword(false)
                     }
                 }}
-            >
-                <DialogContent className="max-w-md">
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                            <UserPlus className="h-5 w-5" />
-                            Create Portal Account
-                        </DialogTitle>
-                        <DialogDescription>
-                            Provision a portal login for a beneficiary.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="beneficiary">Beneficiary</Label>
-                            <Select
-                                value={selectedBeneficiaryId ?? ''}
-                                onValueChange={handleBeneficiarySelect}
-                            >
-                                <SelectTrigger id="beneficiary">
-                                    <SelectValue placeholder="Select a beneficiary..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {unlinkedBeneficiaries.map((b) => (
-                                        <SelectItem
-                                            key={b.id}
-                                            value={String(b.id)}
-                                        >
-                                            {b.firstName} {b.lastName}
-                                            {b.email ? ` (${b.email})` : ''}
-                                        </SelectItem>
-                                    ))}
-                                    {unlinkedBeneficiaries.length === 0 && (
-                                        <SelectItem value="none" disabled>
-                                            All beneficiaries have accounts
-                                        </SelectItem>
-                                    )}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="email">Email</Label>
-                            <Input
-                                id="email"
-                                type="email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                placeholder="beneficiary@example.com"
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="tempPassword">
-                                Temporary Password
-                            </Label>
-                            <div className="relative">
-                                <Input
-                                    id="tempPassword"
-                                    type={showPassword ? 'text' : 'password'}
-                                    value={tempPassword}
-                                    onChange={(e) =>
-                                        setTempPassword(e.target.value)
-                                    }
-                                    placeholder="Min 8 characters"
-                                    className="pr-10"
-                                />
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                                    onClick={() =>
-                                        setShowPassword(!showPassword)
-                                    }
-                                >
-                                    {showPassword ? (
-                                        <EyeOff className="h-4 w-4 text-muted-foreground" />
-                                    ) : (
-                                        <Eye className="h-4 w-4 text-muted-foreground" />
-                                    )}
-                                </Button>
-                            </div>
-                            {tempPassword.length > 0 &&
-                                tempPassword.length < 8 && (
-                                    <p className="text-xs text-destructive">
-                                        Password must be at least 8 characters
-                                    </p>
-                                )}
-                        </div>
-                        <div className="flex justify-end gap-2 pt-2">
-                            <Button
-                                variant="outline"
-                                onClick={() => setCreateDialogOpen(false)}
-                            >
-                                Cancel
-                            </Button>
-                            <Button
-                                onClick={handleCreateSubmit}
-                                disabled={
-                                    !selectedBeneficiaryId ||
-                                    !email ||
-                                    tempPassword.length < 8 ||
-                                    createUserMutation.isPending
-                                }
-                            >
-                                {createUserMutation.isPending
-                                    ? 'Creating...'
-                                    : 'Create Account'}
-                            </Button>
-                        </div>
-                    </div>
-                </DialogContent>
-            </Dialog>
+                unlinkedBeneficiaries={unlinkedBeneficiaries}
+                selectedBeneficiaryId={selectedBeneficiaryId}
+                email={email}
+                tempPassword={tempPassword}
+                showPassword={showPassword}
+                isPending={createUserMutation.isPending}
+                onBeneficiarySelect={handleBeneficiarySelect}
+                onEmailChange={setEmail}
+                onTempPasswordChange={setTempPassword}
+                onShowPasswordToggle={() => setShowPassword((p) => !p)}
+                onSubmit={handleCreateSubmit}
+            />
 
-            {/* ================================================================ */}
-            {/* Created Credentials Dialog                                       */}
-            {/* ================================================================ */}
-            <Dialog
-                open={!!createdCredentials}
-                onOpenChange={(open) => {
-                    if (!open) setCreatedCredentials(null)
-                }}
-            >
-                <DialogContent className="max-w-md">
-                    <DialogHeader>
-                        <DialogTitle className="text-success">
-                            Account Created Successfully
-                        </DialogTitle>
-                        <DialogDescription>
-                            Share these credentials with the beneficiary. The
-                            temporary password will not be shown again.
-                        </DialogDescription>
-                    </DialogHeader>
-                    {createdCredentials && (
-                        <div className="space-y-4">
-                            <div className="rounded-md border bg-muted/50 p-4 space-y-3">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                                            Email
-                                        </p>
-                                        <p className="mt-1 font-mono text-sm">
-                                            {createdCredentials.email}
-                                        </p>
-                                    </div>
-                                    <CopyButton
-                                        value={createdCredentials.email}
-                                    />
-                                </div>
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                                            Temporary Password
-                                        </p>
-                                        <p className="mt-1 font-mono text-sm">
-                                            {createdCredentials.tempPassword}
-                                        </p>
-                                    </div>
-                                    <CopyButton
-                                        value={createdCredentials.tempPassword}
-                                    />
-                                </div>
-                            </div>
-                            <p className="text-xs text-muted-foreground">
-                                Remind the beneficiary to change their password
-                                after first login.
-                            </p>
-                            <div className="flex justify-end">
-                                <Button
-                                    onClick={() => setCreatedCredentials(null)}
-                                >
-                                    Done
-                                </Button>
-                            </div>
-                        </div>
-                    )}
-                </DialogContent>
-            </Dialog>
+            <CreatedCredentialsDialog
+                credentials={createdCredentials}
+                onClose={() => setCreatedCredentials(null)}
+            />
 
-            {/* ================================================================ */}
-            {/* Edit User Dialog                                                 */}
-            {/* ================================================================ */}
-            <Dialog
+            <EditUserDialog
                 open={editDialogOpen}
                 onOpenChange={(open) => {
                     setEditDialogOpen(open)
                     if (!open) setSelectedUser(null)
                 }}
-            >
-                <DialogContent className="max-w-sm">
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                            <Pencil className="h-5 w-5" />
-                            Edit User
-                        </DialogTitle>
-                        <DialogDescription>
-                            Update details for {displayName(selectedUser)}.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="editName">Name</Label>
-                            <Input
-                                id="editName"
-                                value={editName}
-                                onChange={(e) => setEditName(e.target.value)}
-                                placeholder="Full name"
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="editEmail">Email</Label>
-                            <Input
-                                id="editEmail"
-                                type="email"
-                                value={editEmail}
-                                onChange={(e) => setEditEmail(e.target.value)}
-                                placeholder="email@example.com"
-                            />
-                        </div>
-                        <div className="flex justify-end gap-2">
-                            <Button
-                                variant="outline"
-                                onClick={() => setEditDialogOpen(false)}
-                            >
-                                Cancel
-                            </Button>
-                            <Button
-                                onClick={() => {
-                                    if (!selectedUser) return
-                                    updateUserMutation.mutate({
-                                        userId: selectedUser.id,
-                                        ...(editName !==
-                                        (selectedUser.name ?? '')
-                                            ? { name: editName }
-                                            : {}),
-                                        ...(editEmail !== selectedUser.email
-                                            ? { email: editEmail }
-                                            : {}),
-                                    })
-                                }}
-                                disabled={
-                                    updateUserMutation.isPending ||
-                                    (editName === (selectedUser?.name ?? '') &&
-                                        editEmail === selectedUser?.email)
-                                }
-                            >
-                                {updateUserMutation.isPending
-                                    ? 'Saving...'
-                                    : 'Save'}
-                            </Button>
-                        </div>
-                    </div>
-                </DialogContent>
-            </Dialog>
+                selectedUser={selectedUser}
+                editName={editName}
+                editEmail={editEmail}
+                isPending={updateUserMutation.isPending}
+                onNameChange={setEditName}
+                onEmailChange={setEditEmail}
+                onSave={() => {
+                    if (!selectedUser) return
+                    updateUserMutation.mutate({
+                        userId: selectedUser.id,
+                        ...(editName !== (selectedUser.name ?? '')
+                            ? { name: editName }
+                            : {}),
+                        ...(editEmail !== selectedUser.email
+                            ? { email: editEmail }
+                            : {}),
+                    })
+                }}
+            />
 
-            {/* ================================================================ */}
-            {/* Change Role Dialog                                               */}
-            {/* ================================================================ */}
-            <Dialog
+            <ChangeRoleDialog
                 open={roleDialogOpen}
                 onOpenChange={(open) => {
                     setRoleDialogOpen(open)
                     if (!open) setSelectedUser(null)
                 }}
-            >
-                <DialogContent className="max-w-sm">
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                            <Shield className="h-5 w-5" />
-                            Change Role
-                        </DialogTitle>
-                        <DialogDescription>
-                            Change role for {displayName(selectedUser)}.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                        <div className="space-y-2">
-                            <Label>Role</Label>
-                            <Select
-                                value={newRole}
-                                onValueChange={(v) =>
-                                    setNewRole(v as 'admin' | 'user')
-                                }
-                            >
-                                <SelectTrigger>
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="admin">Admin</SelectItem>
-                                    <SelectItem value="user">
-                                        User (Beneficiary)
-                                    </SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="flex justify-end gap-2">
-                            <Button
-                                variant="outline"
-                                onClick={() => setRoleDialogOpen(false)}
-                            >
-                                Cancel
-                            </Button>
-                            <Button
-                                onClick={() => {
-                                    if (!selectedUser) return
-                                    setRoleMutation.mutate({
-                                        userId: selectedUser.id,
-                                        role: newRole,
-                                    })
-                                }}
-                                disabled={setRoleMutation.isPending}
-                            >
-                                {setRoleMutation.isPending
-                                    ? 'Updating...'
-                                    : 'Update Role'}
-                            </Button>
-                        </div>
-                    </div>
-                </DialogContent>
-            </Dialog>
+                selectedUser={selectedUser}
+                newRole={newRole}
+                isPending={setRoleMutation.isPending}
+                onRoleChange={setNewRole}
+                onSave={() => {
+                    if (!selectedUser) return
+                    setRoleMutation.mutate({
+                        userId: selectedUser.id,
+                        role: newRole,
+                    })
+                }}
+            />
 
-            {/* ================================================================ */}
-            {/* Reset Password Dialog                                            */}
-            {/* ================================================================ */}
-            <Dialog
+            <ResetPasswordDialog
                 open={resetDialogOpen}
                 onOpenChange={(open) => {
                     setResetDialogOpen(open)
@@ -906,87 +560,22 @@ export default function UsersPage() {
                         setShowNewPassword(false)
                     }
                 }}
-            >
-                <DialogContent className="max-w-sm">
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                            <KeyRound className="h-5 w-5" />
-                            Reset Password
-                        </DialogTitle>
-                        <DialogDescription>
-                            Set a new password for {displayName(selectedUser)}.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="newPassword">New Password</Label>
-                            <div className="relative">
-                                <Input
-                                    id="newPassword"
-                                    type={showNewPassword ? 'text' : 'password'}
-                                    value={newPassword}
-                                    onChange={(e) =>
-                                        setNewPassword(e.target.value)
-                                    }
-                                    placeholder="Min 8 characters"
-                                    className="pr-10"
-                                />
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                                    onClick={() =>
-                                        setShowNewPassword(!showNewPassword)
-                                    }
-                                >
-                                    {showNewPassword ? (
-                                        <EyeOff className="h-4 w-4 text-muted-foreground" />
-                                    ) : (
-                                        <Eye className="h-4 w-4 text-muted-foreground" />
-                                    )}
-                                </Button>
-                            </div>
-                            {newPassword.length > 0 &&
-                                newPassword.length < 8 && (
-                                    <p className="text-xs text-destructive">
-                                        Password must be at least 8 characters
-                                    </p>
-                                )}
-                        </div>
-                        <div className="flex justify-end gap-2">
-                            <Button
-                                variant="outline"
-                                onClick={() => setResetDialogOpen(false)}
-                            >
-                                Cancel
-                            </Button>
-                            <Button
-                                onClick={() => {
-                                    if (!selectedUser) return
-                                    resetPasswordMutation.mutate({
-                                        userId: selectedUser.id,
-                                        newPassword,
-                                    })
-                                }}
-                                disabled={
-                                    newPassword.length < 8 ||
-                                    resetPasswordMutation.isPending
-                                }
-                            >
-                                {resetPasswordMutation.isPending
-                                    ? 'Resetting...'
-                                    : 'Reset Password'}
-                            </Button>
-                        </div>
-                    </div>
-                </DialogContent>
-            </Dialog>
+                selectedUser={selectedUser}
+                newPassword={newPassword}
+                showNewPassword={showNewPassword}
+                isPending={resetPasswordMutation.isPending}
+                onPasswordChange={setNewPassword}
+                onShowPasswordToggle={() => setShowNewPassword((p) => !p)}
+                onSave={() => {
+                    if (!selectedUser) return
+                    resetPasswordMutation.mutate({
+                        userId: selectedUser.id,
+                        newPassword,
+                    })
+                }}
+            />
 
-            {/* ================================================================ */}
-            {/* Ban User Dialog                                                  */}
-            {/* ================================================================ */}
-            <Dialog
+            <BanUserDialog
                 open={banDialogOpen}
                 onOpenChange={(open) => {
                     setBanDialogOpen(open)
@@ -995,58 +584,19 @@ export default function UsersPage() {
                         setBanReason('')
                     }
                 }}
-            >
-                <DialogContent className="max-w-sm">
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                            <Ban className="h-5 w-5" />
-                            Ban User
-                        </DialogTitle>
-                        <DialogDescription>
-                            Ban {displayName(selectedUser)} from accessing the
-                            application.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="banReason">Reason (optional)</Label>
-                            <Input
-                                id="banReason"
-                                value={banReason}
-                                onChange={(e) => setBanReason(e.target.value)}
-                                placeholder="Reason for ban..."
-                            />
-                        </div>
-                        <div className="flex justify-end gap-2">
-                            <Button
-                                variant="outline"
-                                onClick={() => setBanDialogOpen(false)}
-                            >
-                                Cancel
-                            </Button>
-                            <Button
-                                variant="destructive"
-                                onClick={() => {
-                                    if (!selectedUser) return
-                                    banUserMutation.mutate({
-                                        userId: selectedUser.id,
-                                        banReason: banReason || undefined,
-                                    })
-                                }}
-                                disabled={banUserMutation.isPending}
-                            >
-                                {banUserMutation.isPending
-                                    ? 'Banning...'
-                                    : 'Ban User'}
-                            </Button>
-                        </div>
-                    </div>
-                </DialogContent>
-            </Dialog>
+                selectedUser={selectedUser}
+                banReason={banReason}
+                isPending={banUserMutation.isPending}
+                onBanReasonChange={setBanReason}
+                onBan={() => {
+                    if (!selectedUser) return
+                    banUserMutation.mutate({
+                        userId: selectedUser.id,
+                        banReason: banReason || undefined,
+                    })
+                }}
+            />
 
-            {/* ================================================================ */}
-            {/* Delete Confirmation                                              */}
-            {/* ================================================================ */}
             <ConfirmDialog
                 open={deleteDialogOpen}
                 onOpenChange={(open) => {
@@ -1064,9 +614,6 @@ export default function UsersPage() {
                 }}
             />
 
-            {/* ================================================================ */}
-            {/* Revoke Sessions Confirmation                                     */}
-            {/* ================================================================ */}
             <ConfirmDialog
                 open={revokeDialogOpen}
                 onOpenChange={(open) => {
