@@ -12,7 +12,9 @@ import userEvent from '@testing-library/user-event'
 import { BankAccountTable } from '../../../src/app/(admin)/accounts/_components/BankAccountTable'
 import type { BankAccount } from '../../../src/db/schema'
 
-const makeBankAccount = (overrides: Partial<BankAccount> = {}): BankAccount => ({
+const makeBankAccount = (
+    overrides: Partial<BankAccount> = {},
+): BankAccount => ({
     id: 1,
     entityId: 1,
     institution: 'First National Bank',
@@ -167,7 +169,9 @@ describe('BankAccountTable', () => {
                 onUpdate={mock(() => Promise.resolve())}
             />,
         )
-        expect(screen.getByPlaceholderText('Filter by institution...')).toBeTruthy()
+        expect(
+            screen.getByPlaceholderText('Filter by institution...'),
+        ).toBeTruthy()
     })
 
     test('renders column headers', () => {
@@ -206,7 +210,9 @@ describe('BankAccountTable', () => {
 
         // Find delete button (Trash2 icon button)
         const buttons = screen.getAllByRole('button')
-        const deleteButton = buttons.find((btn) => btn.getAttribute('title') === 'Delete account')
+        const deleteButton = buttons.find(
+            (btn) => btn.getAttribute('title') === 'Delete account',
+        )
         if (deleteButton) {
             await user.click(deleteButton)
         }

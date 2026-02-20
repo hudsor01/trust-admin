@@ -12,12 +12,18 @@ import userEvent from '@testing-library/user-event'
 import { TrusteeDialog } from '../../../src/app/(admin)/trustees/_components/TrusteeDialog'
 
 const makeFormInstance = () => ({
-    Field: mock(({ children }: { name: string; children: (field: any) => React.ReactNode }) =>
-        children({
-            state: { value: '', meta: { errors: [] } },
-            handleChange: mock(() => {}),
-            handleBlur: mock(() => {}),
-        }),
+    Field: mock(
+        ({
+            children,
+        }: {
+            name: string
+            children: (field: unknown) => React.ReactNode
+        }) =>
+            children({
+                state: { value: '', meta: { errors: [] } },
+                handleChange: mock(() => {}),
+                handleBlur: mock(() => {}),
+            }),
     ),
 })
 

@@ -12,12 +12,18 @@ import userEvent from '@testing-library/user-event'
 import { BequestDialog } from '../../../src/app/(admin)/bequests/_components/BequestDialog'
 
 const makeFormInstance = () => ({
-    Field: mock(({ children }: { name: string; children: (field: any) => React.ReactNode }) =>
-        children({
-            state: { value: '', meta: { errors: [] } },
-            handleChange: mock(() => {}),
-            handleBlur: mock(() => {}),
-        }),
+    Field: mock(
+        ({
+            children,
+        }: {
+            name: string
+            children: (field: unknown) => React.ReactNode
+        }) =>
+            children({
+                state: { value: '', meta: { errors: [] } },
+                handleChange: mock(() => {}),
+                handleBlur: mock(() => {}),
+            }),
     ),
 })
 

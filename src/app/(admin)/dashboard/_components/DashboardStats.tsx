@@ -38,7 +38,10 @@ export function DashboardStats({
                         <p className="text-2xl font-semibold mb-2">
                             {completedCount} of {totalCount}
                         </p>
-                        <Progress value={progressPercent} className="h-2 mb-2" />
+                        <Progress
+                            value={progressPercent}
+                            className="h-2 mb-2"
+                        />
                         <p className="text-xs text-muted-foreground">
                             {progressPercent}% complete
                         </p>

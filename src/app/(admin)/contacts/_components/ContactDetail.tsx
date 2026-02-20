@@ -58,23 +58,31 @@ export function ContactDetail({
                         <div className="space-y-3">
                             <div className="flex items-center gap-2">
                                 <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
-                                <span className="text-sm font-medium w-16">Birthday:</span>
+                                <span className="text-sm font-medium w-16">
+                                    Birthday:
+                                </span>
                                 <EditableDateCell
                                     value={contact.dob}
                                     onSave={async (val) => {
-                                        await onUpdateField(contact.id, { dob: val })
+                                        await onUpdateField(contact.id, {
+                                            dob: val,
+                                        })
                                         onUpdateLocal({ dob: val })
                                     }}
                                 />
                             </div>
                             <div className="flex items-center gap-2">
                                 <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
-                                <span className="text-sm font-medium w-16">Email:</span>
+                                <span className="text-sm font-medium w-16">
+                                    Email:
+                                </span>
                                 <div className="flex-1">
                                     <EditableTextCell
                                         value={contact.email}
                                         onSave={async (val) => {
-                                            await onUpdateField(contact.id, { email: val })
+                                            await onUpdateField(contact.id, {
+                                                email: val,
+                                            })
                                             onUpdateLocal({ email: val })
                                         }}
                                     />
@@ -85,12 +93,16 @@ export function ContactDetail({
                             </div>
                             <div className="flex items-center gap-2">
                                 <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
-                                <span className="text-sm font-medium w-16">Phone:</span>
+                                <span className="text-sm font-medium w-16">
+                                    Phone:
+                                </span>
                                 <div className="flex-1">
                                     <EditableTextCell
                                         value={contact.phone}
                                         onSave={async (val) => {
-                                            await onUpdateField(contact.id, { phone: val })
+                                            await onUpdateField(contact.id, {
+                                                phone: val,
+                                            })
                                             onUpdateLocal({ phone: val })
                                         }}
                                     />
@@ -103,9 +115,8 @@ export function ContactDetail({
                                 <div className="flex items-center gap-2">
                                     <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
                                     <span className="text-sm">
-                                        {contact.streetAddress},{' '}
-                                        {contact.city} {contact.state}{' '}
-                                        {contact.zip}
+                                        {contact.streetAddress}, {contact.city}{' '}
+                                        {contact.state} {contact.zip}
                                     </span>
                                 </div>
                             )}

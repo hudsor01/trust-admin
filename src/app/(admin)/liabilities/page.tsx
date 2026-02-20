@@ -3,6 +3,7 @@
 import { Loader2 } from 'lucide-react'
 import { useOptimistic, useState } from 'react'
 import { toast } from 'sonner'
+import type { BulkLiabilityRow } from '@/components/bulk-entry-table'
 import {
     Select,
     SelectContent,
@@ -10,7 +11,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
-import type { BulkLiabilityRow } from '@/components/bulk-entry-table'
 import type { Liability } from '@/db/schema'
 import { useEntityFilter } from '@/hooks/use-entity-filter'
 import { useResourceForm } from '@/hooks/use-resource-form'
@@ -18,15 +18,8 @@ import { toDateInput } from '@/lib/form-factory'
 import { logger } from '@/lib/logger'
 import { sumStrings } from '@/lib/money'
 import { trpc } from '@/lib/trpc'
-import {
-    asLiabilityType,
-    asRecordStatus,
-} from '@/lib/type-utils'
+import { asLiabilityType, asRecordStatus } from '@/lib/type-utils'
 import { formatCurrency } from '@/utils/formatters'
-import { LiabilityDialog } from './_components/LiabilityDialog'
-import { LiabilitySummaryCards } from './_components/LiabilitySummaryCards'
-import { LiabilityTable } from './_components/LiabilityTable'
-import { PaymentDialog } from './_components/PaymentDialog'
 import {
     defaultFormData,
     defaultPaymentForm,
@@ -35,6 +28,10 @@ import {
     type LiabilityFormData,
     type PaymentFormData,
 } from './_components/LiabilityConstants'
+import { LiabilityDialog } from './_components/LiabilityDialog'
+import { LiabilitySummaryCards } from './_components/LiabilitySummaryCards'
+import { LiabilityTable } from './_components/LiabilityTable'
+import { PaymentDialog } from './_components/PaymentDialog'
 
 const log = logger.create('Liabilities')
 

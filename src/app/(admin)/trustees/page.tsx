@@ -18,24 +18,9 @@ import { logger } from '@/lib/logger'
 import { trpc } from '@/lib/trpc'
 import { asTrusteeStatus } from '@/lib/type-utils'
 import { TrusteeDialog } from './_components/TrusteeDialog'
-import { TrusteeTable } from './_components/TrusteeTable'
+import { type TrusteeRow, TrusteeTable } from './_components/TrusteeTable'
 
 const log = logger.create('Trustees')
-
-type Trustee = {
-    id: number
-    entityId: number
-    name: string
-    email: string | null
-    phone: string | null
-    dob: string | null
-    status: string | null
-    order: number
-    isCo: boolean | null
-    coTrusteeId: number | null
-    startDate: string | null
-    endDate: string | null
-}
 
 export default function TrusteesPage() {
     const { data: entities = [], isLoading: entitiesLoading } =
@@ -72,8 +57,8 @@ export default function TrusteesPage() {
         onError: (error) => toast.error(error.message),
     })
 
-    const trusteeForm = useResourceForm<Trustee>({
-        initialData: { ...trusteeFormDefaults(), id: 0 } as Trustee,
+    const trusteeForm = useResourceForm({
+        initialData: trusteeFormDefaults(),
         onSubmit: async (data) => {
             if (!selectedEntity) return
             const payload = {
@@ -84,19 +69,7 @@ export default function TrusteesPage() {
                 startDate: data.startDate || null,
                 endDate: data.endDate || null,
             }
-            if (
-                trusteeForm.isEditing &&
-                trusteeForm.editing &&
-                'id' in trusteeForm.editing
-            ) {
-                await updateTrusteeMutation.mutateAsync({
-                    id: (trusteeForm.editing as Trustee).id,
-                    entityId: selectedEntity,
-                    data: payload,
-                })
-            } else {
-                await createTrusteeMutation.mutateAsync(payload)
-            }
+            await createTrusteeMutation.mutateAsync(payload)
         },
     })
 
@@ -112,8 +85,7 @@ export default function TrusteesPage() {
         }
     }
 
-    // biome-ignore lint/suspicious/noExplicitAny: TrusteeRow fields are mapped directly to the update schema
-    const handleUpdateField = async (id: number, data: any) => {
+    const handleUpdateField = async (id: number, data: Partial<TrusteeRow>) => {
         await updateTrusteeMutation.mutateAsync({
             id,
             entityId: selectedEntity!,
@@ -176,7 +148,6 @@ export default function TrusteesPage() {
                     ) : (
                         <TrusteeTable
                             trustees={currentTrustees}
-                            selectedEntity={selectedEntity!}
                             allowPrimaryLock={true}
                             onDelete={handleDelete}
                             onUpdateField={handleUpdateField}
@@ -206,8 +177,9 @@ export default function TrusteesPage() {
                         </p>
                     ) : (
                         <TrusteeTable
-                            trustees={arbiterTrustees.sort((a, b) => a.order - b.order)}
-                            selectedEntity={selectedEntity!}
+                            trustees={arbiterTrustees.sort(
+                                (a, b) => a.order - b.order,
+                            )}
                             allowPrimaryLock={false}
                             onDelete={handleDelete}
                             onUpdateField={handleUpdateField}

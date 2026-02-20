@@ -11,8 +11,13 @@ import {
     SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import type { UseResourceFormReturn } from '@/hooks/use-resource-form'
 import { TRANSFER_STATUS } from '@/lib/constants'
-import { ACCOUNT_STATUS, BANK_ACCOUNT_TYPES } from './constants'
+import {
+    ACCOUNT_STATUS,
+    BANK_ACCOUNT_TYPES,
+    type BankFormData,
+} from './constants'
 
 interface BankAccountDialogProps {
     isOpen: boolean
@@ -20,8 +25,7 @@ interface BankAccountDialogProps {
     isSubmitting: boolean
     onOpenChange: (open: boolean) => void
     onSubmit: () => void
-    // biome-ignore lint/suspicious/noExplicitAny: TanStack Form Field type is complex; passed through from page.tsx
-    formInstance: any
+    formInstance: UseResourceFormReturn<BankFormData>['formInstance']
 }
 
 export function BankAccountDialog({
@@ -48,7 +52,7 @@ export function BankAccountDialog({
                     <div className="grid grid-cols-2 gap-4">
                         {/* Institution */}
                         <formInstance.Field name="institution">
-                            {(field: any) => (
+                            {(field) => (
                                 <div className="space-y-2">
                                     <Label htmlFor="bank-institution">
                                         Institution *
@@ -68,7 +72,7 @@ export function BankAccountDialog({
 
                         {/* Account Type */}
                         <formInstance.Field name="accountType">
-                            {(field: any) => (
+                            {(field) => (
                                 <div className="space-y-2">
                                     <Label htmlFor="bank-type">
                                         Account Type *
@@ -100,7 +104,7 @@ export function BankAccountDialog({
 
                     {/* Account Name */}
                     <formInstance.Field name="accountName">
-                        {(field: any) => (
+                        {(field) => (
                             <div className="space-y-2 mt-4">
                                 <Label htmlFor="bank-name">Account Name</Label>
                                 <Input
@@ -119,7 +123,7 @@ export function BankAccountDialog({
                     <div className="grid grid-cols-2 gap-4 mt-4">
                         {/* Account Number */}
                         <formInstance.Field name="accountNumber">
-                            {(field: any) => (
+                            {(field) => (
                                 <div className="space-y-2">
                                     <Label htmlFor="bank-number">
                                         Account Number *
@@ -138,7 +142,7 @@ export function BankAccountDialog({
 
                         {/* Routing Number */}
                         <formInstance.Field name="routingNumber">
-                            {(field: any) => (
+                            {(field) => (
                                 <div className="space-y-2">
                                     <Label htmlFor="bank-routing">
                                         Routing Number
@@ -164,7 +168,7 @@ export function BankAccountDialog({
                     <div className="grid grid-cols-2 gap-4">
                         {/* DOD Value */}
                         <formInstance.Field name="dodValue">
-                            {(field: any) => (
+                            {(field) => (
                                 <div className="space-y-2">
                                     <Label htmlFor="bank-dod-value">
                                         DOD Balance
@@ -184,7 +188,7 @@ export function BankAccountDialog({
 
                         {/* DOD Value Date */}
                         <formInstance.Field name="dodValueDate">
-                            {(field: any) => (
+                            {(field) => (
                                 <div className="space-y-2">
                                     <Label htmlFor="bank-dod-date">
                                         DOD Value Date
@@ -211,7 +215,7 @@ export function BankAccountDialog({
                     <div className="grid grid-cols-2 gap-4">
                         {/* Account Status */}
                         <formInstance.Field name="status">
-                            {(field: any) => (
+                            {(field) => (
                                 <div className="space-y-2">
                                     <Label htmlFor="bank-status">
                                         Account Status *
@@ -242,7 +246,7 @@ export function BankAccountDialog({
 
                         {/* Transfer Status */}
                         <formInstance.Field name="transferStatus">
-                            {(field: any) => (
+                            {(field) => (
                                 <div className="space-y-2">
                                     <Label htmlFor="bank-transfer">
                                         Transfer Status *
@@ -275,7 +279,7 @@ export function BankAccountDialog({
 
                 {/* Notes */}
                 <formInstance.Field name="notes">
-                    {(field: any) => (
+                    {(field) => (
                         <div className="space-y-2">
                             <Label htmlFor="bank-notes">Notes</Label>
                             <Textarea

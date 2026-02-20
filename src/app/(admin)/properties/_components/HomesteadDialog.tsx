@@ -12,7 +12,9 @@ import {
     SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import type { UseResourceFormReturn } from '@/hooks/use-resource-form'
 import { DOD_VALUE_TYPES, TRANSFER_STATUS } from '@/lib/constants'
+import type { HomesteadFormData } from './constants'
 import { ASSET_STATUS, PROPERTY_TYPES } from './constants'
 
 interface HomesteadDialogProps {
@@ -21,8 +23,7 @@ interface HomesteadDialogProps {
     isSubmitting: boolean
     onOpenChange: (open: boolean) => void
     onSubmit: () => void
-    // biome-ignore lint/suspicious/noExplicitAny: TanStack Form Field type is complex; passed through from page.tsx
-    formInstance: any
+    formInstance: UseResourceFormReturn<HomesteadFormData>['formInstance']
 }
 
 export function HomesteadDialog({
@@ -46,7 +47,7 @@ export function HomesteadDialog({
                     <h4 className="mb-3 text-sm font-medium">Address</h4>
                     <div className="space-y-3">
                         <formInstance.Field name="streetAddress">
-                            {(field: any) => (
+                            {(field) => (
                                 <div className="space-y-2">
                                     <Label htmlFor="h-street">
                                         Street Address
@@ -64,7 +65,7 @@ export function HomesteadDialog({
                         </formInstance.Field>
                         <div className="grid grid-cols-4 gap-3">
                             <formInstance.Field name="city">
-                                {(field: any) => (
+                                {(field) => (
                                     <div className="space-y-2">
                                         <Label htmlFor="h-city">City</Label>
                                         <Input
@@ -81,7 +82,7 @@ export function HomesteadDialog({
                                 )}
                             </formInstance.Field>
                             <formInstance.Field name="state">
-                                {(field: any) => (
+                                {(field) => (
                                     <div className="space-y-2">
                                         <Label htmlFor="h-state">State</Label>
                                         <Input
@@ -98,7 +99,7 @@ export function HomesteadDialog({
                                 )}
                             </formInstance.Field>
                             <formInstance.Field name="zip">
-                                {(field: any) => (
+                                {(field) => (
                                     <div className="space-y-2">
                                         <Label htmlFor="h-zip">ZIP</Label>
                                         <Input
@@ -115,7 +116,7 @@ export function HomesteadDialog({
                                 )}
                             </formInstance.Field>
                             <formInstance.Field name="county">
-                                {(field: any) => (
+                                {(field) => (
                                     <div className="space-y-2">
                                         <Label htmlFor="h-county">County</Label>
                                         <Input
@@ -141,7 +142,7 @@ export function HomesteadDialog({
                     </h4>
                     <div className="grid grid-cols-3 gap-3">
                         <formInstance.Field name="propertyType">
-                            {(field: any) => (
+                            {(field) => (
                                 <div className="space-y-2">
                                     <Label>Property Type</Label>
                                     <Select
@@ -168,7 +169,7 @@ export function HomesteadDialog({
                             )}
                         </formInstance.Field>
                         <formInstance.Field name="yearBuilt">
-                            {(field: any) => (
+                            {(field) => (
                                 <div className="space-y-2">
                                     <Label htmlFor="h-year">Year Built</Label>
                                     <Input
@@ -184,7 +185,7 @@ export function HomesteadDialog({
                             )}
                         </formInstance.Field>
                         <formInstance.Field name="squareFeet">
-                            {(field: any) => (
+                            {(field) => (
                                 <div className="space-y-2">
                                     <Label htmlFor="h-sqft">Square Feet</Label>
                                     <Input
@@ -202,7 +203,7 @@ export function HomesteadDialog({
                     </div>
                     <div className="mt-3 grid grid-cols-4 gap-3">
                         <formInstance.Field name="bedrooms">
-                            {(field: any) => (
+                            {(field) => (
                                 <div className="space-y-2">
                                     <Label htmlFor="h-beds">Bedrooms</Label>
                                     <Input
@@ -218,7 +219,7 @@ export function HomesteadDialog({
                             )}
                         </formInstance.Field>
                         <formInstance.Field name="bathrooms">
-                            {(field: any) => (
+                            {(field) => (
                                 <div className="space-y-2">
                                     <Label htmlFor="h-baths">Bathrooms</Label>
                                     <Input
@@ -233,7 +234,7 @@ export function HomesteadDialog({
                             )}
                         </formInstance.Field>
                         <formInstance.Field name="lotSizeAcres">
-                            {(field: any) => (
+                            {(field) => (
                                 <div className="space-y-2">
                                     <Label htmlFor="h-lot">
                                         Lot Size (acres)
@@ -250,7 +251,7 @@ export function HomesteadDialog({
                             )}
                         </formInstance.Field>
                         <formInstance.Field name="parcelNumber">
-                            {(field: any) => (
+                            {(field) => (
                                 <div className="space-y-2">
                                     <Label htmlFor="h-parcel">
                                         Parcel Number
@@ -273,7 +274,7 @@ export function HomesteadDialog({
                     <h4 className="mb-3 text-sm font-medium">Acquisition</h4>
                     <div className="grid grid-cols-2 gap-3">
                         <formInstance.Field name="acquisitionDate">
-                            {(field: any) => (
+                            {(field) => (
                                 <div className="space-y-2">
                                     <Label htmlFor="h-acq-date">
                                         Acquisition Date
@@ -291,7 +292,7 @@ export function HomesteadDialog({
                             )}
                         </formInstance.Field>
                         <formInstance.Field name="acquisitionCost">
-                            {(field: any) => (
+                            {(field) => (
                                 <div className="space-y-2">
                                     <Label htmlFor="h-acq-cost">
                                         Acquisition Cost
@@ -317,7 +318,7 @@ export function HomesteadDialog({
                     </h4>
                     <div className="grid grid-cols-3 gap-3">
                         <formInstance.Field name="dodValue">
-                            {(field: any) => (
+                            {(field) => (
                                 <div className="space-y-2">
                                     <Label htmlFor="h-dod-val">DOD Value</Label>
                                     <Input
@@ -333,7 +334,7 @@ export function HomesteadDialog({
                             )}
                         </formInstance.Field>
                         <formInstance.Field name="dodValueDate">
-                            {(field: any) => (
+                            {(field) => (
                                 <div className="space-y-2">
                                     <Label htmlFor="h-dod-date">
                                         DOD Value Date
@@ -351,7 +352,7 @@ export function HomesteadDialog({
                             )}
                         </formInstance.Field>
                         <formInstance.Field name="dodValueType">
-                            {(field: any) => (
+                            {(field) => (
                                 <div className="space-y-2">
                                     <Label>Valuation Type</Label>
                                     <Select
@@ -386,7 +387,7 @@ export function HomesteadDialog({
                     </h4>
                     <div className="grid grid-cols-3 items-end gap-3">
                         <formInstance.Field name="dodAffidavitFiled">
-                            {(field: any) => (
+                            {(field) => (
                                 <div className="flex items-center gap-2">
                                     <Checkbox
                                         id="h-affidavit"
@@ -402,14 +403,12 @@ export function HomesteadDialog({
                             )}
                         </formInstance.Field>
                         <formInstance.Subscribe<boolean>
-                            selector={(state: any) =>
-                                state.values.dodAffidavitFiled
-                            }
+                            selector={(state) => state.values.dodAffidavitFiled}
                         >
                             {(dodAffidavitFiled: boolean) => (
                                 <>
                                     <formInstance.Field name="dodAffidavitDate">
-                                        {(field: any) => (
+                                        {(field) => (
                                             <div className="space-y-2">
                                                 <Label htmlFor="h-filing-date">
                                                     Filing Date
@@ -432,7 +431,7 @@ export function HomesteadDialog({
                                         )}
                                     </formInstance.Field>
                                     <formInstance.Field name="clerkFileNo">
-                                        {(field: any) => (
+                                        {(field) => (
                                             <div className="space-y-2">
                                                 <Label htmlFor="h-clerk">
                                                     Clerk File Number
@@ -463,7 +462,7 @@ export function HomesteadDialog({
                     <h4 className="mb-3 text-sm font-medium">Status</h4>
                     <div className="grid grid-cols-2 gap-3">
                         <formInstance.Field name="status">
-                            {(field: any) => (
+                            {(field) => (
                                 <div className="space-y-2">
                                     <Label>Asset Status</Label>
                                     <Select
@@ -490,7 +489,7 @@ export function HomesteadDialog({
                             )}
                         </formInstance.Field>
                         <formInstance.Field name="transferStatus">
-                            {(field: any) => (
+                            {(field) => (
                                 <div className="space-y-2">
                                     <Label>Transfer Status</Label>
                                     <Select
@@ -520,7 +519,7 @@ export function HomesteadDialog({
                 </div>
 
                 <formInstance.Field name="notes">
-                    {(field: any) => (
+                    {(field) => (
                         <div className="space-y-2">
                             <Label htmlFor="h-notes">Notes</Label>
                             <Textarea

@@ -13,7 +13,11 @@ import { Card, CardContent } from '@/components/ui/card'
 import { DataTable } from '@/components/ui/data-table'
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import type { RentalProperty } from '@/db/schema'
-import { RENTAL_STATUS, STATUS_VARIANTS, TRANSFER_STATUS } from '@/lib/constants'
+import {
+    RENTAL_STATUS,
+    STATUS_VARIANTS,
+    TRANSFER_STATUS,
+} from '@/lib/constants'
 import { asRentalStatus, asTransferStatus } from '@/lib/type-utils'
 
 interface RentalPropertyTableProps {

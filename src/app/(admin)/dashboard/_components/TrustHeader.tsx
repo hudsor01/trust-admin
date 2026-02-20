@@ -21,7 +21,9 @@ export function TrustHeader({ entity }: TrustHeaderProps) {
                 {entity.name}
             </h1>
             <p className="text-sm text-muted-foreground mb-4">
-                {entity.trustType === 'IRREVOCABLE' ? 'Irrevocable' : 'Revocable'}{' '}
+                {entity.trustType === 'IRREVOCABLE'
+                    ? 'Irrevocable'
+                    : 'Revocable'}{' '}
                 · Texas · Established Sep 18, 2024
             </p>
             <div className="flex gap-8">

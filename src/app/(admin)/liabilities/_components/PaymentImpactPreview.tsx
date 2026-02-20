@@ -2,13 +2,10 @@
 
 import { useStore } from '@tanstack/react-store'
 import { useDeferredValue, useMemo } from 'react'
-import type { UseResourceFormReturn } from '@/hooks/use-resource-form'
-import {
-    calculatePaymentSplit,
-    estimatePayoffDate,
-} from '@/lib/amortization'
-import { formatCurrency } from '@/utils/formatters'
 import type { Liability } from '@/db/schema'
+import type { UseResourceFormReturn } from '@/hooks/use-resource-form'
+import { calculatePaymentSplit, estimatePayoffDate } from '@/lib/amortization'
+import { formatCurrency } from '@/utils/formatters'
 import type { PaymentFormData } from './LiabilityConstants'
 import { isRevolvingType } from './LiabilityConstants'
 
@@ -25,15 +22,11 @@ export function PaymentImpactPreview({
     formInstance,
     liability,
 }: {
-    // biome-ignore lint/suspicious/noExplicitAny: TanStack Form Field type is complex; passed through from page.tsx
-    formInstance: any
+    formInstance: PaymentFormInstance
     liability: Liability
 }) {
     // Subscribe to payment amount - hooks must be called unconditionally
-    const amount = useStore(
-        (formInstance as PaymentFormInstance).store,
-        (s) => s.values.amount,
-    ) as string | undefined
+    const amount = useStore(formInstance.store, (s) => s.values.amount)
 
     // Defer input for smooth typing
     const deferredAmount = useDeferredValue(amount)

@@ -14,12 +14,14 @@ import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import type { BankAccount } from '@/db/schema'
 import { STATUS_VARIANTS, TRANSFER_STATUS } from '@/lib/constants'
 import { asRecordStatus, asTransferStatus } from '@/lib/type-utils'
-import { formatCurrency } from '@/utils/formatters'
-import { ACCOUNT_STATUS, BANK_ACCOUNT_TYPES, maskAccountNumber } from './constants'
+import {
+    ACCOUNT_STATUS,
+    BANK_ACCOUNT_TYPES,
+    maskAccountNumber,
+} from './constants'
 
 interface BankAccountTableProps {
     bankAccounts: BankAccount[]
-    totalBankValue: string
     selectedEntity: number | undefined
     onAdd: () => void
     onEdit: (account: BankAccount) => void
@@ -29,7 +31,6 @@ interface BankAccountTableProps {
 
 export function BankAccountTable({
     bankAccounts,
-    totalBankValue,
     selectedEntity,
     onAdd,
     onEdit,

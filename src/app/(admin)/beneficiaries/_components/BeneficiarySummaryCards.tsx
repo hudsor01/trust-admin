@@ -44,8 +44,7 @@ export function BeneficiarySummaryCards({
                             <Progress
                                 value={
                                     totalBeneficiaries > 0
-                                        ? (informedCount /
-                                              totalBeneficiaries) *
+                                        ? (informedCount / totalBeneficiaries) *
                                           100
                                         : 0
                                 }

@@ -13,8 +13,12 @@ import {
 import { DataTable } from '@/components/ui/data-table'
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import type { Beneficiary, WithdrawalRecord } from '@/db/schema'
-import { calculateAge, formatDate, getWithdrawalStatus } from '@/utils/formatters'
 import { cn } from '@/lib/utils'
+import {
+    calculateAge,
+    formatDate,
+    getWithdrawalStatus,
+} from '@/utils/formatters'
 
 export type WithdrawalRow = {
     beneficiary: Beneficiary
@@ -162,9 +166,7 @@ export function WithdrawalsTable({
                                     variant="outline"
                                     className="border-green-300 text-green-700 hover:bg-green-50 dark:border-green-700 dark:text-green-300"
                                     onClick={() =>
-                                        onProcessWithdrawal(
-                                            row.original.age25!,
-                                        )
+                                        onProcessWithdrawal(row.original.age25!)
                                     }
                                 >
                                     Process 25
@@ -178,9 +180,7 @@ export function WithdrawalsTable({
                                     variant="outline"
                                     className="border-green-300 text-green-700 hover:bg-green-50 dark:border-green-700 dark:text-green-300"
                                     onClick={() =>
-                                        onProcessWithdrawal(
-                                            row.original.age30!,
-                                        )
+                                        onProcessWithdrawal(row.original.age30!)
                                     }
                                 >
                                     Process 30

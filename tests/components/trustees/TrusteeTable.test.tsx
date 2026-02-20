@@ -87,8 +87,17 @@ describe('TrusteeTable', () => {
 
     test('renders multiple trustees', () => {
         const trustees = [
-            makeTrustee({ id: 1, name: 'Alice Trustee', email: 'alice@trust.com' }),
-            makeTrustee({ id: 2, name: 'Bob Successor', email: 'bob@trust.com', order: 2 }),
+            makeTrustee({
+                id: 1,
+                name: 'Alice Trustee',
+                email: 'alice@trust.com',
+            }),
+            makeTrustee({
+                id: 2,
+                name: 'Bob Successor',
+                email: 'bob@trust.com',
+                order: 2,
+            }),
         ]
 
         render(
@@ -178,7 +187,12 @@ describe('TrusteeTable', () => {
         const user = userEvent.setup()
         const onDelete = mock(() => {})
         const trustees = [
-            makeTrustee({ id: 42, name: 'Successor Trustee', email: 'successor@trust.com', order: 2 }),
+            makeTrustee({
+                id: 42,
+                name: 'Successor Trustee',
+                email: 'successor@trust.com',
+                order: 2,
+            }),
         ]
 
         render(

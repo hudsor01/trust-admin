@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/tooltip'
 import type { TrustAccounting } from '@/db/schema'
 import { cn } from '@/lib/utils'
-import { formatCurrency, formatDate } from '@/utils/formatters'
+import { formatDate } from '@/utils/formatters'
 import { EXPENSE_TYPES, INCOME_TYPES } from './accounting-constants'
 
 interface AccountingTableProps {

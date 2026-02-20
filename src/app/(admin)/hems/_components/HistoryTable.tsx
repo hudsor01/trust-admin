@@ -3,12 +3,7 @@
 import type { ColumnDef } from '@tanstack/react-table'
 import { EditableTextCell } from '@/components/editable-cells'
 import { Badge } from '@/components/ui/badge'
-import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { DataTable } from '@/components/ui/data-table'
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import type { Beneficiary, Distribution } from '@/db/schema'

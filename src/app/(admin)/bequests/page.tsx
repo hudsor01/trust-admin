@@ -18,17 +18,9 @@ import { logger } from '@/lib/logger'
 import { trpc } from '@/lib/trpc'
 import { BequestDialog } from './_components/BequestDialog'
 import { BequestTable } from './_components/BequestTable'
+import type { BequestFormData } from './_components/types'
 
 const log = logger.create('Bequests')
-
-type BequestFormData = {
-    description: string
-    category: string
-    beneficiaryId: string
-    recipientName: string
-    dateDistributed: string
-    notes: string
-}
 
 export default function BequestsPage() {
     const utils = trpc.useUtils()
@@ -58,7 +50,9 @@ export default function BequestsPage() {
 
     const loading = entitiesLoading || bequestsLoading
 
-    const [editingBequestId, setEditingBequestId] = useState<number | null>(null)
+    const [editingBequestId, setEditingBequestId] = useState<number | null>(
+        null,
+    )
 
     const bequestForm = useResourceForm<BequestFormData>({
         initialData: {

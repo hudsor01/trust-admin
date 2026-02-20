@@ -11,7 +11,7 @@ import type {
 import { useEntityFilter } from '@/hooks/use-entity-filter'
 import { useResourceForm } from '@/hooks/use-resource-form'
 import { logger } from '@/lib/logger'
-import { isNegative, subtractMoney, sumStrings } from '@/lib/money'
+import { subtractMoney, sumStrings } from '@/lib/money'
 import { trpc } from '@/lib/trpc'
 import { AccountingDialog } from './_components/AccountingDialog'
 import { AccountingHeader } from './_components/AccountingHeader'

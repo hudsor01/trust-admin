@@ -156,7 +156,9 @@ export function ContactTable({
                                                     variant="ghost"
                                                     size="icon"
                                                     className="h-8 w-8"
-                                                    onClick={() => onView(contact)}
+                                                    onClick={() =>
+                                                        onView(contact)
+                                                    }
                                                 >
                                                     <Eye className="h-4 w-4" />
                                                 </Button>
@@ -173,7 +175,9 @@ export function ContactTable({
                                                     variant="ghost"
                                                     size="icon"
                                                     className="h-8 w-8"
-                                                    onClick={() => onEdit(contact)}
+                                                    onClick={() =>
+                                                        onEdit(contact)
+                                                    }
                                                 >
                                                     <Pencil className="h-4 w-4" />
                                                 </Button>
@@ -190,7 +194,9 @@ export function ContactTable({
                                                     variant="ghost"
                                                     size="icon"
                                                     className="h-8 w-8 text-destructive hover:text-destructive"
-                                                    onClick={() => onDelete(contact)}
+                                                    onClick={() =>
+                                                        onDelete(contact)
+                                                    }
                                                 >
                                                     <Trash2 className="h-4 w-4" />
                                                 </Button>

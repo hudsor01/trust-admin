@@ -5,10 +5,11 @@ import { useCallback, useMemo, useOptimistic, useState } from 'react'
 import { toast } from 'sonner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { logger } from '@/lib/logger'
-import { isNegative, subtractMoney, sumStrings } from '@/lib/money'
+import { subtractMoney, sumStrings } from '@/lib/money'
 import { trpc } from '@/lib/trpc'
 import { calculateAge, getWithdrawalStatus } from '@/utils/formatters'
 import { AccountingSummary } from './_components/AccountingSummary'
+import { TASK_CATEGORIES } from './_components/constants'
 import { DashboardAlerts } from './_components/DashboardAlerts'
 import { DashboardStats } from './_components/DashboardStats'
 import { FinancialCharts } from './_components/FinancialCharts'
@@ -16,7 +17,6 @@ import { LiabilitiesPanel } from './_components/LiabilitiesPanel'
 import { TaskList } from './_components/TaskList'
 import { TrustHeader } from './_components/TrustHeader'
 import { WithdrawalsPanel } from './_components/WithdrawalsPanel'
-import { TASK_CATEGORIES } from './_components/constants'
 
 const log = logger.create('Dashboard')
 
@@ -242,11 +242,7 @@ export default function DashboardPage() {
     }, [accountingEntries])
 
     // PERF: Memoize asset calculations - these involve multiple array operations
-    const {
-        totalLiabilities,
-        totalAssets,
-        assetAllocationData,
-    } =
+    const { totalLiabilities, totalAssets, assetAllocationData } =
         useMemo(() => {
             const bankTotal = sumStrings(
                 bankAccounts.map((a) => a.currentBalance ?? '0'),

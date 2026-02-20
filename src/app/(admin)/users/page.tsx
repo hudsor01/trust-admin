@@ -1,7 +1,15 @@
 'use client'
 
 import type { ColumnDef } from '@tanstack/react-table'
-import { Ban, KeyRound, LogOut, MoreHorizontal, Pencil, Shield, Trash2 } from 'lucide-react'
+import {
+    Ban,
+    KeyRound,
+    LogOut,
+    MoreHorizontal,
+    Pencil,
+    Shield,
+    Trash2,
+} from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { ConfirmDialog } from '@/components/confirm-dialog'
@@ -19,12 +27,12 @@ import { trpc } from '@/lib/trpc'
 import { formatDate } from '@/utils/formatters'
 import { BanUserDialog } from './_components/BanUserDialog'
 import { ChangeRoleDialog } from './_components/ChangeRoleDialog'
-import { CreatePortalAccountDialog } from './_components/CreatePortalAccountDialog'
 import { CreatedCredentialsDialog } from './_components/CreatedCredentialsDialog'
+import { CreatePortalAccountDialog } from './_components/CreatePortalAccountDialog'
 import { EditUserDialog } from './_components/EditUserDialog'
 import { ResetPasswordDialog } from './_components/ResetPasswordDialog'
-import { UsersTable } from './_components/UsersTable'
 import type { NeonAuthUser } from './_components/types'
+import { UsersTable } from './_components/UsersTable'
 
 // =============================================================================
 // Page Component

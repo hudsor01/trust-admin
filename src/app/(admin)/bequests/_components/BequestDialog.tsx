@@ -11,7 +11,9 @@ import {
     SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import type { UseResourceFormReturn } from '@/hooks/use-resource-form'
 import { BEQUEST_CATEGORIES } from './BequestTable'
+import type { BequestFormData } from './types'
 
 interface Beneficiary {
     id: number
@@ -26,8 +28,7 @@ interface BequestDialogProps {
     onOpenChange: (open: boolean) => void
     onSubmit: () => void
     beneficiaries: Beneficiary[]
-    // biome-ignore lint/suspicious/noExplicitAny: TanStack Form Field type is complex; passed through from page.tsx
-    formInstance: any
+    formInstance: UseResourceFormReturn<BequestFormData>['formInstance']
 }
 
 export function BequestDialog({
@@ -50,14 +51,16 @@ export function BequestDialog({
             <div className="space-y-4">
                 {/* Description - Required */}
                 <formInstance.Field name="description">
-                    {(field: any) => (
+                    {(field) => (
                         <div className="space-y-2">
                             <Label htmlFor="description">Description *</Label>
                             <Textarea
                                 id="description"
                                 placeholder="Describe the item (e.g., 'Dog named Bandit', 'Gold wedding ring')"
                                 value={field.state.value}
-                                onChange={(e) => field.handleChange(e.target.value)}
+                                onChange={(e) =>
+                                    field.handleChange(e.target.value)
+                                }
                                 onBlur={field.handleBlur}
                                 rows={2}
                             />
@@ -72,19 +75,25 @@ export function BequestDialog({
 
                 {/* Category */}
                 <formInstance.Field name="category">
-                    {(field: any) => (
+                    {(field) => (
                         <div className="space-y-2">
                             <Label htmlFor="category">Category</Label>
                             <Select
                                 value={field.state.value}
                                 onValueChange={(v) => field.handleChange(v)}
                             >
-                                <SelectTrigger id="category" onBlur={field.handleBlur}>
+                                <SelectTrigger
+                                    id="category"
+                                    onBlur={field.handleBlur}
+                                >
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {BEQUEST_CATEGORIES.map((c) => (
-                                        <SelectItem key={c.value} value={c.value}>
+                                        <SelectItem
+                                            key={c.value}
+                                            value={c.value}
+                                        >
                                             {c.label}
                                         </SelectItem>
                                     ))}
@@ -96,7 +105,7 @@ export function BequestDialog({
 
                 {/* Beneficiary */}
                 <formInstance.Field name="beneficiaryId">
-                    {(field: any) => (
+                    {(field) => (
                         <div className="space-y-2">
                             <Label htmlFor="beneficiary">
                                 Beneficiary (if applicable)
@@ -104,16 +113,26 @@ export function BequestDialog({
                             <Select
                                 value={field.state.value || '__none__'}
                                 onValueChange={(v) =>
-                                    field.handleChange(v === '__none__' ? '' : v)
+                                    field.handleChange(
+                                        v === '__none__' ? '' : v,
+                                    )
                                 }
                             >
-                                <SelectTrigger id="beneficiary" onBlur={field.handleBlur}>
+                                <SelectTrigger
+                                    id="beneficiary"
+                                    onBlur={field.handleBlur}
+                                >
                                     <SelectValue placeholder="Select beneficiary" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="__none__">None</SelectItem>
+                                    <SelectItem value="__none__">
+                                        None
+                                    </SelectItem>
                                     {beneficiaries.map((b) => (
-                                        <SelectItem key={b.id} value={String(b.id)}>
+                                        <SelectItem
+                                            key={b.id}
+                                            value={String(b.id)}
+                                        >
                                             {b.firstName} {b.lastName}
                                         </SelectItem>
                                     ))}
@@ -125,7 +144,7 @@ export function BequestDialog({
 
                 {/* Recipient Name */}
                 <formInstance.Field name="recipientName">
-                    {(field: any) => (
+                    {(field) => (
                         <div className="space-y-2">
                             <Label htmlFor="recipientName">
                                 Recipient Name (if not a beneficiary)
@@ -134,11 +153,14 @@ export function BequestDialog({
                                 id="recipientName"
                                 placeholder="Name of recipient"
                                 value={field.state.value}
-                                onChange={(e) => field.handleChange(e.target.value)}
+                                onChange={(e) =>
+                                    field.handleChange(e.target.value)
+                                }
                                 onBlur={field.handleBlur}
                             />
                             <p className="text-xs text-muted-foreground">
-                                Use this if the recipient is not listed as a beneficiary
+                                Use this if the recipient is not listed as a
+                                beneficiary
                             </p>
                         </div>
                     )}
@@ -146,14 +168,18 @@ export function BequestDialog({
 
                 {/* Date Distributed */}
                 <formInstance.Field name="dateDistributed">
-                    {(field: any) => (
+                    {(field) => (
                         <div className="space-y-2">
-                            <Label htmlFor="dateDistributed">Date Distributed</Label>
+                            <Label htmlFor="dateDistributed">
+                                Date Distributed
+                            </Label>
                             <Input
                                 id="dateDistributed"
                                 type="date"
                                 value={field.state.value}
-                                onChange={(e) => field.handleChange(e.target.value)}
+                                onChange={(e) =>
+                                    field.handleChange(e.target.value)
+                                }
                                 onBlur={field.handleBlur}
                             />
                             <p className="text-xs text-muted-foreground">
@@ -165,14 +191,16 @@ export function BequestDialog({
 
                 {/* Notes */}
                 <formInstance.Field name="notes">
-                    {(field: any) => (
+                    {(field) => (
                         <div className="space-y-2">
                             <Label htmlFor="notes">Notes</Label>
                             <Textarea
                                 id="notes"
                                 placeholder="Additional notes..."
                                 value={field.state.value}
-                                onChange={(e) => field.handleChange(e.target.value)}
+                                onChange={(e) =>
+                                    field.handleChange(e.target.value)
+                                }
                                 onBlur={field.handleBlur}
                             />
                         </div>

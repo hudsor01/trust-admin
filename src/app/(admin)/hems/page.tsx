@@ -23,9 +23,10 @@ import { formatCurrency, getWithdrawalStatus } from '@/utils/formatters'
 import { HemsDialog } from './_components/HemsDialog'
 import { HemsTable } from './_components/HemsTable'
 import { HistoryTable } from './_components/HistoryTable'
+import type { HemsFormData, WithdrawalFormData } from './_components/types'
 import { WithdrawalDialog } from './_components/WithdrawalDialog'
-import { WithdrawalsTable } from './_components/WithdrawalsTable'
 import type { WithdrawalRow } from './_components/WithdrawalsTable'
+import { WithdrawalsTable } from './_components/WithdrawalsTable'
 
 export default function DistributionsPage() {
     const utils = trpc.useUtils()
@@ -83,7 +84,7 @@ export default function DistributionsPage() {
         useState<WithdrawalRecord | null>(null)
 
     // HEMS Request Form
-    const hemsForm = useResourceForm({
+    const hemsForm = useResourceForm<HemsFormData>({
         initialData: {
             beneficiaryId: '',
             amount: '',
@@ -114,7 +115,7 @@ export default function DistributionsPage() {
     const { formInstance: hemsFormInstance } = hemsForm
 
     // Withdrawal Processing Form
-    const withdrawalForm = useResourceForm({
+    const withdrawalForm = useResourceForm<WithdrawalFormData>({
         initialData: {
             amount: '',
             paymentMethod: 'CHECK',

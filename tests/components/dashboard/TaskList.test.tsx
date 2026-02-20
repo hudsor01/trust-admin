@@ -12,17 +12,19 @@ import userEvent from '@testing-library/user-event'
 import { TaskList } from '../../../src/app/(admin)/dashboard/_components/TaskList'
 
 // Minimal task shape matching the component's internal Task interface
-const makeTask = (overrides: Partial<{
-    id: number
-    title: string
-    completed: boolean
-    dueDate: string | null
-    notes: string | null
-    category: string
-    sortOrder: number
-    createdAt: string
-    updatedAt: string
-}> = {}) => ({
+const makeTask = (
+    overrides: Partial<{
+        id: number
+        title: string
+        completed: boolean
+        dueDate: string | null
+        notes: string | null
+        category: string
+        sortOrder: number
+        createdAt: string
+        updatedAt: string
+    }> = {},
+) => ({
     id: 1,
     title: 'Review estate documents',
     completed: false,
@@ -141,8 +143,17 @@ describe('TaskList', () => {
                 value: 'LEGAL',
                 label: 'Legal',
                 tasks: [
-                    makeTask({ id: 1, title: 'File probate petition', category: 'LEGAL' }),
-                    makeTask({ id: 2, title: 'Review trust documents', category: 'LEGAL', completed: true }),
+                    makeTask({
+                        id: 1,
+                        title: 'File probate petition',
+                        category: 'LEGAL',
+                    }),
+                    makeTask({
+                        id: 2,
+                        title: 'Review trust documents',
+                        category: 'LEGAL',
+                        completed: true,
+                    }),
                 ],
             },
         ]
@@ -180,24 +191,36 @@ describe('TaskList', () => {
             {
                 value: 'LEGAL',
                 label: 'Legal',
-                tasks: [makeTask({ id: 1, title: 'Legal task', category: 'LEGAL' })],
+                tasks: [
+                    makeTask({ id: 1, title: 'Legal task', category: 'LEGAL' }),
+                ],
             },
             {
                 value: 'FINANCIAL',
                 label: 'Financial',
-                tasks: [makeTask({ id: 2, title: 'Financial task', category: 'FINANCIAL' })],
+                tasks: [
+                    makeTask({
+                        id: 2,
+                        title: 'Financial task',
+                        category: 'FINANCIAL',
+                    }),
+                ],
             },
         ]
 
         test('renders all category headers', () => {
-            render(<TaskList {...defaultProps} groupedTasks={multiGroupedTasks} />)
+            render(
+                <TaskList {...defaultProps} groupedTasks={multiGroupedTasks} />,
+            )
 
             expect(screen.getByText('Legal')).toBeTruthy()
             expect(screen.getByText('Financial')).toBeTruthy()
         })
 
         test('renders tasks from all categories', () => {
-            render(<TaskList {...defaultProps} groupedTasks={multiGroupedTasks} />)
+            render(
+                <TaskList {...defaultProps} groupedTasks={multiGroupedTasks} />,
+            )
 
             expect(screen.getByText('Legal task')).toBeTruthy()
             expect(screen.getByText('Financial task')).toBeTruthy()

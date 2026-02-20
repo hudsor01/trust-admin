@@ -99,7 +99,8 @@ export function BequestTable({
                                         const recipient = b.beneficiaryId
                                             ? beneficiaries.find(
                                                   (ben) =>
-                                                      ben.id === b.beneficiaryId,
+                                                      ben.id ===
+                                                      b.beneficiaryId,
                                               )
                                             : null
                                         return (
@@ -109,17 +110,27 @@ export function BequestTable({
                                                         value={b.description}
                                                         onSave={(v) =>
                                                             onUpdate(b.id, {
-                                                                description: String(v || ''),
+                                                                description:
+                                                                    String(
+                                                                        v || '',
+                                                                    ),
                                                             })
                                                         }
                                                     />
                                                 </TableCell>
                                                 <TableCell>
                                                     <EditableSelectCell
-                                                        value={b.category || 'OTHER'}
-                                                        options={BEQUEST_CATEGORIES}
+                                                        value={
+                                                            b.category ||
+                                                            'OTHER'
+                                                        }
+                                                        options={
+                                                            BEQUEST_CATEGORIES
+                                                        }
                                                         onSave={(v) =>
-                                                            onUpdate(b.id, { category: v })
+                                                            onUpdate(b.id, {
+                                                                category: v,
+                                                            })
                                                         }
                                                     />
                                                 </TableCell>
@@ -128,10 +139,13 @@ export function BequestTable({
                                                         `${recipient.firstName} ${recipient.lastName}`
                                                     ) : (
                                                         <EditableTextCell
-                                                            value={b.recipientName}
+                                                            value={
+                                                                b.recipientName
+                                                            }
                                                             onSave={(v) =>
                                                                 onUpdate(b.id, {
-                                                                    recipientName: v,
+                                                                    recipientName:
+                                                                        v,
                                                                 })
                                                             }
                                                             placeholder="Add recipient"
@@ -142,7 +156,9 @@ export function BequestTable({
                                                     <EditableTextCell
                                                         value={b.notes}
                                                         onSave={(v) =>
-                                                            onUpdate(b.id, { notes: v })
+                                                            onUpdate(b.id, {
+                                                                notes: v,
+                                                            })
                                                         }
                                                         placeholder="Add notes"
                                                     />
@@ -151,31 +167,42 @@ export function BequestTable({
                                                     <div className="flex items-center gap-1">
                                                         <TooltipProvider>
                                                             <Tooltip>
-                                                                <TooltipTrigger asChild>
+                                                                <TooltipTrigger
+                                                                    asChild
+                                                                >
                                                                     <Button
                                                                         variant="ghost"
                                                                         size="icon"
                                                                         className="h-8 w-8 text-success hover:text-success"
                                                                         onClick={() =>
-                                                                            onMarkDistributed(b)
+                                                                            onMarkDistributed(
+                                                                                b,
+                                                                            )
                                                                         }
                                                                     >
                                                                         <Check className="h-4 w-4" />
                                                                     </Button>
                                                                 </TooltipTrigger>
                                                                 <TooltipContent>
-                                                                    Mark Distributed
+                                                                    Mark
+                                                                    Distributed
                                                                 </TooltipContent>
                                                             </Tooltip>
                                                         </TooltipProvider>
                                                         <TooltipProvider>
                                                             <Tooltip>
-                                                                <TooltipTrigger asChild>
+                                                                <TooltipTrigger
+                                                                    asChild
+                                                                >
                                                                     <Button
                                                                         variant="ghost"
                                                                         size="icon"
                                                                         className="h-8 w-8"
-                                                                        onClick={() => onEdit(b)}
+                                                                        onClick={() =>
+                                                                            onEdit(
+                                                                                b,
+                                                                            )
+                                                                        }
                                                                     >
                                                                         <Pencil className="h-4 w-4" />
                                                                     </Button>
@@ -187,13 +214,17 @@ export function BequestTable({
                                                         </TooltipProvider>
                                                         <TooltipProvider>
                                                             <Tooltip>
-                                                                <TooltipTrigger asChild>
+                                                                <TooltipTrigger
+                                                                    asChild
+                                                                >
                                                                     <Button
                                                                         variant="ghost"
                                                                         size="icon"
                                                                         className="h-8 w-8 text-destructive hover:text-destructive"
                                                                         onClick={() =>
-                                                                            onDelete(b.id)
+                                                                            onDelete(
+                                                                                b.id,
+                                                                            )
                                                                         }
                                                                     >
                                                                         <Trash2 className="h-4 w-4" />
@@ -242,7 +273,8 @@ export function BequestTable({
                                         const recipient = b.beneficiaryId
                                             ? beneficiaries.find(
                                                   (ben) =>
-                                                      ben.id === b.beneficiaryId,
+                                                      ben.id ===
+                                                      b.beneficiaryId,
                                               )
                                             : null
                                         return (
@@ -253,17 +285,22 @@ export function BequestTable({
                                                 <TableCell>
                                                     <Badge variant="outline">
                                                         {BEQUEST_CATEGORIES.find(
-                                                            (c) => c.value === b.category,
+                                                            (c) =>
+                                                                c.value ===
+                                                                b.category,
                                                         )?.label || b.category}
                                                     </Badge>
                                                 </TableCell>
                                                 <TableCell>
                                                     {recipient
                                                         ? `${recipient.firstName} ${recipient.lastName}`
-                                                        : b.recipientName || '—'}
+                                                        : b.recipientName ||
+                                                          '—'}
                                                 </TableCell>
                                                 <TableCell>
-                                                    {formatDate(b.dateDistributed)}
+                                                    {formatDate(
+                                                        b.dateDistributed,
+                                                    )}
                                                 </TableCell>
                                             </TableRow>
                                         )

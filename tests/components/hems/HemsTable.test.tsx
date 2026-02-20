@@ -93,23 +93,15 @@ describe('HemsTable', () => {
 
     describe('empty state', () => {
         test('renders "No HEMS distributions recorded" when hemsDistributions is empty', () => {
-            render(
-                <HemsTable
-                    {...defaultProps}
-                    hemsDistributions={[]}
-                />,
-            )
+            render(<HemsTable {...defaultProps} hemsDistributions={[]} />)
 
-            expect(screen.getByText('No HEMS distributions recorded')).toBeTruthy()
+            expect(
+                screen.getByText('No HEMS distributions recorded'),
+            ).toBeTruthy()
         })
 
         test('still renders the card header and HEMS categories with empty data', () => {
-            render(
-                <HemsTable
-                    {...defaultProps}
-                    hemsDistributions={[]}
-                />,
-            )
+            render(<HemsTable {...defaultProps} hemsDistributions={[]} />)
 
             expect(screen.getByText('HEMS Distribution Request')).toBeTruthy()
         })
@@ -169,14 +161,18 @@ describe('HemsTable', () => {
         test('"New HEMS Request" button is enabled when selectedEntity is set', () => {
             render(<HemsTable {...defaultProps} selectedEntity={10} />)
 
-            const button = screen.getByRole('button', { name: /New HEMS Request/ })
+            const button = screen.getByRole('button', {
+                name: /New HEMS Request/,
+            })
             expect(button.hasAttribute('disabled')).toBe(false)
         })
 
         test('"New HEMS Request" button is disabled when selectedEntity is null', () => {
             render(<HemsTable {...defaultProps} selectedEntity={null} />)
 
-            const button = screen.getByRole('button', { name: /New HEMS Request/ })
+            const button = screen.getByRole('button', {
+                name: /New HEMS Request/,
+            })
             expect(button.hasAttribute('disabled')).toBe(true)
         })
 
@@ -186,7 +182,9 @@ describe('HemsTable', () => {
 
             render(<HemsTable {...defaultProps} onNewRequest={onNewRequest} />)
 
-            await user.click(screen.getByRole('button', { name: /New HEMS Request/ }))
+            await user.click(
+                screen.getByRole('button', { name: /New HEMS Request/ }),
+            )
 
             expect(onNewRequest).toHaveBeenCalledTimes(1)
         })

@@ -1,11 +1,6 @@
 'use client'
 
-import {
-    ChevronDown,
-    ChevronUp,
-    FileText,
-    Plus,
-} from 'lucide-react'
+import { ChevronDown, ChevronUp, FileText, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -79,9 +74,7 @@ export function TaskList({
                             onChange={(e) =>
                                 onNewTaskTitleChange(e.target.value)
                             }
-                            onKeyDown={(e) =>
-                                e.key === 'Enter' && onAddTask()
-                            }
+                            onKeyDown={(e) => e.key === 'Enter' && onAddTask()}
                             className="flex-1"
                         />
                         <Select
@@ -93,10 +86,7 @@ export function TaskList({
                             </SelectTrigger>
                             <SelectContent>
                                 {TASK_CATEGORIES.map((c) => (
-                                    <SelectItem
-                                        key={c.value}
-                                        value={c.value}
-                                    >
+                                    <SelectItem key={c.value} value={c.value}>
                                         {c.label}
                                     </SelectItem>
                                 ))}
@@ -128,7 +118,10 @@ export function TaskList({
                                 {category.label}
                             </p>
                             <p className="text-xs text-muted-foreground">
-                                {category.tasks.filter((t) => t.completed).length}{' '}
+                                {
+                                    category.tasks.filter((t) => t.completed)
+                                        .length
+                                }{' '}
                                 of {category.tasks.length} tasks
                             </p>
                         </div>
@@ -210,9 +203,7 @@ export function TaskList({
                                                 <div className="px-4 pb-4 pt-0 ml-10">
                                                     <Textarea
                                                         placeholder="Add notes..."
-                                                        value={
-                                                            task.notes || ''
-                                                        }
+                                                        value={task.notes || ''}
                                                         onChange={(e) =>
                                                             onUpdateTaskNotes(
                                                                 task.id,

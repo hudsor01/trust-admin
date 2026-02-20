@@ -17,12 +17,18 @@ import { VehicleDialog } from '../../../src/app/(admin)/vehicles/_components/Veh
  * so the formInstance.Field is never called.
  */
 const makeFormInstance = () => ({
-    Field: mock(({ children }: { name: string; children: (field: any) => React.ReactNode }) =>
-        children({
-            state: { value: '', meta: { errors: [] } },
-            handleChange: mock(() => {}),
-            handleBlur: mock(() => {}),
-        }),
+    Field: mock(
+        ({
+            children,
+        }: {
+            name: string
+            children: (field: unknown) => React.ReactNode
+        }) =>
+            children({
+                state: { value: '', meta: { errors: [] } },
+                handleChange: mock(() => {}),
+                handleBlur: mock(() => {}),
+            }),
     ),
 })
 

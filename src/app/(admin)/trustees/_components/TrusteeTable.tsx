@@ -22,8 +22,12 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { enumToOptions, TRUSTEE_STATUS_VALUES } from '@/lib/type-utils'
-import { asTrusteeStatus } from '@/lib/type-utils'
+import {
+    asTrusteeStatus,
+    enumToOptions,
+    TRUSTEE_STATUS_VALUES,
+    type TrusteeStatus,
+} from '@/lib/type-utils'
 import { formatDate } from '@/utils/formatters'
 
 // Derive options from schema enums (single source of truth)
@@ -32,14 +36,14 @@ export const STATUS_OPTIONS = enumToOptions(TRUSTEE_STATUS_VALUES)
 // Primary trustee cannot be edited for security
 const PRIMARY_TRUSTEE_EMAIL = 'rhudsontspr@gmail.com'
 
-type TrusteeRow = {
+export type TrusteeRow = {
     id: number
     entityId: number
     name: string
     email: string | null
     phone: string | null
     dob: string | null
-    status: string | null
+    status: TrusteeStatus | null
     order: number
     isCo: boolean | null
     coTrusteeId: number | null
@@ -49,16 +53,13 @@ type TrusteeRow = {
 
 interface TrusteeTableProps {
     trustees: TrusteeRow[]
-    selectedEntity: number
     allowPrimaryLock?: boolean
     onDelete: (id: number) => void
-    // biome-ignore lint/suspicious/noExplicitAny: fields map directly to update schema types
-    onUpdateField: (id: number, data: any) => Promise<void>
+    onUpdateField: (id: number, data: Partial<TrusteeRow>) => Promise<void>
 }
 
 export function TrusteeTable({
     trustees,
-    selectedEntity,
     allowPrimaryLock = false,
     onDelete,
     onUpdateField,
@@ -81,13 +82,16 @@ export function TrusteeTable({
                 <TableBody>
                     {trustees.map((t) => {
                         const isPrimary =
-                            allowPrimaryLock && t.email === PRIMARY_TRUSTEE_EMAIL
+                            allowPrimaryLock &&
+                            t.email === PRIMARY_TRUSTEE_EMAIL
                         return (
                             <TableRow key={t.id}>
                                 <TableCell>
                                     {isPrimary ? (
                                         <div className="px-2 py-1 -mx-2 -my-1 min-h-7 flex items-center">
-                                            <span className="text-sm">{t.order}</span>
+                                            <span className="text-sm">
+                                                {t.order}
+                                            </span>
                                         </div>
                                     ) : (
                                         <EditableNumberCell
@@ -123,14 +127,18 @@ export function TrusteeTable({
                                         <Mail className="h-3 w-3 text-muted-foreground shrink-0" />
                                         {isPrimary ? (
                                             <div className="px-2 py-1 -mx-2 -my-1 min-h-7 flex items-center">
-                                                <span className="text-sm">{t.email}</span>
+                                                <span className="text-sm">
+                                                    {t.email}
+                                                </span>
                                             </div>
                                         ) : (
                                             <EditableTextCell
                                                 value={t.email}
                                                 placeholder="Add email"
                                                 onSave={async (val) => {
-                                                    await onUpdateField(t.id, { email: val })
+                                                    await onUpdateField(t.id, {
+                                                        email: val,
+                                                    })
                                                 }}
                                             />
                                         )}
@@ -141,14 +149,18 @@ export function TrusteeTable({
                                         <Phone className="h-3 w-3 text-muted-foreground shrink-0" />
                                         {isPrimary ? (
                                             <div className="px-2 py-1 -mx-2 -my-1 min-h-7 flex items-center">
-                                                <span className="text-sm">{t.phone}</span>
+                                                <span className="text-sm">
+                                                    {t.phone}
+                                                </span>
                                             </div>
                                         ) : (
                                             <EditableTextCell
                                                 value={t.phone}
                                                 placeholder="Add phone"
                                                 onSave={async (val) => {
-                                                    await onUpdateField(t.id, { phone: val })
+                                                    await onUpdateField(t.id, {
+                                                        phone: val,
+                                                    })
                                                 }}
                                             />
                                         )}
@@ -167,7 +179,9 @@ export function TrusteeTable({
                                             <EditableDateCell
                                                 value={t.dob}
                                                 onSave={async (val) => {
-                                                    await onUpdateField(t.id, { dob: val })
+                                                    await onUpdateField(t.id, {
+                                                        dob: val,
+                                                    })
                                                 }}
                                             />
                                         )}
@@ -188,7 +202,9 @@ export function TrusteeTable({
                                             options={STATUS_OPTIONS}
                                             onSave={async (val) => {
                                                 await onUpdateField(t.id, {
-                                                    status: asTrusteeStatus(val as string),
+                                                    status: asTrusteeStatus(
+                                                        val as string,
+                                                    ),
                                                 })
                                             }}
                                         />
@@ -205,7 +221,9 @@ export function TrusteeTable({
                                         <EditableDateCell
                                             value={t.startDate}
                                             onSave={async (val) => {
-                                                await onUpdateField(t.id, { startDate: val })
+                                                await onUpdateField(t.id, {
+                                                    startDate: val,
+                                                })
                                             }}
                                         />
                                     )}
@@ -219,7 +237,9 @@ export function TrusteeTable({
                                                         variant="ghost"
                                                         size="icon"
                                                         className="h-8 w-8 text-destructive hover:text-destructive"
-                                                        onClick={() => onDelete(t.id)}
+                                                        onClick={() =>
+                                                            onDelete(t.id)
+                                                        }
                                                     >
                                                         <Trash2 className="h-4 w-4" />
                                                     </Button>

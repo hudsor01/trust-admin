@@ -12,7 +12,9 @@ import userEvent from '@testing-library/user-event'
 import { AccountingTable } from '../../../src/app/(admin)/accounting/_components/AccountingTable'
 import type { TrustAccounting } from '../../../src/db/schema'
 
-const makeEntry = (overrides: Partial<TrustAccounting> = {}): TrustAccounting => ({
+const makeEntry = (
+    overrides: Partial<TrustAccounting> = {},
+): TrustAccounting => ({
     id: 1,
     entityId: 1,
     accountingDate: '2025-01-15T00:00:00.000Z',
@@ -98,10 +100,7 @@ describe('AccountingTable', () => {
             const onTabChange = mock(() => {})
 
             render(
-                <AccountingTable
-                    {...defaultProps}
-                    onTabChange={onTabChange}
-                />,
+                <AccountingTable {...defaultProps} onTabChange={onTabChange} />,
             )
 
             await user.click(screen.getByText('Income'))
@@ -252,8 +251,7 @@ describe('AccountingTable', () => {
             // Find the delete (trash) button
             const buttons = screen.getAllByRole('button')
             const deleteButton = buttons.find(
-                (btn) =>
-                    btn.getAttribute('title') === 'Delete entry',
+                (btn) => btn.getAttribute('title') === 'Delete entry',
             )
             if (deleteButton) {
                 await user.click(deleteButton)
@@ -277,8 +275,7 @@ describe('AccountingTable', () => {
 
             const buttons = screen.getAllByRole('button')
             const editButton = buttons.find(
-                (btn) =>
-                    btn.getAttribute('title') === 'Edit entry',
+                (btn) => btn.getAttribute('title') === 'Edit entry',
             )
             if (editButton) {
                 await user.click(editButton)

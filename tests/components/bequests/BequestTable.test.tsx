@@ -13,7 +13,9 @@ import userEvent from '@testing-library/user-event'
 import { BequestTable } from '../../../src/app/(admin)/bequests/_components/BequestTable'
 import type { SpecificBequest } from '../../../src/db/schema'
 
-const makePendingBequest = (overrides: Partial<SpecificBequest> = {}): SpecificBequest => ({
+const makePendingBequest = (
+    overrides: Partial<SpecificBequest> = {},
+): SpecificBequest => ({
     id: 1,
     entityId: 1,
     beneficiaryId: null,
@@ -27,7 +29,9 @@ const makePendingBequest = (overrides: Partial<SpecificBequest> = {}): SpecificB
     ...overrides,
 })
 
-const makeDistributedBequest = (overrides: Partial<SpecificBequest> = {}): SpecificBequest => ({
+const makeDistributedBequest = (
+    overrides: Partial<SpecificBequest> = {},
+): SpecificBequest => ({
     id: 2,
     entityId: 1,
     beneficiaryId: null,
@@ -192,7 +196,10 @@ describe('BequestTable', () => {
     test('calls onEdit when edit button clicked for pending bequest', async () => {
         const user = userEvent.setup()
         const onEdit = mock(() => {})
-        const bequest = makePendingBequest({ id: 1, description: 'Pocket watch' })
+        const bequest = makePendingBequest({
+            id: 1,
+            description: 'Pocket watch',
+        })
 
         const { container } = render(
             <BequestTable

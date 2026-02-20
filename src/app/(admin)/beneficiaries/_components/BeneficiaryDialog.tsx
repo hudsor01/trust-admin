@@ -1,6 +1,5 @@
 'use client'
 
-import type { Beneficiary } from '@/db/schema'
 import {
     Dialog,
     DialogContent,
@@ -8,8 +7,9 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog'
-import type { BeneficiaryWithDistributions } from './types'
+import type { Beneficiary } from '@/db/schema'
 import { BeneficiaryDialogContent } from './BeneficiaryDialogContent'
+import type { BeneficiaryWithDistributions } from './types'
 
 interface NewDistribution {
     amount: string

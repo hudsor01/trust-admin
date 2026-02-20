@@ -10,8 +10,8 @@ import { afterEach, describe, expect, mock, test } from 'bun:test'
 import type { ColumnDef } from '@tanstack/react-table'
 import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { UsersTable } from '../../../src/app/(admin)/users/_components/UsersTable'
 import type { NeonAuthUser } from '../../../src/app/(admin)/users/_components/types'
+import { UsersTable } from '../../../src/app/(admin)/users/_components/UsersTable'
 
 // Sample user data
 const sampleUsers: NeonAuthUser[] = [
@@ -77,23 +77,13 @@ describe('UsersTable', () => {
 
     describe('empty state', () => {
         test('renders "No users found" message when tableData is empty', () => {
-            render(
-                <UsersTable
-                    {...defaultProps}
-                    tableData={[]}
-                />,
-            )
+            render(<UsersTable {...defaultProps} tableData={[]} />)
 
             expect(screen.getByText('No users found')).toBeTruthy()
         })
 
         test('shows "0 users" count when tableData is empty', () => {
-            render(
-                <UsersTable
-                    {...defaultProps}
-                    tableData={[]}
-                />,
-            )
+            render(<UsersTable {...defaultProps} tableData={[]} />)
 
             expect(screen.getByText('0 users')).toBeTruthy()
         })
@@ -122,10 +112,7 @@ describe('UsersTable', () => {
 
         test('shows singular "user" when exactly one user', () => {
             render(
-                <UsersTable
-                    {...defaultProps}
-                    tableData={[sampleUsers[0]]}
-                />,
+                <UsersTable {...defaultProps} tableData={[sampleUsers[0]]} />,
             )
 
             expect(screen.getByText('1 user')).toBeTruthy()
@@ -135,11 +122,7 @@ describe('UsersTable', () => {
     describe('loading state', () => {
         test('renders the table container even while loading', () => {
             render(
-                <UsersTable
-                    {...defaultProps}
-                    loading={true}
-                    tableData={[]}
-                />,
+                <UsersTable {...defaultProps} loading={true} tableData={[]} />,
             )
 
             // The component still renders its structure during loading
@@ -148,17 +131,11 @@ describe('UsersTable', () => {
 
         test('does not show read-only banner while loading (owner context)', () => {
             render(
-                <UsersTable
-                    {...defaultProps}
-                    loading={true}
-                    isOwner={false}
-                />,
+                <UsersTable {...defaultProps} loading={true} isOwner={false} />,
             )
 
             // Banner is suppressed while loading
-            expect(
-                screen.queryByText(/read-only mode/),
-            ).toBeNull()
+            expect(screen.queryByText(/read-only mode/)).toBeNull()
         })
     })
 
@@ -202,9 +179,7 @@ describe('UsersTable', () => {
                 />,
             )
 
-            expect(
-                screen.getByText(/read-only mode/),
-            ).toBeTruthy()
+            expect(screen.getByText(/read-only mode/)).toBeTruthy()
         })
     })
 
@@ -232,9 +207,7 @@ describe('UsersTable', () => {
                 />,
             )
 
-            expect(
-                screen.queryByText(/Failed to load users/),
-            ).toBeNull()
+            expect(screen.queryByText(/Failed to load users/)).toBeNull()
         })
 
         test('does not show error banner when usersError is null', () => {

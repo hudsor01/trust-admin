@@ -25,9 +25,9 @@ import { asRecordStatus, asTransferStatus } from '@/lib/type-utils'
 import { formatCurrency } from '@/utils/formatters'
 import { BankAccountDialog } from './_components/BankAccountDialog'
 import { BankAccountTable } from './_components/BankAccountTable'
+import type { BankFormData, InvestmentFormData } from './_components/constants'
 import { InvestmentAccountDialog } from './_components/InvestmentAccountDialog'
 import { InvestmentAccountTable } from './_components/InvestmentAccountTable'
-import type { BankFormData, InvestmentFormData } from './_components/constants'
 
 const log = logger.create('Accounts')
 
@@ -297,7 +297,6 @@ export default function AccountsPage() {
                     <TabsContent value="bank" className="space-y-4">
                         <BankAccountTable
                             bankAccounts={bankAccounts}
-                            totalBankValue={totalBankValue.toString()}
                             selectedEntity={selectedEntity}
                             onAdd={() => bankForm.open()}
                             onEdit={handleEditBank}
@@ -309,7 +308,6 @@ export default function AccountsPage() {
                     <TabsContent value="investment" className="space-y-4">
                         <InvestmentAccountTable
                             investmentAccounts={investmentAccounts}
-                            totalInvestmentValue={totalInvestmentValue.toString()}
                             selectedEntity={selectedEntity}
                             onAdd={() => investmentForm.open()}
                             onEdit={handleEditInvestment}

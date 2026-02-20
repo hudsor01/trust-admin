@@ -11,8 +11,13 @@ import {
     SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import type { UseResourceFormReturn } from '@/hooks/use-resource-form'
 import { TRANSFER_STATUS } from '@/lib/constants'
-import { ACCOUNT_STATUS, INVESTMENT_ACCOUNT_TYPES } from './constants'
+import {
+    ACCOUNT_STATUS,
+    INVESTMENT_ACCOUNT_TYPES,
+    type InvestmentFormData,
+} from './constants'
 
 interface InvestmentAccountDialogProps {
     isOpen: boolean
@@ -20,8 +25,7 @@ interface InvestmentAccountDialogProps {
     isSubmitting: boolean
     onOpenChange: (open: boolean) => void
     onSubmit: () => void
-    // biome-ignore lint/suspicious/noExplicitAny: TanStack Form Field type is complex; passed through from page.tsx
-    formInstance: any
+    formInstance: UseResourceFormReturn<InvestmentFormData>['formInstance']
 }
 
 export function InvestmentAccountDialog({
@@ -37,9 +41,7 @@ export function InvestmentAccountDialog({
             open={isOpen}
             onOpenChange={onOpenChange}
             title={
-                isEditing
-                    ? 'Edit Investment Account'
-                    : 'Add Investment Account'
+                isEditing ? 'Edit Investment Account' : 'Add Investment Account'
             }
             onSubmit={onSubmit}
             isLoading={isSubmitting}
@@ -52,7 +54,7 @@ export function InvestmentAccountDialog({
                     <div className="grid grid-cols-2 gap-4">
                         {/* Institution */}
                         <formInstance.Field name="institution">
-                            {(field: any) => (
+                            {(field) => (
                                 <div className="space-y-2">
                                     <Label htmlFor="inv-institution">
                                         Institution *
@@ -72,7 +74,7 @@ export function InvestmentAccountDialog({
 
                         {/* Account Type */}
                         <formInstance.Field name="accountType">
-                            {(field: any) => (
+                            {(field) => (
                                 <div className="space-y-2">
                                     <Label htmlFor="inv-type">
                                         Account Type *
@@ -107,7 +109,7 @@ export function InvestmentAccountDialog({
                     <div className="grid grid-cols-2 gap-4 mt-4">
                         {/* Account Name */}
                         <formInstance.Field name="accountName">
-                            {(field: any) => (
+                            {(field) => (
                                 <div className="space-y-2">
                                     <Label htmlFor="inv-name">
                                         Account Name
@@ -127,7 +129,7 @@ export function InvestmentAccountDialog({
 
                         {/* Account Number */}
                         <formInstance.Field name="accountNumber">
-                            {(field: any) => (
+                            {(field) => (
                                 <div className="space-y-2">
                                     <Label htmlFor="inv-number">
                                         Account Number *
@@ -153,7 +155,7 @@ export function InvestmentAccountDialog({
                     <div className="grid grid-cols-3 gap-4">
                         {/* DOD Value */}
                         <formInstance.Field name="dodValue">
-                            {(field: any) => (
+                            {(field) => (
                                 <div className="space-y-2">
                                     <Label htmlFor="inv-dod-value">
                                         DOD Value
@@ -173,7 +175,7 @@ export function InvestmentAccountDialog({
 
                         {/* DOD Value Date */}
                         <formInstance.Field name="dodValueDate">
-                            {(field: any) => (
+                            {(field) => (
                                 <div className="space-y-2">
                                     <Label htmlFor="inv-dod-date">
                                         DOD Value Date
@@ -195,7 +197,7 @@ export function InvestmentAccountDialog({
 
                         {/* Cost Basis */}
                         <formInstance.Field name="costBasis">
-                            {(field: any) => (
+                            {(field) => (
                                 <div className="space-y-2">
                                     <Label htmlFor="inv-cost-basis">
                                         Cost Basis
@@ -220,7 +222,7 @@ export function InvestmentAccountDialog({
                     <div className="grid grid-cols-2 gap-4">
                         {/* Account Status */}
                         <formInstance.Field name="status">
-                            {(field: any) => (
+                            {(field) => (
                                 <div className="space-y-2">
                                     <Label htmlFor="inv-status">
                                         Account Status *
@@ -251,7 +253,7 @@ export function InvestmentAccountDialog({
 
                         {/* Transfer Status */}
                         <formInstance.Field name="transferStatus">
-                            {(field: any) => (
+                            {(field) => (
                                 <div className="space-y-2">
                                     <Label htmlFor="inv-transfer">
                                         Transfer Status *
@@ -284,7 +286,7 @@ export function InvestmentAccountDialog({
 
                 {/* Notes */}
                 <formInstance.Field name="notes">
-                    {(field: any) => (
+                    {(field) => (
                         <div className="space-y-2">
                             <Label htmlFor="inv-notes">Notes</Label>
                             <Textarea

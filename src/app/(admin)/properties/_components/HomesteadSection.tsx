@@ -55,9 +55,7 @@ export function HomesteadSection({
                     </h3>
                     <div className="flex items-center gap-2">
                         <Badge
-                            variant={
-                                STATUS_VARIANTS[homestead.transferStatus]
-                            }
+                            variant={STATUS_VARIANTS[homestead.transferStatus]}
                         >
                             {homestead.transferStatus}
                         </Badge>
@@ -98,7 +96,9 @@ export function HomesteadSection({
                         <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                             Address
                         </p>
-                        <p className="mt-1 text-sm">{homestead.streetAddress}</p>
+                        <p className="mt-1 text-sm">
+                            {homestead.streetAddress}
+                        </p>
                         <p className="text-sm">
                             {homestead.city}, {homestead.state} {homestead.zip}
                         </p>

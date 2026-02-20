@@ -77,8 +77,8 @@ export function DashboardAlerts({
                     <Circle className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                     <AlertDescription className="text-purple-700 dark:text-purple-300 font-medium">
                         {upcomingMilestones.length} beneficiar
-                        {upcomingMilestones.length > 1 ? 'ies' : 'y'} approaching
-                        withdrawal eligibility in the next 90 days
+                        {upcomingMilestones.length > 1 ? 'ies' : 'y'}{' '}
+                        approaching withdrawal eligibility in the next 90 days
                     </AlertDescription>
                 </Alert>
             )}

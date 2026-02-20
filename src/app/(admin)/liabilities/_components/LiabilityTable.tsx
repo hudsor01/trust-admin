@@ -2,7 +2,6 @@
 
 import type { ColumnDef } from '@tanstack/react-table'
 import { DollarSign, List, Pencil, Plus, Table2, Trash2 } from 'lucide-react'
-import { Card, CardContent } from '@/components/ui/card'
 import {
     BulkEntryTable,
     type BulkLiabilityRow,
@@ -14,6 +13,7 @@ import {
 } from '@/components/editable-cells'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
 import { DataTable } from '@/components/ui/data-table'
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import { Progress } from '@/components/ui/progress'
@@ -262,10 +262,7 @@ export function LiabilityTable({
         <>
             {/* Actions */}
             <div className="flex justify-end gap-2">
-                <Button
-                    variant="outline"
-                    onClick={onBulkModeToggle}
-                >
+                <Button variant="outline" onClick={onBulkModeToggle}>
                     {bulkMode ? (
                         <>
                             <List className="h-4 w-4 mr-2" />
@@ -296,8 +293,7 @@ export function LiabilityTable({
                             </h3>
                             <p className="text-sm text-muted-foreground">
                                 Enter multiple liabilities at once. Tab through
-                                cells, Enter adds rows. Paste from
-                                Excel/Sheets.
+                                cells, Enter adds rows. Paste from Excel/Sheets.
                             </p>
                         </div>
                         <BulkEntryTable

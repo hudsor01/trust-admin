@@ -132,7 +132,12 @@ describe('VehicleTable', () => {
     test('calls onEdit when edit button clicked', async () => {
         const user = userEvent.setup()
         const onEdit = mock(() => {})
-        const vehicle = makeVehicle({ id: 1, year: 2020, make: 'Ford', model: 'F-150' })
+        const vehicle = makeVehicle({
+            id: 1,
+            year: 2020,
+            make: 'Ford',
+            model: 'F-150',
+        })
 
         const { container } = render(
             <VehicleTable

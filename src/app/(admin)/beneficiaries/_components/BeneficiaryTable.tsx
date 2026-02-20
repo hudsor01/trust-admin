@@ -2,7 +2,6 @@
 
 import type { ColumnDef } from '@tanstack/react-table'
 import { Check, Circle, Eye } from 'lucide-react'
-import type { Beneficiary } from '@/db/schema'
 import {
     EditablePercentCell,
     EditableSelectCell,
@@ -12,6 +11,8 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { DataTable } from '@/components/ui/data-table'
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
+import type { Beneficiary } from '@/db/schema'
+import { sumStrings } from '@/lib/money'
 import {
     asDistributionStandard,
     DISTRIBUTION_STANDARD_VALUES,
@@ -19,10 +20,9 @@ import {
 } from '@/lib/type-utils'
 import { cn } from '@/lib/utils'
 import { formatCurrency } from '@/utils/formatters'
-import { sumStrings } from '@/lib/money'
 import {
-    calculateEligibility,
     type BeneficiaryWithDistributions,
+    calculateEligibility,
 } from './types'
 
 // Derive options from schema enums (single source of truth)

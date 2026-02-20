@@ -11,13 +11,15 @@ import {
     SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { PaymentPreview } from './PaymentPreview'
+import type { UseResourceFormReturn } from '@/hooks/use-resource-form'
 import {
-    LIABILITY_STATUS,
-    LIABILITY_TYPES,
     hasLoanTermFields,
     isRevolvingType,
+    LIABILITY_STATUS,
+    LIABILITY_TYPES,
+    type LiabilityFormData,
 } from './LiabilityConstants'
+import { PaymentPreview } from './PaymentPreview'
 
 interface LiabilityDialogProps {
     isOpen: boolean
@@ -25,8 +27,7 @@ interface LiabilityDialogProps {
     isSubmitting: boolean
     onOpenChange: (open: boolean) => void
     onSubmit: () => void
-    // biome-ignore lint/suspicious/noExplicitAny: TanStack Form Field type is complex; passed through from page.tsx
-    formInstance: any
+    formInstance: UseResourceFormReturn<LiabilityFormData>['formInstance']
 }
 
 export function LiabilityDialog({
@@ -52,7 +53,7 @@ export function LiabilityDialog({
                     </h4>
                     <div className="grid grid-cols-2 gap-4">
                         <formInstance.Field name="liabilityType">
-                            {(field: any) => (
+                            {(field) => (
                                 <div className="space-y-2">
                                     <Label htmlFor="liability-type">
                                         Liability Type *
@@ -94,11 +95,9 @@ export function LiabilityDialog({
                                         : undefined,
                             }}
                         >
-                            {(field: any) => (
+                            {(field) => (
                                 <div className="space-y-2">
-                                    <Label htmlFor="creditor">
-                                        Creditor *
-                                    </Label>
+                                    <Label htmlFor="creditor">Creditor *</Label>
                                     <Input
                                         id="creditor"
                                         placeholder="e.g., Bank of America"
@@ -118,7 +117,7 @@ export function LiabilityDialog({
                         </formInstance.Field>
                     </div>
                     <formInstance.Field name="description">
-                        {(field: any) => (
+                        {(field) => (
                             <div className="space-y-2 mt-4">
                                 <Label htmlFor="description">Description</Label>
                                 <Input
@@ -142,7 +141,7 @@ export function LiabilityDialog({
 
                 {/* Financial Details - conditionally show fields based on liability type */}
                 <formInstance.Subscribe<string>
-                    selector={(state: any) => state.values.liabilityType}
+                    selector={(state) => state.values.liabilityType}
                 >
                     {(liabilityType: string) => (
                         <div>
@@ -159,7 +158,7 @@ export function LiabilityDialog({
                                     }`}
                                 >
                                     <formInstance.Field name="originalAmount">
-                                        {(field: any) => (
+                                        {(field) => (
                                             <div className="space-y-2">
                                                 <Label htmlFor="original-amount">
                                                     Original Amount *
@@ -210,7 +209,7 @@ export function LiabilityDialog({
                                         },
                                     }}
                                 >
-                                    {(field: any) => (
+                                    {(field) => (
                                         <div className="space-y-2">
                                             <Label htmlFor="current-balance">
                                                 Current Balance *
@@ -228,10 +227,7 @@ export function LiabilityDialog({
                                             />
                                             {field.state.meta.errors?.[0] && (
                                                 <p className="text-sm text-destructive">
-                                                    {
-                                                        field.state.meta
-                                                            .errors[0]
-                                                    }
+                                                    {field.state.meta.errors[0]}
                                                 </p>
                                             )}
                                         </div>
@@ -247,8 +243,7 @@ export function LiabilityDialog({
                                         }: {
                                             value: string
                                         }) => {
-                                            if (!value?.trim())
-                                                return undefined // Optional field
+                                            if (!value?.trim()) return undefined // Optional field
                                             const num = parseFloat(value)
                                             if (Number.isNaN(num))
                                                 return 'Enter a valid percentage'
@@ -260,7 +255,7 @@ export function LiabilityDialog({
                                         },
                                     }}
                                 >
-                                    {(field: any) => (
+                                    {(field) => (
                                         <div className="space-y-2">
                                             <Label htmlFor="interest-rate">
                                                 {isRevolvingType(liabilityType)
@@ -286,17 +281,14 @@ export function LiabilityDialog({
                                             />
                                             {field.state.meta.errors?.[0] && (
                                                 <p className="text-sm text-destructive">
-                                                    {
-                                                        field.state.meta
-                                                            .errors[0]
-                                                    }
+                                                    {field.state.meta.errors[0]}
                                                 </p>
                                             )}
                                         </div>
                                     )}
                                 </formInstance.Field>
                                 <formInstance.Field name="monthlyPayment">
-                                    {(field: any) => (
+                                    {(field) => (
                                         <div className="space-y-2">
                                             <Label htmlFor="monthly-payment">
                                                 {isRevolvingType(liabilityType)
@@ -316,17 +308,14 @@ export function LiabilityDialog({
                                             />
                                             {field.state.meta.errors?.[0] && (
                                                 <p className="text-sm text-destructive">
-                                                    {
-                                                        field.state.meta
-                                                            .errors[0]
-                                                    }
+                                                    {field.state.meta.errors[0]}
                                                 </p>
                                             )}
                                         </div>
                                     )}
                                 </formInstance.Field>
                                 <formInstance.Field name="paymentDueDay">
-                                    {(field: any) => (
+                                    {(field) => (
                                         <div className="space-y-2">
                                             <Label htmlFor="payment-due-day">
                                                 Payment Due Day
@@ -347,10 +336,7 @@ export function LiabilityDialog({
                                             />
                                             {field.state.meta.errors?.[0] && (
                                                 <p className="text-sm text-destructive">
-                                                    {
-                                                        field.state.meta
-                                                            .errors[0]
-                                                    }
+                                                    {field.state.meta.errors[0]}
                                                 </p>
                                             )}
                                         </div>
@@ -368,7 +354,7 @@ export function LiabilityDialog({
                             >
                                 <div className="grid grid-cols-3 gap-4">
                                     <formInstance.Field name="loanTermMonths">
-                                        {(field: any) => (
+                                        {(field) => (
                                             <div className="space-y-2">
                                                 <Label htmlFor="loan-term">
                                                     Loan Term (months)
@@ -392,7 +378,7 @@ export function LiabilityDialog({
                                         )}
                                     </formInstance.Field>
                                     <formInstance.Field name="loanStartDate">
-                                        {(field: any) => (
+                                        {(field) => (
                                             <div className="space-y-2">
                                                 <Label htmlFor="loan-start">
                                                     Loan Start Date
@@ -415,7 +401,7 @@ export function LiabilityDialog({
                                         )}
                                     </formInstance.Field>
                                     <formInstance.Field name="escrowMonthly">
-                                        {(field: any) => (
+                                        {(field) => (
                                             <div className="space-y-2">
                                                 <Label htmlFor="escrow">
                                                     Monthly Escrow
@@ -453,7 +439,7 @@ export function LiabilityDialog({
                                     }`}
                                 >
                                     <formInstance.Field name="dueDate">
-                                        {(field: any) => (
+                                        {(field) => (
                                             <div className="space-y-2">
                                                 <Label htmlFor="due-date">
                                                     Maturity Date
@@ -477,7 +463,7 @@ export function LiabilityDialog({
                                     </formInstance.Field>
                                 </div>
                                 <formInstance.Field name="currentBalanceDate">
-                                    {(field: any) => (
+                                    {(field) => (
                                         <div className="space-y-2">
                                             <Label htmlFor="balance-date">
                                                 Balance As Of
@@ -485,9 +471,7 @@ export function LiabilityDialog({
                                             <Input
                                                 id="balance-date"
                                                 type="date"
-                                                value={
-                                                    field.state.value || ''
-                                                }
+                                                value={field.state.value || ''}
                                                 onBlur={field.handleBlur}
                                                 onChange={(e) =>
                                                     field.handleChange(
@@ -504,7 +488,7 @@ export function LiabilityDialog({
                 </formInstance.Subscribe>
 
                 <formInstance.Field name="status">
-                    {(field: any) => (
+                    {(field) => (
                         <div className="space-y-2">
                             <Label htmlFor="status">Status *</Label>
                             <Select
@@ -535,7 +519,7 @@ export function LiabilityDialog({
                 </formInstance.Field>
 
                 <formInstance.Field name="notes">
-                    {(field: any) => (
+                    {(field) => (
                         <div className="space-y-2">
                             <Label htmlFor="notes">Notes</Label>
                             <Textarea

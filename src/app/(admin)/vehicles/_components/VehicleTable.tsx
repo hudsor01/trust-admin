@@ -11,11 +11,7 @@ import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/ui/data-table'
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import type { Vehicle } from '@/db/schema'
-import {
-    DOD_VALUE_TYPES,
-    STATUS_VARIANTS,
-    TRANSFER_STATUS,
-} from '@/lib/constants'
+import { STATUS_VARIANTS, TRANSFER_STATUS } from '@/lib/constants'
 import {
     asRecordStatus,
     asTitleStatus,
@@ -78,9 +74,7 @@ export function VehicleTable({
                 <DataTableColumnHeader column={column} title="VIN" />
             ),
             cell: ({ row }) => (
-                <code className="text-xs">
-                    {row.original.vin.slice(-6)}
-                </code>
+                <code className="text-xs">{row.original.vin.slice(-6)}</code>
             ),
         },
         {

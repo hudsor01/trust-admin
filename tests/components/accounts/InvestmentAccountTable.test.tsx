@@ -114,7 +114,9 @@ describe('InvestmentAccountTable', () => {
                 onUpdate={mock(() => Promise.resolve())}
             />,
         )
-        const addButton = screen.getByText('Add Investment Account').closest('button')
+        const addButton = screen
+            .getByText('Add Investment Account')
+            .closest('button')
         expect(addButton?.disabled).toBe(true)
     })
 
@@ -169,7 +171,9 @@ describe('InvestmentAccountTable', () => {
                 onUpdate={mock(() => Promise.resolve())}
             />,
         )
-        expect(screen.getByPlaceholderText('Filter by institution...')).toBeTruthy()
+        expect(
+            screen.getByPlaceholderText('Filter by institution...'),
+        ).toBeTruthy()
     })
 
     test('renders column headers', () => {

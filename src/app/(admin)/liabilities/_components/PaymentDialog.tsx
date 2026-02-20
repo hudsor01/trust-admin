@@ -1,6 +1,5 @@
 'use client'
 
-import type { Liability } from '@/db/schema'
 import { ResourceDialog } from '@/components/resource-dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -12,13 +11,16 @@ import {
     SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import type { Liability } from '@/db/schema'
+import type { UseResourceFormReturn } from '@/hooks/use-resource-form'
 import { formatCurrency } from '@/utils/formatters'
-import { PaymentImpactPreview } from './PaymentImpactPreview'
 import {
     ALLOCATION_CLASS,
     LIABILITY_TYPES,
     PAYMENT_METHODS,
+    type PaymentFormData,
 } from './LiabilityConstants'
+import { PaymentImpactPreview } from './PaymentImpactPreview'
 
 interface BankAccount {
     id: number
@@ -33,8 +35,7 @@ interface PaymentDialogProps {
     bankAccounts: BankAccount[]
     onOpenChange: (open: boolean) => void
     onSubmit: () => void
-    // biome-ignore lint/suspicious/noExplicitAny: TanStack Form Field type is complex; passed through from page.tsx
-    formInstance: any
+    formInstance: UseResourceFormReturn<PaymentFormData>['formInstance']
 }
 
 export function PaymentDialog({
@@ -90,7 +91,7 @@ export function PaymentDialog({
                         </h4>
                         <div className="grid grid-cols-2 gap-4">
                             <formInstance.Field name="paymentDate">
-                                {(field: any) => (
+                                {(field) => (
                                     <div className="space-y-2">
                                         <Label htmlFor="payment-date">
                                             Payment Date *
@@ -115,7 +116,7 @@ export function PaymentDialog({
                                 )}
                             </formInstance.Field>
                             <formInstance.Field name="amount">
-                                {(field: any) => (
+                                {(field) => (
                                     <div className="space-y-2">
                                         <Label htmlFor="payment-amount">
                                             Amount *
@@ -143,7 +144,7 @@ export function PaymentDialog({
 
                         {/* Bank Account */}
                         <formInstance.Field name="bankAccountId">
-                            {(field: any) => (
+                            {(field) => (
                                 <div className="space-y-2 mt-4">
                                     <Label htmlFor="bank-account">
                                         Bank Account *
@@ -183,7 +184,7 @@ export function PaymentDialog({
                     {/* Payment Method */}
                     <div className="grid grid-cols-2 gap-4">
                         <formInstance.Field name="paymentMethod">
-                            {(field: any) => (
+                            {(field) => (
                                 <div className="space-y-2">
                                     <Label htmlFor="payment-method">
                                         Payment Method
@@ -217,14 +218,12 @@ export function PaymentDialog({
                             )}
                         </formInstance.Field>
                         <formInstance.Subscribe<string>
-                            selector={(state: any) =>
-                                state.values.paymentMethod
-                            }
+                            selector={(state) => state.values.paymentMethod}
                         >
                             {(paymentMethod: string) =>
                                 paymentMethod === 'CHECK' ? (
                                     <formInstance.Field name="checkNumber">
-                                        {(field: any) => (
+                                        {(field) => (
                                             <div className="space-y-2">
                                                 <Label htmlFor="check-number">
                                                     Check #
@@ -254,7 +253,7 @@ export function PaymentDialog({
                                     </formInstance.Field>
                                 ) : (
                                     <formInstance.Field name="confirmationNumber">
-                                        {(field: any) => (
+                                        {(field) => (
                                             <div className="space-y-2">
                                                 <Label htmlFor="confirmation-number">
                                                     Confirmation #
@@ -289,16 +288,14 @@ export function PaymentDialog({
 
                     {/* Allocation Class for Trust Accounting */}
                     <formInstance.Field name="allocationClass">
-                        {(field: any) => (
+                        {(field) => (
                             <div className="space-y-2">
                                 <Label htmlFor="allocation-class">
                                     Allocation (Texas 116.152)
                                 </Label>
                                 <Select
                                     value={field.state.value}
-                                    onValueChange={(v) =>
-                                        field.handleChange(v)
-                                    }
+                                    onValueChange={(v) => field.handleChange(v)}
                                 >
                                     <SelectTrigger id="allocation-class">
                                         <SelectValue />
@@ -324,7 +321,7 @@ export function PaymentDialog({
 
                     {/* Notes */}
                     <formInstance.Field name="notes">
-                        {(field: any) => (
+                        {(field) => (
                             <div className="space-y-2">
                                 <Label htmlFor="payment-notes">Notes</Label>
                                 <Textarea

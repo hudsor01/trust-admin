@@ -2,10 +2,10 @@
 
 import {
     ALLOCATION_CLASS_VALUES,
+    enumToOptions,
     LIABILITY_TYPE_VALUES,
     PAYMENT_METHOD_VALUES,
     RECORD_STATUS_VALUES,
-    enumToOptions,
 } from '@/lib/type-utils'
 
 // Derive options from schema enums (single source of truth)

@@ -10,6 +10,8 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
+import type { UseResourceFormReturn } from '@/hooks/use-resource-form'
+import type { trusteeFormDefaults } from '@/lib/form-factory'
 import { STATUS_OPTIONS } from './TrusteeTable'
 
 interface TrusteeDialogProps {
@@ -18,8 +20,9 @@ interface TrusteeDialogProps {
     isSubmitting: boolean
     onOpenChange: (open: boolean) => void
     onSubmit: () => void
-    // biome-ignore lint/suspicious/noExplicitAny: TanStack Form Field type is complex; passed through from page.tsx
-    formInstance: any
+    formInstance: UseResourceFormReturn<
+        ReturnType<typeof trusteeFormDefaults>
+    >['formInstance']
 }
 
 export function TrusteeDialog({
@@ -40,14 +43,16 @@ export function TrusteeDialog({
         >
             <div className="space-y-4">
                 <formInstance.Field name="name">
-                    {(field: any) => (
+                    {(field) => (
                         <div className="space-y-2">
                             <Label htmlFor="name">Name *</Label>
                             <Input
                                 id="name"
                                 placeholder="Full legal name"
                                 value={field.state.value}
-                                onChange={(e) => field.handleChange(e.target.value)}
+                                onChange={(e) =>
+                                    field.handleChange(e.target.value)
+                                }
                                 onBlur={field.handleBlur}
                             />
                             {field.state.meta.errors?.[0] && (
@@ -60,19 +65,25 @@ export function TrusteeDialog({
                 </formInstance.Field>
 
                 <formInstance.Field name="status">
-                    {(field: any) => (
+                    {(field) => (
                         <div className="space-y-2">
                             <Label htmlFor="status">Status</Label>
                             <Select
                                 value={field.state.value ?? undefined}
                                 onValueChange={(v) => field.handleChange(v)}
                             >
-                                <SelectTrigger id="status" onBlur={field.handleBlur}>
+                                <SelectTrigger
+                                    id="status"
+                                    onBlur={field.handleBlur}
+                                >
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {STATUS_OPTIONS.map((s) => (
-                                        <SelectItem key={s.value} value={s.value}>
+                                        <SelectItem
+                                            key={s.value}
+                                            value={s.value}
+                                        >
                                             {s.label}
                                         </SelectItem>
                                     ))}
@@ -83,7 +94,7 @@ export function TrusteeDialog({
                 </formInstance.Field>
 
                 <formInstance.Field name="order">
-                    {(field: any) => (
+                    {(field) => (
                         <div className="space-y-2">
                             <Label htmlFor="order">Order</Label>
                             <Input
@@ -112,7 +123,7 @@ export function TrusteeDialog({
                 </formInstance.Field>
 
                 <formInstance.Field name="startDate">
-                    {(field: any) => (
+                    {(field) => (
                         <div className="space-y-2">
                             <Label htmlFor="startDate">Start Date</Label>
                             <Input
@@ -129,7 +140,7 @@ export function TrusteeDialog({
                 </formInstance.Field>
 
                 <formInstance.Field name="endDate">
-                    {(field: any) => (
+                    {(field) => (
                         <div className="space-y-2">
                             <Label htmlFor="endDate">End Date</Label>
                             <Input

@@ -3,10 +3,7 @@
 import { useStore } from '@tanstack/react-store'
 import { useDeferredValue, useMemo } from 'react'
 import type { UseResourceFormReturn } from '@/hooks/use-resource-form'
-import {
-    calculateMonthlyPayment,
-    estimatePayoffDate,
-} from '@/lib/amortization'
+import { calculateMonthlyPayment, estimatePayoffDate } from '@/lib/amortization'
 import { formatCurrency } from '@/utils/formatters'
 import type { LiabilityFormData } from './LiabilityConstants'
 import { isRevolvingType } from './LiabilityConstants'
@@ -35,14 +32,11 @@ function useFormValues(formInstance: LiabilityFormInstance) {
 export function PaymentPreview({
     formInstance,
 }: {
-    // biome-ignore lint/suspicious/noExplicitAny: TanStack Form Field type is complex; passed through from page.tsx
-    formInstance: any
+    formInstance: LiabilityFormInstance
 }) {
     // Subscribe to relevant form values - all hooks must be called unconditionally
-    // FormApi has 12 generic params; this component accepts any form with LiabilityFormData values.
-    // We extract the store and use typed selectors via a helper to avoid scattered any annotations.
     const { originalAmount, interestRate, loanTermMonths, liabilityType } =
-        useFormValues(formInstance as LiabilityFormInstance)
+        useFormValues(formInstance)
 
     // Defer inputs for smooth typing - hooks must be called before any early returns
     const deferredPrincipal = useDeferredValue(originalAmount)

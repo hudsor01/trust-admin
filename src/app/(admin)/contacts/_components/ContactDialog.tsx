@@ -11,6 +11,8 @@ import {
     SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import type { Contact } from '@/db/schema'
+import type { UseResourceFormReturn } from '@/hooks/use-resource-form'
 import { getFieldError } from '@/lib/form-helpers'
 import { ROLE_LABELS } from './ContactTable'
 
@@ -20,8 +22,7 @@ interface ContactDialogProps {
     isSubmitting: boolean
     onOpenChange: (open: boolean) => void
     onSubmit: () => void
-    // biome-ignore lint/suspicious/noExplicitAny: TanStack Form Field type is complex; passed through from page.tsx
-    formInstance: any
+    formInstance: UseResourceFormReturn<Contact>['formInstance']
 }
 
 export function ContactDialog({
@@ -43,7 +44,7 @@ export function ContactDialog({
             <div className="space-y-4">
                 {/* Name */}
                 <formInstance.Field name="name">
-                    {(field: any) => (
+                    {(field) => (
                         <div className="space-y-2">
                             <Label htmlFor="name">Name *</Label>
                             <Input
@@ -67,7 +68,7 @@ export function ContactDialog({
 
                 {/* Company */}
                 <formInstance.Field name="company">
-                    {(field: any) => (
+                    {(field) => (
                         <div className="space-y-2">
                             <Label htmlFor="company">Company</Label>
                             <Input
@@ -85,7 +86,7 @@ export function ContactDialog({
 
                 {/* Role */}
                 <formInstance.Field name="role">
-                    {(field: any) => (
+                    {(field) => (
                         <div className="space-y-2">
                             <Label htmlFor="role">Role</Label>
                             <Select
@@ -117,7 +118,7 @@ export function ContactDialog({
 
                 {/* Email */}
                 <formInstance.Field name="email">
-                    {(field: any) => (
+                    {(field) => (
                         <div className="space-y-2">
                             <Label htmlFor="email">Email</Label>
                             <Input
@@ -142,7 +143,7 @@ export function ContactDialog({
 
                 {/* Phone */}
                 <formInstance.Field name="phone">
-                    {(field: any) => (
+                    {(field) => (
                         <div className="space-y-2">
                             <Label htmlFor="phone">Phone</Label>
                             <Input
@@ -166,9 +167,11 @@ export function ContactDialog({
 
                 {/* Street Address */}
                 <formInstance.Field name="streetAddress">
-                    {(field: any) => (
+                    {(field) => (
                         <div className="space-y-2">
-                            <Label htmlFor="streetAddress">Street Address</Label>
+                            <Label htmlFor="streetAddress">
+                                Street Address
+                            </Label>
                             <Input
                                 id="streetAddress"
                                 placeholder="123 Main St"
@@ -185,7 +188,7 @@ export function ContactDialog({
                 {/* City, State, ZIP */}
                 <div className="grid grid-cols-3 gap-3">
                     <formInstance.Field name="city">
-                        {(field: any) => (
+                        {(field) => (
                             <div className="space-y-2">
                                 <Label htmlFor="city">City</Label>
                                 <Input
@@ -202,7 +205,7 @@ export function ContactDialog({
                     </formInstance.Field>
 
                     <formInstance.Field name="state">
-                        {(field: any) => (
+                        {(field) => (
                             <div className="space-y-2">
                                 <Label htmlFor="state">State</Label>
                                 <Input
@@ -219,7 +222,7 @@ export function ContactDialog({
                     </formInstance.Field>
 
                     <formInstance.Field name="zip">
-                        {(field: any) => (
+                        {(field) => (
                             <div className="space-y-2">
                                 <Label htmlFor="zip">ZIP</Label>
                                 <Input
@@ -244,7 +247,7 @@ export function ContactDialog({
 
                 {/* Notes */}
                 <formInstance.Field name="notes">
-                    {(field: any) => (
+                    {(field) => (
                         <div className="space-y-2">
                             <Label htmlFor="notes">Notes</Label>
                             <Textarea

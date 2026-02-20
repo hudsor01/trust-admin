@@ -14,11 +14,14 @@ import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import type { InvestmentAccount } from '@/db/schema'
 import { STATUS_VARIANTS, TRANSFER_STATUS } from '@/lib/constants'
 import { asRecordStatus, asTransferStatus } from '@/lib/type-utils'
-import { ACCOUNT_STATUS, INVESTMENT_ACCOUNT_TYPES, maskAccountNumber } from './constants'
+import {
+    ACCOUNT_STATUS,
+    INVESTMENT_ACCOUNT_TYPES,
+    maskAccountNumber,
+} from './constants'
 
 interface InvestmentAccountTableProps {
     investmentAccounts: InvestmentAccount[]
-    totalInvestmentValue: string
     selectedEntity: number | undefined
     onAdd: () => void
     onEdit: (account: InvestmentAccount) => void
@@ -28,7 +31,6 @@ interface InvestmentAccountTableProps {
 
 export function InvestmentAccountTable({
     investmentAccounts,
-    totalInvestmentValue,
     selectedEntity,
     onAdd,
     onEdit,

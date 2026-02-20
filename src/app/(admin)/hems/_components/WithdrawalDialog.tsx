@@ -14,8 +14,10 @@ import {
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import type { WithdrawalRecord } from '@/db/schema'
+import type { UseResourceFormReturn } from '@/hooks/use-resource-form'
 import { formatDate } from '@/utils/formatters'
 import { PAYMENT_METHODS } from './HemsDialog'
+import type { WithdrawalFormData } from './types'
 
 interface WithdrawalDialogProps {
     isOpen: boolean
@@ -23,8 +25,7 @@ interface WithdrawalDialogProps {
     selectedWithdrawal: WithdrawalRecord | null
     onOpenChange: (open: boolean) => void
     onSubmit: () => void
-    // biome-ignore lint/suspicious/noExplicitAny: TanStack Form Field type is complex; passed through from page.tsx
-    formInstance: any
+    formInstance: UseResourceFormReturn<WithdrawalFormData>['formInstance']
 }
 
 export function WithdrawalDialog({
@@ -62,7 +63,7 @@ export function WithdrawalDialog({
                     </Alert>
 
                     <formInstance.Field name="amount">
-                        {(field: any) => (
+                        {(field) => (
                             <div className="space-y-2">
                                 <Label>Withdrawal Amount *</Label>
                                 <Input
@@ -84,14 +85,12 @@ export function WithdrawalDialog({
                     </formInstance.Field>
 
                     <formInstance.Field name="paymentMethod">
-                        {(field: any) => (
+                        {(field) => (
                             <div className="space-y-2">
                                 <Label>Payment Method</Label>
                                 <Select
                                     value={field.state.value}
-                                    onValueChange={(v) =>
-                                        field.handleChange(v)
-                                    }
+                                    onValueChange={(v) => field.handleChange(v)}
                                 >
                                     <SelectTrigger onBlur={field.handleBlur}>
                                         <SelectValue />
@@ -112,7 +111,7 @@ export function WithdrawalDialog({
                     </formInstance.Field>
 
                     <formInstance.Field name="notes">
-                        {(field: any) => (
+                        {(field) => (
                             <div className="space-y-2">
                                 <Label>Notes</Label>
                                 <Textarea

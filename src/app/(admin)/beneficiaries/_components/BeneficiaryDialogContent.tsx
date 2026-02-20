@@ -1,14 +1,6 @@
 'use client'
 
-import {
-    AlertTriangle,
-    Check,
-    Mail,
-    MapPin,
-    Phone,
-    Plus,
-} from 'lucide-react'
-import type { Beneficiary } from '@/db/schema'
+import { AlertTriangle, Check, Mail, MapPin, Phone, Plus } from 'lucide-react'
 import { CopyButton } from '@/components/copy-button'
 import { EditableTextCell } from '@/components/editable-cells'
 import { Badge } from '@/components/ui/badge'
@@ -32,13 +24,14 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table'
+import type { Beneficiary } from '@/db/schema'
 import { cn } from '@/lib/utils'
-import { calculateAge, formatCurrency, formatDate } from '@/utils/formatters'
+import { formatCurrency, formatDate } from '@/utils/formatters'
 import {
+    type BeneficiaryWithDistributions,
     calculateEligibility,
     WITHDRAWAL_AGE_50_PERCENT,
     WITHDRAWAL_AGE_100_PERCENT,
-    type BeneficiaryWithDistributions,
 } from './types'
 
 interface NewDistribution {

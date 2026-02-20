@@ -12,8 +12,10 @@ import {
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import type { Beneficiary } from '@/db/schema'
+import type { UseResourceFormReturn } from '@/hooks/use-resource-form'
 import { enumToOptions, PAYMENT_METHOD_VALUES } from '@/lib/type-utils'
 import { HEMS_CATEGORIES } from './HemsTable'
+import type { HemsFormData } from './types'
 
 // Derive from schema - filter to common payment methods
 export const PAYMENT_METHODS = enumToOptions(PAYMENT_METHOD_VALUES, (v) =>
@@ -26,8 +28,7 @@ interface HemsDialogProps {
     hemsBeneficiaries: Beneficiary[]
     onOpenChange: (open: boolean) => void
     onSubmit: () => void
-    // biome-ignore lint/suspicious/noExplicitAny: TanStack Form Field type is complex; passed through from page.tsx
-    formInstance: any
+    formInstance: UseResourceFormReturn<HemsFormData>['formInstance']
 }
 
 export function HemsDialog({
@@ -48,7 +49,7 @@ export function HemsDialog({
         >
             <div className="space-y-4">
                 <formInstance.Field name="beneficiaryId">
-                    {(field: any) => (
+                    {(field) => (
                         <div className="space-y-2">
                             <Label>Beneficiary *</Label>
                             <Select
@@ -79,7 +80,7 @@ export function HemsDialog({
                 </formInstance.Field>
 
                 <formInstance.Field name="hemsCategory">
-                    {(field: any) => (
+                    {(field) => (
                         <div className="space-y-2">
                             <Label>HEMS Category</Label>
                             <Select
@@ -105,7 +106,7 @@ export function HemsDialog({
                 </formInstance.Field>
 
                 <formInstance.Field name="amount">
-                    {(field: any) => (
+                    {(field) => (
                         <div className="space-y-2">
                             <Label>Amount *</Label>
                             <Input
@@ -127,7 +128,7 @@ export function HemsDialog({
                 </formInstance.Field>
 
                 <formInstance.Field name="hemsJustification">
-                    {(field: any) => (
+                    {(field) => (
                         <div className="space-y-2">
                             <Label>Justification *</Label>
                             <Textarea
@@ -149,7 +150,7 @@ export function HemsDialog({
                 </formInstance.Field>
 
                 <formInstance.Field name="paymentMethod">
-                    {(field: any) => (
+                    {(field) => (
                         <div className="space-y-2">
                             <Label>Payment Method</Label>
                             <Select
@@ -175,7 +176,7 @@ export function HemsDialog({
                 </formInstance.Field>
 
                 <formInstance.Field name="notes">
-                    {(field: any) => (
+                    {(field) => (
                         <div className="space-y-2">
                             <Label>Additional Notes</Label>
                             <Textarea

@@ -12,7 +12,13 @@ import {
     SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { DOD_VALUE_TYPES, RENTAL_STATUS, TRANSFER_STATUS } from '@/lib/constants'
+import type { UseResourceFormReturn } from '@/hooks/use-resource-form'
+import {
+    DOD_VALUE_TYPES,
+    RENTAL_STATUS,
+    TRANSFER_STATUS,
+} from '@/lib/constants'
+import type { RentalFormData } from './constants'
 import { ASSET_STATUS, PROPERTY_TYPES } from './constants'
 
 interface RentalPropertyDialogProps {
@@ -21,8 +27,7 @@ interface RentalPropertyDialogProps {
     isSubmitting: boolean
     onOpenChange: (open: boolean) => void
     onSubmit: () => void
-    // biome-ignore lint/suspicious/noExplicitAny: TanStack Form Field type is complex; passed through from page.tsx
-    formInstance: any
+    formInstance: UseResourceFormReturn<RentalFormData>['formInstance']
 }
 
 export function RentalPropertyDialog({
@@ -47,9 +52,11 @@ export function RentalPropertyDialog({
                     <h4 className="mb-3 text-sm font-medium">Property Info</h4>
                     <div className="space-y-3">
                         <formInstance.Field name="name">
-                            {(field: any) => (
+                            {(field) => (
                                 <div className="space-y-2">
-                                    <Label htmlFor="r-name">Property Name</Label>
+                                    <Label htmlFor="r-name">
+                                        Property Name
+                                    </Label>
                                     <Input
                                         id="r-name"
                                         value={field.state.value}
@@ -63,7 +70,7 @@ export function RentalPropertyDialog({
                             )}
                         </formInstance.Field>
                         <formInstance.Field name="streetAddress">
-                            {(field: any) => (
+                            {(field) => (
                                 <div className="space-y-2">
                                     <Label htmlFor="r-street">
                                         Street Address
@@ -81,7 +88,7 @@ export function RentalPropertyDialog({
                         </formInstance.Field>
                         <div className="grid grid-cols-4 gap-3">
                             <formInstance.Field name="city">
-                                {(field: any) => (
+                                {(field) => (
                                     <div className="space-y-2">
                                         <Label htmlFor="r-city">City</Label>
                                         <Input
@@ -98,7 +105,7 @@ export function RentalPropertyDialog({
                                 )}
                             </formInstance.Field>
                             <formInstance.Field name="state">
-                                {(field: any) => (
+                                {(field) => (
                                     <div className="space-y-2">
                                         <Label htmlFor="r-state">State</Label>
                                         <Input
@@ -115,7 +122,7 @@ export function RentalPropertyDialog({
                                 )}
                             </formInstance.Field>
                             <formInstance.Field name="zip">
-                                {(field: any) => (
+                                {(field) => (
                                     <div className="space-y-2">
                                         <Label htmlFor="r-zip">ZIP</Label>
                                         <Input
@@ -132,7 +139,7 @@ export function RentalPropertyDialog({
                                 )}
                             </formInstance.Field>
                             <formInstance.Field name="county">
-                                {(field: any) => (
+                                {(field) => (
                                     <div className="space-y-2">
                                         <Label htmlFor="r-county">County</Label>
                                         <Input
@@ -159,7 +166,7 @@ export function RentalPropertyDialog({
                     </h4>
                     <div className="grid grid-cols-4 gap-3">
                         <formInstance.Field name="propertyType">
-                            {(field: any) => (
+                            {(field) => (
                                 <div className="space-y-2">
                                     <Label>Property Type</Label>
                                     <Select
@@ -186,7 +193,7 @@ export function RentalPropertyDialog({
                             )}
                         </formInstance.Field>
                         <formInstance.Field name="units">
-                            {(field: any) => (
+                            {(field) => (
                                 <div className="space-y-2">
                                     <Label htmlFor="r-units">Units</Label>
                                     <Input
@@ -202,7 +209,7 @@ export function RentalPropertyDialog({
                             )}
                         </formInstance.Field>
                         <formInstance.Field name="yearBuilt">
-                            {(field: any) => (
+                            {(field) => (
                                 <div className="space-y-2">
                                     <Label htmlFor="r-year">Year Built</Label>
                                     <Input
@@ -218,7 +225,7 @@ export function RentalPropertyDialog({
                             )}
                         </formInstance.Field>
                         <formInstance.Field name="squareFeet">
-                            {(field: any) => (
+                            {(field) => (
                                 <div className="space-y-2">
                                     <Label htmlFor="r-sqft">Square Feet</Label>
                                     <Input
@@ -241,7 +248,7 @@ export function RentalPropertyDialog({
                     <h4 className="mb-3 text-sm font-medium">Rental Info</h4>
                     <div className="grid grid-cols-4 gap-3">
                         <formInstance.Field name="rentalStatus">
-                            {(field: any) => (
+                            {(field) => (
                                 <div className="space-y-2">
                                     <Label>Rental Status</Label>
                                     <Select
@@ -268,7 +275,7 @@ export function RentalPropertyDialog({
                             )}
                         </formInstance.Field>
                         <formInstance.Field name="monthlyRent">
-                            {(field: any) => (
+                            {(field) => (
                                 <div className="space-y-2">
                                     <Label htmlFor="r-rent">Monthly Rent</Label>
                                     <Input
@@ -284,7 +291,7 @@ export function RentalPropertyDialog({
                             )}
                         </formInstance.Field>
                         <formInstance.Field name="leaseStart">
-                            {(field: any) => (
+                            {(field) => (
                                 <div className="space-y-2">
                                     <Label htmlFor="r-lease-start">
                                         Lease Start
@@ -302,7 +309,7 @@ export function RentalPropertyDialog({
                             )}
                         </formInstance.Field>
                         <formInstance.Field name="leaseEnd">
-                            {(field: any) => (
+                            {(field) => (
                                 <div className="space-y-2">
                                     <Label htmlFor="r-lease-end">
                                         Lease End
@@ -322,7 +329,7 @@ export function RentalPropertyDialog({
                     </div>
                     <div className="mt-3">
                         <formInstance.Field name="propertyManager">
-                            {(field: any) => (
+                            {(field) => (
                                 <div className="space-y-2">
                                     <Label htmlFor="r-manager">
                                         Property Manager
@@ -348,7 +355,7 @@ export function RentalPropertyDialog({
                     </h4>
                     <div className="grid grid-cols-3 gap-3">
                         <formInstance.Field name="dodValue">
-                            {(field: any) => (
+                            {(field) => (
                                 <div className="space-y-2">
                                     <Label htmlFor="r-dod-val">DOD Value</Label>
                                     <Input
@@ -364,7 +371,7 @@ export function RentalPropertyDialog({
                             )}
                         </formInstance.Field>
                         <formInstance.Field name="dodValueDate">
-                            {(field: any) => (
+                            {(field) => (
                                 <div className="space-y-2">
                                     <Label htmlFor="r-dod-date">
                                         DOD Value Date
@@ -382,7 +389,7 @@ export function RentalPropertyDialog({
                             )}
                         </formInstance.Field>
                         <formInstance.Field name="dodValueType">
-                            {(field: any) => (
+                            {(field) => (
                                 <div className="space-y-2">
                                     <Label>Valuation Type</Label>
                                     <Select
@@ -418,7 +425,7 @@ export function RentalPropertyDialog({
                     </h4>
                     <div className="grid grid-cols-3 items-end gap-3">
                         <formInstance.Field name="dodAffidavitFiled">
-                            {(field: any) => (
+                            {(field) => (
                                 <div className="flex items-center gap-2">
                                     <Checkbox
                                         id="r-affidavit"
@@ -434,14 +441,12 @@ export function RentalPropertyDialog({
                             )}
                         </formInstance.Field>
                         <formInstance.Subscribe<boolean>
-                            selector={(state: any) =>
-                                state.values.dodAffidavitFiled
-                            }
+                            selector={(state) => state.values.dodAffidavitFiled}
                         >
                             {(dodAffidavitFiled: boolean) => (
                                 <>
                                     <formInstance.Field name="dodAffidavitDate">
-                                        {(field: any) => (
+                                        {(field) => (
                                             <div className="space-y-2">
                                                 <Label htmlFor="r-filing-date">
                                                     Filing Date
@@ -464,7 +469,7 @@ export function RentalPropertyDialog({
                                         )}
                                     </formInstance.Field>
                                     <formInstance.Field name="clerkFileNo">
-                                        {(field: any) => (
+                                        {(field) => (
                                             <div className="space-y-2">
                                                 <Label htmlFor="r-clerk">
                                                     Clerk File Number
@@ -496,7 +501,7 @@ export function RentalPropertyDialog({
                     <h4 className="mb-3 text-sm font-medium">Status</h4>
                     <div className="grid grid-cols-2 gap-3">
                         <formInstance.Field name="status">
-                            {(field: any) => (
+                            {(field) => (
                                 <div className="space-y-2">
                                     <Label>Asset Status</Label>
                                     <Select
@@ -523,7 +528,7 @@ export function RentalPropertyDialog({
                             )}
                         </formInstance.Field>
                         <formInstance.Field name="transferStatus">
-                            {(field: any) => (
+                            {(field) => (
                                 <div className="space-y-2">
                                     <Label>Transfer Status</Label>
                                     <Select
@@ -554,7 +559,7 @@ export function RentalPropertyDialog({
 
                 {/* Notes */}
                 <formInstance.Field name="notes">
-                    {(field: any) => (
+                    {(field) => (
                         <div className="space-y-2">
                             <Label htmlFor="r-notes">Notes</Label>
                             <Textarea

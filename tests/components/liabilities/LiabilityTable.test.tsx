@@ -65,14 +65,20 @@ describe('LiabilityTable', () => {
     test('renders empty message when no liabilities', () => {
         render(<LiabilityTable {...defaultProps} />)
         expect(
-            screen.getByText('No liabilities recorded. Click Add to create one.'),
+            screen.getByText(
+                'No liabilities recorded. Click Add to create one.',
+            ),
         ).toBeTruthy()
     })
 
     test('renders table with liability data', () => {
         const liabilities = [
             makeLiability({ id: 1, creditor: 'Wells Fargo' }),
-            makeLiability({ id: 2, creditor: 'Chase Auto', liabilityType: 'LOAN' }),
+            makeLiability({
+                id: 2,
+                creditor: 'Chase Auto',
+                liabilityType: 'LOAN',
+            }),
         ]
 
         render(<LiabilityTable {...defaultProps} liabilities={liabilities} />)
@@ -107,7 +113,9 @@ describe('LiabilityTable', () => {
         const user = userEvent.setup()
         const onAdd = mock(() => {})
 
-        render(<LiabilityTable {...defaultProps} onAdd={onAdd} bulkMode={false} />)
+        render(
+            <LiabilityTable {...defaultProps} onAdd={onAdd} bulkMode={false} />,
+        )
 
         await user.click(screen.getByText('Add Liability'))
         expect(onAdd.mock.calls.length).toBe(1)
@@ -157,7 +165,9 @@ describe('LiabilityTable', () => {
                 bulkMode={false}
             />,
         )
-        expect(screen.getByPlaceholderText('Filter by creditor...')).toBeTruthy()
+        expect(
+            screen.getByPlaceholderText('Filter by creditor...'),
+        ).toBeTruthy()
     })
 
     test('renders column headers', () => {
@@ -176,7 +186,9 @@ describe('LiabilityTable', () => {
     })
 
     test('renders action buttons for each liability row', () => {
-        const liabilities = [makeLiability({ id: 1, creditor: 'Action Test Creditor' })]
+        const liabilities = [
+            makeLiability({ id: 1, creditor: 'Action Test Creditor' }),
+        ]
 
         render(<LiabilityTable {...defaultProps} liabilities={liabilities} />)
 

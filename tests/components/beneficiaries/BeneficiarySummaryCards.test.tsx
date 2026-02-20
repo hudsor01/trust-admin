@@ -34,7 +34,9 @@ describe('BeneficiarySummaryCards', () => {
     })
 
     test('renders total shares percentage', () => {
-        render(<BeneficiarySummaryCards {...defaultProps} totalShares="85.50" />)
+        render(
+            <BeneficiarySummaryCards {...defaultProps} totalShares="85.50" />,
+        )
 
         expect(screen.getByText('85.50%')).toBeTruthy()
     })
@@ -77,10 +79,7 @@ describe('BeneficiarySummaryCards', () => {
 
     test('renders zero distributed amount', () => {
         render(
-            <BeneficiarySummaryCards
-                {...defaultProps}
-                totalDistributed="0"
-            />,
+            <BeneficiarySummaryCards {...defaultProps} totalDistributed="0" />,
         )
 
         expect(screen.getByText('$0.00')).toBeTruthy()

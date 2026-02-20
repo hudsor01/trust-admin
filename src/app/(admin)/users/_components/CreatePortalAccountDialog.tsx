@@ -81,10 +81,7 @@ export function CreatePortalAccountDialog({
                             </SelectTrigger>
                             <SelectContent>
                                 {unlinkedBeneficiaries.map((b) => (
-                                    <SelectItem
-                                        key={b.id}
-                                        value={String(b.id)}
-                                    >
+                                    <SelectItem key={b.id} value={String(b.id)}>
                                         {b.firstName} {b.lastName}
                                         {b.email ? ` (${b.email})` : ''}
                                     </SelectItem>
@@ -108,9 +105,7 @@ export function CreatePortalAccountDialog({
                         />
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="tempPassword">
-                            Temporary Password
-                        </Label>
+                        <Label htmlFor="tempPassword">Temporary Password</Label>
                         <div className="relative">
                             <Input
                                 id="tempPassword"
@@ -136,12 +131,11 @@ export function CreatePortalAccountDialog({
                                 )}
                             </Button>
                         </div>
-                        {tempPassword.length > 0 &&
-                            tempPassword.length < 8 && (
-                                <p className="text-xs text-destructive">
-                                    Password must be at least 8 characters
-                                </p>
-                            )}
+                        {tempPassword.length > 0 && tempPassword.length < 8 && (
+                            <p className="text-xs text-destructive">
+                                Password must be at least 8 characters
+                            </p>
+                        )}
                     </div>
                     <div className="flex justify-end gap-2 pt-2">
                         <Button

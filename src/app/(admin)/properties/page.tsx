@@ -2,6 +2,7 @@
 
 import { Loader2 } from 'lucide-react'
 import { useState } from 'react'
+import { Badge } from '@/components/ui/badge'
 import {
     Select,
     SelectContent,
@@ -10,7 +11,6 @@ import {
     SelectValue,
 } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Badge } from '@/components/ui/badge'
 import type { Homestead, RentalProperty } from '@/db/schema'
 import { useEntityFilter } from '@/hooks/use-entity-filter'
 import { useResourceForm } from '@/hooks/use-resource-form'
@@ -24,71 +24,13 @@ import {
     asTransferStatus,
     asValuationType,
 } from '@/lib/type-utils'
+import type { HomesteadFormData, RentalFormData } from './_components/constants'
 import { HomesteadDialog } from './_components/HomesteadDialog'
 import { HomesteadSection } from './_components/HomesteadSection'
 import { RentalPropertyDialog } from './_components/RentalPropertyDialog'
 import { RentalPropertyTable } from './_components/RentalPropertyTable'
 
 const log = logger.create('Properties')
-
-interface HomesteadFormData {
-    streetAddress: string
-    city: string
-    state: string
-    zip: string
-    county: string
-    parcelNumber: string
-    legalDescription: string
-    propertyType: string
-    yearBuilt: string
-    squareFeet: string
-    lotSizeAcres: string
-    bedrooms: string
-    bathrooms: string
-    acquisitionDate: string
-    acquisitionCost: string
-    dodValue: string
-    dodValueDate: string
-    dodValueType: string
-    dodAffidavitFiled: boolean
-    dodAffidavitDate: string
-    clerkFileNo: string
-    status: string
-    transferStatus: string
-    notes: string
-}
-
-interface RentalFormData {
-    name: string
-    streetAddress: string
-    city: string
-    state: string
-    zip: string
-    county: string
-    parcelNumber: string
-    propertyType: string
-    units: string
-    squareFeet: string
-    lotSizeAcres: string
-    yearBuilt: string
-    rentalStatus: string
-    monthlyRent: string
-    leaseStart: string
-    leaseEnd: string
-    propertyManager: string
-    acquisitionDate: string
-    acquisitionCost: string
-    mortgageBalance: string
-    dodValue: string
-    dodValueDate: string
-    dodValueType: string
-    dodAffidavitFiled: boolean
-    dodAffidavitDate: string
-    clerkFileNo: string
-    status: string
-    transferStatus: string
-    notes: string
-}
 
 const defaultHomesteadForm: HomesteadFormData = {
     streetAddress: '',

@@ -8,8 +8,8 @@
 import '../../setup'
 import { afterEach, describe, expect, mock, test } from 'bun:test'
 import { cleanup, render, screen } from '@testing-library/react'
-import { WithdrawalsTable } from '../../../src/app/(admin)/hems/_components/WithdrawalsTable'
 import type { WithdrawalRow } from '../../../src/app/(admin)/hems/_components/WithdrawalsTable'
+import { WithdrawalsTable } from '../../../src/app/(admin)/hems/_components/WithdrawalsTable'
 import type { Beneficiary, WithdrawalRecord } from '../../../src/db/schema'
 
 const sampleBeneficiary: Beneficiary = {
@@ -91,7 +91,9 @@ describe('WithdrawalsTable', () => {
                 />,
             )
 
-            expect(screen.getByText('No grandchild withdrawal schedules found.')).toBeTruthy()
+            expect(
+                screen.getByText('No grandchild withdrawal schedules found.'),
+            ).toBeTruthy()
         })
 
         test('still renders the card title with empty data', () => {
@@ -102,7 +104,9 @@ describe('WithdrawalsTable', () => {
                 />,
             )
 
-            expect(screen.getByText('Grandchild Age-Based Withdrawals')).toBeTruthy()
+            expect(
+                screen.getByText('Grandchild Age-Based Withdrawals'),
+            ).toBeTruthy()
         })
     })
 
@@ -116,7 +120,9 @@ describe('WithdrawalsTable', () => {
                 />,
             )
 
-            expect(screen.getByText('Grandchild Age-Based Withdrawals')).toBeTruthy()
+            expect(
+                screen.getByText('Grandchild Age-Based Withdrawals'),
+            ).toBeTruthy()
         })
     })
 
@@ -130,8 +136,12 @@ describe('WithdrawalsTable', () => {
         test('renders the card title and description', () => {
             render(<WithdrawalsTable {...defaultProps} />)
 
-            expect(screen.getByText('Grandchild Age-Based Withdrawals')).toBeTruthy()
-            expect(screen.getByText(/Per trust terms: 50% at age 25/)).toBeTruthy()
+            expect(
+                screen.getByText('Grandchild Age-Based Withdrawals'),
+            ).toBeTruthy()
+            expect(
+                screen.getByText(/Per trust terms: 50% at age 25/),
+            ).toBeTruthy()
         })
 
         test('renders column headers for the withdrawal table', () => {
@@ -178,13 +188,19 @@ describe('WithdrawalsTable', () => {
                 />,
             )
 
-            expect(screen.getByRole('button', { name: /Process 25/ })).toBeTruthy()
+            expect(
+                screen.getByRole('button', { name: /Process 25/ }),
+            ).toBeTruthy()
         })
 
         test('calls onProcessWithdrawal when "Process 25" button is clicked', async () => {
-            const { default: userEvent } = await import('@testing-library/user-event')
+            const { default: userEvent } = await import(
+                '@testing-library/user-event'
+            )
             const user = userEvent.setup()
-            const onProcessWithdrawal = mock((_withdrawal: WithdrawalRecord) => {})
+            const onProcessWithdrawal = mock(
+                (_withdrawal: WithdrawalRecord) => {},
+            )
 
             render(
                 <WithdrawalsTable
@@ -222,7 +238,9 @@ describe('WithdrawalsTable', () => {
                 />,
             )
 
-            expect(screen.queryByRole('button', { name: /Process 25/ })).toBeNull()
+            expect(
+                screen.queryByRole('button', { name: /Process 25/ }),
+            ).toBeNull()
         })
 
         test('shows "WITHDRAWN" badge for a completed age25 withdrawal', () => {

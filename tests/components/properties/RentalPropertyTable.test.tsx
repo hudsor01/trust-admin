@@ -75,7 +75,11 @@ describe('RentalPropertyTable', () => {
 
     test('renders table with rental property data', () => {
         const rentals = [
-            makeRentalProperty({ id: 1, name: 'Sunset Apartments', city: 'Dallas' }),
+            makeRentalProperty({
+                id: 1,
+                name: 'Sunset Apartments',
+                city: 'Dallas',
+            }),
             makeRentalProperty({
                 id: 2,
                 name: 'Oak Street Duplex',
@@ -144,7 +148,9 @@ describe('RentalPropertyTable', () => {
                 onUpdateRental={mock(() => Promise.resolve())}
             />,
         )
-        const addButton = screen.getByText('Add Rental Property').closest('button')
+        const addButton = screen
+            .getByText('Add Rental Property')
+            .closest('button')
         expect(addButton?.disabled).toBe(true)
     })
 

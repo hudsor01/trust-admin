@@ -67,9 +67,7 @@ describe('AccountingSummaryCards', () => {
     test('renders principal vs income breakdown section', () => {
         render(<AccountingSummaryCards {...defaultProps} />)
 
-        expect(
-            screen.getByText(/Principal vs Income Allocation/),
-        ).toBeTruthy()
+        expect(screen.getByText(/Principal vs Income Allocation/)).toBeTruthy()
         // Values appear in breakdown rows
         const principalAmounts = screen.getAllByText('$3,000.00')
         expect(principalAmounts.length).toBeGreaterThan(0)
@@ -100,9 +98,7 @@ describe('AccountingSummaryCards', () => {
         )
 
         expect(
-            screen.getByText(
-                /All income has been converted to principal/,
-            ),
+            screen.getByText(/All income has been converted to principal/),
         ).toBeTruthy()
     })
 

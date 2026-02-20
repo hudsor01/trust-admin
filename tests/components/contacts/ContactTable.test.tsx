@@ -58,7 +58,9 @@ const defaultProps = {
     onView: mock((_contact: Contact) => {}),
     onEdit: mock((_contact: Contact) => {}),
     onDelete: mock((_contact: Contact) => Promise.resolve()),
-    onUpdateField: mock((_id: number, _data: Partial<Contact>) => Promise.resolve()),
+    onUpdateField: mock((_id: number, _data: Partial<Contact>) =>
+        Promise.resolve(),
+    ),
 }
 
 describe('ContactTable', () => {
@@ -68,23 +70,13 @@ describe('ContactTable', () => {
 
     describe('empty state', () => {
         test('renders "No contacts found" when contacts array is empty', () => {
-            render(
-                <ContactTable
-                    {...defaultProps}
-                    contacts={[]}
-                />,
-            )
+            render(<ContactTable {...defaultProps} contacts={[]} />)
 
             expect(screen.getByText('No contacts found')).toBeTruthy()
         })
 
         test('does not render a table when contacts array is empty', () => {
-            render(
-                <ContactTable
-                    {...defaultProps}
-                    contacts={[]}
-                />,
-            )
+            render(<ContactTable {...defaultProps} contacts={[]} />)
 
             expect(screen.queryByRole('table')).toBeNull()
         })
@@ -93,10 +85,7 @@ describe('ContactTable', () => {
     describe('loading state', () => {
         test('renders loading spinner when isLoading is true', () => {
             const { container } = render(
-                <ContactTable
-                    {...defaultProps}
-                    isLoading={true}
-                />,
+                <ContactTable {...defaultProps} isLoading={true} />,
             )
 
             // The spinner is a Loader2 icon with animate-spin class
@@ -105,12 +94,7 @@ describe('ContactTable', () => {
         })
 
         test('does not render table rows when isLoading is true', () => {
-            render(
-                <ContactTable
-                    {...defaultProps}
-                    isLoading={true}
-                />,
-            )
+            render(<ContactTable {...defaultProps} isLoading={true} />)
 
             expect(screen.queryByRole('table')).toBeNull()
         })

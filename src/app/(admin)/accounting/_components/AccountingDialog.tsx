@@ -13,7 +13,12 @@ import {
 import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
-import { EXPENSE_TYPES, INCOME_TYPES } from './accounting-constants'
+import type { UseResourceFormReturn } from '@/hooks/use-resource-form'
+import {
+    type AccountingFormData,
+    EXPENSE_TYPES,
+    INCOME_TYPES,
+} from './accounting-constants'
 
 interface BankAccount {
     id: number
@@ -26,8 +31,7 @@ interface AccountingDialogProps {
     isEditing: boolean
     isLoading: boolean
     bankAccounts: BankAccount[]
-    // biome-ignore lint/suspicious/noExplicitAny: TanStack Form Field type is complex; passed through from page.tsx
-    formInstance: any
+    formInstance: UseResourceFormReturn<AccountingFormData>['formInstance']
     onOpenChange: (open: boolean) => void
     onSubmit: () => void
 }
@@ -52,7 +56,7 @@ export function AccountingDialog({
             <div className="space-y-4">
                 {/* Date */}
                 <formInstance.Field name="accountingDate">
-                    {(field: any) => (
+                    {(field) => (
                         <div className="space-y-2">
                             <Label htmlFor="date">Date</Label>
                             <Input
@@ -70,7 +74,7 @@ export function AccountingDialog({
 
                 {/* Entry Type */}
                 <formInstance.Field name="entryType">
-                    {(field: any) => (
+                    {(field) => (
                         <div className="space-y-2">
                             <Label htmlFor="entryType">Entry Type</Label>
                             <Select
@@ -99,12 +103,12 @@ export function AccountingDialog({
 
                 {/* Conditional Category Selection */}
                 <formInstance.Subscribe<string>
-                    selector={(state: any) => state.values.entryType}
+                    selector={(state) => state.values.entryType}
                 >
-                    {(entryType: any) =>
+                    {(entryType) =>
                         entryType === 'INCOME' ? (
                             <formInstance.Field name="incomeType">
-                                {(field: any) => (
+                                {(field) => (
                                     <div className="space-y-2">
                                         <Label htmlFor="incomeType">
                                             Income Category
@@ -134,7 +138,7 @@ export function AccountingDialog({
                             </formInstance.Field>
                         ) : (
                             <formInstance.Field name="expenseType">
-                                {(field: any) => (
+                                {(field) => (
                                     <div className="space-y-2">
                                         <Label htmlFor="expenseType">
                                             Expense Category
@@ -168,7 +172,7 @@ export function AccountingDialog({
 
                 {/* Amount */}
                 <formInstance.Field name="amount">
-                    {(field: any) => (
+                    {(field) => (
                         <div className="space-y-2">
                             <Label htmlFor="amount">Amount</Label>
                             <Input
@@ -187,14 +191,12 @@ export function AccountingDialog({
 
                 {/* Bank Account */}
                 <formInstance.Field name="bankAccountId">
-                    {(field: any) => (
+                    {(field) => (
                         <div className="space-y-2">
                             <Label htmlFor="bankAccountId">Bank Account</Label>
                             <Select
                                 value={field.state.value}
-                                onValueChange={(val) =>
-                                    field.handleChange(val)
-                                }
+                                onValueChange={(val) => field.handleChange(val)}
                             >
                                 <SelectTrigger id="bankAccountId">
                                     <SelectValue placeholder="Select bank account" />
@@ -217,7 +219,7 @@ export function AccountingDialog({
 
                 {/* Description */}
                 <formInstance.Field name="description">
-                    {(field: any) => (
+                    {(field) => (
                         <div className="space-y-2">
                             <Label htmlFor="description">Description</Label>
                             <Textarea
@@ -235,7 +237,7 @@ export function AccountingDialog({
 
                 {/* Reference Number */}
                 <formInstance.Field name="checkNumber">
-                    {(field: any) => (
+                    {(field) => (
                         <div className="space-y-2">
                             <Label htmlFor="reference">Reference Number</Label>
                             <Input
@@ -255,7 +257,7 @@ export function AccountingDialog({
 
                 {/* isPrincipal Switch */}
                 <formInstance.Field name="isPrincipal">
-                    {(field: any) => (
+                    {(field) => (
                         <div className="flex items-center justify-between">
                             <div className="space-y-0.5">
                                 <Label htmlFor="isPrincipal">
@@ -279,12 +281,12 @@ export function AccountingDialog({
 
                 {/* taxDeductible Switch (conditional) */}
                 <formInstance.Subscribe<string>
-                    selector={(state: any) => state.values.entryType}
+                    selector={(state) => state.values.entryType}
                 >
-                    {(entryType: any) =>
+                    {(entryType) =>
                         entryType === 'EXPENSE' && (
                             <formInstance.Field name="taxDeductible">
-                                {(field: any) => (
+                                {(field) => (
                                     <div className="flex items-center justify-between">
                                         <div className="space-y-0.5">
                                             <Label htmlFor="taxDeductible">
