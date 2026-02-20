@@ -94,7 +94,7 @@ Plans:
 **Plans**: 1
 
 Plans:
-- [ ] 54-01: Full production hardening (in progress)
+- [x] 54-01: Full production hardening (complete 2026-02-20)
 
 ## Progress
 
@@ -114,4 +114,4 @@ Phases execute in numeric order: 49 → 50 → 51 → 52 → 53 → 54
 | 51. admin-user-provisioning | v9.0 | 1/2 | In progress | - |
 | 52. forced-password-change | v9.0 | 0/? | Not started | - |
 | 53. beneficiary-data-isolation | v9.0 | 0/? | Not started | - |
-| 54. codebase-cleanup | v10.0 | 0/1 | In progress | - |
+| 54. codebase-cleanup | v10.0 | 1/1 | Complete | 2026-02-20 |
