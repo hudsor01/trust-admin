@@ -194,6 +194,7 @@ export const userManagementRouter = createTRPCRouter({
                 userId: createdUserId,
                 role: 'beneficiary',
                 beneficiaryId: input.beneficiaryId,
+                forcePasswordChange: true,
             })
 
             // 6. Log activity
