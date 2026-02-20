@@ -1,18 +1,9 @@
 'use client'
 
-import { Calendar, Loader2, Mail, Phone, Plus, Trash2 } from 'lucide-react'
+import { Loader2, Plus } from 'lucide-react'
 import { toast } from 'sonner'
-import {
-    EditableDateCell,
-    EditableNumberCell,
-    EditableSelectCell,
-    EditableTextCell,
-} from '@/components/editable-cells'
-import { ResourceDialog } from '@/components/resource-dialog'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import {
     Select,
     SelectContent,
@@ -20,31 +11,14 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table'
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
-} from '@/components/ui/tooltip'
 import { useEntityFilter } from '@/hooks/use-entity-filter'
 import { useResourceForm } from '@/hooks/use-resource-form'
 import { trusteeFormDefaults } from '@/lib/form-factory'
 import { logger } from '@/lib/logger'
 import { trpc } from '@/lib/trpc'
-import {
-    asTrusteeStatus,
-    enumToOptions,
-    TRUSTEE_STATUS_VALUES,
-} from '@/lib/type-utils'
-import { formatDate } from '@/utils/formatters'
+import { asTrusteeStatus } from '@/lib/type-utils'
+import { TrusteeDialog } from './_components/TrusteeDialog'
+import { TrusteeTable } from './_components/TrusteeTable'
 
 const log = logger.create('Trustees')
 
@@ -55,19 +29,13 @@ type Trustee = {
     email: string | null
     phone: string | null
     dob: string | null
-    status: string
+    status: string | null
     order: number
     isCo: boolean | null
     coTrusteeId: number | null
     startDate: string | null
     endDate: string | null
 }
-
-// Derive options from schema enums (single source of truth)
-const STATUS_OPTIONS = enumToOptions(TRUSTEE_STATUS_VALUES)
-
-// Primary trustee cannot be edited for security
-const PRIMARY_TRUSTEE_EMAIL = 'rhudsontspr@gmail.com'
 
 export default function TrusteesPage() {
     const { data: entities = [], isLoading: entitiesLoading } =
@@ -111,7 +79,7 @@ export default function TrusteesPage() {
             const payload = {
                 entityId: selectedEntity,
                 name: data.name,
-                status: asTrusteeStatus(data.status),
+                status: asTrusteeStatus(data.status ?? ''),
                 order: data.order,
                 startDate: data.startDate || null,
                 endDate: data.endDate || null,
@@ -132,9 +100,7 @@ export default function TrusteesPage() {
         },
     })
 
-    const { formInstance } = trusteeForm
-
-    const deleteTrustee = async (id: number) => {
+    const handleDelete = async (id: number) => {
         if (!confirm('Are you sure you want to delete this trustee?')) return
         try {
             await deleteTrusteeMutation.mutateAsync({
@@ -144,6 +110,15 @@ export default function TrusteesPage() {
         } catch (error) {
             log.error('Failed to delete trustee', { error })
         }
+    }
+
+    // biome-ignore lint/suspicious/noExplicitAny: TrusteeRow fields are mapped directly to the update schema
+    const handleUpdateField = async (id: number, data: any) => {
+        await updateTrusteeMutation.mutateAsync({
+            id,
+            entityId: selectedEntity!,
+            data,
+        })
     }
 
     const loading = entitiesLoading || trusteesLoading
@@ -199,284 +174,13 @@ export default function TrusteesPage() {
                             No current trustees
                         </p>
                     ) : (
-                        <div className="rounded-md border">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead className="w-[80px]">
-                                            Order
-                                        </TableHead>
-                                        <TableHead>Name</TableHead>
-                                        <TableHead>Email</TableHead>
-                                        <TableHead>Phone</TableHead>
-                                        <TableHead>Birthday</TableHead>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead>Start Date</TableHead>
-                                        <TableHead className="w-[60px]">
-                                            Actions
-                                        </TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {currentTrustees.map((t) => {
-                                        const isPrimary =
-                                            t.email === PRIMARY_TRUSTEE_EMAIL
-                                        return (
-                                            <TableRow key={t.id}>
-                                                <TableCell>
-                                                    {isPrimary ? (
-                                                        <div className="px-2 py-1 -mx-2 -my-1 min-h-7 flex items-center">
-                                                            <span className="text-sm">
-                                                                {t.order}
-                                                            </span>
-                                                        </div>
-                                                    ) : (
-                                                        <EditableNumberCell
-                                                            value={t.order}
-                                                            onSave={async (
-                                                                val,
-                                                            ) => {
-                                                                await updateTrusteeMutation.mutateAsync(
-                                                                    {
-                                                                        id: t.id,
-                                                                        entityId:
-                                                                            selectedEntity!,
-                                                                        data: {
-                                                                            order:
-                                                                                val ??
-                                                                                undefined,
-                                                                        },
-                                                                    },
-                                                                )
-                                                            }}
-                                                        />
-                                                    )}
-                                                </TableCell>
-                                                <TableCell>
-                                                    {isPrimary ? (
-                                                        <div className="px-2 py-1 -mx-2 -my-1 min-h-7 flex items-center">
-                                                            <span className="text-sm font-medium">
-                                                                {t.name}
-                                                            </span>
-                                                        </div>
-                                                    ) : (
-                                                        <EditableTextCell
-                                                            value={t.name}
-                                                            onSave={async (
-                                                                val,
-                                                            ) => {
-                                                                await updateTrusteeMutation.mutateAsync(
-                                                                    {
-                                                                        id: t.id,
-                                                                        entityId:
-                                                                            selectedEntity!,
-                                                                        data: {
-                                                                            name: val as string,
-                                                                        },
-                                                                    },
-                                                                )
-                                                            }}
-                                                        />
-                                                    )}
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="flex items-center gap-1">
-                                                        <Mail className="h-3 w-3 text-muted-foreground shrink-0" />
-                                                        {isPrimary ? (
-                                                            <div className="px-2 py-1 -mx-2 -my-1 min-h-7 flex items-center">
-                                                                <span className="text-sm">
-                                                                    {t.email}
-                                                                </span>
-                                                            </div>
-                                                        ) : (
-                                                            <EditableTextCell
-                                                                value={t.email}
-                                                                placeholder="Add email"
-                                                                onSave={async (
-                                                                    val,
-                                                                ) => {
-                                                                    await updateTrusteeMutation.mutateAsync(
-                                                                        {
-                                                                            id: t.id,
-                                                                            entityId:
-                                                                                selectedEntity!,
-                                                                            data: {
-                                                                                email: val,
-                                                                            },
-                                                                        },
-                                                                    )
-                                                                }}
-                                                            />
-                                                        )}
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="flex items-center gap-1">
-                                                        <Phone className="h-3 w-3 text-muted-foreground shrink-0" />
-                                                        {isPrimary ? (
-                                                            <div className="px-2 py-1 -mx-2 -my-1 min-h-7 flex items-center">
-                                                                <span className="text-sm">
-                                                                    {t.phone}
-                                                                </span>
-                                                            </div>
-                                                        ) : (
-                                                            <EditableTextCell
-                                                                value={t.phone}
-                                                                placeholder="Add phone"
-                                                                onSave={async (
-                                                                    val,
-                                                                ) => {
-                                                                    await updateTrusteeMutation.mutateAsync(
-                                                                        {
-                                                                            id: t.id,
-                                                                            entityId:
-                                                                                selectedEntity!,
-                                                                            data: {
-                                                                                phone: val,
-                                                                            },
-                                                                        },
-                                                                    )
-                                                                }}
-                                                            />
-                                                        )}
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="flex items-center gap-1">
-                                                        <Calendar className="h-3 w-3 text-muted-foreground shrink-0" />
-                                                        {isPrimary ? (
-                                                            <div className="px-2 py-1 -mx-2 -my-1 min-h-7 flex items-center">
-                                                                <span className="text-sm">
-                                                                    {formatDate(
-                                                                        t.dob,
-                                                                    )}
-                                                                </span>
-                                                            </div>
-                                                        ) : (
-                                                            <EditableDateCell
-                                                                value={t.dob}
-                                                                onSave={async (
-                                                                    val,
-                                                                ) => {
-                                                                    await updateTrusteeMutation.mutateAsync(
-                                                                        {
-                                                                            id: t.id,
-                                                                            entityId:
-                                                                                selectedEntity!,
-                                                                            data: {
-                                                                                dob: val,
-                                                                            },
-                                                                        },
-                                                                    )
-                                                                }}
-                                                            />
-                                                        )}
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    {isPrimary ? (
-                                                        <div className="px-2 py-1 -mx-2 -my-1 min-h-7 flex items-center">
-                                                            <span className="text-sm">
-                                                                {STATUS_OPTIONS.find(
-                                                                    (o) =>
-                                                                        o.value ===
-                                                                        t.status,
-                                                                )?.label ??
-                                                                    t.status}
-                                                            </span>
-                                                        </div>
-                                                    ) : (
-                                                        <EditableSelectCell
-                                                            value={
-                                                                t.status ?? ''
-                                                            }
-                                                            options={
-                                                                STATUS_OPTIONS
-                                                            }
-                                                            onSave={async (
-                                                                val,
-                                                            ) => {
-                                                                await updateTrusteeMutation.mutateAsync(
-                                                                    {
-                                                                        id: t.id,
-                                                                        entityId:
-                                                                            selectedEntity!,
-                                                                        data: {
-                                                                            status: asTrusteeStatus(
-                                                                                val as string,
-                                                                            ),
-                                                                        },
-                                                                    },
-                                                                )
-                                                            }}
-                                                        />
-                                                    )}
-                                                </TableCell>
-                                                <TableCell>
-                                                    {isPrimary ? (
-                                                        <div className="px-2 py-1 -mx-2 -my-1 min-h-7 flex items-center">
-                                                            <span className="text-sm">
-                                                                {formatDate(
-                                                                    t.startDate,
-                                                                )}
-                                                            </span>
-                                                        </div>
-                                                    ) : (
-                                                        <EditableDateCell
-                                                            value={t.startDate}
-                                                            onSave={async (
-                                                                val,
-                                                            ) => {
-                                                                await updateTrusteeMutation.mutateAsync(
-                                                                    {
-                                                                        id: t.id,
-                                                                        entityId:
-                                                                            selectedEntity!,
-                                                                        data: {
-                                                                            startDate:
-                                                                                val,
-                                                                        },
-                                                                    },
-                                                                )
-                                                            }}
-                                                        />
-                                                    )}
-                                                </TableCell>
-                                                <TableCell>
-                                                    {!isPrimary && (
-                                                        <TooltipProvider>
-                                                            <Tooltip>
-                                                                <TooltipTrigger
-                                                                    asChild
-                                                                >
-                                                                    <Button
-                                                                        variant="ghost"
-                                                                        size="icon"
-                                                                        className="h-8 w-8 text-destructive hover:text-destructive"
-                                                                        onClick={() =>
-                                                                            deleteTrustee(
-                                                                                t.id,
-                                                                            )
-                                                                        }
-                                                                    >
-                                                                        <Trash2 className="h-4 w-4" />
-                                                                    </Button>
-                                                                </TooltipTrigger>
-                                                                <TooltipContent>
-                                                                    <p>
-                                                                        Delete
-                                                                    </p>
-                                                                </TooltipContent>
-                                                            </Tooltip>
-                                                        </TooltipProvider>
-                                                    )}
-                                                </TableCell>
-                                            </TableRow>
-                                        )
-                                    })}
-                                </TableBody>
-                            </Table>
-                        </div>
+                        <TrusteeTable
+                            trustees={currentTrustees}
+                            selectedEntity={selectedEntity!}
+                            allowPrimaryLock={true}
+                            onDelete={handleDelete}
+                            onUpdateField={handleUpdateField}
+                        />
                     )}
                 </CardContent>
             </Card>
@@ -501,335 +205,25 @@ export default function TrusteesPage() {
                             No arbiters designated
                         </p>
                     ) : (
-                        <div className="rounded-md border">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead className="w-[80px]">
-                                            Order
-                                        </TableHead>
-                                        <TableHead>Name</TableHead>
-                                        <TableHead>Email</TableHead>
-                                        <TableHead>Phone</TableHead>
-                                        <TableHead>Birthday</TableHead>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead>Start Date</TableHead>
-                                        <TableHead className="w-[60px]">
-                                            Actions
-                                        </TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {arbiterTrustees
-                                        .sort((a, b) => a.order - b.order)
-                                        .map((t) => (
-                                            <TableRow key={t.id}>
-                                                <TableCell>
-                                                    <EditableNumberCell
-                                                        value={t.order}
-                                                        onSave={async (val) => {
-                                                            await updateTrusteeMutation.mutateAsync(
-                                                                {
-                                                                    id: t.id,
-                                                                    entityId:
-                                                                        selectedEntity!,
-                                                                    data: {
-                                                                        order:
-                                                                            val ??
-                                                                            undefined,
-                                                                    },
-                                                                },
-                                                            )
-                                                        }}
-                                                    />
-                                                </TableCell>
-                                                <TableCell>
-                                                    <EditableTextCell
-                                                        value={t.name}
-                                                        onSave={async (val) => {
-                                                            await updateTrusteeMutation.mutateAsync(
-                                                                {
-                                                                    id: t.id,
-                                                                    entityId:
-                                                                        selectedEntity!,
-                                                                    data: {
-                                                                        name: val as string,
-                                                                    },
-                                                                },
-                                                            )
-                                                        }}
-                                                    />
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="flex items-center gap-1">
-                                                        <Mail className="h-3 w-3 text-muted-foreground shrink-0" />
-                                                        <EditableTextCell
-                                                            value={t.email}
-                                                            placeholder="Add email"
-                                                            onSave={async (
-                                                                val,
-                                                            ) => {
-                                                                await updateTrusteeMutation.mutateAsync(
-                                                                    {
-                                                                        id: t.id,
-                                                                        entityId:
-                                                                            selectedEntity!,
-                                                                        data: {
-                                                                            email: val,
-                                                                        },
-                                                                    },
-                                                                )
-                                                            }}
-                                                        />
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="flex items-center gap-1">
-                                                        <Phone className="h-3 w-3 text-muted-foreground shrink-0" />
-                                                        <EditableTextCell
-                                                            value={t.phone}
-                                                            placeholder="Add phone"
-                                                            onSave={async (
-                                                                val,
-                                                            ) => {
-                                                                await updateTrusteeMutation.mutateAsync(
-                                                                    {
-                                                                        id: t.id,
-                                                                        entityId:
-                                                                            selectedEntity!,
-                                                                        data: {
-                                                                            phone: val,
-                                                                        },
-                                                                    },
-                                                                )
-                                                            }}
-                                                        />
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="flex items-center gap-1">
-                                                        <Calendar className="h-3 w-3 text-muted-foreground shrink-0" />
-                                                        <EditableDateCell
-                                                            value={t.dob}
-                                                            onSave={async (
-                                                                val,
-                                                            ) => {
-                                                                await updateTrusteeMutation.mutateAsync(
-                                                                    {
-                                                                        id: t.id,
-                                                                        entityId:
-                                                                            selectedEntity!,
-                                                                        data: {
-                                                                            dob: val,
-                                                                        },
-                                                                    },
-                                                                )
-                                                            }}
-                                                        />
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <EditableSelectCell
-                                                        value={t.status ?? ''}
-                                                        options={STATUS_OPTIONS}
-                                                        onSave={async (val) => {
-                                                            await updateTrusteeMutation.mutateAsync(
-                                                                {
-                                                                    id: t.id,
-                                                                    entityId:
-                                                                        selectedEntity!,
-                                                                    data: {
-                                                                        status: asTrusteeStatus(
-                                                                            val as string,
-                                                                        ),
-                                                                    },
-                                                                },
-                                                            )
-                                                        }}
-                                                    />
-                                                </TableCell>
-                                                <TableCell>
-                                                    <EditableDateCell
-                                                        value={t.startDate}
-                                                        onSave={async (val) => {
-                                                            await updateTrusteeMutation.mutateAsync(
-                                                                {
-                                                                    id: t.id,
-                                                                    entityId:
-                                                                        selectedEntity!,
-                                                                    data: {
-                                                                        startDate:
-                                                                            val,
-                                                                    },
-                                                                },
-                                                            )
-                                                        }}
-                                                    />
-                                                </TableCell>
-                                                <TableCell>
-                                                    <TooltipProvider>
-                                                        <Tooltip>
-                                                            <TooltipTrigger
-                                                                asChild
-                                                            >
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    size="icon"
-                                                                    className="h-8 w-8 text-destructive hover:text-destructive"
-                                                                    onClick={() =>
-                                                                        deleteTrustee(
-                                                                            t.id,
-                                                                        )
-                                                                    }
-                                                                >
-                                                                    <Trash2 className="h-4 w-4" />
-                                                                </Button>
-                                                            </TooltipTrigger>
-                                                            <TooltipContent>
-                                                                <p>Delete</p>
-                                                            </TooltipContent>
-                                                        </Tooltip>
-                                                    </TooltipProvider>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                </TableBody>
-                            </Table>
-                        </div>
+                        <TrusteeTable
+                            trustees={arbiterTrustees.sort((a, b) => a.order - b.order)}
+                            selectedEntity={selectedEntity!}
+                            allowPrimaryLock={false}
+                            onDelete={handleDelete}
+                            onUpdateField={handleUpdateField}
+                        />
                     )}
                 </CardContent>
             </Card>
 
-            <ResourceDialog
-                open={trusteeForm.isOpen}
+            <TrusteeDialog
+                isOpen={trusteeForm.isOpen}
+                isEditing={trusteeForm.isEditing}
+                isSubmitting={trusteeForm.isSubmitting}
                 onOpenChange={trusteeForm.close}
-                title={trusteeForm.isEditing ? 'Edit Trustee' : 'Add Trustee'}
                 onSubmit={trusteeForm.handleSave}
-                isLoading={trusteeForm.isSubmitting}
-            >
-                <div className="space-y-4">
-                    <formInstance.Field name="name">
-                        {(field) => (
-                            <div className="space-y-2">
-                                <Label htmlFor="name">Name *</Label>
-                                <Input
-                                    id="name"
-                                    placeholder="Full legal name"
-                                    value={field.state.value}
-                                    onChange={(e) =>
-                                        field.handleChange(e.target.value)
-                                    }
-                                    onBlur={field.handleBlur}
-                                />
-                                {field.state.meta.errors?.[0] && (
-                                    <p className="text-sm text-destructive">
-                                        {field.state.meta.errors[0]}
-                                    </p>
-                                )}
-                            </div>
-                        )}
-                    </formInstance.Field>
-
-                    <formInstance.Field name="status">
-                        {(field) => (
-                            <div className="space-y-2">
-                                <Label htmlFor="status">Status</Label>
-                                <Select
-                                    value={field.state.value ?? undefined}
-                                    onValueChange={(v) => field.handleChange(v)}
-                                >
-                                    <SelectTrigger
-                                        id="status"
-                                        onBlur={field.handleBlur}
-                                    >
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {STATUS_OPTIONS.map((s) => (
-                                            <SelectItem
-                                                key={s.value}
-                                                value={s.value}
-                                            >
-                                                {s.label}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        )}
-                    </formInstance.Field>
-
-                    <formInstance.Field name="order">
-                        {(field) => (
-                            <div className="space-y-2">
-                                <Label htmlFor="order">Order</Label>
-                                <Input
-                                    id="order"
-                                    type="number"
-                                    min={1}
-                                    max={10}
-                                    value={field.state.value}
-                                    onChange={(e) =>
-                                        field.handleChange(
-                                            parseInt(e.target.value, 10) || 1,
-                                        )
-                                    }
-                                    onBlur={field.handleBlur}
-                                />
-                                <p className="text-xs text-muted-foreground">
-                                    1 = Primary, 2 = First Successor, etc.
-                                </p>
-                                {field.state.meta.errors?.[0] && (
-                                    <p className="text-sm text-destructive">
-                                        {field.state.meta.errors[0]}
-                                    </p>
-                                )}
-                            </div>
-                        )}
-                    </formInstance.Field>
-
-                    <formInstance.Field name="startDate">
-                        {(field) => (
-                            <div className="space-y-2">
-                                <Label htmlFor="startDate">Start Date</Label>
-                                <Input
-                                    id="startDate"
-                                    type="date"
-                                    value={field.state.value || ''}
-                                    onChange={(e) =>
-                                        field.handleChange(
-                                            e.target.value || null,
-                                        )
-                                    }
-                                    onBlur={field.handleBlur}
-                                />
-                            </div>
-                        )}
-                    </formInstance.Field>
-
-                    <formInstance.Field name="endDate">
-                        {(field) => (
-                            <div className="space-y-2">
-                                <Label htmlFor="endDate">End Date</Label>
-                                <Input
-                                    id="endDate"
-                                    type="date"
-                                    value={field.state.value || ''}
-                                    onChange={(e) =>
-                                        field.handleChange(
-                                            e.target.value || null,
-                                        )
-                                    }
-                                    onBlur={field.handleBlur}
-                                />
-                                <p className="text-xs text-muted-foreground">
-                                    Leave blank if currently serving
-                                </p>
-                            </div>
-                        )}
-                    </formInstance.Field>
-                </div>
-            </ResourceDialog>
+                formInstance={trusteeForm.formInstance}
+            />
         </div>
     )
 }
