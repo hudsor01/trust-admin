@@ -8,12 +8,32 @@ Sentry.init({
     dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
 
     // Enable when DSN is configured
+    // Note: NEXT_PUBLIC_SENTRY_DSN is inlined at build time — must be set before building
     enabled: !!process.env.NEXT_PUBLIC_SENTRY_DSN,
 
     // 10% of transactions for performance data
     tracesSampleRate: 0.1,
 
+    // Replay integration — required for replaysSessionSampleRate/replaysOnErrorSampleRate to work
+    // maskAllText + blockAllMedia: protect PII (beneficiary names, financial data)
+    integrations: [
+        Sentry.replayIntegration({
+            maskAllText: true,
+            blockAllMedia: true,
+        }),
+    ],
+
     // Replay 10% of sessions, 100% of sessions with errors
     replaysSessionSampleRate: 0.1,
     replaysOnErrorSampleRate: 1.0,
+
+    // Tag slow client-side navigations for easy filtering in Sentry dashboard
+    beforeSendTransaction(event) {
+        if (event.measurements?.frames_slow?.value) {
+            event.tags = { ...event.tags, slow_transaction: 'true' }
+        }
+        return event
+    },
+
+    debug: false,
 })
