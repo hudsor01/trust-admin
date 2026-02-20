@@ -389,11 +389,11 @@ Production Queries (Drizzle)     Raw SQL/Tests (postgres.js)
 4. `app.is_admin()` / `app.get_user_beneficiary_id()` filter rows in policies
 5. Without token → `getPublicDb()` → `neondb_owner` → BYPASSRLS
 
-**RLS policy scope (all 33 tables have RLS enabled):**
-- **Admin-only** (SELECT/mutations all require `app.is_admin()`): `bank_account`, `entity`, `homestead`, `investment_account`, `liability`, `trust_accounting`, `vehicle`
+**RLS policy scope (all 33 tables have RLS enabled and policies):**
+- **Admin-only** (all 4 ops require `app.is_admin()`): 25 tables including all assets, liabilities, accounting, contacts, admin tables
 - **Beneficiary-scoped** (SELECT: admin OR own row; mutations: admin only): `beneficiary`, `distribution`, `hems_request`, `withdrawal_record`
 - **user_profile**: SELECT open to all authenticated; mutations neondb_owner only
-- **No authenticated policy** (accessed via `getPublicDb()` BYPASSRLS path): all other tables (`contact`, `artwork`, `activity_log`, `task`, etc.)
+- **Neon Auth internal tables** (no app policy, never queried directly): `account`, `session`, `verification`, `user`
 - Full policy SQL: `db/migrations/add-rls-policies.sql` | Functions: `db/migrations/add-rls-helpers.sql`
 - Reference: `db/rls.ts`
 

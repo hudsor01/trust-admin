@@ -59,10 +59,13 @@
  *   homestead, investment_account, liability, trust_accounting,
  *   vehicle, withdrawal_record
  *
- * -- ADMIN-ONLY TABLES --
+ * -- ADMIN-ONLY TABLES (29 tables) --
  * All four operations (SELECT/INSERT/UPDATE/DELETE) restricted to app.is_admin():
- *   bank_account, entity, homestead, investment_account, liability,
- *   trust_accounting, vehicle
+ *   activity_log, artwork, bank_account, contact, contact_association,
+ *   document, entity, homestead, insurance_policy, investment_account,
+ *   liability, liability_payment, pending_inventory_item, personal_property,
+ *   rental_property, specific_bequest, task, transaction, trust_accounting,
+ *   trustee, trustee_fee_entry, trustee_fee_schedule, valuation, vehicle
  *
  * -- BENEFICIARY-SCOPED TABLES --
  * SELECT: app.is_admin() OR [beneficiary col] = app.get_user_beneficiary_id()
@@ -77,15 +80,10 @@
  *   SELECT: all authenticated (true)
  *   INSERT/UPDATE/DELETE: neondb_owner only
  *
- * -- NO AUTHENTICATED POLICIES (default deny for authenticated role) --
- * RLS is enabled on these tables but no authenticated-role policy exists.
- * These tables are accessed exclusively via getPublicDb() (neondb_owner BYPASSRLS)
- * or via adminProcedure tRPC routes that call getPublicDb() directly.
- *   account, activity_log, artwork, contact, contact_association, document,
- *   insurance_policy, liability_payment, pending_inventory_item,
- *   personal_property, rental_property, session, specific_bequest, task,
- *   transaction, trustee, trustee_fee_entry, trustee_fee_schedule,
- *   user, valuation, verification
+ * -- NEON-MANAGED INTERNAL TABLES (no app policy) --
+ * RLS enabled, no app-level policy. Managed by Neon Auth internals.
+ * The application never queries these directly.
+ *   account, session, verification, user
  *
  * ============================================================
  * TWO-LAYER ISOLATION (beneficiary data)
