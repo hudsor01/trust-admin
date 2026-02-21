@@ -2362,7 +2362,7 @@ export type DistributionStandardEnum =
     | 'BROADER'
     | 'WITHDRAWAL_ONLY'
 export type TrusteeStatusEnum =
-    | 'CURRENT'
+    | 'ACTIVE'
     | 'SUCCESSOR'
     | 'ARBITER'
     | 'RESIGNED'

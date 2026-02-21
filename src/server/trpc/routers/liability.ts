@@ -42,7 +42,7 @@ const recordPaymentSchema = z.object({
     escrowPortion: z.string().optional(),
     paymentMethod: z.enum(PAYMENT_METHOD_VALUES),
     checkNumber: z.string().optional(),
-    referenceNumber: z.string().optional(),
+    confirmationNumber: z.string().optional(),
     notes: z.string().optional(),
     // Allocation class for trust accounting (Principal vs Income)
     allocationClass: z.enum(ALLOCATION_CLASS_VALUES).optional(),

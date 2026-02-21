@@ -101,6 +101,7 @@ export const bankAccountRelations = relations(bankAccount, ({ one, many }) => ({
     valuations: many(valuation),
     documents: many(document),
     transactions: many(transaction),
+    trustAccountingEntries: many(trustAccounting),
 }))
 
 export const investmentAccountRelations = relations(
@@ -328,6 +329,10 @@ export const trustAccountingRelations = relations(
         entity: one(entity, {
             fields: [trustAccounting.entityId],
             references: [entity.id],
+        }),
+        bankAccount: one(bankAccount, {
+            fields: [trustAccounting.bankAccountId],
+            references: [bankAccount.id],
         }),
     }),
 )

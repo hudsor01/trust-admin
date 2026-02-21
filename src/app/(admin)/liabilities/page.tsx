@@ -221,6 +221,7 @@ export default function LiabilitiesPage() {
                 bankAccountId: data.bankAccountId,
                 paymentMethod,
                 checkNumber: data.checkNumber || undefined,
+                confirmationNumber: data.confirmationNumber || undefined,
                 allocationClass: data.allocationClass as 'PRINCIPAL' | 'INCOME',
                 notes: data.notes || undefined,
             })
