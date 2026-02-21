@@ -370,23 +370,7 @@ describe.skipIf(isProductionDb)('CRUD Operations - Remaining Routers', () => {
         )
 
         test(
-            'list returns all liability payments',
-            async () => {
-                const caller = adminCaller()
-                const results = await caller.liabilityPayment.list()
-
-                expect(Array.isArray(results)).toBe(true)
-                expect(
-                    results.some(
-                        (r) => r.id === testData.liabilityPaymentIds[0],
-                    ),
-                ).toBe(true)
-            },
-            TEST_TIMEOUT,
-        )
-
-        test(
-            'list with liabilityId filter returns only matching payments',
+            'list returns all liability payments for a liability',
             async () => {
                 const caller = adminCaller()
                 const results = await caller.liabilityPayment.list({

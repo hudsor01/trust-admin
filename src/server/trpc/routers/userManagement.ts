@@ -12,7 +12,7 @@ import { TRPCError } from '@trpc/server'
 import { desc, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { OWNER_EMAIL } from '@/lib/constants'
-import { db, getSql } from '../../../../db'
+import { db, getClient } from '../../../../db'
 import { createActivityLog } from '../../../../db/queries'
 import { beneficiary, userProfile } from '../../../../db/schema'
 import { authServer } from '../../../lib/auth/server'
@@ -194,7 +194,13 @@ export const userManagementRouter = createTRPCRouter({
 
             const createdUserId = newUser.user.id
 
-            // 5. Create userProfile linking to beneficiary
+            // 5. Set emailVerified = true — required or Better Auth returns 403 on sign-in
+            await getClient().unsafe(
+                `UPDATE neon_auth."user" SET "emailVerified" = true WHERE id = $1`,
+                [createdUserId],
+            )
+
+            // 6. Create userProfile linking to beneficiary
             await db.insert(userProfile).values({
                 userId: createdUserId,
                 role: 'beneficiary',
@@ -280,7 +286,6 @@ export const userManagementRouter = createTRPCRouter({
             // Update neon_auth."user" directly via raw SQL.
             // Neon Auth stores users in the neon_auth schema, not public.user.
             // The admin API proxy (authServer.admin.updateUser) returns 400.
-            const sql = getSql()
             const now = new Date().toISOString()
             const setClauses: string[] = []
             const params: (string | null)[] = []
@@ -297,10 +302,11 @@ export const userManagementRouter = createTRPCRouter({
             setClauses.push(`"updatedAt" = $${params.length}`)
             params.push(input.userId)
 
-            const result = (await sql.query(
+            const pgClient = getClient()
+            const result = await pgClient.unsafe(
                 `UPDATE neon_auth."user" SET ${setClauses.join(', ')} WHERE "id" = $${params.length} RETURNING "id"`,
                 params,
-            )) as Record<string, unknown>[]
+            )
 
             if (result.length === 0) {
                 throw new TRPCError({

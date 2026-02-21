@@ -305,6 +305,9 @@ export const trusteeRelations = relations(trustee, ({ one, many }) => ({
         references: [trustee.id],
         relationName: 'trustee_coTrusteeId_trustee_id',
     }),
+    coTrustees: many(trustee, {
+        relationName: 'trustee_coTrusteeId_trustee_id',
+    }),
     feeSchedules: many(trusteeFeeSchedule),
     feeEntries: many(trusteeFeeEntry),
 }))

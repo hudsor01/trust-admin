@@ -36,6 +36,12 @@ export default function AccountingPage() {
         { enabled: !!selectedEntity },
     )
 
+    // Server-side aggregate totals across ALL entries (not just the current page)
+    const { data: allTotals = [] } = trpc.trustAccounting.totals.useQuery(
+        { entityId: selectedEntity! },
+        { enabled: !!selectedEntity },
+    )
+
     // Pagination state
     const [currentPage, setCurrentPage] = useState(1)
     const pageSize = 20
@@ -158,7 +164,7 @@ export default function AccountingPage() {
                 taxDeductible: data.taxDeductible,
                 checkNumber: data.checkNumber || undefined,
                 fiscalYear: data.accountingDate
-                    ? new Date(data.accountingDate).getFullYear()
+                    ? Number.parseInt(data.accountingDate.slice(0, 4), 10)
                     : new Date().getFullYear(),
             }
             if (isEditing && editingId) {
@@ -228,10 +234,17 @@ export default function AccountingPage() {
         })
     }
 
-    // Calculate totals - Texas 113.152(2) requires categorization by principal and income
+    // Page-local entry splits (for table tabs only — not for summary totals)
+    const { incomeEntries, expenseEntries } = useMemo(() => {
+        return {
+            incomeEntries: entries.filter((e) => e.entryType === 'INCOME'),
+            expenseEntries: entries.filter((e) => e.entryType === 'EXPENSE'),
+        }
+    }, [entries])
+
+    // Summary card totals — computed server-side from ALL entries, not just the current page.
+    // Texas 113.152(2) requires categorization by principal and income.
     const {
-        incomeEntries,
-        expenseEntries,
         incomeTotal,
         expenseTotal,
         netIncome,
@@ -241,41 +254,33 @@ export default function AccountingPage() {
         principalDisbursements,
         incomeDisbursements,
     } = useMemo(() => {
-        const income = entries.filter((e) => e.entryType === 'INCOME')
-        const expense = entries.filter((e) => e.entryType === 'EXPENSE')
-        const incTotal = sumStrings(income.map((e) => e.amount))
-        const expTotal = sumStrings(expense.map((e) => e.amount))
-        const deductible = sumStrings(
-            expense.filter((e) => e.taxDeductible).map((e) => e.amount),
-        )
+        const pick = (type: string, isPrincipal?: boolean, taxDed?: boolean) =>
+            sumStrings(
+                allTotals
+                    .filter(
+                        (r) =>
+                            r.entryType === type &&
+                            (isPrincipal === undefined ||
+                                r.isPrincipal === isPrincipal) &&
+                            (taxDed === undefined ||
+                                r.taxDeductible === taxDed),
+                    )
+                    .map((r) => r.total),
+            )
 
-        // Texas 113.152(2) - categorize by principal and income
-        const principalRec = sumStrings(
-            income.filter((e) => e.isPrincipal).map((e) => e.amount),
-        )
-        const incomeRec = sumStrings(
-            income.filter((e) => !e.isPrincipal).map((e) => e.amount),
-        )
-        const principalDisb = sumStrings(
-            expense.filter((e) => e.isPrincipal).map((e) => e.amount),
-        )
-        const incomeDisb = sumStrings(
-            expense.filter((e) => !e.isPrincipal).map((e) => e.amount),
-        )
-
+        const incTotal = pick('INCOME')
+        const expTotal = pick('EXPENSE')
         return {
-            incomeEntries: income,
-            expenseEntries: expense,
             incomeTotal: incTotal,
             expenseTotal: expTotal,
             netIncome: subtractMoney(incTotal, expTotal),
-            deductibleExpenses: deductible,
-            principalReceipts: principalRec,
-            incomeReceipts: incomeRec,
-            principalDisbursements: principalDisb,
-            incomeDisbursements: incomeDisb,
+            deductibleExpenses: pick('EXPENSE', undefined, true),
+            principalReceipts: pick('INCOME', true),
+            incomeReceipts: pick('INCOME', false),
+            principalDisbursements: pick('EXPENSE', true),
+            incomeDisbursements: pick('EXPENSE', false),
         }
-    }, [entries])
+    }, [allTotals])
 
     // Filter based on active tab
     const filteredEntries = useMemo(() => {

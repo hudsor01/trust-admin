@@ -89,7 +89,8 @@ export default function BeneficiariesPage() {
         try {
             await markDeceasedMutation.mutateAsync({
                 beneficiaryId: selectedBeneficiary.id,
-                deceasedDate: new Date(deceasedDate).toISOString(),
+                entityId: Number(selectedEntity),
+                deceasedDate: `${deceasedDate}T00:00:00.000Z`,
             })
             setShowDeceasedForm(false)
             setDeceasedDate('')

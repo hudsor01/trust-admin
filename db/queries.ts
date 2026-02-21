@@ -1047,6 +1047,66 @@ export async function deleteHemsRequest(id: number) {
     return deleted
 }
 
+/**
+ * Atomically approve a HEMS request: creates a distribution record and links
+ * it to the request in a single transaction. Without a transaction, a crash
+ * between the two writes would leave an orphaned distribution with no HEMS link.
+ */
+export async function approveHemsRequest(params: {
+    id: number
+    entityId: number
+    approvedAmount?: string
+    reviewNotes?: string
+    existing: {
+        beneficiaryId: number
+        category: string
+        justification: string
+        amountRequested: string
+    }
+}) {
+    const { id, entityId, reviewNotes, existing } = params
+    const now = new Date().toISOString()
+    const distributionAmount = params.approvedAmount ?? existing.amountRequested
+    const notes = `HEMS request #${id}${reviewNotes ? `: ${reviewNotes}` : ''}`
+
+    const client = getClient()
+    return client.begin(async (_tx) => {
+        const tx = _tx as TxSql
+
+        const [newDistribution] = await tx`
+            INSERT INTO distribution (
+                "entityId", "beneficiaryId", "distributionDate", amount,
+                "distributionType", "hemsCategory", "hemsJustification",
+                "paymentMethod", notes, "updatedAt"
+            ) VALUES (
+                ${entityId}, ${existing.beneficiaryId}, ${now},
+                ${distributionAmount}, ${'INCOME'}, ${existing.category},
+                ${existing.justification}, ${'CHECK'},
+                ${notes}, ${now}
+            )
+            RETURNING *
+        `
+        if (!newDistribution)
+            throw new Error('Failed to create distribution record')
+
+        const [updated] = await tx`
+            UPDATE hems_request
+            SET
+                status = 'APPROVED',
+                "approvedAmount" = ${distributionAmount},
+                "reviewNotes" = ${reviewNotes ?? null},
+                "reviewedAt" = ${now},
+                "distributionId" = ${newDistribution.id},
+                "updatedAt" = ${now}
+            WHERE id = ${id} AND "entityId" = ${entityId}
+            RETURNING *
+        `
+        if (!updated) throw new Error('HEMS request not found in this entity')
+
+        return updated
+    })
+}
+
 interface HemsRequestPaginationOptions {
     limit?: number
     offset?: number
@@ -1509,7 +1569,7 @@ export async function getActivityLogWithChanges(recordId: string) {
       old_data.status as old_status,
       new_data.value as new_value,
       new_data.status as new_status
-    FROM "ActivityLog" al
+    FROM "activity_log" al
     LEFT JOIN LATERAL json_table(
       al.old_values,
       '$' COLUMNS (

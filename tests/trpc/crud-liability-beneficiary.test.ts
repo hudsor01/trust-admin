@@ -722,6 +722,7 @@ describe.skipIf(isProductionDb)(
 
                     const result = await caller.beneficiary.markDeceased({
                         beneficiaryId: deceasedBeneficiaryId,
+                        entityId: testData.entityId!,
                         deceasedDate,
                     })
 

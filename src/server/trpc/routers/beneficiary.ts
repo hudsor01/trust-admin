@@ -191,6 +191,7 @@ export const beneficiaryRouter = createTRPCRouter({
         .input(
             z.object({
                 beneficiaryId: z.coerce.number(),
+                entityId: z.coerce.number(),
                 deceasedDate: z.string(),
             }),
         )
@@ -207,7 +208,23 @@ export const beneficiaryRouter = createTRPCRouter({
                     deceasedDate: input.deceasedDate,
                 },
                 async () => {
-                    return markBeneficiaryDeceased(input)
+                    // Verify the beneficiary belongs to this entity
+                    const ben = await db.query.beneficiary.findFirst({
+                        where: and(
+                            eq(beneficiary.id, input.beneficiaryId),
+                            eq(beneficiary.entityId, input.entityId),
+                        ),
+                        columns: { id: true },
+                    })
+                    if (!ben)
+                        throw new TRPCError({
+                            code: 'NOT_FOUND',
+                            message: 'Beneficiary not found in this entity',
+                        })
+                    return markBeneficiaryDeceased({
+                        beneficiaryId: input.beneficiaryId,
+                        deceasedDate: input.deceasedDate,
+                    })
                 },
             )
         }),

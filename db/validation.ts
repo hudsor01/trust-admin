@@ -326,7 +326,10 @@ export const insertTrustAccountingSchema = createInsertSchema(trustAccounting, {
     createdAt: (schema) => schema.optional(),
     updatedAt: (schema) => schema.optional(),
     amount: (schema) =>
-        schema.refine((val) => parseFloat(val) !== 0, 'Amount cannot be zero'),
+        schema.refine(
+            (val) => parseFloat(val) > 0,
+            'Amount must be greater than zero',
+        ),
 })
 export const selectTrustAccountingSchema = createSelectSchema(trustAccounting)
 

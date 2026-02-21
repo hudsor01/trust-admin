@@ -87,6 +87,17 @@ export function calculatePaymentSplit(
     const payment = parseFloat(paymentAmount)
     const escrow = escrowAmount ? parseFloat(escrowAmount) : 0
 
+    if (
+        Number.isNaN(balance) ||
+        Number.isNaN(rate) ||
+        Number.isNaN(payment) ||
+        balance < 0 ||
+        rate < 0 ||
+        payment <= 0
+    ) {
+        return null
+    }
+
     // Calculate monthly interest
     const monthlyRate = rate / 12
     const interestDue = balance * monthlyRate

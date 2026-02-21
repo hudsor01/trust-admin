@@ -1,5 +1,5 @@
 import { TRPCError } from '@trpc/server'
-import { and, count, desc, eq } from 'drizzle-orm'
+import { and, count, desc, eq, sql, sum } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '../../../../db'
 import {
@@ -157,6 +157,30 @@ export const trustAccountingRouter = createTRPCRouter({
      * Shows how much undistributed income is pending conversion to principal
      * for each fiscal year.
      */
+    /**
+     * Server-side aggregate totals across ALL entries (not just one page).
+     * Used for summary cards so they always reflect the full ledger.
+     */
+    totals: adminProcedure
+        .input(z.object({ entityId: z.coerce.number() }))
+        .query(async ({ input }) => {
+            const rows = await db
+                .select({
+                    entryType: trustAccounting.entryType,
+                    isPrincipal: trustAccounting.isPrincipal,
+                    taxDeductible: trustAccounting.taxDeductible,
+                    total: sql<string>`COALESCE(${sum(trustAccounting.amount)}, '0')`,
+                })
+                .from(trustAccounting)
+                .where(eq(trustAccounting.entityId, input.entityId))
+                .groupBy(
+                    trustAccounting.entryType,
+                    trustAccounting.isPrincipal,
+                    trustAccounting.taxDeductible,
+                )
+            return rows
+        }),
+
     unconvertedIncomeSummary: adminProcedure
         .input(z.object({ entityId: z.coerce.number() }))
         .query(async ({ input }) => {

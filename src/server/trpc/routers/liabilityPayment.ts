@@ -11,17 +11,12 @@ import { adminProcedure, createTRPCRouter } from '../index'
 
 export const liabilityPaymentRouter = createTRPCRouter({
     list: adminProcedure
-        .input(
-            z.object({ liabilityId: z.coerce.number().optional() }).optional(),
-        )
+        .input(z.object({ liabilityId: z.coerce.number() }))
         .query(async ({ input }) => {
-            if (input?.liabilityId) {
-                return db
-                    .select()
-                    .from(liabilityPayment)
-                    .where(eq(liabilityPayment.liabilityId, input.liabilityId))
-            }
-            return db.select().from(liabilityPayment)
+            return db
+                .select()
+                .from(liabilityPayment)
+                .where(eq(liabilityPayment.liabilityId, input.liabilityId))
         }),
 
     byId: adminProcedure.input(z.coerce.number()).query(async ({ input }) => {

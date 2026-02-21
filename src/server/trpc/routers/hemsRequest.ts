@@ -2,8 +2,11 @@ import { TRPCError } from '@trpc/server'
 import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '../../../../db'
-import { getHemsRequestsWithBeneficiary } from '../../../../db/queries'
-import { beneficiary, distribution, hemsRequest } from '../../../../db/schema'
+import {
+    approveHemsRequest,
+    getHemsRequestsWithBeneficiary,
+} from '../../../../db/queries'
+import { beneficiary, hemsRequest } from '../../../../db/schema'
 import {
     insertHemsRequestSchema,
     updateHemsRequestSchema,
@@ -185,51 +188,18 @@ export const hemsRequestRouter = createTRPCRouter({
                         })
                     }
 
-                    const now = new Date().toISOString()
-                    const distributionAmount =
-                        input.approvedAmount ?? existing.amountRequested
-
-                    // Create distribution record first so we can link it
-                    const [newDistribution] = await db
-                        .insert(distribution)
-                        .values({
-                            entityId: input.entityId,
+                    return approveHemsRequest({
+                        id: input.id,
+                        entityId: input.entityId,
+                        approvedAmount: input.approvedAmount,
+                        reviewNotes: input.reviewNotes,
+                        existing: {
                             beneficiaryId: existing.beneficiaryId,
-                            distributionDate: now,
-                            amount: distributionAmount,
-                            distributionType: 'INCOME',
-                            hemsCategory: existing.category,
-                            hemsJustification: existing.justification,
-                            paymentMethod: 'CHECK',
-                            notes: `HEMS request #${input.id}${input.reviewNotes ? `: ${input.reviewNotes}` : ''}`,
-                            updatedAt: now,
-                        })
-                        .returning()
-
-                    const [updated] = await db
-                        .update(hemsRequest)
-                        .set({
-                            status: 'APPROVED',
-                            approvedAmount: distributionAmount,
-                            reviewNotes: input.reviewNotes,
-                            reviewedAt: now,
-                            distributionId: newDistribution?.id,
-                            updatedAt: now,
-                        })
-                        .where(
-                            and(
-                                eq(hemsRequest.id, input.id),
-                                eq(hemsRequest.entityId, input.entityId),
-                            ),
-                        )
-                        .returning()
-                    if (!updated)
-                        throw new TRPCError({
-                            code: 'NOT_FOUND',
-                            message: 'Request not found in this entity',
-                        })
-
-                    return updated
+                            category: existing.category,
+                            justification: existing.justification,
+                            amountRequested: existing.amountRequested,
+                        },
+                    })
                 },
             )
         }),
@@ -309,19 +279,17 @@ export const hemsRequestRouter = createTRPCRouter({
                 })
             }
 
-            // Verify entityId matches the beneficiary's actual entity
-            if (input.entityId) {
-                const [ben] = await db
-                    .select({ entityId: beneficiary.entityId })
-                    .from(beneficiary)
-                    .where(eq(beneficiary.id, ctx.user.beneficiaryId))
-                    .limit(1)
-                if (!ben || ben.entityId !== input.entityId) {
-                    throw new TRPCError({
-                        code: 'FORBIDDEN',
-                        message: 'Invalid entity for this beneficiary',
-                    })
-                }
+            // Verify entityId matches the beneficiary's actual entity (always enforced)
+            const [ben] = await db
+                .select({ entityId: beneficiary.entityId })
+                .from(beneficiary)
+                .where(eq(beneficiary.id, ctx.user.beneficiaryId))
+                .limit(1)
+            if (!ben || ben.entityId !== input.entityId) {
+                throw new TRPCError({
+                    code: 'FORBIDDEN',
+                    message: 'Invalid entity for this beneficiary',
+                })
             }
 
             addBreadcrumb('hems', 'Beneficiary submitting HEMS request', {
