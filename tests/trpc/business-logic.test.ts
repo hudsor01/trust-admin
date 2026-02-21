@@ -159,9 +159,11 @@ describe.skipIf(isProductionDb)('Business Logic', () => {
             await db.delete(hemsRequest).where(eq(hemsRequest.id, id))
         }
 
-        // 4. Distributions
-        for (const id of testData.distributionIds) {
-            await db.delete(distribution).where(eq(distribution.id, id))
+        // 4. Distributions (delete all for entity, including any auto-created by HEMS approval)
+        if (testData.entityId) {
+            await db
+                .delete(distribution)
+                .where(eq(distribution.entityId, testData.entityId))
         }
 
         // 5. Specific bequests

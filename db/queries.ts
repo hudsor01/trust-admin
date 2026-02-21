@@ -1762,21 +1762,24 @@ export async function convertIncomeToPrincipal(
                     }
                 }
 
-                const totalIncome = incomeEntries.reduce(
-                    (sum, entry) => sum + (parseFloat(entry.amount) || 0),
+                // Use integer cent arithmetic to avoid floating-point precision errors
+                const totalCents = incomeEntries.reduce(
+                    (sum, entry) =>
+                        sum + Math.round(parseFloat(entry.amount || '0') * 100),
                     0,
                 )
+                const totalIncome = (totalCents / 100).toFixed(2)
 
                 const now = new Date().toISOString()
                 const description = `FY${fiscalYear} undistributed income added to principal per Trust Section 7.10(c)`
-                const notes = `Converted ${incomeEntries.length} income entries totaling $${totalIncome.toFixed(2)}`
+                const notes = `Converted ${incomeEntries.length} income entries totaling $${totalIncome}`
 
                 // Insert the principal conversion entry
                 addBreadcrumb(
                     'db.transaction',
                     'Inserting principal conversion entry',
                     {
-                        totalIncome: totalIncome.toFixed(2),
+                        totalIncome,
                         entryCount: incomeEntries.length,
                     },
                 )
@@ -1790,7 +1793,7 @@ export async function convertIncomeToPrincipal(
                         "fiscalYear", notes, "updatedAt"
                     ) VALUES (
                         ${entityId}, ${now}, 'INCOME', 'INCOME_TO_PRINCIPAL_CONVERSION',
-                        ${totalIncome.toFixed(2)}, ${description}, ${bankAccountId}, true,
+                        ${totalIncome}, ${description}, ${bankAccountId}, true,
                         ${fiscalYear}, ${notes}, ${now}
                     )
                     RETURNING *
@@ -1820,7 +1823,7 @@ export async function convertIncomeToPrincipal(
                 return {
                     success: true,
                     converted: incomeEntries.length,
-                    totalAmount: totalIncome.toFixed(2),
+                    totalAmount: totalIncome,
                     principalEntryId: principalEntry.id,
                     convertedIds,
                 }

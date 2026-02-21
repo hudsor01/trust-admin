@@ -4,6 +4,7 @@ import { Loader2 } from 'lucide-react'
 import { useOptimistic, useState } from 'react'
 import { toast } from 'sonner'
 import type { BulkLiabilityRow } from '@/components/bulk-entry-table'
+import { ConfirmDialog, useConfirmDialog } from '@/components/confirm-dialog'
 import {
     Select,
     SelectContent,
@@ -121,6 +122,7 @@ export default function LiabilitiesPage() {
     const [editingLiabilityId, setEditingLiabilityId] = useState<number | null>(
         null,
     )
+    const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null)
     const [bulkMode, setBulkMode] = useState(false)
 
     const liabilityForm = useResourceForm<LiabilityFormData>({
@@ -254,16 +256,31 @@ export default function LiabilitiesPage() {
         })
     }
 
-    const handleDelete = async (id: number) => {
-        if (!confirm('Are you sure you want to delete this liability?')) return
-        try {
-            await deleteLiabilityMutation.mutateAsync({
-                id,
-                entityId: selectedEntity!,
-            })
-        } catch (err) {
-            log.error('Failed to delete liability', { error: err })
-        }
+    const { dialogProps: deleteDialogProps, confirm: confirmDelete } =
+        useConfirmDialog({
+            title: 'Delete Liability',
+            description:
+                'Are you sure you want to delete this liability? This action cannot be undone.',
+            confirmText: 'Delete',
+            variant: 'destructive',
+            onConfirm: async () => {
+                if (pendingDeleteId === null) return
+                try {
+                    await deleteLiabilityMutation.mutateAsync({
+                        id: pendingDeleteId,
+                        entityId: selectedEntity!,
+                    })
+                } catch (err) {
+                    log.error('Failed to delete liability', { error: err })
+                } finally {
+                    setPendingDeleteId(null)
+                }
+            },
+        })
+
+    const handleDelete = (id: number) => {
+        setPendingDeleteId(id)
+        confirmDelete()
     }
 
     const openPaymentDialog = (l: Liability) => {
@@ -392,6 +409,8 @@ export default function LiabilitiesPage() {
                 onSubmit={paymentForm.handleSave}
                 formInstance={paymentFormInstance}
             />
+
+            <ConfirmDialog {...deleteDialogProps} />
         </div>
     )
 }

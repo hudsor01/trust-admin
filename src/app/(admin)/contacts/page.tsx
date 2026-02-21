@@ -3,6 +3,7 @@
 import { Download, Plus } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
+import { ConfirmDialog, useConfirmDialog } from '@/components/confirm-dialog'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -43,6 +44,7 @@ export default function ContactsPage() {
     const [filter, setFilter] = useState<RoleFilter>('all')
     const [search, setSearch] = useState('')
     const [selectedContact, setSelectedContact] = useState<Contact | null>(null)
+    const [pendingDelete, setPendingDelete] = useState<Contact | null>(null)
 
     const contactForm = useResourceForm<Contact>({
         initialData: { ...contactFormDefaults(), id: 0, dob: null } as Contact,
@@ -76,13 +78,28 @@ export default function ContactsPage() {
         await updateContactMutation.mutateAsync({ id, data })
     }
 
-    const handleDelete = async (contact: Contact) => {
-        if (!confirm('Are you sure you want to delete this contact?')) return
-        try {
-            await deleteContactMutation.mutateAsync(contact.id)
-        } catch {
-            toast.error('Failed to delete contact')
-        }
+    const { dialogProps: deleteDialogProps, confirm: confirmDelete } =
+        useConfirmDialog({
+            title: 'Delete Contact',
+            description:
+                'Are you sure you want to delete this contact? This action cannot be undone.',
+            confirmText: 'Delete',
+            variant: 'destructive',
+            onConfirm: async () => {
+                if (!pendingDelete) return
+                try {
+                    await deleteContactMutation.mutateAsync(pendingDelete.id)
+                } catch {
+                    toast.error('Failed to delete contact')
+                } finally {
+                    setPendingDelete(null)
+                }
+            },
+        })
+
+    const handleDelete = (contact: Contact) => {
+        setPendingDelete(contact)
+        confirmDelete()
     }
 
     const filteredContacts = useMemo(() => {
@@ -193,6 +210,7 @@ export default function ContactsPage() {
                 onSubmit={contactForm.handleSave}
                 formInstance={contactForm.formInstance}
             />
+            <ConfirmDialog {...deleteDialogProps} />
         </div>
     )
 }

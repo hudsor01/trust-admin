@@ -70,6 +70,11 @@ const positiveNumberValidation = z
             num <= MAX_CURRENCY_VALUE
         )
     }, `Must be a valid positive number (max ${MAX_CURRENCY_VALUE.toLocaleString()})`)
+    .refine((val) => {
+        if (!val) return true
+        // Enforce max 2 decimal places to match DB numeric(12,2)
+        return !/\.\d{3,}/.test(val)
+    }, 'Must have at most 2 decimal places')
     .nullable()
     .optional()
 
@@ -191,6 +196,13 @@ export const selectDocumentSchema = createSelectSchema(document)
 export const insertEntitySchema = createInsertSchema(entity, {
     createdAt: (schema) => schema.optional(),
     updatedAt: (schema) => schema.optional(),
+    dod: (schema) =>
+        schema
+            .refine(
+                (val) => !val || new Date(val) <= new Date(),
+                'Date of death cannot be in the future',
+            )
+            .optional(),
 })
 export const selectEntitySchema = createSelectSchema(entity)
 

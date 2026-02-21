@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo, useState } from 'react'
 import { toast } from 'sonner'
+import { ConfirmDialog, useConfirmDialog } from '@/components/confirm-dialog'
 import type {
     AccountingEntryTypeEnum,
     ExpenseTypeEnum,
@@ -82,6 +83,7 @@ export default function AccountingPage() {
     const [generatingReport, setGeneratingReport] = useState(false)
     const [editingId, setEditingId] = useState<number | null>(null)
     const [convertingYear, setConvertingYear] = useState<number | null>(null)
+    const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null)
     const loading = entitiesLoading || entriesLoading
 
     const handleConvertYear = async (fiscalYear: number) => {
@@ -188,16 +190,31 @@ export default function AccountingPage() {
             : selectedEntity
         : undefined
 
-    const deleteEntry = async (id: number) => {
-        if (!confirm('Are you sure you want to delete this entry?')) return
-        try {
-            await deleteEntryMutation.mutateAsync({
-                id,
-                entityId: numericEntityId!,
-            })
-        } catch (error) {
-            log.error('Failed to delete entry', { error })
-        }
+    const { dialogProps: deleteDialogProps, confirm: confirmDelete } =
+        useConfirmDialog({
+            title: 'Delete Entry',
+            description:
+                'Are you sure you want to delete this entry? This action cannot be undone.',
+            confirmText: 'Delete',
+            variant: 'destructive',
+            onConfirm: async () => {
+                if (pendingDeleteId === null) return
+                try {
+                    await deleteEntryMutation.mutateAsync({
+                        id: pendingDeleteId,
+                        entityId: numericEntityId!,
+                    })
+                } catch (error) {
+                    log.error('Failed to delete entry', { error })
+                } finally {
+                    setPendingDeleteId(null)
+                }
+            },
+        })
+
+    const deleteEntry = (id: number) => {
+        setPendingDeleteId(id)
+        confirmDelete()
     }
 
     const updateEntry = async (
@@ -428,6 +445,8 @@ export default function AccountingPage() {
                 onOpenChange={closeDialog}
                 onSubmit={handleSaveEntry}
             />
+
+            <ConfirmDialog {...deleteDialogProps} />
         </div>
     )
 }

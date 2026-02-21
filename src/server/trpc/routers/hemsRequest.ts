@@ -3,7 +3,7 @@ import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '../../../../db'
 import { getHemsRequestsWithBeneficiary } from '../../../../db/queries'
-import { beneficiary, hemsRequest } from '../../../../db/schema'
+import { beneficiary, distribution, hemsRequest } from '../../../../db/schema'
 import {
     insertHemsRequestSchema,
     updateHemsRequestSchema,
@@ -185,14 +185,36 @@ export const hemsRequestRouter = createTRPCRouter({
                         })
                     }
 
+                    const now = new Date().toISOString()
+                    const distributionAmount =
+                        input.approvedAmount ?? existing.amountRequested
+
+                    // Create distribution record first so we can link it
+                    const [newDistribution] = await db
+                        .insert(distribution)
+                        .values({
+                            entityId: input.entityId,
+                            beneficiaryId: existing.beneficiaryId,
+                            distributionDate: now,
+                            amount: distributionAmount,
+                            distributionType: 'INCOME',
+                            hemsCategory: existing.category,
+                            hemsJustification: existing.justification,
+                            paymentMethod: 'CHECK',
+                            notes: `HEMS request #${input.id}${input.reviewNotes ? `: ${input.reviewNotes}` : ''}`,
+                            updatedAt: now,
+                        })
+                        .returning()
+
                     const [updated] = await db
                         .update(hemsRequest)
                         .set({
                             status: 'APPROVED',
-                            approvedAmount: input.approvedAmount,
+                            approvedAmount: distributionAmount,
                             reviewNotes: input.reviewNotes,
-                            reviewedAt: new Date().toISOString(),
-                            updatedAt: new Date().toISOString(),
+                            reviewedAt: now,
+                            distributionId: newDistribution?.id,
+                            updatedAt: now,
                         })
                         .where(
                             and(
@@ -206,6 +228,7 @@ export const hemsRequestRouter = createTRPCRouter({
                             code: 'NOT_FOUND',
                             message: 'Request not found in this entity',
                         })
+
                     return updated
                 },
             )

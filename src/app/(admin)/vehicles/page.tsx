@@ -1,7 +1,8 @@
 'use client'
 
 import { Loader2, Plus } from 'lucide-react'
-import { useCallback } from 'react'
+import { useCallback, useState } from 'react'
+import { ConfirmDialog, useConfirmDialog } from '@/components/confirm-dialog'
 import { Button } from '@/components/ui/button'
 import {
     Select,
@@ -51,6 +52,30 @@ export default function VehiclesPage() {
         router: trpc.vehicle,
         invalidate: () => utils.vehicle.list.invalidate(),
     })
+
+    const [pendingDelete, setPendingDelete] = useState<Vehicle | null>(null)
+
+    const { dialogProps: deleteDialogProps, confirm: confirmDelete } =
+        useConfirmDialog({
+            title: 'Delete Vehicle',
+            description:
+                'Are you sure you want to delete this vehicle? This action cannot be undone.',
+            confirmText: 'Delete',
+            variant: 'destructive',
+            onConfirm: async () => {
+                if (!pendingDelete || !selectedEntity) return
+                try {
+                    await deleteVehicleMutation.mutateAsync({
+                        id: pendingDelete.id,
+                        entityId: selectedEntity,
+                    })
+                } catch (err) {
+                    log.error('Failed to delete vehicle', { error: err })
+                } finally {
+                    setPendingDelete(null)
+                }
+            },
+        })
 
     const vehicleForm = useResourceForm({
         initialData: vehicleFormDefaults(),
@@ -112,20 +137,11 @@ export default function VehiclesPage() {
     )
 
     const handleDelete = useCallback(
-        async (item: Vehicle) => {
-            if (!confirm('Are you sure you want to delete this vehicle?'))
-                return
-            if (!selectedEntity) return
-            try {
-                await deleteVehicleMutation.mutateAsync({
-                    id: item.id,
-                    entityId: selectedEntity,
-                })
-            } catch (err) {
-                log.error('Failed to delete vehicle', { error: err })
-            }
+        (item: Vehicle) => {
+            setPendingDelete(item)
+            confirmDelete()
         },
-        [deleteVehicleMutation, selectedEntity],
+        [confirmDelete],
     )
 
     const handleInlineUpdate = useCallback(
@@ -210,6 +226,8 @@ export default function VehiclesPage() {
                 onSubmit={vehicleForm.handleSave}
                 formInstance={vehicleForm.formInstance}
             />
+
+            <ConfirmDialog {...deleteDialogProps} />
         </div>
     )
 }

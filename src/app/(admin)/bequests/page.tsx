@@ -2,6 +2,7 @@
 
 import { Plus } from 'lucide-react'
 import { useState } from 'react'
+import { ConfirmDialog, useConfirmDialog } from '@/components/confirm-dialog'
 import { Button } from '@/components/ui/button'
 import {
     Select,
@@ -53,6 +54,7 @@ export default function BequestsPage() {
     const [editingBequestId, setEditingBequestId] = useState<number | null>(
         null,
     )
+    const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null)
 
     const bequestForm = useResourceForm<BequestFormData>({
         initialData: {
@@ -89,16 +91,31 @@ export default function BequestsPage() {
         },
     })
 
-    const handleDelete = async (id: number) => {
-        if (!confirm('Are you sure you want to delete this bequest?')) return
-        try {
-            await deleteBequestMutation.mutateAsync({
-                id,
-                entityId: selectedEntity!,
-            })
-        } catch (error) {
-            log.error('Failed to delete bequest', { error })
-        }
+    const { dialogProps: deleteDialogProps, confirm: confirmDelete } =
+        useConfirmDialog({
+            title: 'Delete Bequest',
+            description:
+                'Are you sure you want to delete this bequest? This action cannot be undone.',
+            confirmText: 'Delete',
+            variant: 'destructive',
+            onConfirm: async () => {
+                if (pendingDeleteId === null) return
+                try {
+                    await deleteBequestMutation.mutateAsync({
+                        id: pendingDeleteId,
+                        entityId: selectedEntity!,
+                    })
+                } catch (error) {
+                    log.error('Failed to delete bequest', { error })
+                } finally {
+                    setPendingDeleteId(null)
+                }
+            },
+        })
+
+    const handleDelete = (id: number) => {
+        setPendingDeleteId(id)
+        confirmDelete()
     }
 
     const handleUpdate = async (
@@ -202,6 +219,8 @@ export default function BequestsPage() {
                 beneficiaries={beneficiaries}
                 formInstance={bequestForm.formInstance}
             />
+
+            <ConfirmDialog {...deleteDialogProps} />
         </div>
     )
 }

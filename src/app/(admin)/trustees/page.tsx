@@ -1,7 +1,9 @@
 'use client'
 
 import { Loader2, Plus } from 'lucide-react'
+import { useState } from 'react'
 import { toast } from 'sonner'
+import { ConfirmDialog, useConfirmDialog } from '@/components/confirm-dialog'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -73,16 +75,33 @@ export default function TrusteesPage() {
         },
     })
 
-    const handleDelete = async (id: number) => {
-        if (!confirm('Are you sure you want to delete this trustee?')) return
-        try {
-            await deleteTrusteeMutation.mutateAsync({
-                id,
-                entityId: selectedEntity!,
-            })
-        } catch (error) {
-            log.error('Failed to delete trustee', { error })
-        }
+    const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null)
+
+    const { dialogProps: deleteDialogProps, confirm: confirmDelete } =
+        useConfirmDialog({
+            title: 'Delete Trustee',
+            description:
+                'Are you sure you want to delete this trustee? This action cannot be undone.',
+            confirmText: 'Delete',
+            variant: 'destructive',
+            onConfirm: async () => {
+                if (pendingDeleteId === null) return
+                try {
+                    await deleteTrusteeMutation.mutateAsync({
+                        id: pendingDeleteId,
+                        entityId: selectedEntity!,
+                    })
+                } catch (error) {
+                    log.error('Failed to delete trustee', { error })
+                } finally {
+                    setPendingDeleteId(null)
+                }
+            },
+        })
+
+    const handleDelete = (id: number) => {
+        setPendingDeleteId(id)
+        confirmDelete()
     }
 
     const handleUpdateField = async (id: number, data: Partial<TrusteeRow>) => {
@@ -196,6 +215,8 @@ export default function TrusteesPage() {
                 onSubmit={trusteeForm.handleSave}
                 formInstance={trusteeForm.formInstance}
             />
+
+            <ConfirmDialog {...deleteDialogProps} />
         </div>
     )
 }

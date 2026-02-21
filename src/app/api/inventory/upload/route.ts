@@ -2,7 +2,9 @@ import { randomUUID } from 'node:crypto'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { type NextRequest, NextResponse } from 'next/server'
+import { ApiError } from '@/lib/api-error'
 import { logger } from '@/lib/logger'
+import { requireAdmin } from '@/lib/middleware'
 
 const log = logger.create('Upload')
 
@@ -13,6 +15,8 @@ const MAX_FILES = 5
 
 export async function POST(request: NextRequest) {
     try {
+        await requireAdmin(request)
+
         const formData = await request.formData()
         const files = formData.getAll('photos') as File[]
 
@@ -73,6 +77,12 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json({ success: true, paths })
     } catch (error) {
+        if (error instanceof ApiError) {
+            return NextResponse.json(
+                { success: false, error: error.message },
+                { status: error.status },
+            )
+        }
         log.error('Upload error', { error })
         return NextResponse.json(
             { success: false, error: 'Upload failed' },

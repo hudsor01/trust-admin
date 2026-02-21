@@ -24,17 +24,14 @@ export const activityLogRouter = createTRPCRouter({
                 .optional(),
         )
         .query(async ({ input }) => {
-            const query = db
+            const limit = input?.limit ?? 100
+            const offset = input?.offset ?? 0
+            return db
                 .select()
                 .from(activityLog)
                 .orderBy(desc(activityLog.createdAt))
-            if (input?.limit) {
-                query.limit(input.limit)
-            }
-            if (input?.offset) {
-                query.offset(input.offset)
-            }
-            return query
+                .limit(limit)
+                .offset(offset)
         }),
 
     byId: adminProcedure.input(z.coerce.number()).query(async ({ input }) => {

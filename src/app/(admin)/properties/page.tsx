@@ -2,6 +2,7 @@
 
 import { Loader2 } from 'lucide-react'
 import { useState } from 'react'
+import { ConfirmDialog, useConfirmDialog } from '@/components/confirm-dialog'
 import { Badge } from '@/components/ui/badge'
 import {
     Select,
@@ -326,31 +327,69 @@ export default function PropertiesPage() {
 
     const loading = entitiesLoading || homesteadsLoading || rentalsLoading
 
-    const handleDeleteHomestead = async (id: number) => {
-        if (!confirm('Are you sure you want to delete this homestead?')) return
-        if (!selectedEntity) return
-        try {
-            await deleteHomesteadMutation.mutateAsync({
-                id,
-                entityId: selectedEntity,
-            })
-        } catch (err) {
-            log.error('Failed to delete homestead', { error: err })
-        }
+    const [pendingDeleteHomesteadId, setPendingDeleteHomesteadId] = useState<
+        number | null
+    >(null)
+    const [pendingDeleteRentalId, setPendingDeleteRentalId] = useState<
+        number | null
+    >(null)
+
+    const {
+        dialogProps: deleteHomesteadDialogProps,
+        confirm: confirmDeleteHomestead,
+    } = useConfirmDialog({
+        title: 'Delete Homestead',
+        description:
+            'Are you sure you want to delete this homestead? This action cannot be undone.',
+        confirmText: 'Delete',
+        variant: 'destructive',
+        onConfirm: async () => {
+            if (pendingDeleteHomesteadId === null || !selectedEntity) return
+            try {
+                await deleteHomesteadMutation.mutateAsync({
+                    id: pendingDeleteHomesteadId,
+                    entityId: selectedEntity,
+                })
+            } catch (err) {
+                log.error('Failed to delete homestead', { error: err })
+            } finally {
+                setPendingDeleteHomesteadId(null)
+            }
+        },
+    })
+
+    const {
+        dialogProps: deleteRentalDialogProps,
+        confirm: confirmDeleteRental,
+    } = useConfirmDialog({
+        title: 'Delete Rental Property',
+        description:
+            'Are you sure you want to delete this rental property? This action cannot be undone.',
+        confirmText: 'Delete',
+        variant: 'destructive',
+        onConfirm: async () => {
+            if (pendingDeleteRentalId === null || !selectedEntity) return
+            try {
+                await deleteRentalMutation.mutateAsync({
+                    id: pendingDeleteRentalId,
+                    entityId: selectedEntity,
+                })
+            } catch (err) {
+                log.error('Failed to delete rental', { error: err })
+            } finally {
+                setPendingDeleteRentalId(null)
+            }
+        },
+    })
+
+    const handleDeleteHomestead = (id: number) => {
+        setPendingDeleteHomesteadId(id)
+        confirmDeleteHomestead()
     }
 
-    const handleDeleteRental = async (id: number) => {
-        if (!confirm('Are you sure you want to delete this rental property?'))
-            return
-        if (!selectedEntity) return
-        try {
-            await deleteRentalMutation.mutateAsync({
-                id,
-                entityId: selectedEntity,
-            })
-        } catch (err) {
-            log.error('Failed to delete rental', { error: err })
-        }
+    const handleDeleteRental = (id: number) => {
+        setPendingDeleteRentalId(id)
+        confirmDeleteRental()
     }
 
     if (loading) {
@@ -445,6 +484,9 @@ export default function PropertiesPage() {
                 onSubmit={rentalForm.handleSave}
                 formInstance={rentalFormInstance}
             />
+
+            <ConfirmDialog {...deleteHomesteadDialogProps} />
+            <ConfirmDialog {...deleteRentalDialogProps} />
         </div>
     )
 }

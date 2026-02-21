@@ -50,7 +50,7 @@ interface ContactTableProps {
     isLoading: boolean
     onView: (contact: Contact) => void
     onEdit: (contact: Contact) => void
-    onDelete: (contact: Contact) => Promise<void>
+    onDelete: (contact: Contact) => void | Promise<void>
     onUpdateField: (id: number, data: Partial<Contact>) => Promise<void>
 }
 

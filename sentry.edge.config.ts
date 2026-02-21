@@ -4,11 +4,15 @@
 
 import * as Sentry from '@sentry/nextjs'
 
-Sentry.init({
-    dsn: process.env.SENTRY_DSN,
+// Edge runtime can only access NEXT_PUBLIC_* vars that are inlined at build time.
+// Fall back to NEXT_PUBLIC_SENTRY_DSN if the server-side SENTRY_DSN is unavailable.
+const dsn = process.env.SENTRY_DSN ?? process.env.NEXT_PUBLIC_SENTRY_DSN
 
-    // Only enable in production
-    enabled: process.env.NODE_ENV === 'production',
+Sentry.init({
+    dsn,
+
+    // Only enable when DSN is configured
+    enabled: !!dsn,
 
     // Adjust sample rate in production (1.0 = 100% of events)
     tracesSampleRate: 0.1,

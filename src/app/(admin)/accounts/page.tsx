@@ -2,6 +2,7 @@
 
 import { Loader2 } from 'lucide-react'
 import { useState } from 'react'
+import { ConfirmDialog, useConfirmDialog } from '@/components/confirm-dialog'
 import {
     Select,
     SelectContent,
@@ -209,34 +210,67 @@ export default function AccountsPage() {
         })
     }
 
-    const handleDeleteBank = async (id: number) => {
-        if (!confirm('Are you sure you want to delete this bank account?'))
-            return
-        if (!selectedEntity) return
-        try {
-            await deleteBankAccountMutation.mutateAsync({
-                id,
-                entityId: selectedEntity,
-            })
-        } catch (err) {
-            log.error('Failed to delete bank account', { error: err })
-        }
+    const [pendingDeleteBankId, setPendingDeleteBankId] = useState<
+        number | null
+    >(null)
+    const [pendingDeleteInvestmentId, setPendingDeleteInvestmentId] = useState<
+        number | null
+    >(null)
+
+    const { dialogProps: deleteBankDialogProps, confirm: confirmDeleteBank } =
+        useConfirmDialog({
+            title: 'Delete Bank Account',
+            description:
+                'Are you sure you want to delete this bank account? This action cannot be undone.',
+            confirmText: 'Delete',
+            variant: 'destructive',
+            onConfirm: async () => {
+                if (pendingDeleteBankId === null || !selectedEntity) return
+                try {
+                    await deleteBankAccountMutation.mutateAsync({
+                        id: pendingDeleteBankId,
+                        entityId: selectedEntity,
+                    })
+                } catch (err) {
+                    log.error('Failed to delete bank account', { error: err })
+                } finally {
+                    setPendingDeleteBankId(null)
+                }
+            },
+        })
+
+    const {
+        dialogProps: deleteInvestmentDialogProps,
+        confirm: confirmDeleteInvestment,
+    } = useConfirmDialog({
+        title: 'Delete Investment Account',
+        description:
+            'Are you sure you want to delete this investment account? This action cannot be undone.',
+        confirmText: 'Delete',
+        variant: 'destructive',
+        onConfirm: async () => {
+            if (pendingDeleteInvestmentId === null || !selectedEntity) return
+            try {
+                await deleteInvestmentAccountMutation.mutateAsync({
+                    id: pendingDeleteInvestmentId,
+                    entityId: selectedEntity,
+                })
+            } catch (err) {
+                log.error('Failed to delete investment account', { error: err })
+            } finally {
+                setPendingDeleteInvestmentId(null)
+            }
+        },
+    })
+
+    const handleDeleteBank = (id: number) => {
+        setPendingDeleteBankId(id)
+        confirmDeleteBank()
     }
 
-    const handleDeleteInvestment = async (id: number) => {
-        if (
-            !confirm('Are you sure you want to delete this investment account?')
-        )
-            return
-        if (!selectedEntity) return
-        try {
-            await deleteInvestmentAccountMutation.mutateAsync({
-                id,
-                entityId: selectedEntity,
-            })
-        } catch (err) {
-            log.error('Failed to delete investment account', { error: err })
-        }
+    const handleDeleteInvestment = (id: number) => {
+        setPendingDeleteInvestmentId(id)
+        confirmDeleteInvestment()
     }
 
     if (entitiesLoading) {
@@ -335,6 +369,9 @@ export default function AccountsPage() {
                 onSubmit={investmentForm.handleSave}
                 formInstance={investmentFormInstance}
             />
+
+            <ConfirmDialog {...deleteBankDialogProps} />
+            <ConfirmDialog {...deleteInvestmentDialogProps} />
         </div>
     )
 }
