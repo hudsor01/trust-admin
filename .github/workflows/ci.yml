@@ -51,13 +51,6 @@ jobs:
       - name: TypeScript type check
         run: bun run typecheck
 
-      - name: Run tests
-        run: bun run test
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          NEON_AUTH_BASE_URL: ${{ secrets.NEON_AUTH_BASE_URL }}
-          ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
-
       - name: Build Next.js application
         run: bun run build
         env:

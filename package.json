@@ -28,7 +28,7 @@
     "studio": "drizzle-kit studio"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.4.3",
+    "@biomejs/biome": "2.4.4",
     "@happy-dom/global-registrator": "20.6.3",
     "@playwright/test": "1.58.2",
     "@tailwindcss/postcss": "4.2.0",
@@ -42,7 +42,7 @@
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "drizzle-kit": "0.31.9",
-    "happy-dom": "20.6.3",
+    "happy-dom": "20.7.0",
     "lefthook": "2.1.1",
     "postcss": "8.5.6",
     "tailwindcss": "4.2.0"
@@ -80,7 +80,7 @@
     "@trpc/react-query": "11.10.0",
     "@trpc/server": "11.10.0",
     "@uploadthing/react": "7.3.3",
-    "ai": "6.0.94",
+    "ai": "6.0.97",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
     "cmdk": "1.1.1",
@@ -97,7 +97,7 @@
     "react-day-picker": "9.13.2",
     "react-dom": "19.2.4",
     "react-error-boundary": "6.1.1",
-    "react-hook-form": "7.71.1",
+    "react-hook-form": "7.71.2",
     "recharts": "3.7.0",
     "sharp": "0.34.5",
     "sonner": "2.0.7",
