@@ -193,7 +193,7 @@ export default function AccountingPage() {
         try {
             await deleteEntryMutation.mutateAsync({
                 id,
-                entityId: selectedEntity!,
+                entityId: numericEntityId!,
             })
         } catch (error) {
             log.error('Failed to delete entry', { error })
@@ -206,7 +206,7 @@ export default function AccountingPage() {
     ) => {
         await updateEntryMutation.mutateAsync({
             id,
-            entityId: selectedEntity!,
+            entityId: numericEntityId!,
             data: updates,
         })
     }
