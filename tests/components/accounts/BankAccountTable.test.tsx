@@ -9,8 +9,8 @@ import '../../setup'
 import { afterEach, describe, expect, mock, test } from 'bun:test'
 import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import type { BankAccount } from '@/db/schema'
 import { BankAccountTable } from '../../../src/app/(admin)/accounts/_components/BankAccountTable'
-import type { BankAccount } from '../../../src/db/schema'
 
 const makeBankAccount = (
     overrides: Partial<BankAccount> = {},

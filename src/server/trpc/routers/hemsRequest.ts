@@ -1,17 +1,17 @@
 import { TRPCError } from '@trpc/server'
 import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
-import { db } from '../../../../db'
+import { db } from '@/db'
 import {
     approveHemsRequest,
     getHemsRequestsWithBeneficiary,
-} from '../../../../db/queries'
-import { beneficiary, hemsRequest } from '../../../../db/schema'
+} from '@/db/queries'
+import { beneficiary, hemsRequest } from '@/db/schema'
 import {
     insertHemsRequestSchema,
     updateHemsRequestSchema,
-} from '../../../../db/validation'
-import { addBreadcrumb, traceBusinessOperation } from '../../../lib/sentry'
+} from '@/db/validation'
+import { addBreadcrumb, traceBusinessOperation } from '@/lib/sentry'
 import {
     adminProcedure,
     beneficiaryProcedure,

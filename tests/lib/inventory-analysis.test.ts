@@ -4,7 +4,7 @@ import {
     analyzeInventoryImageWithCompressed,
     compressImage,
     type InventoryImage,
-} from '../../src/lib/inventory-analysis'
+} from '@/lib/inventory-analysis'
 
 // Mock the AI SDK's generateObject function
 const mockGenerateObject = mock(() =>

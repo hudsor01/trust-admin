@@ -8,9 +8,9 @@
 import '../../setup'
 import { afterEach, describe, expect, mock, test } from 'bun:test'
 import { cleanup, render, screen } from '@testing-library/react'
+import type { Beneficiary, WithdrawalRecord } from '@/db/schema'
 import type { WithdrawalRow } from '../../../src/app/(admin)/hems/_components/WithdrawalsTable'
 import { WithdrawalsTable } from '../../../src/app/(admin)/hems/_components/WithdrawalsTable'
-import type { Beneficiary, WithdrawalRecord } from '../../../src/db/schema'
 
 const sampleBeneficiary: Beneficiary = {
     id: 5,

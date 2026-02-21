@@ -3,7 +3,7 @@ import {
     classifyTransaction,
     getClassificationReason,
     isPrincipalTransaction,
-} from '../../src/lib/classification-rules'
+} from '@/lib/classification-rules'
 
 /**
  * Unit tests for Principal/Income Classification Rules

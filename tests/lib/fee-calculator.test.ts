@@ -5,7 +5,7 @@ import {
     calculateYear1Compensation,
     DEFAULT_FEE_SCHEDULE,
     type FeeSchedule,
-} from '../../src/lib/fee-calculator'
+} from '@/lib/fee-calculator'
 
 /**
  * Unit tests for Trustee Fee Calculator

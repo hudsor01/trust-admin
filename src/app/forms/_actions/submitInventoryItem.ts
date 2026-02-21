@@ -1,9 +1,9 @@
 'use server'
 
 import { z } from 'zod'
+import { db } from '@/db'
+import { pendingInventoryItem } from '@/db/schema'
 import { logger } from '@/lib/logger'
-import { db } from '../../../../db'
-import { pendingInventoryItem } from '../../../../db/schema'
 
 const log = logger.create('Inventory')
 

@@ -19,10 +19,10 @@
  */
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import { eq } from 'drizzle-orm'
-import { db } from '../../db'
-import { bankAccount, beneficiary, entity, liability } from '../../db/schema'
-import { createCallerFactory } from '../../src/server/trpc/index'
-import { appRouter } from '../../src/server/trpc/router'
+import { db } from '@/db'
+import { bankAccount, beneficiary, entity, liability } from '@/db/schema'
+import { createCallerFactory } from '@/server/trpc/index'
+import { appRouter } from '@/server/trpc/router'
 import { isProductionDb } from '../helpers/db-guard'
 import {
     createAdminContext,

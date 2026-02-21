@@ -1,9 +1,6 @@
 import { z } from 'zod'
-import { getValuationsForAsset, valuationCrud } from '../../../../db/queries'
-import {
-    insertValuationSchema,
-    updateValuationSchema,
-} from '../../../../db/validation'
+import { getValuationsForAsset, valuationCrud } from '@/db/queries'
+import { insertValuationSchema, updateValuationSchema } from '@/db/validation'
 import { adminProcedure, createTRPCRouter } from '../index'
 
 export const valuationRouter = createTRPCRouter({

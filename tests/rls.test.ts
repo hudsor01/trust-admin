@@ -12,14 +12,14 @@
 
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import { eq, sql } from 'drizzle-orm'
-import { db, getClient, initJwtSession } from '../db'
+import { db, getClient, initJwtSession } from '@/db'
 import {
     beneficiary,
     distribution,
     entity,
     hemsRequest,
     userProfile,
-} from '../db/schema'
+} from '@/db/schema'
 import { isProductionDb } from './helpers/db-guard'
 
 // =============================================================================

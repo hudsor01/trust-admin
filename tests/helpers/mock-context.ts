@@ -8,7 +8,7 @@
  * comes from authServer.getSession().data. In tests, we don't have a real
  * auth session, so we construct a minimal mock that satisfies the Context type.
  */
-import type { AppUser, Context } from '../../src/server/trpc/index'
+import type { AppUser, Context } from '@/server/trpc/index'
 
 /**
  * Minimal mock session shape that satisfies Context['session'].

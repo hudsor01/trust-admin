@@ -1,13 +1,13 @@
 import { TRPCError } from '@trpc/server'
 import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
-import { db } from '../../../../db'
-import { getTrusteeFeeEntriesWithSchedule } from '../../../../db/queries'
-import { trusteeFeeEntry } from '../../../../db/schema'
+import { db } from '@/db'
+import { getTrusteeFeeEntriesWithSchedule } from '@/db/queries'
+import { trusteeFeeEntry } from '@/db/schema'
 import {
     insertTrusteeFeeEntrySchema,
     updateTrusteeFeeEntrySchema,
-} from '../../../../db/validation'
+} from '@/db/validation'
 import { adminProcedure, createTRPCRouter } from '../index'
 
 export const trusteeFeeEntryRouter = createTRPCRouter({

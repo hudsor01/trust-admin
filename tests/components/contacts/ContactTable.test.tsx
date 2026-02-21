@@ -10,8 +10,8 @@ import '../../setup'
 import { afterEach, describe, expect, mock, test } from 'bun:test'
 import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import type { Contact } from '@/db/schema'
 import { ContactTable } from '../../../src/app/(admin)/contacts/_components/ContactTable'
-import type { Contact } from '../../../src/db/schema'
 
 const sampleContacts: Contact[] = [
     {

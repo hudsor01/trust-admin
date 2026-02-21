@@ -1,18 +1,18 @@
 import { TRPCError } from '@trpc/server'
 import { and, count, desc, eq, sql, sum } from 'drizzle-orm'
 import { z } from 'zod'
-import { db } from '../../../../db'
+import { db } from '@/db'
 import {
     convertIncomeToPrincipal,
     createTrustAccountingEntry,
     getUnconvertedIncomeSummary,
-} from '../../../../db/queries'
-import { trustAccounting } from '../../../../db/schema'
+} from '@/db/queries'
+import { trustAccounting } from '@/db/schema'
 import {
     insertTrustAccountingSchema,
     updateTrustAccountingSchema,
-} from '../../../../db/validation'
-import { addBreadcrumb, traceBusinessOperation } from '../../../lib/sentry'
+} from '@/db/validation'
+import { addBreadcrumb, traceBusinessOperation } from '@/lib/sentry'
 import { adminProcedure, createTRPCRouter } from '../index'
 
 export const trustAccountingRouter = createTRPCRouter({

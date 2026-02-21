@@ -9,8 +9,8 @@ import '../../setup'
 import { afterEach, describe, expect, mock, test } from 'bun:test'
 import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import type { RentalProperty } from '@/db/schema'
 import { RentalPropertyTable } from '../../../src/app/(admin)/properties/_components/RentalPropertyTable'
-import type { RentalProperty } from '../../../src/db/schema'
 
 const makeRentalProperty = (
     overrides: Partial<RentalProperty> = {},

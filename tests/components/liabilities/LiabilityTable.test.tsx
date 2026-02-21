@@ -9,8 +9,8 @@ import '../../setup'
 import { afterEach, describe, expect, mock, test } from 'bun:test'
 import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import type { Liability } from '@/db/schema'
 import { LiabilityTable } from '../../../src/app/(admin)/liabilities/_components/LiabilityTable'
-import type { Liability } from '../../../src/db/schema'
 
 const makeLiability = (overrides: Partial<Liability> = {}): Liability => ({
     id: 1,

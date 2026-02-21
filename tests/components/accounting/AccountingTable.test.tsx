@@ -9,8 +9,8 @@ import '../../setup'
 import { afterEach, describe, expect, mock, test } from 'bun:test'
 import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import type { TrustAccounting } from '@/db/schema'
 import { AccountingTable } from '../../../src/app/(admin)/accounting/_components/AccountingTable'
-import type { TrustAccounting } from '../../../src/db/schema'
 
 const makeEntry = (
     overrides: Partial<TrustAccounting> = {},

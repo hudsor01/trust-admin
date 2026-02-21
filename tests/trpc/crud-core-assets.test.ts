@@ -19,7 +19,7 @@
  */
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import { eq } from 'drizzle-orm'
-import { db } from '../../db'
+import { db } from '@/db'
 import {
     artwork,
     bankAccount,
@@ -31,9 +31,9 @@ import {
     rentalProperty,
     task,
     vehicle,
-} from '../../db/schema'
-import { createCallerFactory } from '../../src/server/trpc/index'
-import { appRouter } from '../../src/server/trpc/router'
+} from '@/db/schema'
+import { createCallerFactory } from '@/server/trpc/index'
+import { appRouter } from '@/server/trpc/router'
 import { isProductionDb } from '../helpers/db-guard'
 import { createAdminContext } from '../helpers/mock-context'
 

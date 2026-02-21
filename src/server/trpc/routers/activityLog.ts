@@ -1,12 +1,12 @@
 import { desc, eq } from 'drizzle-orm'
 import { z } from 'zod'
-import { db } from '../../../../db'
+import { db } from '@/db'
 import {
     getActivityLogWithChanges,
     SEARCHABLE_ACTIVITY_LOG_FIELDS,
     searchActivityLogByField,
-} from '../../../../db/queries'
-import { activityLog } from '../../../../db/schema'
+} from '@/db/queries'
+import { activityLog } from '@/db/schema'
 import { adminProcedure, createTRPCRouter } from '../index'
 
 // Zod enum for searchable fields - enforces allowlist at API level

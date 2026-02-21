@@ -5,7 +5,7 @@ import {
     formatDate,
     formatPercent,
     getWithdrawalStatus,
-} from '../src/utils/formatters'
+} from '@/utils/formatters'
 
 describe('formatters', () => {
     describe('formatDate', () => {

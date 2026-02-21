@@ -1,17 +1,14 @@
 import { TRPCError } from '@trpc/server'
 import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
-import { db } from '../../../../db'
-import {
-    getDistributions,
-    getDistributionsByBeneficiary,
-} from '../../../../db/queries'
-import { distribution } from '../../../../db/schema'
+import { db } from '@/db'
+import { getDistributions, getDistributionsByBeneficiary } from '@/db/queries'
+import { distribution } from '@/db/schema'
 import {
     insertDistributionSchema,
     updateDistributionSchema,
-} from '../../../../db/validation'
-import { addBreadcrumb, traceBusinessOperation } from '../../../lib/sentry'
+} from '@/db/validation'
+import { addBreadcrumb, traceBusinessOperation } from '@/lib/sentry'
 import {
     adminProcedure,
     beneficiaryProcedure,

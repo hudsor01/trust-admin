@@ -2,9 +2,9 @@ import { eq } from 'drizzle-orm'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { AppErrorBoundary } from '@/components/error-boundary'
+import { getPublicDb } from '@/db'
+import { userProfile } from '@/db/schema'
 import { authServer } from '@/lib/auth'
-import { getPublicDb } from '../../../db'
-import { userProfile } from '../../../db/schema'
 
 /**
  * Portal Layout

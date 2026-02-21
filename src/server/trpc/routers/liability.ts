@@ -1,23 +1,17 @@
 import { TRPCError } from '@trpc/server'
 import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
-import { db } from '../../../../db'
-import {
-    getLiabilityPayments,
-    recordLiabilityPayment,
-} from '../../../../db/queries'
-import { bankAccount, liability } from '../../../../db/schema'
-import {
-    insertLiabilitySchema,
-    updateLiabilitySchema,
-} from '../../../../db/validation'
-import { estimatePayoffDate } from '../../../lib/amortization'
-import { addBreadcrumb, traceBusinessOperation } from '../../../lib/sentry'
+import { db } from '@/db'
+import { getLiabilityPayments, recordLiabilityPayment } from '@/db/queries'
+import { bankAccount, liability } from '@/db/schema'
+import { insertLiabilitySchema, updateLiabilitySchema } from '@/db/validation'
+import { estimatePayoffDate } from '@/lib/amortization'
+import { addBreadcrumb, traceBusinessOperation } from '@/lib/sentry'
 import {
     ALLOCATION_CLASS_VALUES,
     LIABILITY_TYPE_VALUES,
     PAYMENT_METHOD_VALUES,
-} from '../../../lib/type-utils'
+} from '@/lib/type-utils'
 import { adminProcedure, createTRPCRouter } from '../index'
 
 // Schema for bulk entry rows (simplified subset for rapid entry)

@@ -4,7 +4,7 @@ import {
     calculatePaymentSplit,
     estimatePayoffDate,
     getCurrentLoanPosition,
-} from '../../src/lib/amortization'
+} from '@/lib/amortization'
 
 /**
  * Unit tests for Amortization Calculation Utilities

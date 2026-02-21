@@ -11,8 +11,8 @@
  */
 
 import { eq } from 'drizzle-orm'
-import { db, getClient } from '../../db'
-import { beneficiary, entity, userProfile } from '../../db/schema'
+import { db, getClient } from '@/db'
+import { beneficiary, entity, userProfile } from '@/db/schema'
 
 // =============================================================================
 // TYPES

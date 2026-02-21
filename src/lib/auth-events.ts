@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/nextjs'
 import { after } from 'next/server'
-import { db } from '../../db'
-import { activityLog } from '../../db/schema'
+import { db } from '@/db'
+import { activityLog } from '@/db/schema'
 import { logger } from './logger'
 
 /**

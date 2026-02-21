@@ -6,7 +6,7 @@ import {
     createDistributionRecords,
     type DistributionInput,
     formatDistributionSummary,
-} from '../../src/lib/distribution-calculator'
+} from '@/lib/distribution-calculator'
 
 /**
  * Unit tests for Distribution Calculator

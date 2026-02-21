@@ -11,11 +11,11 @@
 import { TRPCError } from '@trpc/server'
 import { desc, eq } from 'drizzle-orm'
 import { z } from 'zod'
+import { db, getClient } from '@/db'
+import { createActivityLog } from '@/db/queries'
+import { beneficiary, userProfile } from '@/db/schema'
+import { authServer } from '@/lib/auth/server'
 import { OWNER_EMAIL } from '@/lib/constants'
-import { db, getClient } from '../../../../db'
-import { createActivityLog } from '../../../../db/queries'
-import { beneficiary, userProfile } from '../../../../db/schema'
-import { authServer } from '../../../lib/auth/server'
 import {
     adminProcedure,
     createTRPCRouter,

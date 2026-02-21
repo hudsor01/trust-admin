@@ -1,12 +1,12 @@
 import { TRPCError } from '@trpc/server'
 import { eq } from 'drizzle-orm'
 import { z } from 'zod'
-import { db } from '../../../../db'
-import { liabilityPayment } from '../../../../db/schema'
+import { db } from '@/db'
+import { liabilityPayment } from '@/db/schema'
 import {
     insertLiabilityPaymentSchema,
     updateLiabilityPaymentSchema,
-} from '../../../../db/validation'
+} from '@/db/validation'
 import { adminProcedure, createTRPCRouter } from '../index'
 
 export const liabilityPaymentRouter = createTRPCRouter({

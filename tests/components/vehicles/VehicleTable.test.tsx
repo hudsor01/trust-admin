@@ -9,8 +9,8 @@ import '../../setup'
 import { afterEach, describe, expect, mock, test } from 'bun:test'
 import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import type { Vehicle } from '@/db/schema'
 import { VehicleTable } from '../../../src/app/(admin)/vehicles/_components/VehicleTable'
-import type { Vehicle } from '../../../src/db/schema'
 
 const makeVehicle = (overrides: Partial<Vehicle> = {}): Vehicle => ({
     id: 1,

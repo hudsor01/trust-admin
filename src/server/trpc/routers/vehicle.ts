@@ -1,12 +1,9 @@
 import { TRPCError } from '@trpc/server'
 import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
-import { db } from '../../../../db'
-import { vehicle } from '../../../../db/schema'
-import {
-    insertVehicleSchema,
-    updateVehicleSchema,
-} from '../../../../db/validation'
+import { db } from '@/db'
+import { vehicle } from '@/db/schema'
+import { insertVehicleSchema, updateVehicleSchema } from '@/db/validation'
 import { adminProcedure, createTRPCRouter } from '../index'
 
 export const vehicleRouter = createTRPCRouter({

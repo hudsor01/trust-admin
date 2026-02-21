@@ -1,13 +1,10 @@
 import { TRPCError } from '@trpc/server'
 import { asc, eq } from 'drizzle-orm'
 import { z } from 'zod'
-import { db } from '../../../../db'
-import { getEntityById } from '../../../../db/queries'
-import { entity } from '../../../../db/schema'
-import {
-    insertEntitySchema,
-    updateEntitySchema,
-} from '../../../../db/validation'
+import { db } from '@/db'
+import { getEntityById } from '@/db/queries'
+import { entity } from '@/db/schema'
+import { insertEntitySchema, updateEntitySchema } from '@/db/validation'
 import { adminProcedure, createTRPCRouter } from '../index'
 
 export const entityRouter = createTRPCRouter({

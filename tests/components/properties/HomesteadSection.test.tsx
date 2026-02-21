@@ -9,8 +9,8 @@ import '../../setup'
 import { afterEach, describe, expect, mock, test } from 'bun:test'
 import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import type { Homestead } from '@/db/schema'
 import { HomesteadSection } from '../../../src/app/(admin)/properties/_components/HomesteadSection'
-import type { Homestead } from '../../../src/db/schema'
 
 const makeHomestead = (overrides: Partial<Homestead> = {}): Homestead => ({
     id: 1,

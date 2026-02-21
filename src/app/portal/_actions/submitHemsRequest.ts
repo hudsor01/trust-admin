@@ -9,10 +9,10 @@
 
 import { eq } from 'drizzle-orm'
 import { z } from 'zod'
+import { db } from '@/db'
+import { beneficiary, hemsRequest, userProfile } from '@/db/schema'
 import { authServer } from '@/lib/auth'
 import { logger } from '@/lib/logger'
-import { db } from '../../../../db'
-import { beneficiary, hemsRequest, userProfile } from '../../../../db/schema'
 
 const log = logger.create('HemsRequest')
 

@@ -11,7 +11,7 @@
  * not the actual login flow (which requires browser interaction).
  */
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
-import { getClient, initJwtSession } from '../db'
+import { getClient, initJwtSession } from '@/db'
 import { isProductionDb } from './helpers/db-guard'
 import {
     authJwtSessionInitExists,
