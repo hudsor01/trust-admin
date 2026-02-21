@@ -70,7 +70,13 @@ describe('AppUser context — beneficiary isolation', () => {
 
 describe('me procedure guard — null beneficiaryId', () => {
     it('returns null when beneficiaryId is null', () => {
-        const ctx = { user: { ...makeAdminCtx().user, role: 'beneficiary' as const, beneficiaryId: null } }
+        const ctx = {
+            user: {
+                ...makeAdminCtx().user,
+                role: 'beneficiary' as const,
+                beneficiaryId: null,
+            },
+        }
         // Mirrors the me procedure: if (!ctx.user.beneficiaryId) return null
         const result = ctx.user.beneficiaryId ? 'would-fetch' : null
         expect(result).toBeNull()
@@ -88,12 +94,20 @@ describe('updateMyContact guard — rejects mismatched beneficiaryId', () => {
         const ctx = makeBeneficiaryCtx(10)
         const inputBeneficiaryId = 10
         // Mirrors: if (!ctx.user.beneficiaryId) throw FORBIDDEN
-        const allowed = !!ctx.user.beneficiaryId && ctx.user.beneficiaryId === inputBeneficiaryId
+        const allowed =
+            !!ctx.user.beneficiaryId &&
+            ctx.user.beneficiaryId === inputBeneficiaryId
         expect(allowed).toBe(true)
     })
 
     it('blocks update when ctx has no beneficiaryId', () => {
-        const ctx = { user: { ...makeAdminCtx().user, role: 'beneficiary' as const, beneficiaryId: null } }
+        const ctx = {
+            user: {
+                ...makeAdminCtx().user,
+                role: 'beneficiary' as const,
+                beneficiaryId: null,
+            },
+        }
         const allowed = !!ctx.user.beneficiaryId
         expect(allowed).toBe(false)
     })
