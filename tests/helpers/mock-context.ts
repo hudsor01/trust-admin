@@ -70,6 +70,7 @@ export function createAdminContext(overrides?: {
         updatedAt: new Date(),
         role: 'admin',
         beneficiaryId: null,
+        forcePasswordChange: false,
     }
 
     return {
@@ -120,6 +121,7 @@ export function createBeneficiaryContext(
         updatedAt: new Date(),
         role: 'beneficiary',
         beneficiaryId,
+        forcePasswordChange: false,
     }
 
     return {
