@@ -247,13 +247,15 @@ export const hemsRequestRouter = createTRPCRouter({
                             and(
                                 eq(hemsRequest.id, input.id),
                                 eq(hemsRequest.entityId, input.entityId),
+                                eq(hemsRequest.status, 'PENDING'),
                             ),
                         )
                         .returning()
                     if (!updated)
                         throw new TRPCError({
-                            code: 'NOT_FOUND',
-                            message: 'Request not found in this entity',
+                            code: 'CONFLICT',
+                            message:
+                                'Request is no longer PENDING — it may have been approved or denied concurrently',
                         })
                     return updated
                 },

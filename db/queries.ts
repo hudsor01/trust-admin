@@ -1073,6 +1073,18 @@ export async function approveHemsRequest(params: {
     return client.begin(async (_tx) => {
         const tx = _tx as TxSql
 
+        // Lock the row first to prevent concurrent approvals
+        const [locked] = await tx`
+            SELECT id FROM hems_request
+            WHERE id = ${id} AND "entityId" = ${entityId} AND status = 'PENDING'
+            FOR UPDATE
+        `
+        if (!locked) {
+            throw new Error(
+                'HEMS request is no longer PENDING or was not found',
+            )
+        }
+
         const [newDistribution] = await tx`
             INSERT INTO distribution (
                 "entityId", "beneficiaryId", "distributionDate", amount,
@@ -1098,10 +1110,11 @@ export async function approveHemsRequest(params: {
                 "reviewedAt" = ${now},
                 "distributionId" = ${newDistribution.id},
                 "updatedAt" = ${now}
-            WHERE id = ${id} AND "entityId" = ${entityId}
+            WHERE id = ${id} AND "entityId" = ${entityId} AND status = 'PENDING'
             RETURNING *
         `
-        if (!updated) throw new Error('HEMS request not found in this entity')
+        if (!updated)
+            throw new Error('HEMS request not found or no longer PENDING')
 
         return updated
     })
@@ -1394,7 +1407,13 @@ export async function recordLiabilityPayment(data: RecordPaymentData) {
                     parseFloat(liabilityRecord.currentBalance || '0') || 0
                 const newBalance = calculatedSplit
                     ? parseFloat(calculatedSplit.newBalance)
-                    : Math.max(0, currentBalance - paymentAmount)
+                    : principalPortion
+                      ? Math.max(
+                            0,
+                            currentBalance -
+                                (parseFloat(principalPortion) || 0),
+                        )
+                      : Math.max(0, currentBalance - paymentAmount)
 
                 // Step 2: Insert the payment record
                 addBreadcrumb('db.transaction', 'Inserting liability payment', {

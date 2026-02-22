@@ -293,11 +293,11 @@ describe.skipIf(isProductionDb)('Business Logic', () => {
                 )
 
                 expect(updatedLiability).toBeDefined()
-                // Original was 10000, two payments of 1000 and 500
-                // Balance should be around 8500 (depends on auto-calc)
+                // Original was 10000, two payments with principal portions of 800 and 400.
+                // Only the principal portion reduces the balance: 10000 - 800 - 400 = 8800
                 expect(
                     parseFloat(updatedLiability!.currentBalance!),
-                ).toBeLessThanOrEqual(8500.0)
+                ).toBeLessThanOrEqual(8800.0)
             },
             TEST_TIMEOUT,
         )

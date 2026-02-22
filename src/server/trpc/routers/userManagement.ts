@@ -370,12 +370,21 @@ export const userManagementRouter = createTRPCRouter({
             }
 
             // 2. Update userProfile app role if profile exists
-            const appRole = input.role === 'admin' ? 'admin' : 'beneficiary'
+            // Query first so we can base the app role on whether they have a beneficiary link
             const [existing] = await db
                 .select()
                 .from(userProfile)
                 .where(eq(userProfile.userId, input.userId))
                 .limit(1)
+
+            // When demoting to non-admin, only assign 'beneficiary' if they have a linked
+            // beneficiary record; otherwise preserve their existing role to avoid a broken state
+            const appRole =
+                input.role === 'admin'
+                    ? 'admin'
+                    : existing?.beneficiaryId
+                      ? 'beneficiary'
+                      : (existing?.role ?? 'beneficiary')
 
             if (existing) {
                 await db
