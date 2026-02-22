@@ -1670,14 +1670,6 @@ interface MarkDeceasedData {
 }
 
 export async function markBeneficiaryDeceased(data: MarkDeceasedData) {
-    await db
-        .update(beneficiary)
-        .set({
-            deceasedDate: data.deceasedDate,
-            updatedAt: new Date().toISOString(),
-        })
-        .where(eq(beneficiary.id, data.beneficiaryId))
-
     const deceased = await db.query.beneficiary.findFirst({
         where: eq(beneficiary.id, data.beneficiaryId),
     })
@@ -1686,12 +1678,19 @@ export async function markBeneficiaryDeceased(data: MarkDeceasedData) {
         return { success: true, shareRecalculated: false }
     }
 
-    return recalculateBeneficiaryShares(deceased.entityId, data.beneficiaryId)
+    // Both the deceasedDate update and share redistribution happen inside the
+    // same transaction so they succeed or fail together.
+    return recalculateBeneficiaryShares(
+        deceased.entityId,
+        data.beneficiaryId,
+        data.deceasedDate,
+    )
 }
 
 export async function recalculateBeneficiaryShares(
     entityId: number,
     excludeBeneficiaryId: number,
+    markDeceasedDate?: string,
 ) {
     return traceBusinessOperation(
         'beneficiary.recalculateShares',
@@ -1701,6 +1700,17 @@ export async function recalculateBeneficiaryShares(
 
             return client.begin(async (_tx) => {
                 const tx = _tx as TxSql
+
+                // If called from markBeneficiaryDeceased, apply the deceasedDate
+                // inside this transaction so both changes succeed or fail together.
+                if (markDeceasedDate !== undefined) {
+                    await tx`
+                        UPDATE beneficiary
+                        SET "deceasedDate" = ${markDeceasedDate},
+                            "updatedAt"    = ${new Date().toISOString()}
+                        WHERE id = ${excludeBeneficiaryId}
+                    `
+                }
 
                 // Lock all beneficiary rows for this entity to prevent concurrent share modifications
                 addBreadcrumb(
