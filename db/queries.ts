@@ -1073,6 +1073,20 @@ export async function approveHemsRequest(params: {
     return client.begin(async (_tx) => {
         const tx = _tx as TxSql
 
+        // Lock the row first to prevent concurrent approvals (TOCTOU race).
+        // SELECT FOR UPDATE blocks any concurrent transaction that also tries to
+        // lock the same row, making the status check + approval atomic.
+        const [locked] = await tx`
+            SELECT id, status FROM hems_request
+            WHERE id = ${id} AND "entityId" = ${entityId}
+            FOR UPDATE
+        `
+        if (!locked) throw new Error('HEMS request not found in this entity')
+        if (locked.status !== 'PENDING')
+            throw new Error(
+                `Cannot approve a request with status: ${locked.status}`,
+            )
+
         const [newDistribution] = await tx`
             INSERT INTO distribution (
                 "entityId", "beneficiaryId", "distributionDate", amount,
@@ -1389,12 +1403,15 @@ export async function recordLiabilityPayment(data: RecordPaymentData) {
                 const escrowPortion =
                     data.escrowPortion ?? calculatedSplit?.escrow ?? null
 
-                const paymentAmount = parseFloat(data.amount) || 0
                 const currentBalance =
                     parseFloat(liabilityRecord.currentBalance || '0') || 0
                 const newBalance = calculatedSplit
                     ? parseFloat(calculatedSplit.newBalance)
-                    : Math.max(0, currentBalance - paymentAmount)
+                    : Math.max(
+                          0,
+                          currentBalance -
+                              parseFloat(data.principalPortion || '0'),
+                      )
 
                 // Step 2: Insert the payment record
                 addBreadcrumb('db.transaction', 'Inserting liability payment', {

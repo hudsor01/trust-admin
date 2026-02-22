@@ -215,6 +215,7 @@ describe.skipIf(isProductionDb)('CRUD Operations - Remaining Routers', () => {
                 const caller = adminCaller()
                 const results = await caller.liabilityPayment.list({
                     liabilityId: testData.liabilityId!,
+                    entityId: testData.entityId!,
                 })
 
                 expect(Array.isArray(results)).toBe(true)
@@ -236,7 +237,10 @@ describe.skipIf(isProductionDb)('CRUD Operations - Remaining Routers', () => {
             async () => {
                 const caller = adminCaller()
                 const payId = testData.liabilityPaymentIds[0]!
-                const result = await caller.liabilityPayment.byId(payId)
+                const result = await caller.liabilityPayment.byId({
+                    id: payId,
+                    entityId: testData.entityId!,
+                })
 
                 expect(result).toBeDefined()
                 expect(result?.id).toBe(payId)
@@ -278,8 +282,11 @@ describe.skipIf(isProductionDb)('CRUD Operations - Remaining Routers', () => {
                 expect(deleted.id).toBe(payId)
 
                 // Verify it is gone
-                const result = await caller.liabilityPayment.byId(payId)
-                expect(result).toBeUndefined()
+                const result = await caller.liabilityPayment.byId({
+                    id: payId,
+                    entityId: testData.entityId!,
+                })
+                expect(result).toBeFalsy()
 
                 // Remove from cleanup since already deleted
                 testData.liabilityPaymentIds =

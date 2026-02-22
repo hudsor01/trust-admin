@@ -16,7 +16,7 @@ import * as Sentry from '@sentry/nextjs'
 import { initTRPC, TRPCError } from '@trpc/server'
 import { eq } from 'drizzle-orm'
 import { ZodError } from 'zod'
-import { getPublicDb, initJwtSession, setRequestAuthToken } from '@/db'
+import { getPublicDb, setRequestAuthToken } from '@/db'
 import { userProfile } from '@/db/schema'
 import { authServer } from '@/lib/auth/server'
 import { OWNER_EMAIL } from '@/lib/constants'
@@ -55,13 +55,29 @@ export async function createContext(_opts: { headers: Headers }) {
     // If we have a session, initialize JWT for RLS and fetch beneficiary link
     let appUser: AppUser | null = null
     if (session?.user && session?.session?.token) {
-        // Fetch JWT from Neon Auth for RLS enforcement via Neon Authorize.
-        // session.session.token is an opaque session token, NOT a JWT.
-        // The /token endpoint returns a signed JWT with the user's sub claim.
-        let jwtToken: string | null = null
+        // Fetch JWT and userProfile in parallel — both can start as soon as we
+        // have a session. The JWT is needed for RLS (setRequestAuthToken);
+        // userProfile uses getPublicDb() (BYPASSRLS) so it doesn't need the JWT.
+        const publicDb = getPublicDb()
+        let tokenResult: Awaited<ReturnType<typeof authServer.token>>
+        let profileRows: {
+            role: 'admin' | 'beneficiary' | 'user'
+            beneficiaryId: number | null
+            forcePasswordChange: boolean
+        }[]
         try {
-            const { data: tokenData } = await authServer.token()
-            jwtToken = tokenData?.token ?? null
+            ;[tokenResult, profileRows] = await Promise.all([
+                authServer.token(),
+                publicDb
+                    .select({
+                        role: userProfile.role,
+                        beneficiaryId: userProfile.beneficiaryId,
+                        forcePasswordChange: userProfile.forcePasswordChange,
+                    })
+                    .from(userProfile)
+                    .where(eq(userProfile.userId, session.user.id))
+                    .limit(1),
+            ])
         } catch (error) {
             Sentry.captureException(error, {
                 level: 'fatal',
@@ -74,6 +90,7 @@ export async function createContext(_opts: { headers: Headers }) {
             })
         }
 
+        const jwtToken = tokenResult.data?.token ?? null
         if (!jwtToken) {
             const err = new Error('JWT token was null after successful fetch')
             Sentry.captureException(err, {
@@ -86,40 +103,12 @@ export async function createContext(_opts: { headers: Headers }) {
             })
         }
 
-        if (jwtToken) {
-            // Set JWT for RLS enforcement via Neon Authorize
-            // This binds the JWT to the current async context so all neon() HTTP
-            // queries in this request run as the `authenticated` role with
-            // auth.user_id() set — making RLS policies apply.
-            setRequestAuthToken(jwtToken)
+        // Set JWT for RLS enforcement via Neon Authorize.
+        // Binds the JWT to the current async context so all neon() HTTP queries
+        // in this request run as the `authenticated` role — making RLS apply.
+        setRequestAuthToken(jwtToken)
 
-            // Also initialize JWT on postgres.js client (for raw SQL/tests)
-            try {
-                await initJwtSession(jwtToken)
-            } catch (error) {
-                Sentry.captureException(error, {
-                    level: 'error',
-                    tags: { subsystem: 'rls', userId: session.user.id },
-                    extra: { action: 'init_jwt_session' },
-                })
-                // neon HTTP still has authToken via setRequestAuthToken, so this is degraded but not bypassed
-                // Log but don't throw — the HTTP driver path still enforces RLS
-            }
-        }
-
-        // Fetch role and beneficiaryId from userProfile (app-managed)
-        // Uses public DB (bypasses RLS) because this is a system-level bootstrap
-        // query — we need the user's role to set up auth context BEFORE RLS can work.
-        const publicDb = getPublicDb()
-        const [profile] = await publicDb
-            .select({
-                role: userProfile.role,
-                beneficiaryId: userProfile.beneficiaryId,
-                forcePasswordChange: userProfile.forcePasswordChange,
-            })
-            .from(userProfile)
-            .where(eq(userProfile.userId, session.user.id))
-            .limit(1)
+        const [profile] = profileRows
 
         // Determine role — owner email always gets admin regardless of DB state
         let role: 'admin' | 'beneficiary' | 'user' = 'user'

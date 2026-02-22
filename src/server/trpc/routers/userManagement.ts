@@ -369,23 +369,26 @@ export const userManagementRouter = createTRPCRouter({
                 })
             }
 
-            // 2. Update userProfile app role if profile exists
-            const appRole = input.role === 'admin' ? 'admin' : 'beneficiary'
+            // 2. Update userProfile app role if profile exists.
+            //    When promoting to admin, set app role to 'admin'.
+            //    When demoting to 'user', preserve existing app role — do NOT
+            //    automatically assign 'beneficiary', which would grant portal
+            //    access to users who are not beneficiaries.
             const [existing] = await db
                 .select()
                 .from(userProfile)
                 .where(eq(userProfile.userId, input.userId))
                 .limit(1)
 
-            if (existing) {
+            if (existing && input.role === 'admin') {
                 await db
                     .update(userProfile)
-                    .set({
-                        role: appRole as 'admin' | 'beneficiary',
-                        updatedAt: new Date(),
-                    })
+                    .set({ role: 'admin', updatedAt: new Date() })
                     .where(eq(userProfile.userId, input.userId))
             }
+
+            const appRole =
+                input.role === 'admin' ? 'admin' : (existing?.role ?? 'user')
 
             await createActivityLog({
                 tableName: 'user',
@@ -540,7 +543,18 @@ export const userManagementRouter = createTRPCRouter({
                 })
             }
 
-            // 1. Remove from Neon Auth first
+            // 1. Delete userProfile first so we can log oldValues.
+            //    If Neon Auth removal then fails, the profile is already gone
+            //    and the user cannot sign in (auth record still exists but
+            //    profile-dependent features won't work). This is safer than
+            //    the reverse order where a failed profile delete leaves an
+            //    orphan profile with no auth record (un-retryable state).
+            const [deletedProfile] = await db
+                .delete(userProfile)
+                .where(eq(userProfile.userId, input.userId))
+                .returning()
+
+            // 2. Remove from Neon Auth
             const { error } = await authServer.admin.removeUser({
                 userId: input.userId,
             })
@@ -548,15 +562,9 @@ export const userManagementRouter = createTRPCRouter({
             if (error) {
                 throw new TRPCError({
                     code: 'BAD_REQUEST',
-                    message: `Failed to remove user: ${error.message}`,
+                    message: `Failed to remove user from auth: ${error.message}`,
                 })
             }
-
-            // 2. Delete userProfile if it exists
-            const [deletedProfile] = await db
-                .delete(userProfile)
-                .where(eq(userProfile.userId, input.userId))
-                .returning()
 
             await createActivityLog({
                 tableName: 'user',

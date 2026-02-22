@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { db } from '@/db'
 import { pendingInventoryItem } from '@/db/schema'
 import { logger } from '@/lib/logger'
+import { hasInventoryAccess } from './verifyAccess'
 
 const log = logger.create('Inventory')
 
@@ -51,6 +52,11 @@ export async function submitInventoryItem(
     _prevState: InventoryFormState,
     formData: FormData,
 ): Promise<InventoryFormState> {
+    // Guard: enforce same access check as the layout — prevents direct POST bypass
+    if (!(await hasInventoryAccess())) {
+        return { success: false, error: 'Access denied' }
+    }
+
     const raw = {
         name: formData.get('name'),
         category: formData.get('category'),

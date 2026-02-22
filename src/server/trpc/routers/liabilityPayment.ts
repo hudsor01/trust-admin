@@ -1,8 +1,8 @@
 import { TRPCError } from '@trpc/server'
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '@/db'
-import { liabilityPayment } from '@/db/schema'
+import { liability, liabilityPayment } from '@/db/schema'
 import {
     insertLiabilityPaymentSchema,
     updateLiabilityPaymentSchema,
@@ -11,19 +11,45 @@ import { adminProcedure, createTRPCRouter } from '../init'
 
 export const liabilityPaymentRouter = createTRPCRouter({
     list: adminProcedure
-        .input(z.object({ liabilityId: z.coerce.number() }))
+        .input(
+            z.object({
+                liabilityId: z.coerce.number(),
+                entityId: z.coerce.number(),
+            }),
+        )
         .query(async ({ input }) => {
+            // Join on liability to enforce entity isolation
             return db
-                .select()
+                .select({ liabilityPayment })
                 .from(liabilityPayment)
+                .innerJoin(
+                    liability,
+                    and(
+                        eq(liability.id, liabilityPayment.liabilityId),
+                        eq(liability.entityId, input.entityId),
+                    ),
+                )
                 .where(eq(liabilityPayment.liabilityId, input.liabilityId))
+                .then((rows) => rows.map((r) => r.liabilityPayment))
         }),
 
-    byId: adminProcedure.input(z.coerce.number()).query(async ({ input }) => {
-        return db.query.liabilityPayment.findFirst({
-            where: eq(liabilityPayment.id, input),
-        })
-    }),
+    byId: adminProcedure
+        .input(z.object({ id: z.coerce.number(), entityId: z.coerce.number() }))
+        .query(async ({ input }) => {
+            const rows = await db
+                .select({ liabilityPayment })
+                .from(liabilityPayment)
+                .innerJoin(
+                    liability,
+                    and(
+                        eq(liability.id, liabilityPayment.liabilityId),
+                        eq(liability.entityId, input.entityId),
+                    ),
+                )
+                .where(eq(liabilityPayment.id, input.id))
+                .limit(1)
+            return rows[0]?.liabilityPayment ?? null
+        }),
 
     create: adminProcedure
         .input(insertLiabilityPaymentSchema)
