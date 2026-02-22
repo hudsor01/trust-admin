@@ -377,4 +377,11 @@ UPLOADTHING_TOKEN=<token>
 RESEND_API_KEY=<key>
 TRUSTED_ORIGINS=https://trust.thehudsonfam.com
 FRONTEND_URL=https://trust.thehudsonfam.com
+SENTRY_ORG=<org-slug>               # URL slug from sentry.io/organizations/<slug>/ — NOT display name
+SENTRY_PROJECT=<project-slug>       # URL slug from Sentry project settings — NOT display name
+SENTRY_AUTH_TOKEN=<token>           # Required for source map uploads; build silently skips if absent
 ```
+
+**Sentry env var gotchas:**
+- Values must be URL slugs (e.g. `hudsor01`, `trust-admin`) — Sentry CLI rejects display names
+- Trailing newlines in Vercel env vars silently corrupt the value → CLI error `invalid value 'trust-admin\n'`; retype values manually rather than pasting
