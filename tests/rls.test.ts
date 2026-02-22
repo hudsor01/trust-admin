@@ -561,62 +561,62 @@ describe.skipIf(isProductionDb)('Row-Level Security', () => {
     // this test context is never set, so auth.user_id() from Neon Auth is used.
     // =========================================================================
 
+    /**
+     * Run a query as a specific user with RLS enforced.
+     *
+     * IMPORTANT: neondb_owner has BYPASSRLS=true, so we must SET ROLE authenticated
+     * within a transaction to actually test RLS policies.
+     */
+    async function runAsUser<T>(
+        userId: string,
+        queryFn: (
+            sql: typeof getClient extends () => infer R ? R : never,
+        ) => Promise<T>,
+    ): Promise<T> {
+        const client = getClient()
+        return client.begin(async (sql) => {
+            // Switch to authenticated role (no BYPASSRLS)
+            await sql.unsafe('SET ROLE authenticated')
+            // Set search_path to include public and app schemas
+            await sql.unsafe('SET search_path TO public, app')
+            // Set test user context
+            await sql`SELECT app.set_test_user(${userId})`
+            // Run the query
+            return queryFn(sql)
+        })
+    }
+
+    /**
+     * Run a query without authentication (clear user context)
+     */
+    async function runUnauthenticated<T>(
+        queryFn: (
+            sql: typeof getClient extends () => infer R ? R : never,
+        ) => Promise<T>,
+    ): Promise<T> {
+        const client = getClient()
+        return client.begin(async (sql) => {
+            // Switch to authenticated role (no BYPASSRLS)
+            await sql.unsafe('SET ROLE authenticated')
+            await sql.unsafe('SET search_path TO public, app')
+            // Clear any test user context
+            await sql`SELECT app.clear_test_user()`
+            return queryFn(sql)
+        })
+    }
+
+    // Legacy helpers (for compatibility with existing tests)
+    async function setTestUser(userId: string): Promise<void> {
+        const client = getClient()
+        await client`SELECT app.set_test_user(${userId})`
+    }
+
+    async function clearTestUser(): Promise<void> {
+        const client = getClient()
+        await client`SELECT app.clear_test_user()`
+    }
+
     describe('Cross-Beneficiary Data Isolation', () => {
-        /**
-         * Run a query as a specific user with RLS enforced.
-         *
-         * IMPORTANT: neondb_owner has BYPASSRLS=true, so we must SET ROLE authenticated
-         * within a transaction to actually test RLS policies.
-         */
-        async function runAsUser<T>(
-            userId: string,
-            queryFn: (
-                sql: typeof getClient extends () => infer R ? R : never,
-            ) => Promise<T>,
-        ): Promise<T> {
-            const client = getClient()
-            return client.begin(async (sql) => {
-                // Switch to authenticated role (no BYPASSRLS)
-                await sql.unsafe('SET ROLE authenticated')
-                // Set search_path to include public and app schemas
-                await sql.unsafe('SET search_path TO public, app')
-                // Set test user context
-                await sql`SELECT app.set_test_user(${userId})`
-                // Run the query
-                return queryFn(sql)
-            })
-        }
-
-        /**
-         * Run a query without authentication (clear user context)
-         */
-        async function runUnauthenticated<T>(
-            queryFn: (
-                sql: typeof getClient extends () => infer R ? R : never,
-            ) => Promise<T>,
-        ): Promise<T> {
-            const client = getClient()
-            return client.begin(async (sql) => {
-                // Switch to authenticated role (no BYPASSRLS)
-                await sql.unsafe('SET ROLE authenticated')
-                await sql.unsafe('SET search_path TO public, app')
-                // Clear any test user context
-                await sql`SELECT app.clear_test_user()`
-                return queryFn(sql)
-            })
-        }
-
-        // Legacy helpers (for compatibility with existing tests)
-        async function setTestUser(userId: string): Promise<void> {
-            const client = getClient()
-            await client`SELECT app.set_test_user(${userId})`
-        }
-
-        async function clearTestUser(): Promise<void> {
-            const client = getClient()
-            await client`SELECT app.clear_test_user()`
-        }
-
         test('beneficiary 1 session returns correct user info', async () => {
             await setTestUser(testData.beneficiaryUserId1!)
             const client = getClient()
@@ -922,8 +922,9 @@ describe.skipIf(isProductionDb)('Row-Level Security', () => {
     // =========================================================================
 
     describe('RLS on All Protected Tables', () => {
-        // These are the 11 tables with RLS enabled (as of Neon Auth migration)
+        // These are the 28 tables with RLS enabled (11 original + 17 new)
         const rlsEnabledTables = [
+            // Original 11 tables
             'bank_account',
             'beneficiary',
             'distribution',
@@ -935,6 +936,24 @@ describe.skipIf(isProductionDb)('Row-Level Security', () => {
             'trust_accounting',
             'vehicle',
             'withdrawal_record',
+            // 17 new tables (added in phase 53)
+            'artwork',
+            'rental_property',
+            'insurance_policy',
+            'personal_property',
+            'trustee',
+            'trustee_fee_schedule',
+            'trustee_fee_entry',
+            'liability_payment',
+            'contact',
+            'contact_association',
+            'task',
+            'document',
+            'valuation',
+            'transaction',
+            'activity_log',
+            'pending_inventory_item',
+            'specific_bequest',
         ]
 
         test.each(
@@ -944,7 +963,7 @@ describe.skipIf(isProductionDb)('Row-Level Security', () => {
             expect(enabled).toBe(true)
         })
 
-        test('exactly 33 tables have RLS enabled', async () => {
+        test('exactly 28 tables have RLS enabled', async () => {
             const client = getClient()
             const result = await client`
                 SELECT COUNT(*)::int as count
@@ -954,7 +973,22 @@ describe.skipIf(isProductionDb)('Row-Level Security', () => {
                 AND c.relkind = 'r'
                 AND c.relrowsecurity = true
             `
-            expect(result[0]?.count).toBe(33)
+            expect(result[0]?.count).toBe(28)
+        })
+
+        test('beneficiary cannot write to admin-only tables (entity)', async () => {
+            let threw = false
+            try {
+                await runAsUser(testData.beneficiaryUserId1!, async (sql) => {
+                    await sql`
+                        INSERT INTO public.entity (name, "entityType", "trustType", status, "updatedAt")
+                        VALUES ('Malicious Entity', 'TRUST', 'IRREVOCABLE', 'ACTIVE', NOW())
+                    `
+                })
+            } catch {
+                threw = true
+            }
+            expect(threw).toBe(true)
         })
     })
 })

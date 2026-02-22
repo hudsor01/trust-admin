@@ -5,6 +5,7 @@ import {
     foreignKey,
     index,
     pgEnum,
+    pgPolicy,
     pgTable,
     uniqueIndex,
 } from 'drizzle-orm/pg-core'
@@ -292,8 +293,29 @@ export const activityLog = pgTable(
         // GIN indexes for JSONB columns
         index('idx_activity_log_old_values_gin').using('gin', table.oldValues),
         index('idx_activity_log_new_values_gin').using('gin', table.newValues),
+        pgPolicy('crud-authenticated-policy-select', {
+            as: 'permissive',
+            for: 'select',
+            to: ['authenticated'],
+            using: sql`( SELECT app.is_admin() AS is_admin)`,
+        }),
+        pgPolicy('crud-authenticated-policy-insert', {
+            as: 'permissive',
+            for: 'insert',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-update', {
+            as: 'permissive',
+            for: 'update',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-delete', {
+            as: 'permissive',
+            for: 'delete',
+            to: ['authenticated'],
+        }),
     ],
-)
+).enableRLS()
 
 export type ActivityLog = typeof activityLog.$inferSelect
 export type InsertActivityLog = typeof activityLog.$inferInsert
@@ -361,8 +383,29 @@ export const entity = pgTable(
         })
             .onUpdate('cascade')
             .onDelete('set null'),
+        pgPolicy('crud-authenticated-policy-select', {
+            as: 'permissive',
+            for: 'select',
+            to: ['authenticated'],
+            using: sql`( SELECT app.is_admin() AS is_admin)`,
+        }),
+        pgPolicy('crud-authenticated-policy-insert', {
+            as: 'permissive',
+            for: 'insert',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-update', {
+            as: 'permissive',
+            for: 'update',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-delete', {
+            as: 'permissive',
+            for: 'delete',
+            to: ['authenticated'],
+        }),
     ],
-)
+).enableRLS()
 
 export type Entity = typeof entity.$inferSelect
 export type InsertEntity = typeof entity.$inferInsert
@@ -422,8 +465,29 @@ export const vehicle = pgTable(
         })
             .onUpdate('cascade')
             .onDelete('restrict'),
+        pgPolicy('crud-authenticated-policy-select', {
+            as: 'permissive',
+            for: 'select',
+            to: ['authenticated'],
+            using: sql`( SELECT app.is_admin() AS is_admin)`,
+        }),
+        pgPolicy('crud-authenticated-policy-insert', {
+            as: 'permissive',
+            for: 'insert',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-update', {
+            as: 'permissive',
+            for: 'update',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-delete', {
+            as: 'permissive',
+            for: 'delete',
+            to: ['authenticated'],
+        }),
     ],
-)
+).enableRLS()
 
 export type Vehicle = typeof vehicle.$inferSelect
 export type InsertVehicle = typeof vehicle.$inferInsert
@@ -491,8 +555,29 @@ export const homestead = pgTable(
         })
             .onUpdate('cascade')
             .onDelete('restrict'),
+        pgPolicy('crud-authenticated-policy-select', {
+            as: 'permissive',
+            for: 'select',
+            to: ['authenticated'],
+            using: sql`( SELECT app.is_admin() AS is_admin)`,
+        }),
+        pgPolicy('crud-authenticated-policy-insert', {
+            as: 'permissive',
+            for: 'insert',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-update', {
+            as: 'permissive',
+            for: 'update',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-delete', {
+            as: 'permissive',
+            for: 'delete',
+            to: ['authenticated'],
+        }),
     ],
-)
+).enableRLS()
 
 export type Homestead = typeof homestead.$inferSelect
 export type InsertHomestead = typeof homestead.$inferInsert
@@ -573,8 +658,29 @@ export const rentalProperty = pgTable(
         })
             .onUpdate('cascade')
             .onDelete('restrict'),
+        pgPolicy('crud-authenticated-policy-select', {
+            as: 'permissive',
+            for: 'select',
+            to: ['authenticated'],
+            using: sql`( SELECT app.is_admin() AS is_admin)`,
+        }),
+        pgPolicy('crud-authenticated-policy-insert', {
+            as: 'permissive',
+            for: 'insert',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-update', {
+            as: 'permissive',
+            for: 'update',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-delete', {
+            as: 'permissive',
+            for: 'delete',
+            to: ['authenticated'],
+        }),
     ],
-)
+).enableRLS()
 
 export type RentalProperty = typeof rentalProperty.$inferSelect
 export type InsertRentalProperty = typeof rentalProperty.$inferInsert
@@ -626,8 +732,29 @@ export const bankAccount = pgTable(
         })
             .onUpdate('cascade')
             .onDelete('restrict'),
+        pgPolicy('crud-authenticated-policy-select', {
+            as: 'permissive',
+            for: 'select',
+            to: ['authenticated'],
+            using: sql`( SELECT app.is_admin() AS is_admin)`,
+        }),
+        pgPolicy('crud-authenticated-policy-insert', {
+            as: 'permissive',
+            for: 'insert',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-update', {
+            as: 'permissive',
+            for: 'update',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-delete', {
+            as: 'permissive',
+            for: 'delete',
+            to: ['authenticated'],
+        }),
     ],
-)
+).enableRLS()
 
 export type BankAccount = typeof bankAccount.$inferSelect
 export type InsertBankAccount = typeof bankAccount.$inferInsert
@@ -679,8 +806,29 @@ export const investmentAccount = pgTable(
         })
             .onUpdate('cascade')
             .onDelete('restrict'),
+        pgPolicy('crud-authenticated-policy-select', {
+            as: 'permissive',
+            for: 'select',
+            to: ['authenticated'],
+            using: sql`( SELECT app.is_admin() AS is_admin)`,
+        }),
+        pgPolicy('crud-authenticated-policy-insert', {
+            as: 'permissive',
+            for: 'insert',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-update', {
+            as: 'permissive',
+            for: 'update',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-delete', {
+            as: 'permissive',
+            for: 'delete',
+            to: ['authenticated'],
+        }),
     ],
-)
+).enableRLS()
 
 export type InvestmentAccount = typeof investmentAccount.$inferSelect
 export type InsertInvestmentAccount = typeof investmentAccount.$inferInsert
@@ -732,8 +880,29 @@ export const insurancePolicy = pgTable(
         })
             .onUpdate('cascade')
             .onDelete('restrict'),
+        pgPolicy('crud-authenticated-policy-select', {
+            as: 'permissive',
+            for: 'select',
+            to: ['authenticated'],
+            using: sql`( SELECT app.is_admin() AS is_admin)`,
+        }),
+        pgPolicy('crud-authenticated-policy-insert', {
+            as: 'permissive',
+            for: 'insert',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-update', {
+            as: 'permissive',
+            for: 'update',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-delete', {
+            as: 'permissive',
+            for: 'delete',
+            to: ['authenticated'],
+        }),
     ],
-)
+).enableRLS()
 
 export type InsurancePolicy = typeof insurancePolicy.$inferSelect
 export type InsertInsurancePolicy = typeof insurancePolicy.$inferInsert
@@ -823,8 +992,29 @@ export const beneficiary = pgTable(
         })
             .onUpdate('cascade')
             .onDelete('set null'),
+        pgPolicy('crud-authenticated-policy-select', {
+            as: 'permissive',
+            for: 'select',
+            to: ['authenticated'],
+            using: sql`( SELECT (app.is_admin() OR (beneficiary.id = app.get_user_beneficiary_id())))`,
+        }),
+        pgPolicy('crud-authenticated-policy-insert', {
+            as: 'permissive',
+            for: 'insert',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-update', {
+            as: 'permissive',
+            for: 'update',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-delete', {
+            as: 'permissive',
+            for: 'delete',
+            to: ['authenticated'],
+        }),
     ],
-)
+).enableRLS()
 
 export type Beneficiary = typeof beneficiary.$inferSelect
 export type InsertBeneficiary = typeof beneficiary.$inferInsert
@@ -891,8 +1081,29 @@ export const distribution = pgTable(
         })
             .onUpdate('cascade')
             .onDelete('set null'),
+        pgPolicy('crud-authenticated-policy-select', {
+            as: 'permissive',
+            for: 'select',
+            to: ['authenticated'],
+            using: sql`( SELECT (app.is_admin() OR (distribution."beneficiaryId" = app.get_user_beneficiary_id())))`,
+        }),
+        pgPolicy('crud-authenticated-policy-insert', {
+            as: 'permissive',
+            for: 'insert',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-update', {
+            as: 'permissive',
+            for: 'update',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-delete', {
+            as: 'permissive',
+            for: 'delete',
+            to: ['authenticated'],
+        }),
     ],
-)
+).enableRLS()
 
 export type Distribution = typeof distribution.$inferSelect
 export type InsertDistribution = typeof distribution.$inferInsert
@@ -1000,8 +1211,29 @@ export const valuation = pgTable(
                 ) = 1
             )`,
         ),
+        pgPolicy('crud-authenticated-policy-select', {
+            as: 'permissive',
+            for: 'select',
+            to: ['authenticated'],
+            using: sql`( SELECT app.is_admin() AS is_admin)`,
+        }),
+        pgPolicy('crud-authenticated-policy-insert', {
+            as: 'permissive',
+            for: 'insert',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-update', {
+            as: 'permissive',
+            for: 'update',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-delete', {
+            as: 'permissive',
+            for: 'delete',
+            to: ['authenticated'],
+        }),
     ],
-)
+).enableRLS()
 
 export type Valuation = typeof valuation.$inferSelect
 export type InsertValuation = typeof valuation.$inferInsert
@@ -1053,8 +1285,29 @@ export const personalProperty = pgTable(
         })
             .onUpdate('cascade')
             .onDelete('restrict'),
+        pgPolicy('crud-authenticated-policy-select', {
+            as: 'permissive',
+            for: 'select',
+            to: ['authenticated'],
+            using: sql`( SELECT app.is_admin() AS is_admin)`,
+        }),
+        pgPolicy('crud-authenticated-policy-insert', {
+            as: 'permissive',
+            for: 'insert',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-update', {
+            as: 'permissive',
+            for: 'update',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-delete', {
+            as: 'permissive',
+            for: 'delete',
+            to: ['authenticated'],
+        }),
     ],
-)
+).enableRLS()
 
 export type PersonalProperty = typeof personalProperty.$inferSelect
 export type InsertPersonalProperty = typeof personalProperty.$inferInsert
@@ -1127,8 +1380,29 @@ export const pendingInventoryItem = pgTable(
         })
             .onUpdate('cascade')
             .onDelete('set null'),
+        pgPolicy('crud-authenticated-policy-select', {
+            as: 'permissive',
+            for: 'select',
+            to: ['authenticated'],
+            using: sql`( SELECT app.is_admin() AS is_admin)`,
+        }),
+        pgPolicy('crud-authenticated-policy-insert', {
+            as: 'permissive',
+            for: 'insert',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-update', {
+            as: 'permissive',
+            for: 'update',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-delete', {
+            as: 'permissive',
+            for: 'delete',
+            to: ['authenticated'],
+        }),
     ],
-)
+).enableRLS()
 
 export type PendingInventoryItem = typeof pendingInventoryItem.$inferSelect
 export type InsertPendingInventoryItem =
@@ -1254,8 +1528,29 @@ export const document = pgTable(
                 ) = 1
             )`,
         ),
+        pgPolicy('crud-authenticated-policy-select', {
+            as: 'permissive',
+            for: 'select',
+            to: ['authenticated'],
+            using: sql`( SELECT app.is_admin() AS is_admin)`,
+        }),
+        pgPolicy('crud-authenticated-policy-insert', {
+            as: 'permissive',
+            for: 'insert',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-update', {
+            as: 'permissive',
+            for: 'update',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-delete', {
+            as: 'permissive',
+            for: 'delete',
+            to: ['authenticated'],
+        }),
     ],
-)
+).enableRLS()
 
 export type Document = typeof document.$inferSelect
 export type InsertDocument = typeof document.$inferInsert
@@ -1361,8 +1656,29 @@ export const transaction = pgTable(
                 ) = 1
             )`,
         ),
+        pgPolicy('crud-authenticated-policy-select', {
+            as: 'permissive',
+            for: 'select',
+            to: ['authenticated'],
+            using: sql`( SELECT app.is_admin() AS is_admin)`,
+        }),
+        pgPolicy('crud-authenticated-policy-insert', {
+            as: 'permissive',
+            for: 'insert',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-update', {
+            as: 'permissive',
+            for: 'update',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-delete', {
+            as: 'permissive',
+            for: 'delete',
+            to: ['authenticated'],
+        }),
     ],
-)
+).enableRLS()
 
 export type Transaction = typeof transaction.$inferSelect
 export type InsertTransaction = typeof transaction.$inferInsert
@@ -1371,29 +1687,55 @@ export type InsertTransaction = typeof transaction.$inferInsert
 // Contacts
 // ============================================
 
-export const contact = pgTable('contact', (t) => ({
-    id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
-    name: t.text().notNull(),
-    company: t.text(),
-    role: t.text().notNull(), // Converted from enum - 'ATTORNEY', 'ACCOUNTANT', 'FINANCIAL_ADVISOR', etc.
-    email: t.text(),
-    phone: t.text(),
-    dob: t.timestamp({ precision: 3, mode: 'string', withTimezone: true }),
-    streetAddress: t.text(),
-    city: t.text(),
-    state: t.text(),
-    zip: t.text(),
-    licenseNo: t.text(),
-    barNo: t.text(),
-    notes: t.text(),
-    createdAt: t
-        .timestamp({ precision: 3, mode: 'string', withTimezone: true })
-        .default(sql`CURRENT_TIMESTAMP`)
-        .notNull(),
-    updatedAt: t
-        .timestamp({ precision: 3, mode: 'string', withTimezone: true })
-        .notNull(),
-}))
+export const contact = pgTable(
+    'contact',
+    (t) => ({
+        id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
+        name: t.text().notNull(),
+        company: t.text(),
+        role: t.text().notNull(), // Converted from enum - 'ATTORNEY', 'ACCOUNTANT', 'FINANCIAL_ADVISOR', etc.
+        email: t.text(),
+        phone: t.text(),
+        dob: t.timestamp({ precision: 3, mode: 'string', withTimezone: true }),
+        streetAddress: t.text(),
+        city: t.text(),
+        state: t.text(),
+        zip: t.text(),
+        licenseNo: t.text(),
+        barNo: t.text(),
+        notes: t.text(),
+        createdAt: t
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
+            .default(sql`CURRENT_TIMESTAMP`)
+            .notNull(),
+        updatedAt: t
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
+            .notNull(),
+    }),
+    () => [
+        pgPolicy('crud-authenticated-policy-select', {
+            as: 'permissive',
+            for: 'select',
+            to: ['authenticated'],
+            using: sql`( SELECT app.is_admin() AS is_admin)`,
+        }),
+        pgPolicy('crud-authenticated-policy-insert', {
+            as: 'permissive',
+            for: 'insert',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-update', {
+            as: 'permissive',
+            for: 'update',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-delete', {
+            as: 'permissive',
+            for: 'delete',
+            to: ['authenticated'],
+        }),
+    ],
+).enableRLS()
 
 export type Contact = typeof contact.$inferSelect
 export type InsertContact = typeof contact.$inferInsert
@@ -1427,8 +1769,29 @@ export const contactAssociation = pgTable(
         })
             .onUpdate('cascade')
             .onDelete('set null'),
+        pgPolicy('crud-authenticated-policy-select', {
+            as: 'permissive',
+            for: 'select',
+            to: ['authenticated'],
+            using: sql`( SELECT app.is_admin() AS is_admin)`,
+        }),
+        pgPolicy('crud-authenticated-policy-insert', {
+            as: 'permissive',
+            for: 'insert',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-update', {
+            as: 'permissive',
+            for: 'update',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-delete', {
+            as: 'permissive',
+            for: 'delete',
+            to: ['authenticated'],
+        }),
     ],
-)
+).enableRLS()
 
 export type ContactAssociation = typeof contactAssociation.$inferSelect
 export type InsertContactAssociation = typeof contactAssociation.$inferInsert
@@ -1462,8 +1825,29 @@ export const task = pgTable(
     (table) => [
         index('idx_task_completed').on(table.completed),
         index('idx_task_due_date').on(table.dueDate.desc()),
+        pgPolicy('crud-authenticated-policy-select', {
+            as: 'permissive',
+            for: 'select',
+            to: ['authenticated'],
+            using: sql`( SELECT app.is_admin() AS is_admin)`,
+        }),
+        pgPolicy('crud-authenticated-policy-insert', {
+            as: 'permissive',
+            for: 'insert',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-update', {
+            as: 'permissive',
+            for: 'update',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-delete', {
+            as: 'permissive',
+            for: 'delete',
+            to: ['authenticated'],
+        }),
     ],
-)
+).enableRLS()
 
 export type Task = typeof task.$inferSelect
 export type InsertTask = typeof task.$inferInsert
@@ -1516,8 +1900,29 @@ export const artwork = pgTable(
         })
             .onUpdate('cascade')
             .onDelete('restrict'),
+        pgPolicy('crud-authenticated-policy-select', {
+            as: 'permissive',
+            for: 'select',
+            to: ['authenticated'],
+            using: sql`( SELECT app.is_admin() AS is_admin)`,
+        }),
+        pgPolicy('crud-authenticated-policy-insert', {
+            as: 'permissive',
+            for: 'insert',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-update', {
+            as: 'permissive',
+            for: 'update',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-delete', {
+            as: 'permissive',
+            for: 'delete',
+            to: ['authenticated'],
+        }),
     ],
-)
+).enableRLS()
 
 export type Artwork = typeof artwork.$inferSelect
 export type InsertArtwork = typeof artwork.$inferInsert
@@ -1584,8 +1989,29 @@ export const trustee = pgTable(
         })
             .onUpdate('cascade')
             .onDelete('set null'),
+        pgPolicy('crud-authenticated-policy-select', {
+            as: 'permissive',
+            for: 'select',
+            to: ['authenticated'],
+            using: sql`( SELECT app.is_admin() AS is_admin)`,
+        }),
+        pgPolicy('crud-authenticated-policy-insert', {
+            as: 'permissive',
+            for: 'insert',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-update', {
+            as: 'permissive',
+            for: 'update',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-delete', {
+            as: 'permissive',
+            for: 'delete',
+            to: ['authenticated'],
+        }),
     ],
-)
+).enableRLS()
 
 export type Trustee = typeof trustee.$inferSelect
 export type InsertTrustee = typeof trustee.$inferInsert
@@ -1634,8 +2060,29 @@ export const specificBequest = pgTable(
         })
             .onUpdate('cascade')
             .onDelete('set null'),
+        pgPolicy('crud-authenticated-policy-select', {
+            as: 'permissive',
+            for: 'select',
+            to: ['authenticated'],
+            using: sql`( SELECT (app.is_admin() OR (specific_bequest."beneficiaryId" = app.get_user_beneficiary_id())))`,
+        }),
+        pgPolicy('crud-authenticated-policy-insert', {
+            as: 'permissive',
+            for: 'insert',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-update', {
+            as: 'permissive',
+            for: 'update',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-delete', {
+            as: 'permissive',
+            for: 'delete',
+            to: ['authenticated'],
+        }),
     ],
-)
+).enableRLS()
 
 export type SpecificBequest = typeof specificBequest.$inferSelect
 export type InsertSpecificBequest = typeof specificBequest.$inferInsert
@@ -1717,8 +2164,29 @@ export const trustAccounting = pgTable(
         })
             .onUpdate('cascade')
             .onDelete('restrict'),
+        pgPolicy('crud-authenticated-policy-select', {
+            as: 'permissive',
+            for: 'select',
+            to: ['authenticated'],
+            using: sql`( SELECT app.is_admin() AS is_admin)`,
+        }),
+        pgPolicy('crud-authenticated-policy-insert', {
+            as: 'permissive',
+            for: 'insert',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-update', {
+            as: 'permissive',
+            for: 'update',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-delete', {
+            as: 'permissive',
+            for: 'delete',
+            to: ['authenticated'],
+        }),
     ],
-)
+).enableRLS()
 
 export type TrustAccounting = typeof trustAccounting.$inferSelect
 export type InsertTrustAccounting = typeof trustAccounting.$inferInsert
@@ -1780,8 +2248,29 @@ export const withdrawalRecord = pgTable(
         })
             .onUpdate('cascade')
             .onDelete('set null'),
+        pgPolicy('crud-authenticated-policy-select', {
+            as: 'permissive',
+            for: 'select',
+            to: ['authenticated'],
+            using: sql`( SELECT (app.is_admin() OR (withdrawal_record."beneficiaryId" = app.get_user_beneficiary_id())))`,
+        }),
+        pgPolicy('crud-authenticated-policy-insert', {
+            as: 'permissive',
+            for: 'insert',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-update', {
+            as: 'permissive',
+            for: 'update',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-delete', {
+            as: 'permissive',
+            for: 'delete',
+            to: ['authenticated'],
+        }),
     ],
-)
+).enableRLS()
 
 export type WithdrawalRecord = typeof withdrawalRecord.$inferSelect
 export type InsertWithdrawalRecord = typeof withdrawalRecord.$inferInsert
@@ -1877,8 +2366,29 @@ export const liability = pgTable(
         })
             .onUpdate('cascade')
             .onDelete('set null'),
+        pgPolicy('crud-authenticated-policy-select', {
+            as: 'permissive',
+            for: 'select',
+            to: ['authenticated'],
+            using: sql`( SELECT app.is_admin() AS is_admin)`,
+        }),
+        pgPolicy('crud-authenticated-policy-insert', {
+            as: 'permissive',
+            for: 'insert',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-update', {
+            as: 'permissive',
+            for: 'update',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-delete', {
+            as: 'permissive',
+            for: 'delete',
+            to: ['authenticated'],
+        }),
     ],
-)
+).enableRLS()
 
 export type Liability = typeof liability.$inferSelect
 export type InsertLiability = typeof liability.$inferInsert
@@ -1923,8 +2433,29 @@ export const liabilityPayment = pgTable(
         })
             .onUpdate('cascade')
             .onDelete('restrict'),
+        pgPolicy('crud-authenticated-policy-select', {
+            as: 'permissive',
+            for: 'select',
+            to: ['authenticated'],
+            using: sql`( SELECT app.is_admin() AS is_admin)`,
+        }),
+        pgPolicy('crud-authenticated-policy-insert', {
+            as: 'permissive',
+            for: 'insert',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-update', {
+            as: 'permissive',
+            for: 'update',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-delete', {
+            as: 'permissive',
+            for: 'delete',
+            to: ['authenticated'],
+        }),
     ],
-)
+).enableRLS()
 
 export type LiabilityPayment = typeof liabilityPayment.$inferSelect
 export type InsertLiabilityPayment = typeof liabilityPayment.$inferInsert
@@ -2001,8 +2532,29 @@ export const hemsRequest = pgTable(
         })
             .onUpdate('cascade')
             .onDelete('set null'),
+        pgPolicy('crud-authenticated-policy-select', {
+            as: 'permissive',
+            for: 'select',
+            to: ['authenticated'],
+            using: sql`( SELECT (app.is_admin() OR (hems_request."beneficiaryId" = app.get_user_beneficiary_id())))`,
+        }),
+        pgPolicy('crud-authenticated-policy-insert', {
+            as: 'permissive',
+            for: 'insert',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-update', {
+            as: 'permissive',
+            for: 'update',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-delete', {
+            as: 'permissive',
+            for: 'delete',
+            to: ['authenticated'],
+        }),
     ],
-)
+).enableRLS()
 
 export type HemsRequest = typeof hemsRequest.$inferSelect
 export type InsertHemsRequest = typeof hemsRequest.$inferInsert
@@ -2058,8 +2610,29 @@ export const trusteeFeeSchedule = pgTable(
         })
             .onUpdate('cascade')
             .onDelete('restrict'),
+        pgPolicy('crud-authenticated-policy-select', {
+            as: 'permissive',
+            for: 'select',
+            to: ['authenticated'],
+            using: sql`( SELECT app.is_admin() AS is_admin)`,
+        }),
+        pgPolicy('crud-authenticated-policy-insert', {
+            as: 'permissive',
+            for: 'insert',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-update', {
+            as: 'permissive',
+            for: 'update',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-delete', {
+            as: 'permissive',
+            for: 'delete',
+            to: ['authenticated'],
+        }),
     ],
-)
+).enableRLS()
 
 export type TrusteeFeeSchedule = typeof trusteeFeeSchedule.$inferSelect
 export type InsertTrusteeFeeSchedule = typeof trusteeFeeSchedule.$inferInsert
@@ -2139,8 +2712,29 @@ export const trusteeFeeEntry = pgTable(
         })
             .onUpdate('cascade')
             .onDelete('set null'),
+        pgPolicy('crud-authenticated-policy-select', {
+            as: 'permissive',
+            for: 'select',
+            to: ['authenticated'],
+            using: sql`( SELECT app.is_admin() AS is_admin)`,
+        }),
+        pgPolicy('crud-authenticated-policy-insert', {
+            as: 'permissive',
+            for: 'insert',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-update', {
+            as: 'permissive',
+            for: 'update',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-delete', {
+            as: 'permissive',
+            for: 'delete',
+            to: ['authenticated'],
+        }),
     ],
-)
+).enableRLS()
 
 export type TrusteeFeeEntry = typeof trusteeFeeEntry.$inferSelect
 export type InsertTrusteeFeeEntry = typeof trusteeFeeEntry.$inferInsert
