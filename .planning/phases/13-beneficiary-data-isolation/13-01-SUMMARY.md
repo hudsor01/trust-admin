@@ -1,12 +1,12 @@
 ---
-phase: 53-beneficiary-data-isolation
+phase: 13-beneficiary-data-isolation
 plan: 01
 subsystem: database
 tags: [rls, postgres, drizzle, security, neon-auth]
 
 # Dependency graph
 requires:
-  - phase: 51-admin-user-provisioning
+  - phase: 11-admin-user-provisioning
     provides: authenticated role + app.is_admin() + app.get_user_beneficiary_id() helpers
 provides:
   - RLS enabled on all 28 public tables (up from 11)

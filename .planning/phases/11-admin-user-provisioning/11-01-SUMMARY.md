@@ -1,14 +1,14 @@
 ---
-phase: 51-admin-user-provisioning
+phase: 11-admin-user-provisioning
 plan: 01
 subsystem: auth
 tags: [trpc, neon-auth, admin-plugin, drizzle, user-provisioning]
 
 # Dependency graph
 requires:
-  - phase: 49-fix-role-mismatch
+  - phase: 09-fix-role-mismatch
     provides: userProfile.role as tRPC authorization source of truth
-  - phase: 50-enable-email-password
+  - phase: 10-enable-email-password
     provides: email/password credentials enabled in Neon Auth
 provides:
   - tRPC userManagement router with createBeneficiaryUser, listProvisionedUsers, resetUserPassword

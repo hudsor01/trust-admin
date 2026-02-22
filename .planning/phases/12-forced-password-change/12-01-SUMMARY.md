@@ -1,5 +1,5 @@
 ---
-phase: 52-forced-password-change
+phase: 12-forced-password-change
 plan: 01
 subsystem: auth
 tags: [auth, beneficiary, portal, security, forced-password-change]

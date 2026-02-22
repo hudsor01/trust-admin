@@ -1,12 +1,12 @@
 ---
-phase: 50-enable-email-password
+phase: 10-enable-email-password
 plan: 01
 subsystem: auth
 tags: [neon-auth, email-password, credentials, magic-link, static-params]
 
 # Dependency graph
 requires:
-  - phase: 49-fix-role-mismatch
+  - phase: 09-fix-role-mismatch
     provides: userProfile.role as tRPC auth source of truth
 provides:
   - Email/password authentication enabled alongside magic link

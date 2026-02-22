@@ -1,6 +1,6 @@
 ---
 status: complete
-phase: 54-codebase-cleanup
+phase: 14-codebase-cleanup
 source: 54-01-SUMMARY.md
 started: 2026-02-22T00:00:00Z
 updated: 2026-02-22T00:10:00Z
