@@ -5,14 +5,21 @@ import { toast } from 'sonner'
 import { ConfirmDialog, useConfirmDialog } from '@/components/confirm-dialog'
 import type {
     AccountingEntryTypeEnum,
+    BankAccount,
     ExpenseTypeEnum,
+    Homestead,
     IncomeTypeEnum,
+    InvestmentAccount,
+    RentalProperty,
     TrustAccounting,
+    Vehicle,
 } from '@/db/schema'
 import { useEntityFilter } from '@/hooks/use-entity-filter'
+import { useNeonList } from '@/hooks/use-neon-data'
 import { useResourceForm } from '@/hooks/use-resource-form'
 import { logger } from '@/lib/logger'
 import { subtractMoney, sumStrings } from '@/lib/money'
+import { neonFetch } from '@/lib/neon-data-api'
 import { trpc } from '@/lib/trpc'
 import { AccountingDialog } from './_components/AccountingDialog'
 import { AccountingHeader } from './_components/AccountingHeader'
@@ -31,8 +38,9 @@ export default function AccountingPage() {
     const selectedEntity = entityId ? Number(entityId) : entities[0]?.id
 
     // Fetch bank accounts for the current entity
-    const { data: bankAccounts = [] } = trpc.bankAccount.list.useQuery(
-        { entityId: selectedEntity },
+    const { data: bankAccounts = [] } = useNeonList<BankAccount>(
+        'bank_account',
+        selectedEntity ? { entity_id: selectedEntity } : undefined,
         { enabled: !!selectedEntity },
     )
 
@@ -296,6 +304,7 @@ export default function AccountingPage() {
 
         try {
             // Fetch all required data for the report using tRPC
+            const entityFilter = { entity_id: `eq.${selectedEntity}` }
             const [
                 bankAccountsData,
                 investmentAccounts,
@@ -304,13 +313,21 @@ export default function AccountingPage() {
                 vehicles,
                 liabilities,
             ] = await Promise.all([
-                utils.bankAccount.list.fetch({ entityId: selectedEntity }),
-                utils.investmentAccount.list.fetch({
-                    entityId: selectedEntity,
+                neonFetch<BankAccount[]>('bank_account', 'GET', {
+                    params: entityFilter,
                 }),
-                utils.homestead.list.fetch({ entityId: selectedEntity }),
-                utils.rentalProperty.list.fetch({ entityId: selectedEntity }),
-                utils.vehicle.list.fetch({ entityId: selectedEntity }),
+                neonFetch<InvestmentAccount[]>('investment_account', 'GET', {
+                    params: entityFilter,
+                }),
+                neonFetch<Homestead[]>('homestead', 'GET', {
+                    params: entityFilter,
+                }),
+                neonFetch<RentalProperty[]>('rental_property', 'GET', {
+                    params: entityFilter,
+                }),
+                neonFetch<Vehicle[]>('vehicle', 'GET', {
+                    params: entityFilter,
+                }),
                 utils.liability.list.fetch({ entityId: selectedEntity }),
             ])
 

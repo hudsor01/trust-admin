@@ -15,7 +15,7 @@
 import * as Sentry from '@sentry/nextjs'
 import { initTRPC, TRPCError } from '@trpc/server'
 import { eq } from 'drizzle-orm'
-import { ZodError, z } from 'zod'
+import { ZodError } from 'zod'
 import { getPublicDb, initJwtSession, setRequestAuthToken } from '@/db'
 import { userProfile } from '@/db/schema'
 import { authServer } from '@/lib/auth/server'
@@ -259,97 +259,3 @@ export const beneficiaryProcedure = protectedProcedure.use(
         return next({ ctx })
     },
 )
-
-/**
- * CRUD Router Factory
- *
- * Creates a standard CRUD router with 5 procedures:
- * - list: Get all records (optionally filtered by entityId)
- * - byId: Get a single record by ID
- * - create: Create a new record
- * - update: Update an existing record
- * - delete: Delete a record
- *
- * Type inference works by passing the crud instance - TypeScript infers all types
- * from the CRUD methods automatically.
- *
- * @param config.crud - CRUD instance with getAllArray, getById, create, update, delete
- * @param config.insertSchema - Zod schema for create input validation
- * @param config.updateSchema - Zod schema for update input validation
- * @param config.getById - Optional custom getById function (for queries with relations)
- * @param config.listFilterKey - Optional custom filter key (default: 'entityId')
- */
-export function createCrudRouter<
-    TModel,
-    TInsert,
-    TUpdate,
-    TGetById = TModel | undefined,
->(config: {
-    crud: {
-        getAllArray: (filterId?: number) => Promise<TModel[]>
-        getById: (id: number) => Promise<TModel | undefined>
-        create: (data: TInsert) => Promise<TModel>
-        update: (
-            id: number,
-            data: Partial<TInsert>,
-        ) => Promise<TModel | undefined>
-        delete: (id: number) => Promise<TModel | undefined>
-    }
-    selectSchema: z.ZodType<TModel>
-    insertSchema: z.ZodType<TInsert>
-    updateSchema: z.ZodType<TUpdate>
-    getById?: (id: number) => Promise<TGetById>
-    getByIdSchema?: z.ZodType<TGetById>
-    listFilterKey?: string
-}) {
-    const {
-        crud,
-        selectSchema,
-        insertSchema,
-        updateSchema,
-        getById,
-        getByIdSchema,
-        listFilterKey = 'entityId',
-    } = config
-
-    return createTRPCRouter({
-        list: adminProcedure
-            .input(
-                z
-                    .object({ [listFilterKey]: z.coerce.number().optional() })
-                    .optional(),
-            )
-            .output(z.array(selectSchema))
-            .query(async ({ input }) =>
-                crud.getAllArray(
-                    input?.[listFilterKey as keyof typeof input] as
-                        | number
-                        | undefined,
-                ),
-            ),
-
-        byId: adminProcedure
-            .input(z.coerce.number())
-            .output(getByIdSchema ?? selectSchema.nullable())
-            .query(async ({ input }) =>
-                getById ? getById(input) : crud.getById(input),
-            ),
-
-        create: adminProcedure
-            .input(insertSchema)
-            .output(selectSchema)
-            .mutation(async ({ input }) => crud.create(input as TInsert)),
-
-        update: adminProcedure
-            .input(z.object({ id: z.coerce.number(), data: updateSchema }))
-            .output(selectSchema.nullable())
-            .mutation(async ({ input }) =>
-                crud.update(input.id, input.data as Partial<TInsert>),
-            ),
-
-        delete: adminProcedure
-            .input(z.coerce.number())
-            .output(selectSchema.nullable())
-            .mutation(async ({ input }) => crud.delete(input)),
-    })
-}

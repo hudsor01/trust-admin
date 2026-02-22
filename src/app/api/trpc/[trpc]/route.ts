@@ -5,7 +5,7 @@
  * Endpoint: /api/trpc/*
  */
 import { fetchRequestHandler } from '@trpc/server/adapters/fetch'
-import { createContext } from '@/server/trpc/index'
+import { createContext } from '@/server/trpc/init'
 import { appRouter } from '@/server/trpc/router'
 
 /**

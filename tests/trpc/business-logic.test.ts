@@ -7,8 +7,6 @@
  * 3. Trust accounting CRUD + year-end income-to-principal conversion
  * 4. Distribution create with correct field mapping
  * 5. Pending inventory item approve/reject workflow
- * 6. Specific bequest full CRUD cycle
- * 7. Trustee full CRUD cycle
  */
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import { TRPCError } from '@trpc/server'
@@ -24,11 +22,9 @@ import {
     liabilityPayment,
     pendingInventoryItem,
     personalProperty,
-    specificBequest,
     trustAccounting,
-    trustee,
 } from '@/db/schema'
-import { createCallerFactory } from '@/server/trpc/index'
+import { createCallerFactory } from '@/server/trpc/init'
 import { appRouter } from '@/server/trpc/router'
 import { isProductionDb } from '../helpers/db-guard'
 import { createAdminContext } from '../helpers/mock-context'
@@ -61,8 +57,6 @@ const testData = {
     hemsRequestIds: [] as number[],
     distributionIds: [] as number[],
     trustAccountingIds: [] as number[],
-    specificBequestIds: [] as number[],
-    trusteeIds: [] as number[],
     pendingInventoryItemIds: [] as number[],
     personalPropertyIds: [] as number[],
 }
@@ -166,50 +160,40 @@ describe.skipIf(isProductionDb)('Business Logic', () => {
                 .where(eq(distribution.entityId, testData.entityId))
         }
 
-        // 5. Specific bequests
-        for (const id of testData.specificBequestIds) {
-            await db.delete(specificBequest).where(eq(specificBequest.id, id))
-        }
-
-        // 6. Trustees
-        for (const id of testData.trusteeIds) {
-            await db.delete(trustee).where(eq(trustee.id, id))
-        }
-
-        // 7. Personal properties (created by pending inventory approve)
+        // 5. Personal properties (created by pending inventory approve)
         for (const id of testData.personalPropertyIds) {
             await db.delete(personalProperty).where(eq(personalProperty.id, id))
         }
 
-        // 8. Pending inventory items
+        // 6. Pending inventory items
         for (const id of testData.pendingInventoryItemIds) {
             await db
                 .delete(pendingInventoryItem)
                 .where(eq(pendingInventoryItem.id, id))
         }
 
-        // 9. Beneficiary
+        // 7. Beneficiary
         if (testData.beneficiaryId) {
             await db
                 .delete(beneficiary)
                 .where(eq(beneficiary.id, testData.beneficiaryId))
         }
 
-        // 10. Liability
+        // 8. Liability
         if (testData.liabilityId) {
             await db
                 .delete(liability)
                 .where(eq(liability.id, testData.liabilityId))
         }
 
-        // 11. Bank account
+        // 9. Bank account
         if (testData.bankAccountId) {
             await db
                 .delete(bankAccount)
                 .where(eq(bankAccount.id, testData.bankAccountId))
         }
 
-        // 12. Entity (must be last)
+        // 10. Entity (must be last)
         if (testData.entityId) {
             await db.delete(entity).where(eq(entity.id, testData.entityId))
         }
@@ -902,328 +886,6 @@ describe.skipIf(isProductionDb)('Business Logic', () => {
                     expect((err as Error).message).toContain(
                         'Pending item not found',
                     )
-                }
-            },
-            TEST_TIMEOUT,
-        )
-    })
-
-    // =========================================================================
-    // 6. SPECIFIC BEQUEST CRUD
-    // =========================================================================
-
-    describe('specific bequest full CRUD cycle', () => {
-        let bequestId: number | null = null
-
-        test(
-            'create a specific bequest',
-            async () => {
-                const caller = adminCaller()
-
-                const created = await caller.specificBequest.create({
-                    entityId: testData.entityId!,
-                    beneficiaryId: testData.beneficiaryId!,
-                    description: "Grandmother's diamond ring",
-                    category: 'JEWELRY',
-                    recipientName: 'BizLogic TestBen',
-                })
-
-                expect(created).toBeDefined()
-                expect(created.id).toBeDefined()
-                expect(created.description).toBe("Grandmother's diamond ring")
-                expect(created.category).toBe('JEWELRY')
-                expect(created.beneficiaryId).toBe(testData.beneficiaryId)
-                bequestId = created.id
-                testData.specificBequestIds.push(created.id)
-            },
-            TEST_TIMEOUT,
-        )
-
-        test(
-            'read the specific bequest by ID',
-            async () => {
-                const caller = adminCaller()
-                const fetched = await caller.specificBequest.byId({
-                    id: bequestId!,
-                    entityId: testData.entityId!,
-                })
-
-                expect(fetched).toBeDefined()
-                expect(fetched!.id).toBe(bequestId)
-                expect(fetched!.description).toBe("Grandmother's diamond ring")
-            },
-            TEST_TIMEOUT,
-        )
-
-        test(
-            'update the specific bequest',
-            async () => {
-                const caller = adminCaller()
-                const updated = await caller.specificBequest.update({
-                    id: bequestId!,
-                    entityId: testData.entityId!,
-                    data: {
-                        notes: 'To be distributed after probate completes',
-                        category: 'HEIRLOOM',
-                    },
-                })
-
-                expect(updated).toBeDefined()
-                expect(updated.notes).toBe(
-                    'To be distributed after probate completes',
-                )
-                expect(updated.category).toBe('HEIRLOOM')
-                // Original fields should be preserved
-                expect(updated.description).toBe("Grandmother's diamond ring")
-            },
-            TEST_TIMEOUT,
-        )
-
-        test(
-            'list specific bequests includes the created one',
-            async () => {
-                const caller = adminCaller()
-                const list = await caller.specificBequest.list({
-                    entityId: testData.entityId!,
-                })
-
-                const found = list.find((b) => b.id === bequestId)
-                expect(found).toBeDefined()
-                expect(found!.description).toBe("Grandmother's diamond ring")
-            },
-            TEST_TIMEOUT,
-        )
-
-        test(
-            'delete the specific bequest',
-            async () => {
-                const caller = adminCaller()
-
-                // Create a throwaway bequest to delete
-                const toDelete = await caller.specificBequest.create({
-                    entityId: testData.entityId!,
-                    description: 'Bequest to delete',
-                })
-                testData.specificBequestIds.push(toDelete.id)
-
-                const deleted = await caller.specificBequest.delete({
-                    id: toDelete.id,
-                    entityId: testData.entityId!,
-                })
-
-                expect(deleted).toBeDefined()
-                expect(deleted.id).toBe(toDelete.id)
-
-                // Verify it no longer exists
-                const fetched = await caller.specificBequest.byId({
-                    id: toDelete.id,
-                    entityId: testData.entityId!,
-                })
-                expect(fetched).toBeUndefined()
-
-                // Remove from cleanup since already deleted
-                testData.specificBequestIds =
-                    testData.specificBequestIds.filter(
-                        (id) => id !== toDelete.id,
-                    )
-            },
-            TEST_TIMEOUT,
-        )
-
-        test(
-            'delete throws NOT_FOUND for wrong entityId',
-            async () => {
-                const caller = adminCaller()
-                try {
-                    await caller.specificBequest.delete({
-                        id: bequestId!,
-                        entityId: 999999, // nonexistent entity
-                    })
-                    expect(true).toBe(false) // Should not reach
-                } catch (err) {
-                    expect(err).toBeInstanceOf(TRPCError)
-                    expect((err as TRPCError).code).toBe('NOT_FOUND')
-                }
-            },
-            TEST_TIMEOUT,
-        )
-    })
-
-    // =========================================================================
-    // 7. TRUSTEE CRUD
-    // =========================================================================
-
-    describe('trustee full CRUD cycle', () => {
-        let trusteeId: number | null = null
-
-        test(
-            'create a trustee',
-            async () => {
-                const caller = adminCaller()
-
-                const created = await caller.trustee.create({
-                    entityId: testData.entityId!,
-                    name: 'Jane Doe',
-                    email: 'jane.doe@trustee-test.com',
-                    order: 1,
-                    status: 'ACTIVE',
-                })
-
-                expect(created).toBeDefined()
-                expect(created.id).toBeDefined()
-                expect(created.name).toBe('Jane Doe')
-                expect(created.email).toBe('jane.doe@trustee-test.com')
-                expect(created.order).toBe(1)
-                expect(created.status).toBe('ACTIVE')
-                trusteeId = created.id
-                testData.trusteeIds.push(created.id)
-            },
-            TEST_TIMEOUT,
-        )
-
-        test(
-            'read the trustee by ID',
-            async () => {
-                const caller = adminCaller()
-                const fetched = await caller.trustee.byId({
-                    id: trusteeId!,
-                    entityId: testData.entityId!,
-                })
-
-                expect(fetched).toBeDefined()
-                expect(fetched!.id).toBe(trusteeId)
-                expect(fetched!.name).toBe('Jane Doe')
-            },
-            TEST_TIMEOUT,
-        )
-
-        test(
-            'update the trustee',
-            async () => {
-                const caller = adminCaller()
-                const updated = await caller.trustee.update({
-                    id: trusteeId!,
-                    entityId: testData.entityId!,
-                    data: {
-                        name: 'Jane Doe-Smith',
-                        phone: '555-123-4567',
-                    },
-                })
-
-                expect(updated).toBeDefined()
-                expect(updated.name).toBe('Jane Doe-Smith')
-                expect(updated.phone).toBe('555-123-4567')
-                // Original fields should be preserved
-                expect(updated.email).toBe('jane.doe@trustee-test.com')
-                expect(updated.order).toBe(1)
-            },
-            TEST_TIMEOUT,
-        )
-
-        test(
-            'create a second trustee with higher succession order',
-            async () => {
-                const caller = adminCaller()
-
-                const created = await caller.trustee.create({
-                    entityId: testData.entityId!,
-                    name: 'John Smith',
-                    email: 'john.smith@trustee-test.com',
-                    order: 2,
-                    status: 'ACTIVE',
-                })
-
-                expect(created).toBeDefined()
-                expect(created.order).toBe(2)
-                testData.trusteeIds.push(created.id)
-            },
-            TEST_TIMEOUT,
-        )
-
-        test(
-            'list trustees for entity returns both trustees',
-            async () => {
-                const caller = adminCaller()
-                const list = await caller.trustee.list({
-                    entityId: testData.entityId!,
-                })
-
-                expect(list.length).toBeGreaterThanOrEqual(2)
-                const names = list.map((t) => t.name)
-                expect(names).toContain('Jane Doe-Smith')
-                expect(names).toContain('John Smith')
-            },
-            TEST_TIMEOUT,
-        )
-
-        test(
-            'delete a trustee',
-            async () => {
-                const caller = adminCaller()
-
-                // Create a throwaway trustee to delete
-                const toDelete = await caller.trustee.create({
-                    entityId: testData.entityId!,
-                    name: 'Trustee To Delete',
-                    order: 99,
-                })
-                testData.trusteeIds.push(toDelete.id)
-
-                const deleted = await caller.trustee.delete({
-                    id: toDelete.id,
-                    entityId: testData.entityId!,
-                })
-
-                expect(deleted).toBeDefined()
-                expect(deleted.id).toBe(toDelete.id)
-
-                // Verify it no longer exists
-                const fetched = await caller.trustee.byId({
-                    id: toDelete.id,
-                    entityId: testData.entityId!,
-                })
-                expect(fetched).toBeUndefined()
-
-                // Remove from cleanup since already deleted
-                testData.trusteeIds = testData.trusteeIds.filter(
-                    (id) => id !== toDelete.id,
-                )
-            },
-            TEST_TIMEOUT,
-        )
-
-        test(
-            'update throws NOT_FOUND for wrong entityId',
-            async () => {
-                const caller = adminCaller()
-                try {
-                    await caller.trustee.update({
-                        id: trusteeId!,
-                        entityId: 999999, // nonexistent entity
-                        data: { name: 'Should Not Work' },
-                    })
-                    expect(true).toBe(false) // Should not reach
-                } catch (err) {
-                    expect(err).toBeInstanceOf(TRPCError)
-                    expect((err as TRPCError).code).toBe('NOT_FOUND')
-                }
-            },
-            TEST_TIMEOUT,
-        )
-
-        test(
-            'delete throws NOT_FOUND for wrong entityId',
-            async () => {
-                const caller = adminCaller()
-                try {
-                    await caller.trustee.delete({
-                        id: trusteeId!,
-                        entityId: 999999, // nonexistent entity
-                    })
-                    expect(true).toBe(false) // Should not reach
-                } catch (err) {
-                    expect(err).toBeInstanceOf(TRPCError)
-                    expect((err as TRPCError).code).toBe('NOT_FOUND')
                 }
             },
             TEST_TIMEOUT,

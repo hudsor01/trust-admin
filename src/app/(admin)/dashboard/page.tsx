@@ -1,9 +1,19 @@
 'use client'
 
+import { useQueryClient } from '@tanstack/react-query'
 import { Loader2 } from 'lucide-react'
 import { useCallback, useMemo, useOptimistic, useState } from 'react'
 import { toast } from 'sonner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import type {
+    BankAccount,
+    Homestead,
+    InvestmentAccount,
+    RentalProperty,
+    Task,
+    Vehicle,
+} from '@/db/schema'
+import { useNeonList, useNeonMutations } from '@/hooks/use-neon-data'
 import { logger } from '@/lib/logger'
 import { subtractMoney, sumStrings } from '@/lib/money'
 import { trpc } from '@/lib/trpc'
@@ -21,11 +31,12 @@ import { WithdrawalsPanel } from './_components/WithdrawalsPanel'
 const log = logger.create('Dashboard')
 
 export default function DashboardPage() {
-    // Use tRPC hooks for all data
+    const queryClient = useQueryClient()
+    // Use tRPC hooks for entity and business-logic data
     const { data: allEntities = [], isLoading: entitiesLoading } =
         trpc.entity.list.useQuery()
     const { data: tasks = [], isLoading: tasksLoading } =
-        trpc.task.list.useQuery()
+        useNeonList<Task>('task')
 
     // Derive primary entity ID for all entity-scoped queries
     const selectedEntity = allEntities[0]?.id
@@ -63,45 +74,38 @@ export default function DashboardPage() {
             { enabled: queryEnabled },
         )
 
-    // Asset queries for charts
+    // Asset queries for charts (via Neon Data API)
+    const entityFilter = selectedEntity
+        ? { entity_id: selectedEntity }
+        : undefined
     const { data: bankAccounts = [], isLoading: bankAccountsLoading } =
-        trpc.bankAccount.list.useQuery(
-            { entityId: selectedEntity! },
-            { enabled: queryEnabled },
-        )
+        useNeonList<BankAccount>('bank_account', entityFilter, {
+            enabled: queryEnabled,
+        })
     const { data: investmentAccounts = [], isLoading: investmentsLoading } =
-        trpc.investmentAccount.list.useQuery(
-            { entityId: selectedEntity! },
-            { enabled: queryEnabled },
-        )
+        useNeonList<InvestmentAccount>('investment_account', entityFilter, {
+            enabled: queryEnabled,
+        })
     const { data: homesteads = [], isLoading: homesteadsLoading } =
-        trpc.homestead.list.useQuery(
-            { entityId: selectedEntity! },
-            { enabled: queryEnabled },
-        )
+        useNeonList<Homestead>('homestead', entityFilter, {
+            enabled: queryEnabled,
+        })
     const { data: rentalProperties = [], isLoading: rentalsLoading } =
-        trpc.rentalProperty.list.useQuery(
-            { entityId: selectedEntity! },
-            { enabled: queryEnabled },
-        )
+        useNeonList<RentalProperty>('rental_property', entityFilter, {
+            enabled: queryEnabled,
+        })
     const { data: vehicles = [], isLoading: vehiclesLoading } =
-        trpc.vehicle.list.useQuery(
-            { entityId: selectedEntity! },
-            { enabled: queryEnabled },
-        )
+        useNeonList<Vehicle>('vehicle', entityFilter, { enabled: queryEnabled })
+
+    // Liability query stays in tRPC (business logic router)
     const { data: liabilities = [], isLoading: liabilitiesLoading } =
         trpc.liability.list.useQuery(
             { entityId: selectedEntity! },
             { enabled: queryEnabled },
         )
 
-    const utils = trpc.useUtils()
-    const createTaskMutation = trpc.task.create.useMutation({
-        onSuccess: () => utils.task.list.invalidate(),
-    })
-    const updateTaskMutation = trpc.task.update.useMutation({
-        onSuccess: () => utils.task.list.invalidate(),
-    })
+    const { create: createTaskMutation, update: updateTaskMutation } =
+        useNeonMutations<Task>('task')
 
     const loading =
         entitiesLoading ||
@@ -139,10 +143,10 @@ export default function DashboardPage() {
                 log.error('Failed to update task', { error })
                 toast.error('Failed to update task')
                 // Revert optimistic state by re-fetching real data
-                utils.task.list.invalidate()
+                queryClient.invalidateQueries({ queryKey: ['neon', 'task'] })
             }
         },
-        [setOptimisticTask, updateTaskMutation, utils.task.list],
+        [setOptimisticTask, updateTaskMutation, queryClient],
     )
 
     const addTask = useCallback(async () => {

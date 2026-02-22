@@ -18,14 +18,11 @@ import {
     distribution,
     entity,
     hemsRequest,
-    homestead,
     liability,
     liabilityPayment,
     trustAccounting,
-    trustee,
-    vehicle,
 } from '@/db/schema'
-import { createCallerFactory } from '@/server/trpc/index'
+import { createCallerFactory } from '@/server/trpc/init'
 import { appRouter } from '@/server/trpc/router'
 import { isProductionDb } from '../helpers/db-guard'
 import { createAdminContext } from '../helpers/mock-context'
@@ -46,17 +43,13 @@ function adminCaller() {
 const testData = {
     entityId1: null as number | null,
     entityId2: null as number | null,
-    homesteadId1: null as number | null,
-    homesteadId2: null as number | null,
     bankAccountId1: null as number | null,
     bankAccountId2: null as number | null,
-    vehicleId1: null as number | null,
     liabilityId1: null as number | null,
     liabilityId2: null as number | null,
     beneficiaryId1: null as number | null,
     distributionId1: null as number | null,
     trustAccountingId1: null as number | null,
-    trusteeId1: null as number | null,
 }
 
 // =============================================================================
@@ -95,37 +88,6 @@ describe.skipIf(isProductionDb)('EntityId Validation', () => {
             .returning()
         testData.entityId2 = e2.id
 
-        // Create homesteads in each entity
-        const [h1] = await db
-            .insert(homestead)
-            .values({
-                entityId: testData.entityId1,
-                streetAddress: '123 Entity1 St',
-                city: 'Dallas',
-                state: 'TX',
-                zip: '75201',
-                propertyType: 'SINGLE_FAMILY',
-                status: 'ACTIVE',
-                updatedAt: now,
-            })
-            .returning()
-        testData.homesteadId1 = h1.id
-
-        const [h2] = await db
-            .insert(homestead)
-            .values({
-                entityId: testData.entityId2,
-                streetAddress: '456 Entity2 St',
-                city: 'Houston',
-                state: 'TX',
-                zip: '77001',
-                propertyType: 'SINGLE_FAMILY',
-                status: 'ACTIVE',
-                updatedAt: now,
-            })
-            .returning()
-        testData.homesteadId2 = h2.id
-
         // Create bank accounts in each entity
         const [ba1] = await db
             .insert(bankAccount)
@@ -154,21 +116,6 @@ describe.skipIf(isProductionDb)('EntityId Validation', () => {
             })
             .returning()
         testData.bankAccountId2 = ba2.id
-
-        // Create a vehicle in entity 1
-        const [v1] = await db
-            .insert(vehicle)
-            .values({
-                entityId: testData.entityId1,
-                year: 2023,
-                make: 'Toyota',
-                model: 'Camry',
-                vin: `TESTVIN${ts}`,
-                status: 'ACTIVE',
-                updatedAt: now,
-            })
-            .returning()
-        testData.vehicleId1 = v1.id
 
         // Create liabilities in each entity
         const [l1] = await db
@@ -247,20 +194,6 @@ describe.skipIf(isProductionDb)('EntityId Validation', () => {
             })
             .returning()
         testData.trustAccountingId1 = ta1.id
-
-        // Create a trustee in entity 1
-        const [t1] = await db
-            .insert(trustee)
-            .values({
-                entityId: testData.entityId1,
-                name: 'EntityId Test Trustee',
-                email: `trustee-test-${ts}@example.com`,
-                status: 'ACTIVE',
-                order: 99,
-                updatedAt: now,
-            })
-            .returning()
-        testData.trusteeId1 = t1.id
     }, TEST_TIMEOUT)
 
     afterAll(async () => {
@@ -277,8 +210,6 @@ describe.skipIf(isProductionDb)('EntityId Validation', () => {
                 .delete(trustAccounting)
                 .where(eq(trustAccounting.entityId, testData.entityId1))
         }
-        if (testData.trusteeId1)
-            await db.delete(trustee).where(eq(trustee.id, testData.trusteeId1))
         if (testData.distributionId1)
             await db
                 .delete(distribution)
@@ -295,8 +226,6 @@ describe.skipIf(isProductionDb)('EntityId Validation', () => {
             await db
                 .delete(liability)
                 .where(eq(liability.id, testData.liabilityId2))
-        if (testData.vehicleId1)
-            await db.delete(vehicle).where(eq(vehicle.id, testData.vehicleId1))
         if (testData.bankAccountId1)
             await db
                 .delete(bankAccount)
@@ -305,14 +234,6 @@ describe.skipIf(isProductionDb)('EntityId Validation', () => {
             await db
                 .delete(bankAccount)
                 .where(eq(bankAccount.id, testData.bankAccountId2))
-        if (testData.homesteadId1)
-            await db
-                .delete(homestead)
-                .where(eq(homestead.id, testData.homesteadId1))
-        if (testData.homesteadId2)
-            await db
-                .delete(homestead)
-                .where(eq(homestead.id, testData.homesteadId2))
         if (testData.entityId1)
             await db.delete(entity).where(eq(entity.id, testData.entityId1))
         if (testData.entityId2)
@@ -324,44 +245,6 @@ describe.skipIf(isProductionDb)('EntityId Validation', () => {
     // =========================================================================
 
     describe('list procedures require entityId and filter correctly', () => {
-        test('homestead.list returns only records for the given entity', async () => {
-            const caller = adminCaller()
-            const results1 = await caller.homestead.list({
-                entityId: testData.entityId1!,
-            })
-            const results2 = await caller.homestead.list({
-                entityId: testData.entityId2!,
-            })
-
-            expect(results1.some((r) => r.id === testData.homesteadId1)).toBe(
-                true,
-            )
-            expect(results1.some((r) => r.id === testData.homesteadId2)).toBe(
-                false,
-            )
-
-            expect(results2.some((r) => r.id === testData.homesteadId2)).toBe(
-                true,
-            )
-            expect(results2.some((r) => r.id === testData.homesteadId1)).toBe(
-                false,
-            )
-        })
-
-        test('bankAccount.list returns only records for the given entity', async () => {
-            const caller = adminCaller()
-            const results = await caller.bankAccount.list({
-                entityId: testData.entityId1!,
-            })
-
-            expect(results.some((r) => r.id === testData.bankAccountId1)).toBe(
-                true,
-            )
-            expect(results.some((r) => r.id === testData.bankAccountId2)).toBe(
-                false,
-            )
-        })
-
         test('liability.list returns only records for the given entity', async () => {
             const caller = adminCaller()
             const results = await caller.liability.list({
@@ -374,15 +257,6 @@ describe.skipIf(isProductionDb)('EntityId Validation', () => {
             expect(results.some((r) => r.id === testData.liabilityId2)).toBe(
                 false,
             )
-        })
-
-        test('vehicle.list returns only records for the given entity', async () => {
-            const caller = adminCaller()
-            const results = await caller.vehicle.list({
-                entityId: testData.entityId1!,
-            })
-
-            expect(results.some((r) => r.id === testData.vehicleId1)).toBe(true)
         })
 
         test('beneficiary.list returns only records for the given entity', async () => {
@@ -417,98 +291,20 @@ describe.skipIf(isProductionDb)('EntityId Validation', () => {
                 results.some((r) => r.id === testData.trustAccountingId1),
             ).toBe(true)
         })
-
-        test('trustee.list returns only records for the given entity', async () => {
-            const caller = adminCaller()
-            const results = await caller.trustee.list({
-                entityId: testData.entityId1!,
-            })
-
-            expect(results.some((r) => r.id === testData.trusteeId1)).toBe(true)
-        })
     })
 
     // =========================================================================
     // BYID PROCEDURE TESTS - entityId scoping
     // =========================================================================
 
-    describe('byId procedures enforce entity scoping', () => {
-        test('homestead.byId returns record with correct entityId', async () => {
-            const caller = adminCaller()
-            const result = await caller.homestead.byId({
-                id: testData.homesteadId1!,
-                entityId: testData.entityId1!,
-            })
-
-            expect(result).not.toBeNull()
-            expect(result?.id).toBe(testData.homesteadId1)
-        })
-
-        test('homestead.byId returns null for wrong entityId', async () => {
-            const caller = adminCaller()
-            const result = await caller.homestead.byId({
-                id: testData.homesteadId1!,
-                entityId: testData.entityId2!, // wrong entity
-            })
-
-            expect(result).toBeUndefined()
-        })
-
-        // Note: liability.byId is skipped because it uses `with: { entity, payments }`
-        // which requires Drizzle relations that aren't yet defined for the liability table.
-        // The entity scoping WHERE clause is identical to other routers and is tested indirectly
-        // via the update/delete tests below.
-
-        test('bankAccount.byId returns null for wrong entityId', async () => {
-            const caller = adminCaller()
-            const result = await caller.bankAccount.byId({
-                id: testData.bankAccountId1!,
-                entityId: testData.entityId2!, // wrong entity
-            })
-
-            expect(result).toBeUndefined()
-        })
-    })
+    // Note: byId tests for asset routers (homestead, bankAccount, etc.) were removed
+    // because those routers are now served via Neon Data API (PostgREST).
 
     // =========================================================================
     // UPDATE PROCEDURE TESTS - entityId in WHERE clause
     // =========================================================================
 
     describe('update procedures enforce entity scoping', () => {
-        test('homestead.update succeeds with correct entityId', async () => {
-            const caller = adminCaller()
-            const result = await caller.homestead.update({
-                id: testData.homesteadId1!,
-                entityId: testData.entityId1!,
-                data: { city: 'Fort Worth' },
-            })
-
-            expect(result).not.toBeNull()
-            expect(result.city).toBe('Fort Worth')
-
-            // Restore original
-            await caller.homestead.update({
-                id: testData.homesteadId1!,
-                entityId: testData.entityId1!,
-                data: { city: 'Dallas' },
-            })
-        })
-
-        test('homestead.update throws NOT_FOUND for wrong entityId', async () => {
-            const caller = adminCaller()
-            try {
-                await caller.homestead.update({
-                    id: testData.homesteadId1!,
-                    entityId: testData.entityId2!, // wrong entity
-                    data: { city: 'Should Not Work' },
-                })
-                expect(true).toBe(false) // Should not reach here
-            } catch (err) {
-                expect(err).toBeInstanceOf(TRPCError)
-                expect((err as TRPCError).code).toBe('NOT_FOUND')
-            }
-        })
-
         test('liability.update throws NOT_FOUND for wrong entityId', async () => {
             const caller = adminCaller()
             try {
@@ -523,21 +319,6 @@ describe.skipIf(isProductionDb)('EntityId Validation', () => {
                 expect((err as TRPCError).code).toBe('NOT_FOUND')
             }
         })
-
-        test('trustee.update throws NOT_FOUND for wrong entityId', async () => {
-            const caller = adminCaller()
-            try {
-                await caller.trustee.update({
-                    id: testData.trusteeId1!,
-                    entityId: testData.entityId2!, // wrong entity
-                    data: { name: 'Should Not Work' },
-                })
-                expect(true).toBe(false)
-            } catch (err) {
-                expect(err).toBeInstanceOf(TRPCError)
-                expect((err as TRPCError).code).toBe('NOT_FOUND')
-            }
-        })
     })
 
     // =========================================================================
@@ -545,39 +326,11 @@ describe.skipIf(isProductionDb)('EntityId Validation', () => {
     // =========================================================================
 
     describe('delete procedures enforce entity scoping', () => {
-        test('homestead.delete throws NOT_FOUND for wrong entityId', async () => {
-            const caller = adminCaller()
-            try {
-                await caller.homestead.delete({
-                    id: testData.homesteadId1!,
-                    entityId: testData.entityId2!, // wrong entity
-                })
-                expect(true).toBe(false)
-            } catch (err) {
-                expect(err).toBeInstanceOf(TRPCError)
-                expect((err as TRPCError).code).toBe('NOT_FOUND')
-            }
-        })
-
         test('liability.delete throws NOT_FOUND for wrong entityId', async () => {
             const caller = adminCaller()
             try {
                 await caller.liability.delete({
                     id: testData.liabilityId1!,
-                    entityId: testData.entityId2!, // wrong entity
-                })
-                expect(true).toBe(false)
-            } catch (err) {
-                expect(err).toBeInstanceOf(TRPCError)
-                expect((err as TRPCError).code).toBe('NOT_FOUND')
-            }
-        })
-
-        test('vehicle.delete throws NOT_FOUND for wrong entityId', async () => {
-            const caller = adminCaller()
-            try {
-                await caller.vehicle.delete({
-                    id: testData.vehicleId1!,
                     entityId: testData.entityId2!, // wrong entity
                 })
                 expect(true).toBe(false)

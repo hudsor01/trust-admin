@@ -5,7 +5,7 @@ import { db } from '@/db'
 import { getEntityById } from '@/db/queries'
 import { entity } from '@/db/schema'
 import { insertEntitySchema, updateEntitySchema } from '@/db/validation'
-import { adminProcedure, createTRPCRouter } from '../index'
+import { adminProcedure, createTRPCRouter } from '../init'
 
 export const entityRouter = createTRPCRouter({
     list: adminProcedure.query(async () => {

@@ -1,92 +1,56 @@
 /**
  * Root tRPC Router
  *
- * Merges all resource routers into a single appRouter.
- * This is the type exported for client-side inference.
+ * Contains only routers with real business logic or cross-cutting concerns.
+ * Pure CRUD tables are served directly via Neon Data API (PostgREST).
  */
-import { createTRPCRouter } from './index'
+import { createTRPCRouter } from './init'
 
-// Import all resource routers
 import { activityLogRouter } from './routers/activityLog'
-import { artworkRouter } from './routers/artwork'
-import { bankAccountRouter } from './routers/bankAccount'
 import { beneficiaryRouter } from './routers/beneficiary'
 import { contactRouter } from './routers/contact'
 import { distributionRouter } from './routers/distribution'
-import { documentRouter } from './routers/document'
 import { entityRouter } from './routers/entity'
 import { hemsRequestRouter } from './routers/hemsRequest'
-import { homesteadRouter } from './routers/homestead'
-import { investmentAccountRouter } from './routers/investmentAccount'
 import { liabilityRouter } from './routers/liability'
 import { liabilityPaymentRouter } from './routers/liabilityPayment'
 import { pendingInventoryItemRouter } from './routers/pendingInventoryItem'
-import { personalPropertyRouter } from './routers/personalProperty'
-import { rentalPropertyRouter } from './routers/rentalProperty'
-import { specificBequestRouter } from './routers/specificBequest'
-import { taskRouter } from './routers/task'
 import { trustAccountingRouter } from './routers/trustAccounting'
-import { trusteeRouter } from './routers/trustee'
-import { trusteeFeeEntryRouter } from './routers/trusteeFeeEntry'
-import { trusteeFeeScheduleRouter } from './routers/trusteeFeeSchedule'
 import { userManagementRouter } from './routers/userManagement'
 import { valuationRouter } from './routers/valuation'
-import { vehicleRouter } from './routers/vehicle'
 import { withdrawalRecordRouter } from './routers/withdrawalRecord'
 
 /**
- * Root router - merges all resource routers
+ * Root router — business logic only.
  *
- * Usage in components:
- *   trpc.entity.list.useQuery()
- *   trpc.liability.recordPayment.useMutation()
- *   trpc.hemsRequest.approve.useMutation()
+ * Pure-CRUD tables (vehicle, homestead, bankAccount, etc.) were removed and
+ * are now accessed via Neon Data API + TanStack Query in the frontend.
  */
 export const appRouter = createTRPCRouter({
-    // Core
+    // Core / Auth
     entity: entityRouter,
     beneficiary: beneficiaryRouter,
     contact: contactRouter,
-    task: taskRouter,
 
-    // Assets
-    bankAccount: bankAccountRouter,
-    investmentAccount: investmentAccountRouter,
-    vehicle: vehicleRouter,
-    homestead: homesteadRouter,
-    rentalProperty: rentalPropertyRouter,
-    artwork: artworkRouter,
-    personalProperty: personalPropertyRouter,
-
-    // Liabilities
+    // Liabilities (multi-table transactions)
     liability: liabilityRouter,
     liabilityPayment: liabilityPaymentRouter,
 
-    // Accounting
+    // Accounting (complex ledger logic)
     trustAccounting: trustAccountingRouter,
     valuation: valuationRouter,
 
-    // Beneficiary & Distributions
+    // Beneficiary workflows
     hemsRequest: hemsRequestRouter,
     distribution: distributionRouter,
-    specificBequest: specificBequestRouter,
     withdrawalRecord: withdrawalRecordRouter,
 
-    // Trustees & Fees
-    trustee: trusteeRouter,
-    trusteeFeeSchedule: trusteeFeeScheduleRouter,
-    trusteeFeeEntry: trusteeFeeEntryRouter,
-
-    // Documents & Audit
-    document: documentRouter,
+    // Audit & inventory
     activityLog: activityLogRouter,
-
-    // Inventory Queue
     pendingInventoryItem: pendingInventoryItemRouter,
 
-    // User Management
+    // User management
     userManagement: userManagementRouter,
 })
 
-// Export type for client-side inference
 export type AppRouter = typeof appRouter

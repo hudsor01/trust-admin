@@ -12,8 +12,9 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
-import type { Liability } from '@/db/schema'
+import type { BankAccount, Liability } from '@/db/schema'
 import { useEntityFilter } from '@/hooks/use-entity-filter'
+import { useNeonList } from '@/hooks/use-neon-data'
 import { useResourceForm } from '@/hooks/use-resource-form'
 import { toDateInput } from '@/lib/form-factory'
 import { logger } from '@/lib/logger'
@@ -65,8 +66,9 @@ export default function LiabilitiesPage() {
     )
 
     // Fetch bank accounts for payment form
-    const { data: bankAccounts = [] } = trpc.bankAccount.list.useQuery(
-        { entityId: selectedEntity! },
+    const { data: bankAccounts = [] } = useNeonList<BankAccount>(
+        'bank_account',
+        selectedEntity ? { entity_id: selectedEntity } : undefined,
         { enabled: !!selectedEntity },
     )
 

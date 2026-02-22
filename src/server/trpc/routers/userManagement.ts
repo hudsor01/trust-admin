@@ -21,7 +21,7 @@ import {
     createTRPCRouter,
     ownerProcedure,
     protectedProcedure,
-} from '../index'
+} from '../init'
 
 export const userManagementRouter = createTRPCRouter({
     /**
@@ -56,7 +56,19 @@ export const userManagementRouter = createTRPCRouter({
             })
         }
 
-        const neonUsers = data?.users ?? []
+        const neonUsers = (data?.users ?? []) as Array<{
+            id: string
+            name: string
+            email: string
+            emailVerified: boolean
+            image?: string | null
+            createdAt: Date
+            updatedAt: Date
+            role?: string | null
+            banned?: boolean | null
+            banReason?: string | null
+            banExpires?: Date | null
+        }>
 
         // 2. Fetch all userProfiles for enrichment
         const profiles = await db

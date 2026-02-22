@@ -32,7 +32,9 @@ import {
     TableRow,
 } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import type { Trustee } from '@/db/schema'
 import { useEntityFilter } from '@/hooks/use-entity-filter'
+import { useNeonList, useNeonMutations } from '@/hooks/use-neon-data'
 import { useResourceForm } from '@/hooks/use-resource-form'
 import { trpc } from '@/lib/trpc'
 import { calculateAge } from '@/utils/formatters'
@@ -165,6 +167,7 @@ export default function SettingsPage() {
         trpc.entity.list.useQuery()
     const [entityId, setEntityId] = useEntityFilter()
     const selectedEntity = entityId || entities[0]?.id
+    const numericEntityId = selectedEntity ? Number(selectedEntity) : undefined
     const [activeTab, setActiveTab] = useState('beneficiaries')
 
     const queryEnabled = !!selectedEntity
@@ -179,13 +182,13 @@ export default function SettingsPage() {
     })
 
     const { data: trustees = [], isLoading: trusteesLoading } =
-        trpc.trustee.list.useQuery(
-            { entityId: selectedEntity },
+        useNeonList<Trustee>(
+            'trustee',
+            selectedEntity ? { entity_id: Number(selectedEntity) } : undefined,
             { enabled: queryEnabled },
         )
-    const updateTrusteeMutation = trpc.trustee.update.useMutation({
-        onSuccess: () => utils.trustee.list.invalidate(),
-    })
+    const { update: updateTrusteeMutation } =
+        useNeonMutations<Trustee>('trustee')
 
     const { data: contacts = [], isLoading: contactsLoading } =
         trpc.contact.list.useQuery()
@@ -353,7 +356,7 @@ export default function SettingsPage() {
                                                             {
                                                                 id: b.id,
                                                                 entityId:
-                                                                    selectedEntity!,
+                                                                    numericEntityId!,
                                                                 data: {
                                                                     dob: val,
                                                                 },
@@ -367,7 +370,7 @@ export default function SettingsPage() {
                                                             {
                                                                 id: b.id,
                                                                 entityId:
-                                                                    selectedEntity!,
+                                                                    numericEntityId!,
                                                                 data: {
                                                                     email: val,
                                                                 },
@@ -381,7 +384,7 @@ export default function SettingsPage() {
                                                             {
                                                                 id: b.id,
                                                                 entityId:
-                                                                    selectedEntity!,
+                                                                    numericEntityId!,
                                                                 data: {
                                                                     phone: val,
                                                                 },
@@ -431,7 +434,7 @@ export default function SettingsPage() {
                                                             {
                                                                 id: t.id,
                                                                 entityId:
-                                                                    selectedEntity!,
+                                                                    numericEntityId!,
                                                                 data: {
                                                                     dob: val,
                                                                 },
@@ -445,7 +448,7 @@ export default function SettingsPage() {
                                                             {
                                                                 id: t.id,
                                                                 entityId:
-                                                                    selectedEntity!,
+                                                                    numericEntityId!,
                                                                 data: {
                                                                     email: val,
                                                                 },
@@ -459,7 +462,7 @@ export default function SettingsPage() {
                                                             {
                                                                 id: t.id,
                                                                 entityId:
-                                                                    selectedEntity!,
+                                                                    numericEntityId!,
                                                                 data: {
                                                                     phone: val,
                                                                 },

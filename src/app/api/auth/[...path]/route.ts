@@ -12,6 +12,6 @@
  * @see https://neon.com/docs/auth/quick-start/nextjs
  */
 
-import { authApiHandler } from '@neondatabase/auth/next/server'
+import { authServer } from '@/lib/auth/server'
 
-export const { GET, POST, PUT, DELETE, PATCH } = authApiHandler()
+export const { GET, POST } = authServer.handler()

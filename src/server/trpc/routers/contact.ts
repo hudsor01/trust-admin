@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { db } from '@/db'
 import { contact } from '@/db/schema'
 import { insertContactSchema, updateContactSchema } from '@/db/validation'
-import { adminProcedure, createTRPCRouter } from '../index'
+import { adminProcedure, createTRPCRouter } from '../init'
 
 export const contactRouter = createTRPCRouter({
     // Contacts are shared across entities (attorneys, accountants, advisors)

@@ -14,11 +14,7 @@ import {
     updateBeneficiarySchema,
 } from '@/db/validation'
 import { addBreadcrumb, traceBusinessOperation } from '@/lib/sentry'
-import {
-    adminProcedure,
-    beneficiaryProcedure,
-    createTRPCRouter,
-} from '../index'
+import { adminProcedure, beneficiaryProcedure, createTRPCRouter } from '../init'
 
 export const beneficiaryRouter = createTRPCRouter({
     list: adminProcedure

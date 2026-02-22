@@ -12,8 +12,8 @@ import {
     SelectValue,
 } from '@/components/ui/select'
 import type { Vehicle } from '@/db/schema'
-import { useCrudMutations } from '@/hooks/use-crud-mutations'
 import { useEntityFilter } from '@/hooks/use-entity-filter'
+import { useNeonList, useNeonMutations } from '@/hooks/use-neon-data'
 import { useResourceForm } from '@/hooks/use-resource-form'
 import { toDateInput, vehicleFormDefaults } from '@/lib/form-factory'
 import { logger } from '@/lib/logger'
@@ -32,15 +32,15 @@ import { VehicleTable } from './_components/VehicleTable'
 const log = logger.create('Vehicles')
 
 export default function VehiclesPage() {
-    const utils = trpc.useUtils()
     const { data: entities = [], isLoading: entitiesLoading } =
         trpc.entity.list.useQuery()
     const [entityIdStr, setEntityIdStr] = useEntityFilter()
     const selectedEntity = entityIdStr ? Number(entityIdStr) : entities[0]?.id
 
     const { data: vehicles = [], isLoading: vehiclesLoading } =
-        trpc.vehicle.list.useQuery(
-            { entityId: selectedEntity! },
+        useNeonList<Vehicle>(
+            'vehicle',
+            selectedEntity ? { entity_id: selectedEntity } : undefined,
             { enabled: !!selectedEntity },
         )
 
@@ -48,10 +48,7 @@ export default function VehiclesPage() {
         create: createVehicleMutation,
         update: updateVehicleMutation,
         delete: deleteVehicleMutation,
-    } = useCrudMutations({
-        router: trpc.vehicle,
-        invalidate: () => utils.vehicle.list.invalidate(),
-    })
+    } = useNeonMutations<Vehicle>('vehicle')
 
     const [pendingDelete, setPendingDelete] = useState<Vehicle | null>(null)
 

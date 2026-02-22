@@ -7,7 +7,7 @@ import {
     insertLiabilityPaymentSchema,
     updateLiabilityPaymentSchema,
 } from '@/db/validation'
-import { adminProcedure, createTRPCRouter } from '../index'
+import { adminProcedure, createTRPCRouter } from '../init'
 
 export const liabilityPaymentRouter = createTRPCRouter({
     list: adminProcedure

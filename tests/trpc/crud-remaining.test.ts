@@ -1,33 +1,28 @@
 /**
  * tRPC CRUD Operations Tests - Remaining Routers
  *
- * Tests the full create -> list -> byId -> update -> delete lifecycle for
- * 6 tRPC routers that previously had 0% test coverage:
+ * Tests the full create -> list -> byId -> update -> delete lifecycle for:
  *
- *   1. document       (entity-scoped)
- *   2. liabilityPayment (liabilityId-scoped, not entity-scoped)
- *   3. trusteeFeeSchedule (entity-scoped)
- *   4. trusteeFeeEntry    (entity-scoped, with listWithSchedule)
- *   5. valuation          (global, with forAsset)
- *   6. withdrawalRecord   (entity-scoped, with optional beneficiaryId filter)
+ *   1. liabilityPayment (liabilityId-scoped, not entity-scoped)
+ *   2. valuation          (global, with forAsset)
+ *   3. withdrawalRecord   (entity-scoped, with optional beneficiaryId filter)
+ *
+ * Note: document, trusteeFeeSchedule, trusteeFeeEntry were removed from tRPC
+ * and are now served via Neon Data API (PostgREST).
  */
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import { eq } from 'drizzle-orm'
 import { db } from '@/db'
 import {
     beneficiary,
-    document,
     entity,
     liability,
     liabilityPayment,
-    trustee,
-    trusteeFeeEntry,
-    trusteeFeeSchedule,
     valuation,
     vehicle,
     withdrawalRecord,
 } from '@/db/schema'
-import { createCallerFactory } from '@/server/trpc/index'
+import { createCallerFactory } from '@/server/trpc/init'
 import { appRouter } from '@/server/trpc/router'
 import { isProductionDb } from '../helpers/db-guard'
 import { createAdminContext } from '../helpers/mock-context'
@@ -59,14 +54,10 @@ const testData = {
     entityId: null as number | null,
     beneficiaryId: null as number | null,
     liabilityId: null as number | null,
-    trusteeId: null as number | null,
     vehicleId: null as number | null,
 
     // IDs created by tests, tracked for cleanup
-    documentIds: [] as number[],
     liabilityPaymentIds: [] as number[],
-    trusteeFeeScheduleIds: [] as number[],
-    trusteeFeeEntryIds: [] as number[],
     valuationIds: [] as number[],
     withdrawalRecordIds: [] as number[],
 }
@@ -123,21 +114,7 @@ describe.skipIf(isProductionDb)('CRUD Operations - Remaining Routers', () => {
             .returning()
         testData.liabilityId = l1.id
 
-        // 4. Trustee (for trusteeFeeSchedule and trusteeFeeEntry)
-        const [t1] = await db
-            .insert(trustee)
-            .values({
-                entityId: testData.entityId,
-                name: `CrudRem Trustee ${TS}`,
-                email: `crudrem-trustee-${TS}@example.com`,
-                order: 1,
-                status: 'ACTIVE',
-                updatedAt: now,
-            })
-            .returning()
-        testData.trusteeId = t1.id
-
-        // 5. Vehicle (for valuation link)
+        // 4. Vehicle (for valuation link)
         const [v1] = await db
             .insert(vehicle)
             .values({
@@ -157,185 +134,48 @@ describe.skipIf(isProductionDb)('CRUD Operations - Remaining Routers', () => {
     afterAll(async () => {
         // Clean up in reverse FK order to avoid constraint violations.
 
-        // 1. trusteeFeeEntry (depends on trusteeFeeSchedule, trustee, entity)
-        for (const id of testData.trusteeFeeEntryIds) {
-            await db.delete(trusteeFeeEntry).where(eq(trusteeFeeEntry.id, id))
-        }
-
-        // 2. trusteeFeeSchedule (depends on trustee, entity)
-        for (const id of testData.trusteeFeeScheduleIds) {
-            await db
-                .delete(trusteeFeeSchedule)
-                .where(eq(trusteeFeeSchedule.id, id))
-        }
-
-        // 3. withdrawalRecord (depends on beneficiary, entity)
+        // 1. withdrawalRecord (depends on beneficiary, entity)
         for (const id of testData.withdrawalRecordIds) {
             await db.delete(withdrawalRecord).where(eq(withdrawalRecord.id, id))
         }
 
-        // 4. liabilityPayment (depends on liability)
+        // 2. liabilityPayment (depends on liability)
         for (const id of testData.liabilityPaymentIds) {
             await db.delete(liabilityPayment).where(eq(liabilityPayment.id, id))
         }
 
-        // 5. valuation (depends on vehicle)
+        // 3. valuation (depends on vehicle)
         for (const id of testData.valuationIds) {
             await db.delete(valuation).where(eq(valuation.id, id))
         }
 
-        // 6. document (depends on entity)
-        for (const id of testData.documentIds) {
-            await db.delete(document).where(eq(document.id, id))
-        }
-
-        // 7. vehicle
+        // 4. vehicle
         if (testData.vehicleId) {
             await db.delete(vehicle).where(eq(vehicle.id, testData.vehicleId))
         }
 
-        // 8. trustee (depends on entity)
-        if (testData.trusteeId) {
-            await db.delete(trustee).where(eq(trustee.id, testData.trusteeId))
-        }
-
-        // 9. liability (depends on entity)
+        // 5. liability (depends on entity)
         if (testData.liabilityId) {
             await db
                 .delete(liability)
                 .where(eq(liability.id, testData.liabilityId))
         }
 
-        // 10. beneficiary (depends on entity)
+        // 6. beneficiary (depends on entity)
         if (testData.beneficiaryId) {
             await db
                 .delete(beneficiary)
                 .where(eq(beneficiary.id, testData.beneficiaryId))
         }
 
-        // 11. entity (must be last)
+        // 7. entity (must be last)
         if (testData.entityId) {
             await db.delete(entity).where(eq(entity.id, testData.entityId))
         }
     }, TEST_TIMEOUT)
 
     // =========================================================================
-    // 1. DOCUMENT ROUTER (entity-scoped)
-    // =========================================================================
-
-    describe('document', () => {
-        test(
-            'create returns a new document with an id',
-            async () => {
-                const caller = adminCaller()
-                const created = await caller.document.create({
-                    entityId: testData.entityId!,
-                    name: `Test Trust Agreement ${TS}`,
-                    documentType: 'LEGAL',
-                    filePath: `/documents/trust-agreement-${TS}.pdf`,
-                })
-                testData.documentIds.push(created.id)
-
-                expect(created).toBeDefined()
-                expect(created.id).toBeGreaterThan(0)
-                expect(created.name).toBe(`Test Trust Agreement ${TS}`)
-                expect(created.documentType).toBe('LEGAL')
-                expect(created.filePath).toBe(
-                    `/documents/trust-agreement-${TS}.pdf`,
-                )
-                expect(created.entityId).toBe(testData.entityId)
-            },
-            TEST_TIMEOUT,
-        )
-
-        test(
-            'list returns the created document for the entity',
-            async () => {
-                const caller = adminCaller()
-                const results = await caller.document.list({
-                    entityId: testData.entityId!,
-                })
-
-                expect(Array.isArray(results)).toBe(true)
-                expect(
-                    results.some((r) => r.id === testData.documentIds[0]),
-                ).toBe(true)
-            },
-            TEST_TIMEOUT,
-        )
-
-        test(
-            'byId returns the specific document',
-            async () => {
-                const caller = adminCaller()
-                const docId = testData.documentIds[0]!
-                const result = await caller.document.byId({
-                    id: docId,
-                    entityId: testData.entityId!,
-                })
-
-                expect(result).toBeDefined()
-                expect(result?.id).toBe(docId)
-                expect(result?.name).toBe(`Test Trust Agreement ${TS}`)
-                expect(result?.documentType).toBe('LEGAL')
-            },
-            TEST_TIMEOUT,
-        )
-
-        test(
-            'update modifies the document and returns updated record',
-            async () => {
-                const caller = adminCaller()
-                const docId = testData.documentIds[0]!
-                const updated = await caller.document.update({
-                    id: docId,
-                    entityId: testData.entityId!,
-                    data: { name: `Updated Trust Agreement ${TS}` },
-                })
-
-                expect(updated).toBeDefined()
-                expect(updated.id).toBe(docId)
-                expect(updated.name).toBe(`Updated Trust Agreement ${TS}`)
-                // Original fields should be preserved
-                expect(updated.documentType).toBe('LEGAL')
-                expect(updated.filePath).toBe(
-                    `/documents/trust-agreement-${TS}.pdf`,
-                )
-            },
-            TEST_TIMEOUT,
-        )
-
-        test(
-            'delete removes the document and returns the deleted record',
-            async () => {
-                const caller = adminCaller()
-                const docId = testData.documentIds[0]!
-                const deleted = await caller.document.delete({
-                    id: docId,
-                    entityId: testData.entityId!,
-                })
-
-                expect(deleted).toBeDefined()
-                expect(deleted.id).toBe(docId)
-
-                // Verify it is gone
-                const result = await caller.document.byId({
-                    id: docId,
-                    entityId: testData.entityId!,
-                })
-                expect(result).toBeUndefined()
-
-                // Remove from cleanup since already deleted
-                testData.documentIds = testData.documentIds.filter(
-                    (id) => id !== docId,
-                )
-            },
-            TEST_TIMEOUT,
-        )
-    })
-
-    // =========================================================================
-    // 2. LIABILITY PAYMENT ROUTER (not entity-scoped, uses liabilityId)
+    // 1. LIABILITY PAYMENT ROUTER (not entity-scoped, uses liabilityId)
     // =========================================================================
 
     describe('liabilityPayment', () => {
@@ -450,287 +290,7 @@ describe.skipIf(isProductionDb)('CRUD Operations - Remaining Routers', () => {
     })
 
     // =========================================================================
-    // 3. TRUSTEE FEE SCHEDULE ROUTER (entity-scoped)
-    // =========================================================================
-
-    describe('trusteeFeeSchedule', () => {
-        test(
-            'create returns a new trustee fee schedule with an id',
-            async () => {
-                const caller = adminCaller()
-                const effectiveDate = new Date().toISOString()
-
-                const created = await caller.trusteeFeeSchedule.create({
-                    entityId: testData.entityId!,
-                    trusteeId: testData.trusteeId!,
-                    effectiveDate,
-                    executorFeePercent: '5.0',
-                    annualAssetPercent: '1.5',
-                    incomePercent: '8.0',
-                    hourlyRate: '150.00',
-                })
-                testData.trusteeFeeScheduleIds.push(created.id)
-
-                expect(created).toBeDefined()
-                expect(created.id).toBeGreaterThan(0)
-                expect(created.entityId).toBe(testData.entityId)
-                expect(created.trusteeId).toBe(testData.trusteeId)
-                expect(created.hourlyRate).toBe('150.00')
-                expect(created.annualAssetPercent).toBe('1.50')
-                expect(created.incomePercent).toBe('8.00')
-            },
-            TEST_TIMEOUT,
-        )
-
-        test(
-            'list returns the created fee schedule for the entity',
-            async () => {
-                const caller = adminCaller()
-                const results = await caller.trusteeFeeSchedule.list({
-                    entityId: testData.entityId!,
-                })
-
-                expect(Array.isArray(results)).toBe(true)
-                expect(
-                    results.some(
-                        (r) => r.id === testData.trusteeFeeScheduleIds[0],
-                    ),
-                ).toBe(true)
-            },
-            TEST_TIMEOUT,
-        )
-
-        test(
-            'byId returns the specific fee schedule',
-            async () => {
-                const caller = adminCaller()
-                const schedId = testData.trusteeFeeScheduleIds[0]!
-                const result = await caller.trusteeFeeSchedule.byId({
-                    id: schedId,
-                    entityId: testData.entityId!,
-                })
-
-                expect(result).toBeDefined()
-                expect(result?.id).toBe(schedId)
-                expect(result?.hourlyRate).toBe('150.00')
-                expect(result?.trusteeId).toBe(testData.trusteeId)
-            },
-            TEST_TIMEOUT,
-        )
-
-        test(
-            'update modifies the fee schedule and returns updated record',
-            async () => {
-                const caller = adminCaller()
-                const schedId = testData.trusteeFeeScheduleIds[0]!
-                const updated = await caller.trusteeFeeSchedule.update({
-                    id: schedId,
-                    entityId: testData.entityId!,
-                    data: { hourlyRate: '175.00' },
-                })
-
-                expect(updated).toBeDefined()
-                expect(updated.id).toBe(schedId)
-                expect(updated.hourlyRate).toBe('175.00')
-                // Original fields should be preserved
-                expect(updated.entityId).toBe(testData.entityId)
-                expect(updated.trusteeId).toBe(testData.trusteeId)
-            },
-            TEST_TIMEOUT,
-        )
-
-        test(
-            'delete removes the fee schedule and returns the deleted record',
-            async () => {
-                const caller = adminCaller()
-                const schedId = testData.trusteeFeeScheduleIds[0]!
-                const deleted = await caller.trusteeFeeSchedule.delete({
-                    id: schedId,
-                    entityId: testData.entityId!,
-                })
-
-                expect(deleted).toBeDefined()
-                expect(deleted.id).toBe(schedId)
-
-                // Verify it is gone
-                const result = await caller.trusteeFeeSchedule.byId({
-                    id: schedId,
-                    entityId: testData.entityId!,
-                })
-                expect(result).toBeUndefined()
-
-                // Remove from cleanup since already deleted
-                testData.trusteeFeeScheduleIds =
-                    testData.trusteeFeeScheduleIds.filter(
-                        (id) => id !== schedId,
-                    )
-            },
-            TEST_TIMEOUT,
-        )
-    })
-
-    // =========================================================================
-    // 4. TRUSTEE FEE ENTRY ROUTER (entity-scoped, with listWithSchedule)
-    // =========================================================================
-
-    describe('trusteeFeeEntry', () => {
-        // We need a fee schedule for the entry's scheduleId reference.
-        // Create one in the first test and track it for cleanup.
-        let feeScheduleId: number | null = null
-
-        test(
-            'create returns a new trustee fee entry with an id',
-            async () => {
-                const caller = adminCaller()
-
-                // First, create a fee schedule to link to
-                const schedule = await caller.trusteeFeeSchedule.create({
-                    entityId: testData.entityId!,
-                    trusteeId: testData.trusteeId!,
-                    effectiveDate: new Date().toISOString(),
-                    hourlyRate: '125.00',
-                })
-                feeScheduleId = schedule.id
-                testData.trusteeFeeScheduleIds.push(schedule.id)
-
-                const periodStart = '2025-01-01T00:00:00.000Z'
-                const periodEnd = '2025-03-31T23:59:59.999Z'
-
-                const created = await caller.trusteeFeeEntry.create({
-                    entityId: testData.entityId!,
-                    trusteeId: testData.trusteeId!,
-                    scheduleId: feeScheduleId,
-                    periodStart,
-                    periodEnd,
-                    assetFee: '500.00',
-                    incomeFee: '200.00',
-                    totalFee: '700.00',
-                    status: 'ACCRUED',
-                })
-                testData.trusteeFeeEntryIds.push(created.id)
-
-                expect(created).toBeDefined()
-                expect(created.id).toBeGreaterThan(0)
-                expect(created.entityId).toBe(testData.entityId)
-                expect(created.trusteeId).toBe(testData.trusteeId)
-                expect(created.scheduleId).toBe(feeScheduleId)
-                expect(created.assetFee).toBe('500.00')
-                expect(created.incomeFee).toBe('200.00')
-                expect(created.totalFee).toBe('700.00')
-                expect(created.status).toBe('ACCRUED')
-            },
-            TEST_TIMEOUT,
-        )
-
-        test(
-            'list returns the created fee entry for the entity',
-            async () => {
-                const caller = adminCaller()
-                const results = await caller.trusteeFeeEntry.list({
-                    entityId: testData.entityId!,
-                })
-
-                expect(Array.isArray(results)).toBe(true)
-                expect(
-                    results.some(
-                        (r) => r.id === testData.trusteeFeeEntryIds[0],
-                    ),
-                ).toBe(true)
-            },
-            TEST_TIMEOUT,
-        )
-
-        test(
-            'listWithSchedule returns entries with schedule and trustee relations',
-            async () => {
-                const caller = adminCaller()
-                const results = await caller.trusteeFeeEntry.listWithSchedule({
-                    entityId: testData.entityId!,
-                })
-
-                expect(Array.isArray(results)).toBe(true)
-                const found = results.find(
-                    (r) => r.id === testData.trusteeFeeEntryIds[0],
-                )
-                expect(found).toBeDefined()
-                // listWithSchedule includes schedule and trustee relations
-                expect(found?.schedule).toBeDefined()
-                expect(found?.trustee).toBeDefined()
-                expect(found?.trustee?.name).toBe(`CrudRem Trustee ${TS}`)
-            },
-            TEST_TIMEOUT,
-        )
-
-        test(
-            'byId returns the specific fee entry',
-            async () => {
-                const caller = adminCaller()
-                const entryId = testData.trusteeFeeEntryIds[0]!
-                const result = await caller.trusteeFeeEntry.byId({
-                    id: entryId,
-                    entityId: testData.entityId!,
-                })
-
-                expect(result).toBeDefined()
-                expect(result?.id).toBe(entryId)
-                expect(result?.assetFee).toBe('500.00')
-                expect(result?.totalFee).toBe('700.00')
-            },
-            TEST_TIMEOUT,
-        )
-
-        test(
-            'update modifies the fee entry and returns updated record',
-            async () => {
-                const caller = adminCaller()
-                const entryId = testData.trusteeFeeEntryIds[0]!
-                const updated = await caller.trusteeFeeEntry.update({
-                    id: entryId,
-                    entityId: testData.entityId!,
-                    data: { assetFee: '600.00', totalFee: '800.00' },
-                })
-
-                expect(updated).toBeDefined()
-                expect(updated.id).toBe(entryId)
-                expect(updated.assetFee).toBe('600.00')
-                expect(updated.totalFee).toBe('800.00')
-                // Original fields should be preserved
-                expect(updated.incomeFee).toBe('200.00')
-                expect(updated.entityId).toBe(testData.entityId)
-            },
-            TEST_TIMEOUT,
-        )
-
-        test(
-            'delete removes the fee entry and returns the deleted record',
-            async () => {
-                const caller = adminCaller()
-                const entryId = testData.trusteeFeeEntryIds[0]!
-                const deleted = await caller.trusteeFeeEntry.delete({
-                    id: entryId,
-                    entityId: testData.entityId!,
-                })
-
-                expect(deleted).toBeDefined()
-                expect(deleted.id).toBe(entryId)
-
-                // Verify it is gone
-                const result = await caller.trusteeFeeEntry.byId({
-                    id: entryId,
-                    entityId: testData.entityId!,
-                })
-                expect(result).toBeUndefined()
-
-                // Remove from cleanup since already deleted
-                testData.trusteeFeeEntryIds =
-                    testData.trusteeFeeEntryIds.filter((id) => id !== entryId)
-            },
-            TEST_TIMEOUT,
-        )
-    })
-
-    // =========================================================================
-    // 5. VALUATION ROUTER (global, with forAsset)
+    // 2. VALUATION ROUTER (global, with forAsset)
     // =========================================================================
 
     describe('valuation', () => {
@@ -870,7 +430,7 @@ describe.skipIf(isProductionDb)('CRUD Operations - Remaining Routers', () => {
     })
 
     // =========================================================================
-    // 6. WITHDRAWAL RECORD ROUTER (entity-scoped, optional beneficiaryId)
+    // 3. WITHDRAWAL RECORD ROUTER (entity-scoped, optional beneficiaryId)
     // =========================================================================
 
     describe('withdrawalRecord', () => {

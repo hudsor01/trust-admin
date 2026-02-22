@@ -13,6 +13,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { BankAccount, InvestmentAccount } from '@/db/schema'
 import { useEntityFilter } from '@/hooks/use-entity-filter'
+import { useNeonList, useNeonMutations } from '@/hooks/use-neon-data'
 import { useResourceForm } from '@/hooks/use-resource-form'
 import {
     bankAccountFormDefaults,
@@ -33,8 +34,6 @@ import { InvestmentAccountTable } from './_components/InvestmentAccountTable'
 const log = logger.create('Accounts')
 
 export default function AccountsPage() {
-    const utils = trpc.useUtils()
-
     const { data: entities = [], isLoading: entitiesLoading } =
         trpc.entity.list.useQuery()
     const [entityIdStr, setEntityIdStr] = useEntityFilter()
@@ -44,38 +43,28 @@ export default function AccountsPage() {
     const queryEnabled = !!selectedEntity
 
     // Bank account queries and mutations
-    const { data: bankAccounts = [] } = trpc.bankAccount.list.useQuery(
-        { entityId: selectedEntity! },
+    const { data: bankAccounts = [] } = useNeonList<BankAccount>(
+        'bank_account',
+        selectedEntity ? { entity_id: selectedEntity } : undefined,
         { enabled: queryEnabled },
     )
-    const createBankAccountMutation = trpc.bankAccount.create.useMutation({
-        onSuccess: () => utils.bankAccount.list.invalidate(),
-    })
-    const updateBankAccountMutation = trpc.bankAccount.update.useMutation({
-        onSuccess: () => utils.bankAccount.list.invalidate(),
-    })
-    const deleteBankAccountMutation = trpc.bankAccount.delete.useMutation({
-        onSuccess: () => utils.bankAccount.list.invalidate(),
-    })
+    const {
+        create: createBankAccountMutation,
+        update: updateBankAccountMutation,
+        delete: deleteBankAccountMutation,
+    } = useNeonMutations<BankAccount>('bank_account')
 
     // Investment account queries and mutations
-    const { data: investmentAccounts = [] } =
-        trpc.investmentAccount.list.useQuery(
-            { entityId: selectedEntity! },
-            { enabled: queryEnabled },
-        )
-    const createInvestmentAccountMutation =
-        trpc.investmentAccount.create.useMutation({
-            onSuccess: () => utils.investmentAccount.list.invalidate(),
-        })
-    const updateInvestmentAccountMutation =
-        trpc.investmentAccount.update.useMutation({
-            onSuccess: () => utils.investmentAccount.list.invalidate(),
-        })
-    const deleteInvestmentAccountMutation =
-        trpc.investmentAccount.delete.useMutation({
-            onSuccess: () => utils.investmentAccount.list.invalidate(),
-        })
+    const { data: investmentAccounts = [] } = useNeonList<InvestmentAccount>(
+        'investment_account',
+        selectedEntity ? { entity_id: selectedEntity } : undefined,
+        { enabled: queryEnabled },
+    )
+    const {
+        create: createInvestmentAccountMutation,
+        update: updateInvestmentAccountMutation,
+        delete: deleteInvestmentAccountMutation,
+    } = useNeonMutations<InvestmentAccount>('investment_account')
 
     // Wrapper functions to match inline cell API
     const updateBankAccount = async (
