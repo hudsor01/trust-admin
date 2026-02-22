@@ -86,32 +86,11 @@ export async function createContext(_opts: { headers: Headers }) {
             })
         }
 
-        if (jwtToken) {
-            // Set JWT for RLS enforcement via Neon Authorize
-            // This binds the JWT to the current async context so all neon() HTTP
-            // queries in this request run as the `authenticated` role with
-            // auth.user_id() set — making RLS policies apply.
-            setRequestAuthToken(jwtToken)
-
-            // Also initialize JWT on postgres.js client (for raw SQL/tests)
-            try {
-                await initJwtSession(jwtToken)
-            } catch (error) {
-                Sentry.captureException(error, {
-                    level: 'error',
-                    tags: { subsystem: 'rls', userId: session.user.id },
-                    extra: { action: 'init_jwt_session' },
-                })
-                // neon HTTP still has authToken via setRequestAuthToken, so this is degraded but not bypassed
-                // Log but don't throw — the HTTP driver path still enforces RLS
-            }
-        }
-
-        // Fetch role and beneficiaryId from userProfile (app-managed)
+        // Fetch role and beneficiaryId from userProfile (app-managed).
         // Uses public DB (bypasses RLS) because this is a system-level bootstrap
-        // query — we need the user's role to set up auth context BEFORE RLS can work.
+        // query — we need the user's role before RLS can work.
         const publicDb = getPublicDb()
-        const [profile] = await publicDb
+        const profilePromise = publicDb
             .select({
                 role: userProfile.role,
                 beneficiaryId: userProfile.beneficiaryId,
@@ -120,6 +99,35 @@ export async function createContext(_opts: { headers: Headers }) {
             .from(userProfile)
             .where(eq(userProfile.userId, session.user.id))
             .limit(1)
+
+        let profileRows: Awaited<typeof profilePromise>
+        if (jwtToken) {
+            // Set JWT for RLS enforcement via Neon Authorize.
+            // This binds the JWT to the current async context so all neon() HTTP
+            // queries in this request run as the `authenticated` role with
+            // auth.user_id() set — making RLS policies apply.
+            setRequestAuthToken(jwtToken)
+
+            // Run JWT initialization on the postgres.js client and the userProfile
+            // fetch concurrently — they are fully independent.
+            const [, rows] = await Promise.all([
+                initJwtSession(jwtToken).catch((error) => {
+                    Sentry.captureException(error, {
+                        level: 'error',
+                        tags: { subsystem: 'rls', userId: session.user.id },
+                        extra: { action: 'init_jwt_session' },
+                    })
+                    // neon HTTP still has authToken via setRequestAuthToken,
+                    // so this is degraded but not bypassed — don't throw.
+                }),
+                profilePromise,
+            ])
+            profileRows = rows
+        } else {
+            profileRows = await profilePromise
+        }
+
+        const [profile] = profileRows
 
         // Determine role — owner email always gets admin regardless of DB state
         let role: 'admin' | 'beneficiary' | 'user' = 'user'

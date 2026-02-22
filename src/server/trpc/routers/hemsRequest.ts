@@ -1,5 +1,5 @@
 import { TRPCError } from '@trpc/server'
-import { and, eq } from 'drizzle-orm'
+import { and, desc, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '@/db'
 import {
@@ -329,5 +329,7 @@ export const hemsRequestRouter = createTRPCRouter({
             .select()
             .from(hemsRequest)
             .where(eq(hemsRequest.beneficiaryId, ctx.user.beneficiaryId))
+            .orderBy(desc(hemsRequest.createdAt))
+            .limit(50)
     }),
 })
