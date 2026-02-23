@@ -114,8 +114,6 @@ export function extractClientIP(req: Request): string {
 // AUTH CLIENT/SERVER EXPORTS
 // =============================================================================
 
-// Re-export neonAuth helper from the server module (for RSC)
-export { neonAuth } from '@neondatabase/auth/next/server'
 // Re-export client and server - these are lazy-loaded to avoid initialization issues
 // in test environments. Import directly from './auth/client' or './auth/server' if needed.
 export { authClient } from './auth/client'

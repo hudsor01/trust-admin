@@ -7,7 +7,7 @@ import {
     searchActivityLogByField,
 } from '@/db/queries'
 import { activityLog } from '@/db/schema'
-import { adminProcedure, createTRPCRouter } from '../index'
+import { adminProcedure, createTRPCRouter } from '../init'
 
 // Zod enum for searchable fields - enforces allowlist at API level
 const searchableFieldSchema = z.enum(SEARCHABLE_ACTIVITY_LOG_FIELDS)

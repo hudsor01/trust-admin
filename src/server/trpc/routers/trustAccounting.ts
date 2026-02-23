@@ -13,7 +13,7 @@ import {
     updateTrustAccountingSchema,
 } from '@/db/validation'
 import { addBreadcrumb, traceBusinessOperation } from '@/lib/sentry'
-import { adminProcedure, createTRPCRouter } from '../index'
+import { adminProcedure, createTRPCRouter } from '../init'
 
 export const trustAccountingRouter = createTRPCRouter({
     // PERF: Add default limit to prevent unbounded queries

@@ -12,8 +12,8 @@ import {
     SelectValue,
 } from '@/components/ui/select'
 import type { SpecificBequest } from '@/db/schema'
-import { useCrudMutations } from '@/hooks/use-crud-mutations'
 import { useEntityFilter } from '@/hooks/use-entity-filter'
+import { useNeonList, useNeonMutations } from '@/hooks/use-neon-data'
 import { useResourceForm } from '@/hooks/use-resource-form'
 import { logger } from '@/lib/logger'
 import { trpc } from '@/lib/trpc'
@@ -24,7 +24,6 @@ import type { BequestFormData } from './_components/types'
 const log = logger.create('Bequests')
 
 export default function BequestsPage() {
-    const utils = trpc.useUtils()
     const { data: entities = [], isLoading: entitiesLoading } =
         trpc.entity.list.useQuery()
     const [entityIdStr, setEntityIdStr] = useEntityFilter()
@@ -35,8 +34,9 @@ export default function BequestsPage() {
         { enabled: !!selectedEntity },
     )
     const { data: bequests = [], isLoading: bequestsLoading } =
-        trpc.specificBequest.list.useQuery(
-            { entityId: selectedEntity! },
+        useNeonList<SpecificBequest>(
+            'specific_bequest',
+            selectedEntity ? { entity_id: selectedEntity } : undefined,
             { enabled: !!selectedEntity },
         )
 
@@ -44,10 +44,7 @@ export default function BequestsPage() {
         create: createBequestMutation,
         update: updateBequestMutation,
         delete: deleteBequestMutation,
-    } = useCrudMutations({
-        router: trpc.specificBequest,
-        invalidate: () => utils.specificBequest.list.invalidate(),
-    })
+    } = useNeonMutations<SpecificBequest>('specific_bequest')
 
     const loading = entitiesLoading || bequestsLoading
 

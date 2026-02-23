@@ -21,7 +21,7 @@ import {
     createTRPCRouter,
     ownerProcedure,
     protectedProcedure,
-} from '../index'
+} from '../init'
 
 export const userManagementRouter = createTRPCRouter({
     /**
@@ -56,7 +56,19 @@ export const userManagementRouter = createTRPCRouter({
             })
         }
 
-        const neonUsers = data?.users ?? []
+        const neonUsers = (data?.users ?? []) as Array<{
+            id: string
+            name: string
+            email: string
+            emailVerified: boolean
+            image?: string | null
+            createdAt: Date
+            updatedAt: Date
+            role?: string | null
+            banned?: boolean | null
+            banReason?: string | null
+            banExpires?: Date | null
+        }>
 
         // 2. Fetch all userProfiles for enrichment
         const profiles = await db
@@ -358,12 +370,21 @@ export const userManagementRouter = createTRPCRouter({
             }
 
             // 2. Update userProfile app role if profile exists
-            const appRole = input.role === 'admin' ? 'admin' : 'beneficiary'
+            // Query first so we can base the app role on whether they have a beneficiary link
             const [existing] = await db
                 .select()
                 .from(userProfile)
                 .where(eq(userProfile.userId, input.userId))
                 .limit(1)
+
+            // When demoting to non-admin, only assign 'beneficiary' if they have a linked
+            // beneficiary record; otherwise preserve their existing role to avoid a broken state
+            const appRole =
+                input.role === 'admin'
+                    ? 'admin'
+                    : existing?.beneficiaryId
+                      ? 'beneficiary'
+                      : (existing?.role ?? 'beneficiary')
 
             if (existing) {
                 await db
@@ -528,7 +549,15 @@ export const userManagementRouter = createTRPCRouter({
                 })
             }
 
-            // 1. Remove from Neon Auth first
+            // 1. Delete userProfile first — locks out app access immediately.
+            //    If step 2 fails, the user can still auth via Neon but has no
+            //    role, so they can't do anything in the app.
+            const [deletedProfile] = await db
+                .delete(userProfile)
+                .where(eq(userProfile.userId, input.userId))
+                .returning()
+
+            // 2. Remove from Neon Auth
             const { error } = await authServer.admin.removeUser({
                 userId: input.userId,
             })
@@ -536,15 +565,9 @@ export const userManagementRouter = createTRPCRouter({
             if (error) {
                 throw new TRPCError({
                     code: 'BAD_REQUEST',
-                    message: `Failed to remove user: ${error.message}`,
+                    message: `Failed to remove user from auth: ${error.message}`,
                 })
             }
-
-            // 2. Delete userProfile if it exists
-            const [deletedProfile] = await db
-                .delete(userProfile)
-                .where(eq(userProfile.userId, input.userId))
-                .returning()
 
             await createActivityLog({
                 tableName: 'user',

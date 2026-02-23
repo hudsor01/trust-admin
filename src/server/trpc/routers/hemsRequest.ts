@@ -1,5 +1,5 @@
 import { TRPCError } from '@trpc/server'
-import { and, eq } from 'drizzle-orm'
+import { and, desc, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '@/db'
 import {
@@ -12,11 +12,7 @@ import {
     updateHemsRequestSchema,
 } from '@/db/validation'
 import { addBreadcrumb, traceBusinessOperation } from '@/lib/sentry'
-import {
-    adminProcedure,
-    beneficiaryProcedure,
-    createTRPCRouter,
-} from '../index'
+import { adminProcedure, beneficiaryProcedure, createTRPCRouter } from '../init'
 
 export const hemsRequestRouter = createTRPCRouter({
     list: adminProcedure
@@ -251,13 +247,15 @@ export const hemsRequestRouter = createTRPCRouter({
                             and(
                                 eq(hemsRequest.id, input.id),
                                 eq(hemsRequest.entityId, input.entityId),
+                                eq(hemsRequest.status, 'PENDING'),
                             ),
                         )
                         .returning()
                     if (!updated)
                         throw new TRPCError({
-                            code: 'NOT_FOUND',
-                            message: 'Request not found in this entity',
+                            code: 'CONFLICT',
+                            message:
+                                'Request is no longer PENDING — it may have been approved or denied concurrently',
                         })
                     return updated
                 },
@@ -331,5 +329,7 @@ export const hemsRequestRouter = createTRPCRouter({
             .select()
             .from(hemsRequest)
             .where(eq(hemsRequest.beneficiaryId, ctx.user.beneficiaryId))
+            .orderBy(desc(hemsRequest.createdAt))
+            .limit(50)
     }),
 })

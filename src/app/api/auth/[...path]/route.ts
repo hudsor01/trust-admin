@@ -12,6 +12,9 @@
  * @see https://neon.com/docs/auth/quick-start/nextjs
  */
 
-import { authApiHandler } from '@neondatabase/auth/next/server'
+// Always dynamic — never pre-rendered at build time (requires auth config at runtime)
+export const dynamic = 'force-dynamic'
 
-export const { GET, POST, PUT, DELETE, PATCH } = authApiHandler()
+import { authServer } from '@/lib/auth/server'
+
+export const { GET, POST } = authServer.handler()

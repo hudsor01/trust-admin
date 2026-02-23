@@ -12,7 +12,7 @@ import {
     LIABILITY_TYPE_VALUES,
     PAYMENT_METHOD_VALUES,
 } from '@/lib/type-utils'
-import { adminProcedure, createTRPCRouter } from '../index'
+import { adminProcedure, createTRPCRouter } from '../init'
 
 // Schema for bulk entry rows (simplified subset for rapid entry)
 const bulkLiabilityRowSchema = z.object({

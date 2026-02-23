@@ -11,6 +11,12 @@ const log = logger.create('Upload')
 const UPLOAD_DIR = join(process.cwd(), 'public', 'uploads', 'inventory')
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+const MIME_TO_EXT: Record<string, string> = {
+    'image/jpeg': 'jpg',
+    'image/png': 'png',
+    'image/gif': 'gif',
+    'image/webp': 'webp',
+}
 const MAX_FILES = 5
 
 export async function POST(request: NextRequest) {
@@ -62,8 +68,10 @@ export async function POST(request: NextRequest) {
                 )
             }
 
-            // Generate unique filename
-            const ext = file.name.split('.').pop() || 'jpg'
+            // Generate unique filename — extension derived from the validated
+            // MIME type, never from the client-supplied filename, to prevent
+            // extension spoofing (e.g. image/jpeg + "malware.php" filename).
+            const ext = MIME_TO_EXT[file.type] ?? 'jpg'
             const filename = `${Date.now()}-${randomUUID()}.${ext}`
             const filepath = join(UPLOAD_DIR, filename)
 

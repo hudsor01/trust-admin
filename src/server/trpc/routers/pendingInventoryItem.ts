@@ -2,7 +2,7 @@ import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
 import { pendingInventoryItemCrud, personalPropertyCrud } from '@/db/queries'
 import { updatePendingInventoryItemSchema } from '@/db/validation'
-import { adminProcedure, createTRPCRouter } from '../index'
+import { adminProcedure, createTRPCRouter } from '../init'
 
 export const pendingInventoryItemRouter = createTRPCRouter({
     // List all pending items

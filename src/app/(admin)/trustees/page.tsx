@@ -13,7 +13,9 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
+import type { Trustee } from '@/db/schema'
 import { useEntityFilter } from '@/hooks/use-entity-filter'
+import { useNeonList, useNeonMutations } from '@/hooks/use-neon-data'
 import { useResourceForm } from '@/hooks/use-resource-form'
 import { trusteeFormDefaults } from '@/lib/form-factory'
 import { logger } from '@/lib/logger'
@@ -31,33 +33,17 @@ export default function TrusteesPage() {
     const selectedEntity = entityId ? Number(entityId) : entities[0]?.id
 
     const { data: trustees = [], isLoading: trusteesLoading } =
-        trpc.trustee.list.useQuery(
-            { entityId: selectedEntity || undefined },
+        useNeonList<Trustee>(
+            'trustee',
+            selectedEntity ? { entity_id: selectedEntity } : undefined,
             { enabled: !!selectedEntity },
         )
 
-    const utils = trpc.useUtils()
-    const createTrusteeMutation = trpc.trustee.create.useMutation({
-        onSuccess: () => {
-            utils.trustee.list.invalidate()
-            toast.success('Trustee created')
-        },
-        onError: (error) => toast.error(error.message),
-    })
-    const updateTrusteeMutation = trpc.trustee.update.useMutation({
-        onSuccess: () => {
-            utils.trustee.list.invalidate()
-            toast.success('Trustee updated')
-        },
-        onError: (error) => toast.error(error.message),
-    })
-    const deleteTrusteeMutation = trpc.trustee.delete.useMutation({
-        onSuccess: () => {
-            utils.trustee.list.invalidate()
-            toast.success('Trustee deleted')
-        },
-        onError: (error) => toast.error(error.message),
-    })
+    const {
+        create: createTrusteeMutation,
+        update: updateTrusteeMutation,
+        delete: deleteTrusteeMutation,
+    } = useNeonMutations<Trustee>('trustee')
 
     const trusteeForm = useResourceForm({
         initialData: trusteeFormDefaults(),
@@ -72,6 +58,7 @@ export default function TrusteesPage() {
                 endDate: data.endDate || null,
             }
             await createTrusteeMutation.mutateAsync(payload)
+            toast.success('Trustee created')
         },
     })
 
@@ -91,8 +78,10 @@ export default function TrusteesPage() {
                         id: pendingDeleteId,
                         entityId: selectedEntity!,
                     })
+                    toast.success('Trustee deleted')
                 } catch (error) {
                     log.error('Failed to delete trustee', { error })
+                    toast.error('Failed to delete trustee')
                 } finally {
                     setPendingDeleteId(null)
                 }
@@ -105,11 +94,17 @@ export default function TrusteesPage() {
     }
 
     const handleUpdateField = async (id: number, data: Partial<TrusteeRow>) => {
-        await updateTrusteeMutation.mutateAsync({
-            id,
-            entityId: selectedEntity!,
-            data,
-        })
+        try {
+            await updateTrusteeMutation.mutateAsync({
+                id,
+                entityId: selectedEntity!,
+                data,
+            })
+            toast.success('Trustee updated')
+        } catch (error) {
+            log.error('Failed to update trustee', { error })
+            toast.error('Failed to update trustee')
+        }
     }
 
     const loading = entitiesLoading || trusteesLoading

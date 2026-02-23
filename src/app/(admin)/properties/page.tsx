@@ -14,6 +14,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { Homestead, RentalProperty } from '@/db/schema'
 import { useEntityFilter } from '@/hooks/use-entity-filter'
+import { useNeonList, useNeonMutations } from '@/hooks/use-neon-data'
 import { useResourceForm } from '@/hooks/use-resource-form'
 import { toDateInput } from '@/lib/form-factory'
 import { logger } from '@/lib/logger'
@@ -93,8 +94,6 @@ const defaultRentalForm: RentalFormData = {
 }
 
 export default function PropertiesPage() {
-    const utils = trpc.useUtils()
-
     const { data: entities = [], isLoading: entitiesLoading } =
         trpc.entity.list.useQuery()
     const [entityId, setEntityId] = useEntityFilter()
@@ -105,35 +104,29 @@ export default function PropertiesPage() {
 
     // Homestead queries and mutations
     const { data: homesteads = [], isLoading: homesteadsLoading } =
-        trpc.homestead.list.useQuery(
-            { entityId: selectedEntity },
+        useNeonList<Homestead>(
+            'homestead',
+            selectedEntity ? { entity_id: selectedEntity } : undefined,
             { enabled: queryEnabled },
         )
-    const createHomesteadMutation = trpc.homestead.create.useMutation({
-        onSuccess: () => utils.homestead.list.invalidate(),
-    })
-    const updateHomesteadMutation = trpc.homestead.update.useMutation({
-        onSuccess: () => utils.homestead.list.invalidate(),
-    })
-    const deleteHomesteadMutation = trpc.homestead.delete.useMutation({
-        onSuccess: () => utils.homestead.list.invalidate(),
-    })
+    const {
+        create: createHomesteadMutation,
+        update: updateHomesteadMutation,
+        delete: deleteHomesteadMutation,
+    } = useNeonMutations<Homestead>('homestead')
 
     // Rental property queries and mutations
     const { data: rentals = [], isLoading: rentalsLoading } =
-        trpc.rentalProperty.list.useQuery(
-            { entityId: selectedEntity },
+        useNeonList<RentalProperty>(
+            'rental_property',
+            selectedEntity ? { entity_id: selectedEntity } : undefined,
             { enabled: queryEnabled },
         )
-    const createRentalMutation = trpc.rentalProperty.create.useMutation({
-        onSuccess: () => utils.rentalProperty.list.invalidate(),
-    })
-    const updateRentalMutation = trpc.rentalProperty.update.useMutation({
-        onSuccess: () => utils.rentalProperty.list.invalidate(),
-    })
-    const deleteRentalMutation = trpc.rentalProperty.delete.useMutation({
-        onSuccess: () => utils.rentalProperty.list.invalidate(),
-    })
+    const {
+        create: createRentalMutation,
+        update: updateRentalMutation,
+        delete: deleteRentalMutation,
+    } = useNeonMutations<RentalProperty>('rental_property')
 
     // Wrapper for inline edits in the rental table
     const updateRental = async (id: number, data: Partial<RentalProperty>) => {

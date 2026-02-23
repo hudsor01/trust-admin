@@ -1073,6 +1073,18 @@ export async function approveHemsRequest(params: {
     return client.begin(async (_tx) => {
         const tx = _tx as TxSql
 
+        // Lock the row first to prevent concurrent approvals
+        const [locked] = await tx`
+            SELECT id FROM hems_request
+            WHERE id = ${id} AND "entityId" = ${entityId} AND status = 'PENDING'
+            FOR UPDATE
+        `
+        if (!locked) {
+            throw new Error(
+                'HEMS request is no longer PENDING or was not found',
+            )
+        }
+
         const [newDistribution] = await tx`
             INSERT INTO distribution (
                 "entityId", "beneficiaryId", "distributionDate", amount,
@@ -1098,10 +1110,11 @@ export async function approveHemsRequest(params: {
                 "reviewedAt" = ${now},
                 "distributionId" = ${newDistribution.id},
                 "updatedAt" = ${now}
-            WHERE id = ${id} AND "entityId" = ${entityId}
+            WHERE id = ${id} AND "entityId" = ${entityId} AND status = 'PENDING'
             RETURNING *
         `
-        if (!updated) throw new Error('HEMS request not found in this entity')
+        if (!updated)
+            throw new Error('HEMS request not found or no longer PENDING')
 
         return updated
     })
@@ -1394,7 +1407,13 @@ export async function recordLiabilityPayment(data: RecordPaymentData) {
                     parseFloat(liabilityRecord.currentBalance || '0') || 0
                 const newBalance = calculatedSplit
                     ? parseFloat(calculatedSplit.newBalance)
-                    : Math.max(0, currentBalance - paymentAmount)
+                    : principalPortion
+                      ? Math.max(
+                            0,
+                            currentBalance -
+                                (parseFloat(principalPortion) || 0),
+                        )
+                      : Math.max(0, currentBalance - paymentAmount)
 
                 // Step 2: Insert the payment record
                 addBreadcrumb('db.transaction', 'Inserting liability payment', {
@@ -1651,14 +1670,6 @@ interface MarkDeceasedData {
 }
 
 export async function markBeneficiaryDeceased(data: MarkDeceasedData) {
-    await db
-        .update(beneficiary)
-        .set({
-            deceasedDate: data.deceasedDate,
-            updatedAt: new Date().toISOString(),
-        })
-        .where(eq(beneficiary.id, data.beneficiaryId))
-
     const deceased = await db.query.beneficiary.findFirst({
         where: eq(beneficiary.id, data.beneficiaryId),
     })
@@ -1667,12 +1678,19 @@ export async function markBeneficiaryDeceased(data: MarkDeceasedData) {
         return { success: true, shareRecalculated: false }
     }
 
-    return recalculateBeneficiaryShares(deceased.entityId, data.beneficiaryId)
+    // Both the deceasedDate update and share redistribution happen inside the
+    // same transaction so they succeed or fail together.
+    return recalculateBeneficiaryShares(
+        deceased.entityId,
+        data.beneficiaryId,
+        data.deceasedDate,
+    )
 }
 
 export async function recalculateBeneficiaryShares(
     entityId: number,
     excludeBeneficiaryId: number,
+    markDeceasedDate?: string,
 ) {
     return traceBusinessOperation(
         'beneficiary.recalculateShares',
@@ -1682,6 +1700,17 @@ export async function recalculateBeneficiaryShares(
 
             return client.begin(async (_tx) => {
                 const tx = _tx as TxSql
+
+                // If called from markBeneficiaryDeceased, apply the deceasedDate
+                // inside this transaction so both changes succeed or fail together.
+                if (markDeceasedDate !== undefined) {
+                    await tx`
+                        UPDATE beneficiary
+                        SET "deceasedDate" = ${markDeceasedDate},
+                            "updatedAt"    = ${new Date().toISOString()}
+                        WHERE id = ${excludeBeneficiaryId}
+                    `
+                }
 
                 // Lock all beneficiary rows for this entity to prevent concurrent share modifications
                 addBreadcrumb(
@@ -1978,107 +2007,6 @@ export async function searchActivityLogByField(
         .limit(100)
 }
 
-// =============================================================================
-// CRUD WRAPPERS - For createCrudRouter compatibility
-// These wrap the individual functions into the object format the router expects
-// =============================================================================
-
-export const entityCrud = {
-    getAllArray: getEntities,
-    getById: getEntityById,
-    create: createEntity,
-    update: updateEntity,
-    delete: deleteEntity,
-}
-
-export const beneficiaryCrud = {
-    getAllArray: getBeneficiaries,
-    getById: getBeneficiaryById,
-    create: createBeneficiary,
-    update: updateBeneficiary,
-    delete: deleteBeneficiary,
-}
-
-export const distributionCrud = {
-    getAllArray: getDistributions,
-    getById: async (id: number) =>
-        db.query.distribution.findFirst({ where: eq(distribution.id, id) }),
-    create: createDistribution,
-    update: async (
-        id: number,
-        data: Partial<typeof distribution.$inferInsert>,
-    ) => {
-        const [updated] = await db
-            .update(distribution)
-            .set({ ...data, updatedAt: new Date().toISOString() })
-            .where(eq(distribution.id, id))
-            .returning()
-        return updated
-    },
-    delete: async (id: number) => {
-        const [deleted] = await db
-            .delete(distribution)
-            .where(eq(distribution.id, id))
-            .returning()
-        return deleted
-    },
-}
-
-export const vehicleCrud = {
-    getAllArray: getVehicles,
-    getById: async (id: number) =>
-        db.query.vehicle.findFirst({ where: eq(vehicle.id, id) }),
-    create: createVehicle,
-    update: updateVehicle,
-    delete: deleteVehicle,
-}
-
-export const homesteadCrud = {
-    getAllArray: getHomesteads,
-    getById: async (id: number) =>
-        db.query.homestead.findFirst({ where: eq(homestead.id, id) }),
-    create: createHomestead,
-    update: updateHomestead,
-    delete: deleteHomestead,
-}
-
-export const rentalPropertyCrud = {
-    getAllArray: getRentalProperties,
-    getById: async (id: number) =>
-        db.query.rentalProperty.findFirst({ where: eq(rentalProperty.id, id) }),
-    create: createRentalProperty,
-    update: updateRentalProperty,
-    delete: deleteRentalProperty,
-}
-
-export const bankAccountCrud = {
-    getAllArray: getBankAccounts,
-    getById: async (id: number) =>
-        db.query.bankAccount.findFirst({ where: eq(bankAccount.id, id) }),
-    create: createBankAccount,
-    update: updateBankAccount,
-    delete: deleteBankAccount,
-}
-
-export const investmentAccountCrud = {
-    getAllArray: getInvestmentAccounts,
-    getById: async (id: number) =>
-        db.query.investmentAccount.findFirst({
-            where: eq(investmentAccount.id, id),
-        }),
-    create: createInvestmentAccount,
-    update: updateInvestmentAccount,
-    delete: deleteInvestmentAccount,
-}
-
-export const insurancePolicyCrud = {
-    getAllArray: getInsurancePolicies,
-    getById: getInsurancePolicyById,
-    create: createInsurancePolicy,
-    update: updateInsurancePolicy,
-    delete: deleteInsurancePolicy,
-}
-
 export const personalPropertyCrud = {
     getAllArray: getPersonalProperties,
     getById: async (id: number) =>
@@ -2088,153 +2016,6 @@ export const personalPropertyCrud = {
     create: createPersonalProperty,
     update: updatePersonalProperty,
     delete: deletePersonalProperty,
-}
-
-export const artworkCrud = {
-    getAllArray: getArtworks,
-    getById: async (id: number) =>
-        db.query.artwork.findFirst({ where: eq(artwork.id, id) }),
-    create: createArtwork,
-    update: updateArtwork,
-    delete: deleteArtwork,
-}
-
-export const contactCrud = {
-    getAllArray: getContacts,
-    getById: getContactById,
-    create: createContact,
-    update: updateContact,
-    delete: deleteContact,
-}
-
-export const taskCrud = {
-    getAllArray: getTasks,
-    getById: getTaskById,
-    create: createTask,
-    update: updateTask,
-    delete: deleteTask,
-}
-
-export const trusteeCrud = {
-    getAllArray: getTrustees,
-    getById: getTrusteeById,
-    create: createTrustee,
-    update: updateTrustee,
-    delete: deleteTrustee,
-}
-
-export const specificBequestCrud = {
-    getAllArray: getSpecificBequests,
-    getById: getSpecificBequestById,
-    create: createSpecificBequest,
-    update: updateSpecificBequest,
-    delete: deleteSpecificBequest,
-}
-
-export const trustAccountingCrud = {
-    getAllArray: getTrustAccountingEntries,
-    getById: getTrustAccountingEntryById,
-    create: createTrustAccountingEntry,
-    update: updateTrustAccountingEntry,
-    delete: deleteTrustAccountingEntry,
-}
-
-export const withdrawalRecordCrud = {
-    getAllArray: getWithdrawalRecords,
-    getById: getWithdrawalRecordById,
-    create: createWithdrawalRecord,
-    update: updateWithdrawalRecord,
-    delete: deleteWithdrawalRecord,
-}
-
-export const hemsRequestCrud = {
-    getAllArray: getHemsRequests,
-    getById: getHemsRequestById,
-    create: createHemsRequest,
-    update: updateHemsRequest,
-    delete: deleteHemsRequest,
-}
-
-export const trusteeFeeScheduleCrud = {
-    getAllArray: getTrusteeFeeSchedules,
-    getById: getTrusteeFeeScheduleById,
-    create: createTrusteeFeeSchedule,
-    update: updateTrusteeFeeSchedule,
-    delete: deleteTrusteeFeeSchedule,
-}
-
-export const trusteeFeeEntryCrud = {
-    getAllArray: getTrusteeFeeEntries,
-    getById: getTrusteeFeeEntryById,
-    create: createTrusteeFeeEntry,
-    update: updateTrusteeFeeEntry,
-    delete: deleteTrusteeFeeEntry,
-}
-
-export const liabilityCrud = {
-    getAllArray: getLiabilities,
-    getById: getLiabilityById,
-    create: createLiability,
-    update: updateLiability,
-    delete: deleteLiability,
-}
-
-export const liabilityPaymentCrud = {
-    getAllArray: getLiabilityPayments,
-    getById: async (id: number) =>
-        db.query.liabilityPayment.findFirst({
-            where: eq(liabilityPayment.id, id),
-        }),
-    create: async (data: typeof liabilityPayment.$inferInsert) => {
-        const [created] = await db
-            .insert(liabilityPayment)
-            .values(data)
-            .returning()
-        return created
-    },
-    update: async (
-        id: number,
-        data: Partial<typeof liabilityPayment.$inferInsert>,
-    ) => {
-        const [updated] = await db
-            .update(liabilityPayment)
-            .set(data)
-            .where(eq(liabilityPayment.id, id))
-            .returning()
-        return updated
-    },
-    delete: async (id: number) => {
-        const [deleted] = await db
-            .delete(liabilityPayment)
-            .where(eq(liabilityPayment.id, id))
-            .returning()
-        return deleted
-    },
-}
-
-export const activityLogCrud = {
-    getAllArray: getActivityLogs,
-    getById: async (id: number) =>
-        db.query.activityLog.findFirst({ where: eq(activityLog.id, id) }),
-    create: createActivityLog,
-    update: async (
-        id: number,
-        data: Partial<typeof activityLog.$inferInsert>,
-    ) => {
-        const [updated] = await db
-            .update(activityLog)
-            .set(data)
-            .where(eq(activityLog.id, id))
-            .returning()
-        return updated
-    },
-    delete: async (id: number) => {
-        const [deleted] = await db
-            .delete(activityLog)
-            .where(eq(activityLog.id, id))
-            .returning()
-        return deleted
-    },
 }
 
 export const pendingInventoryItemCrud = {
