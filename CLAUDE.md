@@ -11,8 +11,6 @@ A trust administration app for the **Hudson Living Trust** (Texas Irrevocable Tr
 - **Principal vs Income:** Texas Property Code requires tracking source of funds
 - **DOD Value:** Date-of-death valuation for estate tax basis step-up
 
----
-
 ## Commands
 
 ```bash
@@ -28,8 +26,6 @@ bun run db:seed      # Seed Hudson Trust test data
 ```
 
 **Always use `bun`** — not npm/node/npx. Bun auto-loads `.env`.
-
----
 
 ## Mental Model
 
@@ -66,8 +62,6 @@ Entity list is ordered by `asc(entity.id)` — `entities[0]` is always The Hudso
 1. Assets generate income → `trustAccounting` (INCOME entries)
 2. Liabilities require payments → `trustAccounting` (EXPENSE entries)
 3. Beneficiaries receive distributions → `distribution` records
-
----
 
 ## Data Model
 
@@ -108,7 +102,6 @@ All share: `entityId`, `dodValue`, `dodValueDate`, `status`, `transferStatus`
 
 **`public.user`** — leftover from schema migration, 0 rows. Ignore it.
 
----
 
 ## Neon Auth
 
@@ -228,7 +221,6 @@ await getSql().query(
 // neon_auth.user uses camelCase: "updatedAt", "emailVerified"
 ```
 
----
 
 ## Architecture
 
@@ -310,8 +302,6 @@ update.mutate({ id, entityId: selectedEntity!, data: { currentBalance: "5000" } 
 
 **Page components** live in colocated `_components/` subfolders under each route directory.
 
----
-
 ## Key Workflows
 
 ### Recording a Liability Payment
@@ -347,8 +337,6 @@ Admin       → marks distribution paid → status: DISTRIBUTED (manual)
 6. **Register** (`src/server/trpc/routers/index.ts`): add to `appRouter`
 7. `bun run db:push`
 
----
-
 ## Gotchas
 
 | Issue | Solution |
@@ -365,16 +353,12 @@ Admin       → marks distribution paid → status: DISTRIBUTED (manual)
 | `useSession` in layouts | Use `authServer.getSession()` in Server Components instead |
 | `selectedEntity` timing | Use `{ enabled: !!selectedEntity }` to prevent queries before entity loads |
 
----
-
 ## Environment Variables
 
 ```bash
 DATABASE_URL=postgresql://user:pass@ep-xxx-pooler.region.aws.neon.tech/neondb?sslmode=require
-NEON_AUTH_BASE_URL=https://ep-xxx.neonauth.region.aws.neon.tech/neondb/auth
-ADMIN_EMAIL=rhudsontspr@gmail.com   # Always gets admin role regardless of DB state
+ADMIN_EMAIL=rhudsontspr@gmail.com
 UPLOADTHING_TOKEN=<token>
 RESEND_API_KEY=<key>
 TRUSTED_ORIGINS=https://trust.thehudsonfam.com
-FRONTEND_URL=https://trust.thehudsonfam.com
 ```

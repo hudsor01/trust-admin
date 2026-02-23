@@ -5,6 +5,7 @@
 
 version: 2
 updates:
-  - package-ecosystem: "bun"    directory: "/" # Location of package manifests
+  - package-ecosystem: "npm"
+    directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "daily"
