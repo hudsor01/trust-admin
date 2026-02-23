@@ -11,6 +11,7 @@
 #   SENTRY_ORG              Sentry organization slug
 #   SENTRY_PROJECT          Sentry project slug
 #   SENTRY_AUTH_TOKEN       Sentry auth token (for source map upload)
+#   NEON_AUTH_COOKIE_SECRET Cookie signing secret for Neon Auth sessions
 
 name: CI
 
@@ -64,3 +65,4 @@ jobs:
           SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
           SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          NEON_AUTH_COOKIE_SECRET: ${{ secrets.NEON_AUTH_COOKIE_SECRET }}
