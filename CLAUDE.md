@@ -27,6 +27,24 @@ bun run db:seed      # Seed Hudson Trust test data
 
 **Always use `bun`** — not npm/node/npx. Bun auto-loads `.env`.
 
+## Commands
+
+```bash
+bun run dev          # Dev server on :3000 (Turbopack)
+bun run build        # Production build
+bun run typecheck    # TypeScript check
+bun run lint         # Biome lint
+bun test             # Unit + component tests (excludes E2E)
+bun run test:e2e     # Playwright E2E (requires app on :3000)
+bun run db:push      # Sync schema to DB (dev only)
+bun run db:studio    # Drizzle Studio GUI
+bun run db:seed      # Seed Hudson Trust test data
+```
+
+**Always use `bun`** — not npm/node/npx. Bun auto-loads `.env`.
+
+---
+
 ## Mental Model
 
 ```
@@ -62,6 +80,8 @@ Entity list is ordered by `asc(entity.id)` — `entities[0]` is always The Hudso
 1. Assets generate income → `trustAccounting` (INCOME entries)
 2. Liabilities require payments → `trustAccounting` (EXPENSE entries)
 3. Beneficiaries receive distributions → `distribution` records
+
+---
 
 ## Data Model
 
@@ -102,6 +122,7 @@ All share: `entityId`, `dodValue`, `dodValueDate`, `status`, `transferStatus`
 
 **`public.user`** — leftover from schema migration, 0 rows. Ignore it.
 
+---
 
 ## Neon Auth
 
@@ -221,6 +242,7 @@ await getSql().query(
 // neon_auth.user uses camelCase: "updatedAt", "emailVerified"
 ```
 
+---
 
 ## Architecture
 
@@ -302,6 +324,8 @@ update.mutate({ id, entityId: selectedEntity!, data: { currentBalance: "5000" } 
 
 **Page components** live in colocated `_components/` subfolders under each route directory.
 
+---
+
 ## Key Workflows
 
 ### Recording a Liability Payment
@@ -337,6 +361,8 @@ Admin       → marks distribution paid → status: DISTRIBUTED (manual)
 6. **Register** (`src/server/trpc/routers/index.ts`): add to `appRouter`
 7. `bun run db:push`
 
+---
+
 ## Gotchas
 
 | Issue | Solution |
@@ -353,12 +379,23 @@ Admin       → marks distribution paid → status: DISTRIBUTED (manual)
 | `useSession` in layouts | Use `authServer.getSession()` in Server Components instead |
 | `selectedEntity` timing | Use `{ enabled: !!selectedEntity }` to prevent queries before entity loads |
 
+---
+
 ## Environment Variables
 
 ```bash
 DATABASE_URL=postgresql://user:pass@ep-xxx-pooler.region.aws.neon.tech/neondb?sslmode=require
-ADMIN_EMAIL=rhudsontspr@gmail.com
+NEON_AUTH_BASE_URL=https://ep-xxx.neonauth.region.aws.neon.tech/neondb/auth
+ADMIN_EMAIL=rhudsontspr@gmail.com   # Always gets admin role regardless of DB state
 UPLOADTHING_TOKEN=<token>
 RESEND_API_KEY=<key>
 TRUSTED_ORIGINS=https://trust.thehudsonfam.com
+FRONTEND_URL=https://trust.thehudsonfam.com
+SENTRY_ORG=<org-slug>               # URL slug from sentry.io/organizations/<slug>/ — NOT display name
+SENTRY_PROJECT=<project-slug>       # URL slug from Sentry project settings — NOT display name
+SENTRY_AUTH_TOKEN=<token>           # Required for source map uploads; build silently skips if absent
 ```
+
+**Sentry env var gotchas:**
+- Values must be URL slugs (e.g. `hudsor01`, `trust-admin`) — Sentry CLI rejects display names
+- Trailing newlines in Vercel env vars silently corrupt the value → CLI error `invalid value 'trust-admin\n'`; retype values manually rather than pasting

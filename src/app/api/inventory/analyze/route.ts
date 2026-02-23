@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { authServer } from '@/lib/auth'
