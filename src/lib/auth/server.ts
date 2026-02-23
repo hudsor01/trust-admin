@@ -1,3 +1,4 @@
+// Requires NEON_AUTH_BASE_URL and NEON_AUTH_COOKIE_SECRET in environment
 import { createNeonAuth } from '@neondatabase/auth/next/server'
 
 export const authServer = createNeonAuth({
