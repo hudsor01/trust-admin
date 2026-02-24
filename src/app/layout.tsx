@@ -37,6 +37,7 @@ export default function RootLayout({
                         <NeonAuthUIProvider
                             authClient={authClient}
                             redirectTo="/dashboard"
+                            baseURL={process.env.FRONTEND_URL ?? ''}
                             emailOTP
                             credentials
                         >
