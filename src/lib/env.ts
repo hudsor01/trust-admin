@@ -24,8 +24,10 @@ export const env = createEnv({
             .url('NEON_AUTH_BASE_URL must be a valid URL'),
 
         // Trust owner — always gets admin role regardless of DB state
+        // .trim() strips trailing newlines that Vercel may inject when copy-pasting env vars
         ADMIN_EMAIL: z
             .string()
+            .trim()
             .email('ADMIN_EMAIL must be a valid email address'),
 
         // Server runtime
