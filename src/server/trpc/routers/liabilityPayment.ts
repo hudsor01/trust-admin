@@ -70,10 +70,29 @@ export const liabilityPaymentRouter = createTRPCRouter({
         .input(
             z.object({
                 id: z.coerce.number(),
+                entityId: z.coerce.number(),
                 data: updateLiabilityPaymentSchema,
             }),
         )
         .mutation(async ({ input }) => {
+            // Verify the payment belongs to a liability in this entity before updating
+            const existing = await db
+                .select({ liabilityPayment })
+                .from(liabilityPayment)
+                .innerJoin(
+                    liability,
+                    and(
+                        eq(liability.id, liabilityPayment.liabilityId),
+                        eq(liability.entityId, input.entityId),
+                    ),
+                )
+                .where(eq(liabilityPayment.id, input.id))
+                .limit(1)
+            if (!existing[0])
+                throw new TRPCError({
+                    code: 'NOT_FOUND',
+                    message: 'Liability payment not found',
+                })
             const [updated] = await db
                 .update(liabilityPayment)
                 .set(input.data)
@@ -88,11 +107,29 @@ export const liabilityPaymentRouter = createTRPCRouter({
         }),
 
     delete: adminProcedure
-        .input(z.coerce.number())
+        .input(z.object({ id: z.coerce.number(), entityId: z.coerce.number() }))
         .mutation(async ({ input }) => {
+            // Verify the payment belongs to a liability in this entity before deleting
+            const existing = await db
+                .select({ liabilityPayment })
+                .from(liabilityPayment)
+                .innerJoin(
+                    liability,
+                    and(
+                        eq(liability.id, liabilityPayment.liabilityId),
+                        eq(liability.entityId, input.entityId),
+                    ),
+                )
+                .where(eq(liabilityPayment.id, input.id))
+                .limit(1)
+            if (!existing[0])
+                throw new TRPCError({
+                    code: 'NOT_FOUND',
+                    message: 'Liability payment not found',
+                })
             const [deleted] = await db
                 .delete(liabilityPayment)
-                .where(eq(liabilityPayment.id, input))
+                .where(eq(liabilityPayment.id, input.id))
                 .returning()
             if (!deleted)
                 throw new TRPCError({

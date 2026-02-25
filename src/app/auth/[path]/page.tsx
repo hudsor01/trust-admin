@@ -13,6 +13,9 @@
 import { AuthView } from '@neondatabase/auth/react'
 import { authViewPaths } from '@neondatabase/auth/react/ui/server'
 import { Scale } from 'lucide-react'
+import { Suspense } from 'react'
+import { ForgotPasswordForm } from './_components/ForgotPasswordForm'
+import { ResetPasswordForm } from './_components/ResetPasswordForm'
 
 export const dynamicParams = false
 
@@ -58,7 +61,15 @@ export default async function AuthPage({
                 {/* Auth form container */}
                 <main className="flex flex-1 flex-col items-center justify-center p-6 md:p-10">
                     <div className="w-full max-w-md">
-                        <AuthView path={path} redirectTo="/" />
+                        {path === 'forgot-password' ? (
+                            <ForgotPasswordForm />
+                        ) : path === 'reset-password' ? (
+                            <Suspense>
+                                <ResetPasswordForm />
+                            </Suspense>
+                        ) : (
+                            <AuthView path={path} redirectTo="/" />
+                        )}
                     </div>
                 </main>
             </div>

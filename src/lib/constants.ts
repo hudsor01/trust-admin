@@ -5,6 +5,7 @@
  * For enum-based select options, use enumToOptions() from @/lib/type-utils
  */
 
+import { env } from './env'
 import {
     enumToOptions,
     RENTAL_STATUS_VALUES,
@@ -21,7 +22,7 @@ import {
  * Loaded from ADMIN_EMAIL env var — never hardcoded in source.
  * This user has elevated privileges for user management.
  */
-export const OWNER_EMAIL = process.env.ADMIN_EMAIL ?? ''
+export const OWNER_EMAIL = env.ADMIN_EMAIL
 
 // =============================================================================
 // SELECT OPTIONS (derived from schema enums)

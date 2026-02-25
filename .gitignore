@@ -2,6 +2,7 @@
 node_modules
 .serena/
 .claude/
+node_modules/
 
 # output
 out
@@ -41,3 +42,8 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 # Git worktrees
 .worktrees/
+
+# Playwright
+playwright/.auth
+playwright-report
+playwright-results

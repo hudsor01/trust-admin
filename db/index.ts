@@ -24,6 +24,7 @@ import * as Sentry from '@sentry/nextjs'
 import type { NeonHttpDatabase } from 'drizzle-orm/neon-http'
 import { drizzle as drizzleHttp } from 'drizzle-orm/neon-http'
 import postgres from 'postgres'
+import { env } from '../src/lib/env'
 import * as relations from './relations'
 import * as schema from './schema'
 
@@ -73,14 +74,8 @@ let _dbPublic: NeonHttpDatabase<Schema> | null = null
 let _pgClient: ReturnType<typeof postgres> | null = null
 
 function getDatabaseUrl(): string {
-    const databaseUrl = process.env.DATABASE_URL
-    if (!databaseUrl) {
-        throw new Error(
-            'DATABASE_URL environment variable is not set. Please set it in your .env file or environment.',
-        )
-    }
-    // Strip ?schema=public suffix if present
-    return databaseUrl.replace(/\?schema=\w+$/, '')
+    // Strip ?schema=public suffix if present (legacy Prisma convention)
+    return env.DATABASE_URL.replace(/\?schema=\w+$/, '')
 }
 
 /**

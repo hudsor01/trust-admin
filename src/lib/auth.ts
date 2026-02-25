@@ -119,7 +119,4 @@ export function extractClientIP(req: Request): string {
 export { authClient } from './auth/client'
 export { authServer } from './auth/server'
 
-// Validate environment at module load (warning only, not blocking)
-if (!process.env.NEON_AUTH_BASE_URL && process.env.NODE_ENV === 'production') {
-    log.error('NEON_AUTH_BASE_URL not set - authentication will fail')
-}
+// Note: NEON_AUTH_BASE_URL validation is handled by @t3-oss/env-nextjs in src/lib/env.ts

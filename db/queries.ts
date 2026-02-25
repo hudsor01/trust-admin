@@ -1057,6 +1057,12 @@ export async function approveHemsRequest(params: {
     entityId: number
     approvedAmount?: string
     reviewNotes?: string
+    distributionType?:
+        | 'INCOME'
+        | 'PRINCIPAL'
+        | 'CAPITAL_GAIN'
+        | 'EXPENSE_REIMBURSEMENT'
+        | 'OTHER'
     existing: {
         beneficiaryId: number
         category: string
@@ -1067,6 +1073,7 @@ export async function approveHemsRequest(params: {
     const { id, entityId, reviewNotes, existing } = params
     const now = new Date().toISOString()
     const distributionAmount = params.approvedAmount ?? existing.amountRequested
+    const distType = params.distributionType ?? 'INCOME'
     const notes = `HEMS request #${id}${reviewNotes ? `: ${reviewNotes}` : ''}`
 
     const client = getClient()
@@ -1094,7 +1101,7 @@ export async function approveHemsRequest(params: {
                 "paymentMethod", notes, "updatedAt"
             ) VALUES (
                 ${entityId}, ${existing.beneficiaryId}, ${now},
-                ${distributionAmount}, ${'INCOME'}, ${existing.category},
+                ${distributionAmount}, ${distType}, ${existing.category},
                 ${existing.justification}, ${'CHECK'},
                 ${notes}, ${now}
             )

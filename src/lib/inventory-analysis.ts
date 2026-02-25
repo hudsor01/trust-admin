@@ -353,6 +353,12 @@ export async function analyzeInventoryImage(
             },
         ],
         temperature: 0.1, // Low temperature for consistent, careful analysis
+        experimental_telemetry: {
+            isEnabled: true,
+            functionId: 'inventory-analysis',
+            recordInputs: false, // Inputs are base64 images — too large for Sentry
+            recordOutputs: true, // Capture the valuation result for debugging
+        },
     })
 
     // Map to DB category
@@ -431,6 +437,12 @@ export async function analyzeInventoryImageWithCompressed(
             },
         ],
         temperature: 0.1,
+        experimental_telemetry: {
+            isEnabled: true,
+            functionId: 'inventory-analysis',
+            recordInputs: false, // Inputs are base64 images — too large for Sentry
+            recordOutputs: true, // Capture the valuation result for debugging
+        },
     })
 
     // Map to DB category

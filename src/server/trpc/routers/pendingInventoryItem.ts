@@ -75,13 +75,21 @@ export const pendingInventoryItemRouter = createTRPCRouter({
                 dodValue: z.string().optional(),
             }),
         )
-        .mutation(async ({ input, ctx }) => {
+        .mutation(async ({ input }) => {
             // Get the pending item
             const pendingItem = await pendingInventoryItemCrud.getById(input.id)
             if (!pendingItem) {
                 throw new TRPCError({
                     code: 'NOT_FOUND',
                     message: 'Pending item not found',
+                })
+            }
+
+            // Guard against double-approval (status check before writes)
+            if (pendingItem.status !== 'PENDING') {
+                throw new TRPCError({
+                    code: 'CONFLICT',
+                    message: `Item has already been ${pendingItem.status.toLowerCase()}`,
                 })
             }
 
@@ -99,12 +107,14 @@ export const pendingInventoryItemRouter = createTRPCRouter({
             })
 
             // Update pending item status
+            // Note: approvedById is bigint in schema; ctx.user.id is a UUID string
+            // and cannot be coerced to a numeric ID, so we store null here.
             await pendingInventoryItemCrud.update(input.id, {
                 status: 'APPROVED',
                 entityId: input.entityId,
                 reviewNotes: input.reviewNotes || null,
                 approvedAt: new Date().toISOString(),
-                approvedById: ctx.user.id ? Number(ctx.user.id) : null,
+                approvedById: null,
             })
 
             return { pendingItem, property }

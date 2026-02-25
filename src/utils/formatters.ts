@@ -65,7 +65,12 @@ export function getWithdrawalStatus(eligibleDate: string): {
     isEligible: boolean
 } {
     const today = new Date()
-    const eligible = new Date(eligibleDate)
+    // Date-only strings (e.g. "2026-03-15") are parsed as UTC midnight by default,
+    // which shifts to the previous day in US timezones. Append T00:00:00 to force
+    // local-time interpretation so eligibility comparisons are date-accurate.
+    const eligible = new Date(
+        eligibleDate.includes('T') ? eligibleDate : `${eligibleDate}T00:00:00`,
+    )
     const diffTime = eligible.getTime() - today.getTime()
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
 

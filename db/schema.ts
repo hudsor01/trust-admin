@@ -2811,6 +2811,21 @@ export const userProfile = pgTable(
 export type UserProfile = typeof userProfile.$inferSelect
 export type InsertUserProfile = typeof userProfile.$inferInsert
 
+// Password reset tokens for custom forgot-password flow (bypasses Neon Auth email)
+export const passwordResetToken = pgTable('password_reset_token', (t) => ({
+    id: t.bigserial({ mode: 'number' }).primaryKey(),
+    token: t.text().notNull().unique(),
+    email: t.text().notNull(),
+    expiresAt: t.timestamp('expires_at', { withTimezone: true }).notNull(),
+    usedAt: t.timestamp('used_at', { withTimezone: true }),
+    createdAt: t
+        .timestamp('created_at', { withTimezone: true })
+        .notNull()
+        .defaultNow(),
+}))
+
+export type PasswordResetToken = typeof passwordResetToken.$inferSelect
+
 export const session = pgTable(
     'session',
     (t) => ({

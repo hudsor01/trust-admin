@@ -257,6 +257,7 @@ describe.skipIf(isProductionDb)('CRUD Operations - Remaining Routers', () => {
                 const payId = testData.liabilityPaymentIds[0]!
                 const updated = await caller.liabilityPayment.update({
                     id: payId,
+                    entityId: testData.entityId!,
                     data: { amount: '1600.00', notes: 'Updated amount' },
                 })
 
@@ -276,7 +277,10 @@ describe.skipIf(isProductionDb)('CRUD Operations - Remaining Routers', () => {
             async () => {
                 const caller = adminCaller()
                 const payId = testData.liabilityPaymentIds[0]!
-                const deleted = await caller.liabilityPayment.delete(payId)
+                const deleted = await caller.liabilityPayment.delete({
+                    id: payId,
+                    entityId: testData.entityId!,
+                })
 
                 expect(deleted).toBeDefined()
                 expect(deleted.id).toBe(payId)
