@@ -2,10 +2,11 @@
  * E2E Test Setup Route — DEV ONLY
  *
  * Creates dedicated E2E test accounts with known credentials.
- * Disabled in production. Protected by E2E_SECRET header.
+ * Uses the public signUp endpoint — no admin session required.
+ * Idempotent: safe to call on every test run.
+ * Disabled in production.
  *
  * POST /api/e2e/setup
- * Header: x-e2e-secret: <E2E_SECRET>
  */
 
 import { asc, eq } from 'drizzle-orm'
@@ -22,7 +23,6 @@ export const E2E_BENEFICIARY_EMAIL = 'e2e-ben@e2e.local'
 export const E2E_BENEFICIARY_PASSWORD = 'E2eTest@2026!'
 
 export async function POST(_request: Request) {
-    // Only available in development
     if (process.env.NODE_ENV === 'production') {
         return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
@@ -33,26 +33,25 @@ export async function POST(_request: Request) {
     try {
         // --- Admin user ---
         let adminUserId: string
-        const adminRows = await sql<{ id: string }[]>`
+        const adminRows = (await sql`
             SELECT id FROM neon_auth."user"
             WHERE lower(email) = lower(${E2E_ADMIN_EMAIL}) LIMIT 1
-        `
+        `) as unknown as { id: string }[]
 
         if (adminRows[0]) {
+            // Already exists from a previous setup run — reuse it
             adminUserId = adminRows[0].id
-            await authServer.admin.setUserPassword({
-                userId: adminUserId,
-                newPassword: E2E_ADMIN_PASSWORD,
-            })
         } else {
-            const { data, error } = await authServer.admin.createUser({
+            // Use public signUp (no admin session required)
+            const { data, error } = await authServer.signUp.email({
                 email: E2E_ADMIN_EMAIL,
                 password: E2E_ADMIN_PASSWORD,
                 name: 'E2E Admin',
-                role: 'user',
+                callbackURL:
+                    process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000',
             })
             if (error || !data)
-                throw new Error(`createUser: ${error?.message ?? 'no data'}`)
+                throw new Error(`signUp admin: ${error?.message ?? 'no data'}`)
             adminUserId = data.user.id
         }
 
@@ -86,26 +85,25 @@ export async function POST(_request: Request) {
 
         // --- Beneficiary user ---
         let benUserId: string
-        const benRows = await sql<{ id: string }[]>`
+        const benRows = (await sql`
             SELECT id FROM neon_auth."user"
             WHERE lower(email) = lower(${E2E_BENEFICIARY_EMAIL}) LIMIT 1
-        `
+        `) as unknown as { id: string }[]
 
         if (benRows[0]) {
             benUserId = benRows[0].id
-            await authServer.admin.setUserPassword({
-                userId: benUserId,
-                newPassword: E2E_BENEFICIARY_PASSWORD,
-            })
         } else {
-            const { data, error } = await authServer.admin.createUser({
+            const { data, error } = await authServer.signUp.email({
                 email: E2E_BENEFICIARY_EMAIL,
                 password: E2E_BENEFICIARY_PASSWORD,
                 name: 'E2E Beneficiary',
-                role: 'user',
+                callbackURL:
+                    process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000',
             })
             if (error || !data)
-                throw new Error(`createUser: ${error?.message ?? 'no data'}`)
+                throw new Error(
+                    `signUp beneficiary: ${error?.message ?? 'no data'}`,
+                )
             benUserId = data.user.id
         }
 
