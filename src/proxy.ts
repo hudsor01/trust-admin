@@ -22,6 +22,7 @@ export async function proxy(request: NextRequest) {
         '/api/auth',
         '/api/trpc',
         '/api/inventory',
+        '/api/e2e',
         '/forms',
         '/_next',
         '/favicon.ico',

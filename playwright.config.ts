@@ -8,6 +8,7 @@ import { defineConfig, devices } from '@playwright/test'
  *   TEST_BENEFICIARY_EMAIL, TEST_BENEFICIARY_PASSWORD in .env
  */
 export default defineConfig({
+    globalSetup: './tests/e2e/global-setup.ts',
     testDir: './tests/e2e',
     testMatch: '**/*.e2e.ts',
     fullyParallel: false,

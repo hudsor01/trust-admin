@@ -10,21 +10,25 @@ import { z } from 'zod'
  *
  * Validated at build time and at runtime startup.
  * Accessing an undefined required var throws immediately with a clear error.
+ *
+ * .trim() is applied before every format validator (.url(), .email()) to strip
+ * trailing newlines that Vercel silently injects when env vars are copy-pasted.
  */
 export const env = createEnv({
     server: {
         // Database (required)
         DATABASE_URL: z
             .string()
+            .trim()
             .url('DATABASE_URL must be a valid PostgreSQL connection string'),
 
         // Neon Auth (required)
         NEON_AUTH_BASE_URL: z
             .string()
+            .trim()
             .url('NEON_AUTH_BASE_URL must be a valid URL'),
 
         // Trust owner — always gets admin role regardless of DB state
-        // .trim() strips trailing newlines that Vercel may inject when copy-pasting env vars
         ADMIN_EMAIL: z
             .string()
             .trim()
@@ -48,7 +52,7 @@ export const env = createEnv({
         UPLOADTHING_TOKEN: z.string().optional(),
 
         // Error monitoring (optional)
-        SENTRY_DSN: z.string().url().optional(),
+        SENTRY_DSN: z.string().trim().url().optional(),
         SENTRY_ORG: z.string().optional(),
         SENTRY_PROJECT: z.string().optional(),
         SENTRY_AUTH_TOKEN: z.string().optional(),
@@ -57,18 +61,18 @@ export const env = createEnv({
         NEON_AUTH_COOKIE_SECRET: z.string().optional(),
 
         // n8n webhook for password reset emails
-        N8N_PASSWORD_RESET_WEBHOOK_URL: z.string().url().optional(),
+        N8N_PASSWORD_RESET_WEBHOOK_URL: z.string().trim().url().optional(),
     },
 
     client: {
         // Error monitoring — public DSN safe to expose
-        NEXT_PUBLIC_SENTRY_DSN: z.string().url().optional(),
+        NEXT_PUBLIC_SENTRY_DSN: z.string().trim().url().optional(),
 
         // Neon Data API (PostgREST endpoint, optional)
-        NEXT_PUBLIC_NEON_DATA_API_URL: z.string().url().optional(),
+        NEXT_PUBLIC_NEON_DATA_API_URL: z.string().trim().url().optional(),
 
         // App URL (used by NeonAuthUIProvider)
-        NEXT_PUBLIC_APP_URL: z.string().url().optional(),
+        NEXT_PUBLIC_APP_URL: z.string().trim().url().optional(),
     },
 
     // Next.js requires explicit mapping of NEXT_PUBLIC_ vars for runtime access
