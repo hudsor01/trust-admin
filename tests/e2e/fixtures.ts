@@ -1,6 +1,5 @@
 import { test as base } from '@playwright/test'
-import { ADMIN_AUTH_FILE } from './setup/admin.setup'
-import { BENEFICIARY_AUTH_FILE } from './setup/beneficiary.setup'
+import { ADMIN_AUTH_FILE, BENEFICIARY_AUTH_FILE } from './auth-paths'
 
 export const adminTest = base.extend<object>({
     storageState: ADMIN_AUTH_FILE,

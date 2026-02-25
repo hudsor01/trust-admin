@@ -32,7 +32,7 @@ test.describe('Forgot password page', () => {
         await page.fill('input[type="email"]', 'notexist@example.com')
         await page.getByRole('button', { name: /send|submit|reset/i }).click()
         await expect(
-            page.getByText(/check your email|email sent|sent/i),
+            page.getByRole('heading', { name: /check your email/i }),
         ).toBeVisible({ timeout: 10000 })
     })
 
@@ -58,8 +58,12 @@ test.describe('Reset password page', () => {
             '/auth/reset-password?token=00000000000000000000000000000000',
         )
         await page.waitForLoadState('networkidle')
+        // Form renders when token is present — submit to trigger server validation
+        await page.fill('#password', 'TestPassword123!')
+        await page.fill('#confirm', 'TestPassword123!')
+        await page.getByRole('button', { name: /reset password/i }).click()
         await expect(page.getByText(/invalid|expired|not found/i)).toBeVisible({
-            timeout: 5000,
+            timeout: 10000,
         })
     })
 

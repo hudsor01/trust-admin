@@ -1,11 +1,6 @@
-import path from 'node:path'
 import { test as setup } from '@playwright/test'
+import { ADMIN_AUTH_FILE } from '../auth-paths'
 import { E2E_ADMIN_EMAIL, E2E_ADMIN_PASSWORD } from '../global-setup'
-
-export const ADMIN_AUTH_FILE = path.join(
-    process.cwd(),
-    'playwright/.auth/admin.json',
-)
 
 setup('authenticate as admin', async ({ page }) => {
     await page.goto('/auth/sign-in')

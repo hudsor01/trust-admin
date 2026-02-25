@@ -1,14 +1,9 @@
-import path from 'node:path'
 import { test as setup } from '@playwright/test'
+import { BENEFICIARY_AUTH_FILE } from '../auth-paths'
 import {
     E2E_BENEFICIARY_EMAIL,
     E2E_BENEFICIARY_PASSWORD,
 } from '../global-setup'
-
-export const BENEFICIARY_AUTH_FILE = path.join(
-    process.cwd(),
-    'playwright/.auth/beneficiary.json',
-)
 
 setup('authenticate as beneficiary', async ({ page }) => {
     await page.goto('/auth/sign-in')

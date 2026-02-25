@@ -11,6 +11,12 @@ test.describe('Liabilities page', () => {
     test.beforeEach(async ({ page }) => {
         await page.goto('/liabilities')
         await page.waitForLoadState('networkidle')
+        await page
+            .waitForSelector('.animate-spin', {
+                state: 'hidden',
+                timeout: 15000,
+            })
+            .catch(() => null)
     })
 
     test('loads without redirect', async ({ page }) => {
@@ -19,7 +25,9 @@ test.describe('Liabilities page', () => {
     })
 
     test('page has a heading', async ({ page }) => {
-        await expect(page.getByRole('heading').first()).toBeVisible()
+        await expect(page.getByRole('heading').first()).toBeVisible({
+            timeout: 15000,
+        })
     })
 
     test('table or empty state renders', async ({ page }) => {

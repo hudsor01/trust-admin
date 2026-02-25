@@ -43,7 +43,13 @@ export default defineConfig({
                 storageState: 'playwright/.auth/admin.json',
             },
             dependencies: ['setup-admin'],
-            testIgnore: ['**/portal/**', '**/setup/**'],
+            // Ignore portal, setup, and auth flow tests (auth tests need unauthenticated context)
+            testIgnore: [
+                '**/portal/**',
+                '**/setup/**',
+                '**/auth/**',
+                'auth.e2e.ts',
+            ],
         },
         {
             name: 'beneficiary',

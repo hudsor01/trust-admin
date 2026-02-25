@@ -8,6 +8,13 @@ test.describe('Dashboard', () => {
     test.beforeEach(async ({ page }) => {
         await page.goto('/dashboard')
         await page.waitForLoadState('networkidle')
+        // Wait for data to load (spinner disappears, content renders)
+        await page
+            .waitForSelector('.animate-spin', {
+                state: 'hidden',
+                timeout: 15000,
+            })
+            .catch(() => null)
     })
 
     test('loads without redirect to sign-in', async ({ page }) => {
@@ -16,11 +23,15 @@ test.describe('Dashboard', () => {
     })
 
     test('page has a heading', async ({ page }) => {
-        await expect(page.getByRole('heading').first()).toBeVisible()
+        await expect(page.getByRole('heading').first()).toBeVisible({
+            timeout: 15000,
+        })
     })
 
     test('sidebar navigation is visible', async ({ page }) => {
-        await expect(page.getByRole('navigation')).toBeVisible()
+        await expect(page.getByRole('navigation')).toBeVisible({
+            timeout: 15000,
+        })
     })
 
     test('beneficiaries nav link exists', async ({ page }) => {

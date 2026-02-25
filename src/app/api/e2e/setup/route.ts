@@ -2,18 +2,19 @@
  * E2E Test Setup Route — DEV ONLY
  *
  * Creates dedicated E2E test accounts with known credentials.
- * Uses the public signUp endpoint — no admin session required.
+ * Inserts directly into neon_auth.user + neon_auth.account tables
+ * using the same scrypt password hash format as Better Auth.
  * Idempotent: safe to call on every test run.
  * Disabled in production.
  *
  * POST /api/e2e/setup
  */
 
+import { randomBytes, scryptSync } from 'node:crypto'
 import { asc, eq } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
 import { getPublicDb, getSql } from '@/db'
 import { beneficiary, userProfile } from '@/db/schema'
-import { authServer } from '@/lib/auth/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,42 +23,92 @@ export const E2E_ADMIN_PASSWORD = 'E2eTest@2026!'
 export const E2E_BENEFICIARY_EMAIL = 'e2e-ben@e2e.local'
 export const E2E_BENEFICIARY_PASSWORD = 'E2eTest@2026!'
 
+/**
+ * Hash a password using Better Auth's exact scrypt format.
+ * Matches better-auth/dist/crypto-*.mjs: N=16384, r=16, p=1, dkLen=64
+ * Format: hex(salt) + ':' + hex(derivedKey)
+ * Salt: hex-encoded 16 random bytes (the hex string IS the salt input to scrypt)
+ */
+function hashPassword(password: string): string {
+    const saltBytes = randomBytes(16)
+    const salt = saltBytes.toString('hex') // 32-char hex string
+    const key = scryptSync(password.normalize('NFKC'), salt, 64, {
+        N: 16384,
+        r: 16,
+        p: 1,
+        maxmem: 128 * 16384 * 16 * 2,
+    })
+    return `${salt}:${key.toString('hex')}`
+}
+
+/**
+ * Ensure a user exists in neon_auth. Creates them if missing.
+ * Returns the user ID.
+ */
+async function ensureAuthUser(
+    email: string,
+    password: string,
+    name: string,
+    role?: string,
+): Promise<string> {
+    const sql = getSql()
+
+    const existing = (await sql`
+        SELECT id FROM neon_auth."user"
+        WHERE lower(email) = lower(${email}) LIMIT 1
+    `) as unknown as { id: string }[]
+
+    if (existing[0]) {
+        // Update emailVerified and role in case they were wrong
+        await sql`
+            UPDATE neon_auth."user"
+            SET "emailVerified" = true, role = ${role ?? null}
+            WHERE id = ${existing[0].id}
+        `
+        return existing[0].id
+    }
+
+    const userId = crypto.randomUUID()
+    const now = new Date()
+    const passwordHash = hashPassword(password)
+
+    await sql`
+        INSERT INTO neon_auth."user" (id, name, email, "emailVerified", image, role, "createdAt", "updatedAt")
+        VALUES (${userId}, ${name}, ${email}, ${true}, ${null as unknown as string}, ${role ?? null}, ${now}, ${now})
+    `
+
+    await sql`
+        INSERT INTO neon_auth.account (id, "accountId", "providerId", "userId", password, "createdAt", "updatedAt")
+        VALUES (
+            ${crypto.randomUUID()},
+            ${userId},
+            ${'credential'},
+            ${userId},
+            ${passwordHash},
+            ${now},
+            ${now}
+        )
+    `
+
+    return userId
+}
+
 export async function POST(_request: Request) {
     if (process.env.NODE_ENV === 'production') {
         return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
 
     const db = getPublicDb()
-    const sql = getSql()
 
     try {
         // --- Admin user ---
-        let adminUserId: string
-        const adminRows = (await sql`
-            SELECT id FROM neon_auth."user"
-            WHERE lower(email) = lower(${E2E_ADMIN_EMAIL}) LIMIT 1
-        `) as unknown as { id: string }[]
+        const adminUserId = await ensureAuthUser(
+            E2E_ADMIN_EMAIL,
+            E2E_ADMIN_PASSWORD,
+            'E2E Admin',
+            'admin',
+        )
 
-        if (adminRows[0]) {
-            // Already exists from a previous setup run — reuse it
-            adminUserId = adminRows[0].id
-        } else {
-            // Use public signUp (no admin session required)
-            const { data, error } = await authServer.signUp.email({
-                email: E2E_ADMIN_EMAIL,
-                password: E2E_ADMIN_PASSWORD,
-                name: 'E2E Admin',
-                callbackURL:
-                    process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000',
-            })
-            if (error || !data)
-                throw new Error(`signUp admin: ${error?.message ?? 'no data'}`)
-            adminUserId = data.user.id
-        }
-
-        await sql`
-            UPDATE neon_auth."user" SET "emailVerified" = true WHERE id = ${adminUserId}
-        `
         await db
             .insert(userProfile)
             .values({ userId: adminUserId, role: 'admin' })
@@ -84,32 +135,12 @@ export async function POST(_request: Request) {
         }
 
         // --- Beneficiary user ---
-        let benUserId: string
-        const benRows = (await sql`
-            SELECT id FROM neon_auth."user"
-            WHERE lower(email) = lower(${E2E_BENEFICIARY_EMAIL}) LIMIT 1
-        `) as unknown as { id: string }[]
+        const benUserId = await ensureAuthUser(
+            E2E_BENEFICIARY_EMAIL,
+            E2E_BENEFICIARY_PASSWORD,
+            'E2E Beneficiary',
+        )
 
-        if (benRows[0]) {
-            benUserId = benRows[0].id
-        } else {
-            const { data, error } = await authServer.signUp.email({
-                email: E2E_BENEFICIARY_EMAIL,
-                password: E2E_BENEFICIARY_PASSWORD,
-                name: 'E2E Beneficiary',
-                callbackURL:
-                    process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000',
-            })
-            if (error || !data)
-                throw new Error(
-                    `signUp beneficiary: ${error?.message ?? 'no data'}`,
-                )
-            benUserId = data.user.id
-        }
-
-        await sql`
-            UPDATE neon_auth."user" SET "emailVerified" = true WHERE id = ${benUserId}
-        `
         await db
             .insert(userProfile)
             .values({

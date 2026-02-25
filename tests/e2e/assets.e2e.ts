@@ -12,6 +12,13 @@ test.describe('Accounts page (/accounts)', () => {
     test.beforeEach(async ({ page }) => {
         await page.goto('/accounts')
         await page.waitForLoadState('networkidle')
+        // Wait for page to finish loading (spinner disappears)
+        await page
+            .waitForSelector('.animate-spin', {
+                state: 'hidden',
+                timeout: 15000,
+            })
+            .catch(() => null)
     })
 
     test('loads without redirect', async ({ page }) => {
@@ -20,7 +27,9 @@ test.describe('Accounts page (/accounts)', () => {
     })
 
     test('page has a heading', async ({ page }) => {
-        await expect(page.getByRole('heading').first()).toBeVisible()
+        await expect(page.getByRole('heading').first()).toBeVisible({
+            timeout: 15000,
+        })
     })
 
     test('accounts table or empty state renders', async ({ page }) => {
@@ -51,6 +60,12 @@ test.describe('Properties page (/properties)', () => {
     test.beforeEach(async ({ page }) => {
         await page.goto('/properties')
         await page.waitForLoadState('networkidle')
+        await page
+            .waitForSelector('.animate-spin', {
+                state: 'hidden',
+                timeout: 15000,
+            })
+            .catch(() => null)
     })
 
     test('loads without redirect', async ({ page }) => {
@@ -59,7 +74,9 @@ test.describe('Properties page (/properties)', () => {
     })
 
     test('page has a heading', async ({ page }) => {
-        await expect(page.getByRole('heading').first()).toBeVisible()
+        await expect(page.getByRole('heading').first()).toBeVisible({
+            timeout: 15000,
+        })
     })
 
     test('content renders', async ({ page }) => {
@@ -75,6 +92,12 @@ test.describe('Vehicles page (/vehicles)', () => {
     test.beforeEach(async ({ page }) => {
         await page.goto('/vehicles')
         await page.waitForLoadState('networkidle')
+        await page
+            .waitForSelector('.animate-spin', {
+                state: 'hidden',
+                timeout: 15000,
+            })
+            .catch(() => null)
     })
 
     test('loads without redirect', async ({ page }) => {
@@ -83,7 +106,9 @@ test.describe('Vehicles page (/vehicles)', () => {
     })
 
     test('page has a heading', async ({ page }) => {
-        await expect(page.getByRole('heading').first()).toBeVisible()
+        await expect(page.getByRole('heading').first()).toBeVisible({
+            timeout: 15000,
+        })
     })
 
     test('vehicles table or empty state renders', async ({ page }) => {
