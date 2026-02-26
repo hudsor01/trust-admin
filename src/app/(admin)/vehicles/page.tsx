@@ -171,11 +171,16 @@ export default function VehiclesPage() {
         <div className="space-y-6">
             {/* Header */}
             <div className="flex items-center justify-between">
-                <p className="text-sm text-muted-foreground">
-                    Manage vehicle assets
-                    {vehicles.length > 0 &&
-                        ` - Total DOD Value: ${formatCurrency(totalValue)}`}
-                </p>
+                <div>
+                    <h2 className="text-2xl font-semibold tracking-tight">
+                        Vehicles
+                    </h2>
+                    <p className="text-sm text-muted-foreground">
+                        Manage vehicle assets
+                        {vehicles.length > 0 &&
+                            ` - Total DOD Value: ${formatCurrency(totalValue)}`}
+                    </p>
+                </div>
                 <Select
                     value={selectedEntity?.toString() ?? ''}
                     onValueChange={(val) => setEntityIdStr(val || null)}

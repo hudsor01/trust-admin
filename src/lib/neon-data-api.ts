@@ -13,12 +13,6 @@
 
 import { authClient } from '@/lib/auth/client'
 
-const DATA_API_URL = process.env.NEXT_PUBLIC_NEON_DATA_API_URL
-
-if (!DATA_API_URL) {
-    throw new Error('NEXT_PUBLIC_NEON_DATA_API_URL is not set')
-}
-
 // snake_case → camelCase
 function snakeToCamel(str: string): string {
     return str.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase())
@@ -60,10 +54,15 @@ function transformRequestBody(value: unknown): unknown {
 }
 
 async function getJwt(): Promise<string> {
-    const { data } = await authClient.token()
-    if (!data?.token)
+    let result = await authClient.token()
+    if (!result.data?.token) {
+        // Retry once after brief delay to handle transient auth token issues
+        await new Promise<void>((r) => setTimeout(r, 200))
+        result = await authClient.token()
+    }
+    if (!result.data?.token)
         throw new Error('Not authenticated — no JWT token available')
-    return data.token
+    return result.data.token
 }
 
 export type QueryParams = Record<string, string>
@@ -81,6 +80,10 @@ export async function neonFetch<T>(
     method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
     options: { params?: QueryParams; body?: unknown } = {},
 ): Promise<T> {
+    const DATA_API_URL = process.env.NEXT_PUBLIC_NEON_DATA_API_URL
+    if (!DATA_API_URL) {
+        throw new Error('NEXT_PUBLIC_NEON_DATA_API_URL is not set')
+    }
     const token = await getJwt()
     const url = new URL(`${DATA_API_URL}/${table}`)
 

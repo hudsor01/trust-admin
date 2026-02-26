@@ -44,15 +44,21 @@ test.describe('Portal content (when no forcePasswordChange)', () => {
         await expect(page.locator('main')).toBeVisible()
     })
 
-    test('portal has navigation', async ({ page }) => {
+    test('portal has navigation or header', async ({ page }) => {
+        // Portal uses a <header> bar (not a sidebar nav) for navigation
         const nav = page.getByRole('navigation')
+        const header = page.locator('header')
         const sidebar = page.locator('nav, aside')
         const hasNav = await nav.isVisible().catch(() => false)
+        const hasHeader = await header
+            .first()
+            .isVisible()
+            .catch(() => false)
         const hasSidebar = await sidebar
             .first()
             .isVisible()
             .catch(() => false)
-        expect(hasNav || hasSidebar).toBe(true)
+        expect(hasNav || hasHeader || hasSidebar).toBe(true)
     })
 })
 

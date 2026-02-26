@@ -15,13 +15,14 @@ import { db, getClient } from '@/db'
 import { createActivityLog } from '@/db/queries'
 import { beneficiary, userProfile } from '@/db/schema'
 import { authServer } from '@/lib/auth/server'
-import { OWNER_EMAIL } from '@/lib/constants'
 import {
     adminProcedure,
     createTRPCRouter,
     ownerProcedure,
     protectedProcedure,
 } from '../init'
+
+const OWNER_EMAIL = process.env.ADMIN_EMAIL ?? ''
 
 export const userManagementRouter = createTRPCRouter({
     /**

@@ -56,8 +56,15 @@ test.describe('Activity Log page', () => {
     test('activity log has entries or empty state', async ({ page }) => {
         await page.goto('/activity-log')
         await page.waitForLoadState('networkidle')
-        const table = page.getByRole('table')
-        const empty = page.getByText(/no activity|empty/i)
+        // Wait for loading skeleton to disappear
+        await page
+            .waitForSelector('.animate-spin', {
+                state: 'hidden',
+                timeout: 15000,
+            })
+            .catch(() => null)
+        const table = page.getByRole('table').first()
+        const empty = page.getByText(/no activity log entries/i)
         const hasTable = await table.isVisible().catch(() => false)
         const hasEmpty = await empty.isVisible().catch(() => false)
         expect(hasTable || hasEmpty).toBe(true)

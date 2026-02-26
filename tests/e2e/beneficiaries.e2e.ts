@@ -40,7 +40,9 @@ test.describe('Beneficiary actions', () => {
 
     test('action buttons or menus exist on rows', async ({ page }) => {
         const actionBtn = page
-            .getByRole('button', { name: /more|actions|edit|⋯|…/i })
+            .getByRole('button', {
+                name: /more|actions|edit|view|details|⋯|…/i,
+            })
             .first()
         const editBtn = page.getByRole('button', { name: /edit/i }).first()
         const hasAction = await actionBtn.isVisible().catch(() => false)

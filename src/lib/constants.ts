@@ -5,24 +5,12 @@
  * For enum-based select options, use enumToOptions() from @/lib/type-utils
  */
 
-import { env } from './env'
 import {
     enumToOptions,
     RENTAL_STATUS_VALUES,
     TRANSFER_STATUS_VALUES,
     VALUATION_TYPE_VALUES,
 } from './type-utils'
-
-// =============================================================================
-// AUTH
-// =============================================================================
-
-/**
- * The trust owner's email address.
- * Loaded from ADMIN_EMAIL env var — never hardcoded in source.
- * This user has elevated privileges for user management.
- */
-export const OWNER_EMAIL = env.ADMIN_EMAIL
 
 // =============================================================================
 // SELECT OPTIONS (derived from schema enums)

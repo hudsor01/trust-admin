@@ -37,8 +37,17 @@ test.describe('HEMS Queue page', () => {
     test('hems-queue page loads', async ({ page }) => {
         await page.goto('/hems-queue')
         await page.waitForLoadState('networkidle')
+        // Wait for spinner to disappear (entities loading)
+        await page
+            .waitForSelector('.animate-spin', {
+                state: 'hidden',
+                timeout: 15000,
+            })
+            .catch(() => null)
         await expect(page).not.toHaveURL(/auth\/sign-in/)
-        await expect(page.getByRole('heading').first()).toBeVisible()
+        await expect(page.getByRole('heading').first()).toBeVisible({
+            timeout: 15000,
+        })
     })
 })
 

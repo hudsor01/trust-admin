@@ -66,7 +66,7 @@ export function AppSidebar() {
                 </SidebarMenu>
             </SidebarHeader>
 
-            <SidebarContent>
+            <SidebarContent role="navigation">
                 {/* Dashboard */}
                 <SidebarGroup>
                     <SidebarMenu>
