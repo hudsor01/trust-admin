@@ -1,4 +1,5 @@
 import { randomBytes } from 'node:crypto'
+import * as Sentry from '@sentry/nextjs'
 import { NextResponse } from 'next/server'
 import { getPublicDb, getSql } from '@/db'
 import { passwordResetToken } from '@/db/schema'
@@ -40,7 +41,7 @@ export async function POST(request: Request) {
                 env.NEXT_PUBLIC_APP_URL ?? 'https://trust.thehudsonfam.com'
             const resetLink = `${appUrl}/auth/reset-password?token=${token}`
 
-            await fetch(env.N8N_PASSWORD_RESET_WEBHOOK_URL, {
+            const webhookRes = await fetch(env.N8N_PASSWORD_RESET_WEBHOOK_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -49,6 +50,23 @@ export async function POST(request: Request) {
                     resetLink,
                 }),
             })
+
+            if (!webhookRes.ok) {
+                const body = await webhookRes.text().catch(() => '')
+                const err = new Error(
+                    `Password reset webhook failed: ${webhookRes.status} ${body}`,
+                )
+                Sentry.captureException(err, {
+                    level: 'error',
+                    tags: { subsystem: 'forgot-password' },
+                    extra: { status: webhookRes.status },
+                })
+                console.error(
+                    '[forgot-password] webhook error:',
+                    webhookRes.status,
+                    body,
+                )
+            }
         }
 
         return NextResponse.json({ success: true })

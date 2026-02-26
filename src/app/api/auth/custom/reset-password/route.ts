@@ -1,6 +1,6 @@
 import { and, eq, gt, isNull } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
-import { getPublicDb } from '@/db'
+import { getPublicDb, getSql } from '@/db'
 import { passwordResetToken } from '@/db/schema'
 import { authServer } from '@/lib/auth/server'
 
@@ -36,13 +36,13 @@ export async function POST(request: Request) {
             )
         }
 
-        // Find the user by email
-        const { data: usersData } = await authServer.admin.listUsers({
-            query: { limit: 1000 },
-        })
-        const user = usersData?.users?.find(
-            (u) => u.email?.toLowerCase() === row.email,
-        )
+        // Find the user by email directly — avoids paginated listUsers scan
+        const sql = getSql()
+        const [user] = (await sql`
+            SELECT id FROM neon_auth."user"
+            WHERE lower(email) = ${row.email}
+            LIMIT 1
+        `) as unknown as { id: string }[]
 
         if (!user) {
             return NextResponse.json(
