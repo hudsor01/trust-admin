@@ -17,7 +17,8 @@ export async function POST(request: Request) {
             )
         }
 
-        // Look up user directly by email — always return 200 to avoid email enumeration
+        // Look up user directly by email — always return 200 regardless of whether
+        // the email exists to prevent email enumeration attacks
         const sql = getSql()
         const rows = (await sql`
             SELECT id, name, email FROM neon_auth."user"
