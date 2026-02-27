@@ -4,7 +4,6 @@ import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persist
 import { QueryClient } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import {
-    type PersistedClient,
     type Persister,
     PersistQueryClientProvider,
 } from '@tanstack/react-query-persist-client'
