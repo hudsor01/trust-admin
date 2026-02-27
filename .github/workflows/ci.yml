@@ -2,15 +2,13 @@
 #
 # Env validation strategy:
 #   - Build step uses SKIP_ENV_VALIDATION=1 — no app secrets required in CI.
-#   - instrumentation.ts validates all required vars at server startup (not at build time).
+#   - instrumentation.ts validates all required vars at server startup.
 #   - Vercel injects real secrets during its own build + deployment.
 #
 # Optional GitHub secrets (only needed for Sentry source map uploads):
 #   SENTRY_ORG              Sentry organization slug
 #   SENTRY_PROJECT          Sentry project slug
 #   SENTRY_AUTH_TOKEN       Sentry auth token (for source map upload)
-#
-# VS Code settings (.vscode/settings.json) are excluded from git via global gitignore.
 
 name: CI
 
