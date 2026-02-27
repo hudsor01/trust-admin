@@ -54,7 +54,9 @@ export type AppUser = {
 const jwtCache = new Map<string, { token: string; expiresAt: number }>()
 const JWT_CACHE_TTL_MS = 4 * 60 * 1000 // 4 minutes
 
-// Prune expired entries every 5 minutes to prevent memory leaks
+// Prune expired entries every 5 minutes to prevent memory leaks.
+// .unref() lets the serverless function terminate normally — the interval
+// should not keep the event loop alive on its own.
 setInterval(
     () => {
         const now = Date.now()
@@ -63,7 +65,7 @@ setInterval(
         }
     },
     5 * 60 * 1000,
-)
+).unref()
 
 /**
  * Fetch a Neon Authorize JWT for the given session token.
