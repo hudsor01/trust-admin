@@ -1,9 +1,4 @@
-/**
- * WithdrawalsTable Component Tests
- *
- * Tests for the WithdrawalsTable component that shows grandchild age-based
- * withdrawal eligibility (50% at age 25, remaining 50% at age 30).
- */
+/** WithdrawalsTable component tests — grandchild age-based withdrawal eligibility (50% at 25, 50% at 30). */
 
 import '../../setup'
 import { afterEach, describe, expect, mock, test } from 'bun:test'

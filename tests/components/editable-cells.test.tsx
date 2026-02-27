@@ -1,9 +1,4 @@
-/**
- * Editable Cells Tests
- *
- * Tests for inline editing cell components used in DataTable.
- * These components enable click-to-edit functionality for table cells.
- */
+/** Editable cell component tests — click-to-edit text, currency, select, and date cells in DataTable. */
 
 import '../setup'
 import { afterEach, describe, expect, mock, test } from 'bun:test'
@@ -100,7 +95,6 @@ describe('EditableTextCell', () => {
         await user.type(input, 'Changed')
         await user.keyboard('{Escape}')
 
-        // Should return to display mode with original value
         expect(screen.getByText('Original')).toBeTruthy()
         expect(onSave).not.toHaveBeenCalled()
     })
@@ -224,7 +218,6 @@ describe('EditableSelectCell', () => {
         )
 
         await user.click(screen.getByText('Active'))
-        // Select should be visible
         expect(screen.getByRole('combobox')).toBeTruthy()
     })
 
@@ -241,11 +234,9 @@ describe('EditableSelectCell', () => {
         )
 
         await user.click(screen.getByText('Active'))
-        // Find and click the Inactive option
         const select = screen.getByRole('combobox')
         await user.click(select)
 
-        // Wait for dropdown and click option
         await waitFor(() => {
             const inactiveOption = screen.getByText('Inactive')
             if (inactiveOption) {
@@ -293,7 +284,6 @@ describe('EditableDateCell', () => {
             />,
         )
 
-        // Click on the displayed date
         const dateSpan = screen.getByText(/Jan \d+, 2025/)
         await user.click(dateSpan)
 

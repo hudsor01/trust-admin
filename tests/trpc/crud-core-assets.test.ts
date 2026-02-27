@@ -1,16 +1,4 @@
-/**
- * tRPC CRUD Operations Tests - Core Routers
- *
- * Tests the full create -> list -> byId -> update -> delete lifecycle for:
- *
- * Core routers (no entityId scoping):
- *   - entity
- *   - contact
- *
- * Note: Asset routers (bankAccount, investmentAccount, homestead, rentalProperty,
- * vehicle, personalProperty, artwork) and task were removed from tRPC and are now
- * served via Neon Data API (PostgREST).
- */
+/** tRPC CRUD tests for entity + contact routers (asset routers moved to Neon Data API). */
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import { eq } from 'drizzle-orm'
 import { db } from '@/db'
@@ -41,12 +29,8 @@ function adminCaller() {
 /** Unique suffix to avoid collisions with parallel test runs */
 const TS = Date.now().toString().slice(-8)
 
-// Track all created record IDs for cleanup
 const testIds = {
-    // Parent entity created in beforeAll for asset routers
     parentEntityId: null as number | null,
-
-    // Core router records (created by tests)
     entityId: null as number | null,
     contactId: null as number | null,
 }
@@ -59,7 +43,6 @@ describe.skipIf(isProductionDb)(
     'CRUD Operations - Core & Asset Routers',
     () => {
         beforeAll(async () => {
-            // Create a parent entity that asset routers will reference via entityId
             const [parentEntity] = await db
                 .insert(entity)
                 .values({
@@ -74,7 +57,6 @@ describe.skipIf(isProductionDb)(
         }, TEST_TIMEOUT)
 
         afterAll(async () => {
-            // Core records (no FK dependencies on each other)
             if (testIds.contactId)
                 await db
                     .delete(contact)
@@ -82,7 +64,6 @@ describe.skipIf(isProductionDb)(
             if (testIds.entityId)
                 await db.delete(entity).where(eq(entity.id, testIds.entityId))
 
-            // Finally, the parent entity
             if (testIds.parentEntityId)
                 await db
                     .delete(entity)
@@ -151,7 +132,6 @@ describe.skipIf(isProductionDb)(
                     expect(updated).toBeDefined()
                     expect(updated.id).toBe(testIds.entityId)
                     expect(updated.governingLaw).toBe('Texas')
-                    // Original fields should be preserved
                     expect(updated.name).toBe(`CRUD Test Entity ${TS}`)
                 },
                 TEST_TIMEOUT,
@@ -168,11 +148,9 @@ describe.skipIf(isProductionDb)(
                     expect(deleted).toBeDefined()
                     expect(deleted.id).toBe(testIds.entityId)
 
-                    // Verify it is gone
                     const result = await caller.entity.byId(testIds.entityId!)
                     expect(result).toBeUndefined()
 
-                    // Clear tracked ID so afterAll does not attempt double-delete
                     testIds.entityId = null
                 },
                 TEST_TIMEOUT,
@@ -224,7 +202,6 @@ describe.skipIf(isProductionDb)(
                         entityId: testIds.parentEntityId!,
                     })
 
-                    // Contacts are shared across entities, so list returns all
                     expect(Array.isArray(results)).toBe(true)
                     expect(
                         results.some((r) => r.id === testIds.contactId),

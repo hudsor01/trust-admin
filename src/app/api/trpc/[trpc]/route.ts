@@ -1,20 +1,9 @@
-/**
- * tRPC HTTP Handler
- *
- * Handles all tRPC requests via Next.js App Router.
- * Endpoint: /api/trpc/*
- */
-
-// Always dynamic — never pre-rendered at build time (requires auth + request context)
 export const dynamic = 'force-dynamic'
 
 import { fetchRequestHandler } from '@trpc/server/adapters/fetch'
 import { createContext } from '@/server/trpc/init'
 import { appRouter } from '@/server/trpc/router'
 
-/**
- * Handle tRPC requests
- */
 const handler = (req: Request) =>
     fetchRequestHandler({
         endpoint: '/api/trpc',

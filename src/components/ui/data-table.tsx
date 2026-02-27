@@ -1,15 +1,5 @@
 'use client'
 
-/**
- * Data Table Component
- *
- * A powerful, flexible data table built on TanStack Table.
- * Supports sorting, filtering, pagination, row selection, and column visibility.
- *
- * @see https://ui.shadcn.com/docs/components/data-table
- * @see https://tanstack.com/table/v8/docs/introduction
- */
-
 import {
     type ColumnDef,
     type ColumnFiltersState,
@@ -39,21 +29,14 @@ import { Skeleton } from './skeleton'
 interface DataTableProps<TData, TValue> {
     columns: ColumnDef<TData, TValue>[]
     data: TData[]
-    /** Column key to use for the search filter */
     searchKey?: string
-    /** Placeholder text for search input */
     searchPlaceholder?: string
-    /** Show loading skeleton */
     isLoading?: boolean
-    /** Message when no data */
     emptyMessage?: string
-    /** Enable row selection */
     enableRowSelection?: boolean
-    /** Enable column visibility toggle */
     enableColumnVisibility?: boolean
-    /** Enable pagination */
     enablePagination?: boolean
-    /** Custom toolbar content (rendered before column visibility) */
+    /** Rendered before the column visibility toggle */
     toolbar?: React.ReactNode
 }
 
@@ -107,7 +90,6 @@ export function DataTable<TData, TValue>({
         [searchKey, table],
     )
 
-    // Loading state
     if (isLoading) {
         return (
             <div className="w-full">
@@ -145,7 +127,6 @@ export function DataTable<TData, TValue>({
 
     return (
         <div className="w-full">
-            {/* Toolbar */}
             <div className="flex items-center py-4 gap-2">
                 {searchKey && (
                     <Input
@@ -165,7 +146,6 @@ export function DataTable<TData, TValue>({
                 )}
             </div>
 
-            {/* Table */}
             <div className="overflow-hidden rounded-md border">
                 <Table>
                     <TableHeader>
@@ -218,7 +198,6 @@ export function DataTable<TData, TValue>({
                 </Table>
             </div>
 
-            {/* Pagination */}
             {enablePagination && (
                 <div className="py-4">
                     <DataTablePagination
@@ -231,5 +210,4 @@ export function DataTable<TData, TValue>({
     )
 }
 
-// Re-export types for convenience
 export type { ColumnDef } from '@tanstack/react-table'

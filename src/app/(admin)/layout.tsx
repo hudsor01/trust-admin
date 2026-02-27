@@ -12,15 +12,7 @@ import {
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { authServer } from '@/lib/auth'
 
-/**
- * Admin Layout
- *
- * Server Component that protects all admin routes.
- * Redirects to login if not authenticated or not an admin.
- *
- * Uses native Neon Auth role from session.user.role.
- * To promote a user to admin, use authClient.admin.setRole().
- */
+/** Route guard: requires Neon Auth admin role; non-admins go to /portal. */
 export default async function AdminLayout({
     children,
 }: {
@@ -34,15 +26,11 @@ export default async function AdminLayout({
         redirect('/auth/sign-in')
     }
 
-    // Redirect to login if not authenticated
     if (!session?.user) {
         redirect('/auth/sign-in')
     }
 
-    // Check for admin role (native Neon Auth role)
-    // Default role for new users is "user", not "admin"
     if (session.user.role !== 'admin') {
-        // Non-admin users go to portal
         redirect('/portal')
     }
 

@@ -8,7 +8,6 @@ import {
     RECORD_STATUS_VALUES,
 } from '@/lib/type-utils'
 
-// Derive options from schema enums (single source of truth)
 export const LIABILITY_TYPES = enumToOptions(LIABILITY_TYPE_VALUES)
 export const LIABILITY_STATUS = enumToOptions(RECORD_STATUS_VALUES, (v) =>
     [
@@ -34,7 +33,6 @@ export interface LiabilityFormData {
     monthlyPayment: string
     dueDate: string | null
     paymentDueDay: string
-    // Loan term fields (for amortization)
     loanTermMonths: string
     loanStartDate: string | null
     escrowMonthly: string
@@ -53,10 +51,10 @@ export interface PaymentFormData {
     notes: string
 }
 
-// Revolving credit types don't have fixed terms
+/** Revolving credit (e.g. credit cards) has no fixed term or amortization schedule. */
 export const isRevolvingType = (type: string) => type === 'CREDIT_CARD'
 
-// Loan types have amortization-specific fields
+/** Only mortgages and loans show amortization fields (term, start date, escrow). */
 export const hasLoanTermFields = (type: string) =>
     type === 'MORTGAGE' || type === 'LOAN'
 

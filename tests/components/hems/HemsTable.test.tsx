@@ -1,10 +1,4 @@
-/**
- * HemsTable Component Tests
- *
- * Tests for the HemsTable component that shows HEMS distribution request
- * history (Health, Education, Maintenance, Support) and a "New HEMS Request"
- * button.
- */
+/** HemsTable component tests — HEMS distribution request history and New HEMS Request button. */
 
 import '../../setup'
 import { afterEach, describe, expect, mock, test } from 'bun:test'

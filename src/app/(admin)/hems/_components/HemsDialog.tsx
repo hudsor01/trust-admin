@@ -17,7 +17,7 @@ import { enumToOptions, PAYMENT_METHOD_VALUES } from '@/lib/type-utils'
 import { HEMS_CATEGORIES } from './HemsTable'
 import type { HemsFormData } from './types'
 
-// Derive from schema - filter to common payment methods
+/** HEMS distributions only support CHECK, ACH, WIRE (no cash/other). */
 export const PAYMENT_METHODS = enumToOptions(PAYMENT_METHOD_VALUES, (v) =>
     ['CHECK', 'ACH', 'WIRE'].includes(v),
 )

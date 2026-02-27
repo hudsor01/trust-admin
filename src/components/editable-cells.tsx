@@ -1,15 +1,6 @@
 'use client'
 
-/**
- * Editable Cell Components
- *
- * Reusable inline-editable table cell components.
- * All cells support: keyboard navigation (Enter to save, Escape to cancel),
- * loading states, and optimistic updates.
- *
- * PERF: All cells wrapped with React.memo() to prevent unnecessary re-renders
- * in table contexts where parent state changes frequently.
- */
+/** PERF: All cells are memo'd to avoid re-renders from frequent parent table state changes. */
 
 import * as Sentry from '@sentry/nextjs'
 import { Loader2 } from 'lucide-react'
@@ -25,19 +16,12 @@ import { formatCurrency, formatDate } from '@/utils/formatters'
 
 const log = logger.create('EditableCells')
 
-// =============================================================================
-// EDITABLE TEXT CELL
-// =============================================================================
-
 interface EditableTextCellProps {
     value: string | null
     onSave: (val: string | null) => Promise<unknown>
     placeholder?: string
 }
 
-/**
- * PERF: Memoized to prevent re-renders when parent state changes
- */
 export const EditableTextCell = memo(function EditableTextCell({
     value,
     onSave,
@@ -88,18 +72,11 @@ export const EditableTextCell = memo(function EditableTextCell({
     )
 })
 
-// =============================================================================
-// EDITABLE CURRENCY CELL
-// =============================================================================
-
 interface EditableCurrencyCellProps {
     value: string | null
     onSave: (val: string | null) => Promise<unknown>
 }
 
-/**
- * PERF: Memoized to prevent re-renders when parent state changes
- */
 export const EditableCurrencyCell = memo(function EditableCurrencyCell({
     value,
     onSave,
@@ -155,10 +132,6 @@ export const EditableCurrencyCell = memo(function EditableCurrencyCell({
     )
 })
 
-// =============================================================================
-// EDITABLE SELECT CELL
-// =============================================================================
-
 interface EditableSelectCellProps {
     value: string
     options: readonly { value: string; label: string }[]
@@ -170,9 +143,6 @@ interface EditableSelectCellProps {
     >
 }
 
-/**
- * PERF: Memoized to prevent re-renders when parent state changes
- */
 export const EditableSelectCell = memo(function EditableSelectCell({
     value,
     options,
@@ -242,19 +212,12 @@ export const EditableSelectCell = memo(function EditableSelectCell({
     )
 })
 
-// =============================================================================
-// EDITABLE DATE CELL
-// =============================================================================
-
 interface EditableDateCellProps {
     value: string | null
     onSave: (val: string | null) => Promise<unknown>
     placeholder?: string
 }
 
-/**
- * PERF: Memoized to prevent re-renders when parent state changes
- */
 export const EditableDateCell = memo(function EditableDateCell({
     value,
     onSave,
@@ -306,10 +269,6 @@ export const EditableDateCell = memo(function EditableDateCell({
     )
 })
 
-// =============================================================================
-// EDITABLE NUMBER CELL
-// =============================================================================
-
 interface EditableNumberCellProps {
     value: number | null
     onSave: (val: number | null) => Promise<unknown>
@@ -318,9 +277,6 @@ interface EditableNumberCellProps {
     placeholder?: string
 }
 
-/**
- * PERF: Memoized to prevent re-renders when parent state changes
- */
 export const EditableNumberCell = memo(function EditableNumberCell({
     value,
     onSave,
@@ -384,18 +340,11 @@ export const EditableNumberCell = memo(function EditableNumberCell({
     )
 })
 
-// =============================================================================
-// EDITABLE PERCENT CELL
-// =============================================================================
-
 interface EditablePercentCellProps {
     value: string | null
     onSave: (val: string | null) => Promise<unknown>
 }
 
-/**
- * PERF: Memoized to prevent re-renders when parent state changes
- */
 export const EditablePercentCell = memo(function EditablePercentCell({
     value,
     onSave,

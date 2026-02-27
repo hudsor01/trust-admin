@@ -40,13 +40,11 @@ export async function POST(request: NextRequest) {
             )
         }
 
-        // Ensure upload directory exists
         await mkdir(UPLOAD_DIR, { recursive: true })
 
         const paths: string[] = []
 
         for (const file of files) {
-            // Validate file type
             if (!ALLOWED_TYPES.includes(file.type)) {
                 return NextResponse.json(
                     {
@@ -57,7 +55,6 @@ export async function POST(request: NextRequest) {
                 )
             }
 
-            // Validate file size
             if (file.size > MAX_FILE_SIZE) {
                 return NextResponse.json(
                     {
@@ -68,18 +65,14 @@ export async function POST(request: NextRequest) {
                 )
             }
 
-            // Generate unique filename — extension derived from the validated
-            // MIME type, never from the client-supplied filename, to prevent
-            // extension spoofing (e.g. image/jpeg + "malware.php" filename).
+            // Extension from validated MIME type, not client filename (prevents spoofing)
             const ext = MIME_TO_EXT[file.type] ?? 'jpg'
             const filename = `${Date.now()}-${randomUUID()}.${ext}`
             const filepath = join(UPLOAD_DIR, filename)
 
-            // Write file
             const bytes = await file.arrayBuffer()
             await writeFile(filepath, Buffer.from(bytes))
 
-            // Return public path
             paths.push(`/uploads/inventory/${filename}`)
         }
 

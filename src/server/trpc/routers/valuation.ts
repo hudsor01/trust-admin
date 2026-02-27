@@ -12,7 +12,6 @@ export const valuationRouter = createTRPCRouter({
         return valuationCrud.getById(input)
     }),
 
-    // Get valuations for a specific asset
     forAsset: adminProcedure
         .input(
             z.object({

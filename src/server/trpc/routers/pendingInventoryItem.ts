@@ -5,8 +5,6 @@ import { updatePendingInventoryItemSchema } from '@/db/validation'
 import { adminProcedure, createTRPCRouter } from '../init'
 
 export const pendingInventoryItemRouter = createTRPCRouter({
-    // List all pending items
-    // PERF: Push status filter to database instead of filtering in memory
     list: adminProcedure
         .input(
             z
@@ -18,22 +16,17 @@ export const pendingInventoryItemRouter = createTRPCRouter({
                 .optional(),
         )
         .query(async ({ input }) => {
-            // Database-level filtering - no N+1
             return pendingInventoryItemCrud.getAllArray(input?.status)
         }),
 
-    // Get pending items only (for queue)
-    // PERF: Use database filter instead of loading all + filtering in memory
     pending: adminProcedure.query(async () => {
         return pendingInventoryItemCrud.getAllArray('PENDING')
     }),
 
-    // Get by ID
     byId: adminProcedure.input(z.coerce.number()).query(async ({ input }) => {
         return pendingInventoryItemCrud.getById(input)
     }),
 
-    // Update
     update: adminProcedure
         .input(
             z.object({
@@ -45,14 +38,13 @@ export const pendingInventoryItemRouter = createTRPCRouter({
             return pendingInventoryItemCrud.update(input.id, input.data)
         }),
 
-    // Delete
     delete: adminProcedure
         .input(z.coerce.number())
         .mutation(async ({ input }) => {
             return pendingInventoryItemCrud.delete(input)
         }),
 
-    // Approve: creates personalProperty record and updates status
+    /** Approve: creates a personalProperty record, then marks this item APPROVED. */
     approve: adminProcedure
         .input(
             z.object({
@@ -76,7 +68,6 @@ export const pendingInventoryItemRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ input }) => {
-            // Get the pending item
             const pendingItem = await pendingInventoryItemCrud.getById(input.id)
             if (!pendingItem) {
                 throw new TRPCError({
@@ -85,7 +76,6 @@ export const pendingInventoryItemRouter = createTRPCRouter({
                 })
             }
 
-            // Guard against double-approval (status check before writes)
             if (pendingItem.status !== 'PENDING') {
                 throw new TRPCError({
                     code: 'CONFLICT',
@@ -93,7 +83,6 @@ export const pendingInventoryItemRouter = createTRPCRouter({
                 })
             }
 
-            // Create personalProperty record
             const property = await personalPropertyCrud.create({
                 entityId: input.entityId,
                 name: input.name || pendingItem.name,
@@ -106,9 +95,7 @@ export const pendingInventoryItemRouter = createTRPCRouter({
                 updatedAt: new Date().toISOString(),
             })
 
-            // Update pending item status
-            // Note: approvedById is bigint in schema; ctx.user.id is a UUID string
-            // and cannot be coerced to a numeric ID, so we store null here.
+            // approvedById is bigint but ctx.user.id is UUID — incompatible, so null
             await pendingInventoryItemCrud.update(input.id, {
                 status: 'APPROVED',
                 entityId: input.entityId,
@@ -120,7 +107,6 @@ export const pendingInventoryItemRouter = createTRPCRouter({
             return { pendingItem, property }
         }),
 
-    // Reject
     reject: adminProcedure
         .input(
             z.object({

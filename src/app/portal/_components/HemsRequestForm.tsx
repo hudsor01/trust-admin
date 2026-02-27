@@ -1,15 +1,5 @@
 'use client'
 
-/**
- * HEMS Request Form
- *
- * Allows beneficiaries to submit requests for distributions under the
- * Health, Education, Maintenance, Support standard.
- *
- * Uses React 19 useActionState + Server Action for progressive enhancement.
- * Form works even before JavaScript loads.
- */
-
 import { ArrowLeft, Loader2, Send } from 'lucide-react'
 import { useActionState, useEffect, useState } from 'react'
 import { toast } from 'sonner'
@@ -73,16 +63,14 @@ export function HemsRequestForm({
     onSuccess,
     onCancel,
 }: HemsRequestFormProps) {
-    // Track category separately since Radix Select doesn't use native select
+    // Radix Select doesn't use native <select>, so we sync to a hidden input
     const [category, setCategory] = useState('')
 
-    // React 19 useActionState for Server Action
     const [state, formAction, isPending] = useActionState<
         HemsFormState,
         FormData
     >(submitHemsRequest, { error: null, success: false })
 
-    // Handle success callback
     useEffect(() => {
         if (state.success) {
             toast.success('Request submitted successfully')
@@ -132,7 +120,6 @@ export function HemsRequestForm({
             </CardHeader>
             <CardContent>
                 <form action={formAction} className="space-y-6">
-                    {/* Hidden inputs for IDs */}
                     <input
                         type="hidden"
                         name="beneficiaryId"
@@ -140,7 +127,7 @@ export function HemsRequestForm({
                     />
                     <input type="hidden" name="entityId" value={entityId} />
 
-                    {/* Hidden input for category (synced with Radix Select) */}
+                    {/* Syncs Radix Select value to form submission */}
                     <input type="hidden" name="category" value={category} />
 
                     {state.error && (
@@ -149,7 +136,6 @@ export function HemsRequestForm({
                         </Alert>
                     )}
 
-                    {/* Category */}
                     <div className="space-y-2">
                         <Label htmlFor="category">Category *</Label>
                         <Select
@@ -180,7 +166,6 @@ export function HemsRequestForm({
                         </Select>
                     </div>
 
-                    {/* Amount */}
                     <div className="space-y-2">
                         <Label htmlFor="amountRequested">
                             Amount Requested *
@@ -203,7 +188,6 @@ export function HemsRequestForm({
                         </div>
                     </div>
 
-                    {/* Justification */}
                     <div className="space-y-2">
                         <Label htmlFor="justification">Justification *</Label>
                         <Textarea
@@ -220,7 +204,6 @@ export function HemsRequestForm({
                         </p>
                     </div>
 
-                    {/* Info Box */}
                     <div className="rounded-lg bg-muted/50 p-4 text-sm">
                         <p className="font-medium mb-1">What happens next?</p>
                         <ul className="text-muted-foreground space-y-1">
@@ -237,7 +220,6 @@ export function HemsRequestForm({
                         </ul>
                     </div>
 
-                    {/* Actions */}
                     <div className="flex gap-3">
                         <Button
                             type="button"

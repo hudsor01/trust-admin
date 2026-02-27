@@ -1,22 +1,5 @@
 'use client'
 
-/**
- * Data Table Column Header
- *
- * A sortable and hideable column header component.
- * Use this in column definitions for consistent sorting UI.
- *
- * @example
- * ```tsx
- * {
- *   accessorKey: "email",
- *   header: ({ column }) => (
- *     <DataTableColumnHeader column={column} title="Email" />
- *   ),
- * }
- * ```
- */
-
 import type { Column } from '@tanstack/react-table'
 import { ArrowDown, ArrowUp, ChevronsUpDown, EyeOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'

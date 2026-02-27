@@ -3,23 +3,18 @@ import { type AppUser, authServer, extractClientIP } from './auth'
 import { recordAuthEvent } from './auth-events'
 import { logger } from './logger'
 
-// Request-scoped session cache (garbage collected with request)
+// WeakMap ensures cache is GC'd with the request object
 const sessionCache = new WeakMap<
     Request,
     Promise<{ user: AppUser; session: unknown } | null>
 >()
 
-/**
- * Get session with request-level caching
- * Prevents duplicate database queries within same request
- */
+/** Get session with request-level caching to prevent duplicate DB queries. */
 async function getCachedSession(req: Request) {
-    // Check cache first
     if (sessionCache.has(req)) {
         return sessionCache.get(req)!
     }
 
-    // Fetch and cache using Neon Auth
     const sessionPromise = authServer.getSession().then(({ data }) =>
         data
             ? {
@@ -33,11 +28,7 @@ async function getCachedSession(req: Request) {
     return sessionPromise
 }
 
-/**
- * Validates session and returns authenticated user
- * Enhanced with request-scoped caching, logging, and audit trail
- * @throws ApiError.unauthorized() if no valid session
- */
+/** Validate session and return authenticated user. Throws ApiError.unauthorized() on failure. */
 export async function requireAuth(
     req: Request,
     allowedRoles?: Array<'admin' | 'beneficiary' | 'user'>,
@@ -51,7 +42,6 @@ export async function requireAuth(
         const session = await getCachedSession(req)
 
         if (!session) {
-            // Record failed auth attempt
             recordAuthEvent('FAILED_AUTH', null, {
                 path: url.pathname,
                 ip,
@@ -69,9 +59,7 @@ export async function requireAuth(
 
         const { user } = session
 
-        // Role validation
         if (allowedRoles && !allowedRoles.includes(user.role)) {
-            // Record permission denied
             recordAuthEvent('ACCESS_DENIED', user.id, {
                 path: url.pathname,
                 ip,
@@ -91,7 +79,6 @@ export async function requireAuth(
             )
         }
 
-        // Log successful access (debug level to avoid spam)
         logger.auth.debug('Authenticated access', {
             userId: user.id,
             role: user.role,
@@ -110,27 +97,18 @@ export async function requireAuth(
     }
 }
 
-/**
- * Requires admin role
- */
+/** Requires admin role. */
 export async function requireAdmin(req: Request): Promise<AppUser> {
     return requireAuth(req, ['admin'])
 }
 
-/**
- * Requires beneficiary role
- */
+/** Requires beneficiary role. */
 export async function requireBeneficiary(req: Request): Promise<AppUser> {
     return requireAuth(req, ['beneficiary'])
 }
 
-/**
- * Checks if route is public (no auth required)
- */
+/** Checks if route is public (no auth required). */
 export function isPublicRoute(path: string): boolean {
-    const publicPaths = [
-        '/health',
-        '/api/auth/', // Neon Auth endpoints
-    ]
+    const publicPaths = ['/health', '/api/auth/']
     return publicPaths.some((p) => path.startsWith(p))
 }

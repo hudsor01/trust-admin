@@ -23,7 +23,6 @@ interface AssetAllocationChartProps {
 }
 
 export function AssetAllocationChart({ data }: AssetAllocationChartProps) {
-    // Show placeholder if no data
     if (data.length === 0) {
         return (
             <div className="flex h-[300px] w-full items-center justify-center text-muted-foreground">
@@ -32,10 +31,9 @@ export function AssetAllocationChart({ data }: AssetAllocationChartProps) {
         )
     }
 
-    // Calculate total for percentage display
     const total = data.reduce((sum, item) => sum + item.value, 0)
 
-    // Create chart config from data
+    // Build config dynamically since asset categories vary per trust
     const chartConfig = data.reduce(
         (config, item) => {
             config[item.name] = {

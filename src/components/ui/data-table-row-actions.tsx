@@ -1,26 +1,5 @@
 'use client'
 
-/**
- * Data Table Row Actions
- *
- * A dropdown menu for row actions (edit, delete, etc.)
- * Use this in column definitions for consistent action UI.
- *
- * @example
- * ```tsx
- * {
- *   id: "actions",
- *   cell: ({ row }) => (
- *     <DataTableRowActions
- *       row={row}
- *       onEdit={() => handleEdit(row.original)}
- *       onDelete={() => handleDelete(row.original)}
- *     />
- *   ),
- * }
- * ```
- */
-
 import type { Row } from '@tanstack/react-table'
 import { Eye, MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -38,7 +17,6 @@ interface DataTableRowActionsProps<TData> {
     onView?: () => void
     onEdit?: () => void
     onDelete?: () => void
-    /** Additional menu items */
     children?: React.ReactNode
 }
 

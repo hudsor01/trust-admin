@@ -25,7 +25,6 @@ import {
     calculateEligibility,
 } from './types'
 
-// Derive options from schema enums (single source of truth)
 const DISTRIBUTION_STANDARDS = enumToOptions(DISTRIBUTION_STANDARD_VALUES)
 
 interface BeneficiaryTableProps {
@@ -71,7 +70,7 @@ export function BeneficiaryTable({
                     )}
                 </div>
             ),
-            // Custom filter to search both first and last name
+            // Searches full name, not just firstName accessor
             filterFn: (row, _columnId, filterValue) => {
                 const fullName =
                     `${row.original.firstName} ${row.original.lastName}`.toLowerCase()

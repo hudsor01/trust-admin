@@ -1,7 +1,6 @@
 import { defineConfig } from 'drizzle-kit'
 
-// Prefer direct connection for migrations (bypasses PgBouncer pooling)
-// Pooled connections don't support prepared statements used by migrations
+// Direct connection preferred — PgBouncer rejects prepared statements used by migrations
 const databaseUrl = process.env.DATABASE_URL_DIRECT || process.env.DATABASE_URL
 if (!databaseUrl) {
     throw new Error(
@@ -9,7 +8,7 @@ if (!databaseUrl) {
     )
 }
 
-// Clean up URL and ensure proper SSL mode to avoid pg driver warnings
+// Strip trailing ?schema= and force sslmode=verify-full to silence pg driver warnings
 let cleanDatabaseUrl = databaseUrl.replace(/\?schema=\w+$/, '')
 const url = new URL(cleanDatabaseUrl)
 url.searchParams.set('sslmode', 'verify-full')
@@ -24,7 +23,7 @@ export default defineConfig({
     },
     verbose: true,
     strict: true,
-    // Enable RLS role management for Neon
+    // Neon RLS role management
     entities: {
         roles: {
             provider: 'neon',

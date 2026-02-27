@@ -4,11 +4,7 @@ import { db } from '@/db'
 import { activityLog } from '@/db/schema'
 import { logger } from './logger'
 
-/**
- * Record auth event to activity log for audit trail.
- * Uses Next.js after() for non-blocking writes - response returns immediately,
- * audit log write happens in the background.
- */
+/** Record auth event to activity log. Uses after() so the response is not blocked. */
 export function recordAuthEvent(
     action: 'SIGN_IN' | 'SIGN_OUT' | 'FAILED_AUTH' | 'ACCESS_DENIED',
     userId: string | null,
@@ -34,10 +30,10 @@ export function recordAuthEvent(
                     reason: details.reason,
                     timestamp: new Date().toISOString(),
                 },
-                // createdAt has default CURRENT_TIMESTAMP, don't set explicitly
+                // createdAt uses DB default CURRENT_TIMESTAMP
             })
         } catch (error) {
-            // Don't fail requests if audit logging fails
+            // Audit log failure must not break the request
             logger.db.error('Failed to record auth event', { action, error })
             Sentry.captureException(error, {
                 tags: { subsystem: 'auth-events' },
@@ -47,10 +43,7 @@ export function recordAuthEvent(
     })
 }
 
-/**
- * Record successful sign-in
- * Used by Better Auth callbacks and middleware
- */
+/** Record successful sign-in. */
 export function recordSignIn(
     userId: string,
     details: {

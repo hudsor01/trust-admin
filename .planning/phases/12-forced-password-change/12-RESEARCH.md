@@ -192,11 +192,11 @@ if (profile?.forcePasswordChange && !request.nextUrl.pathname.startsWith('/porta
 }
 ```
 
-**However**, since this is a Next.js App Router layout (not middleware), we don't have direct access to `request.nextUrl.pathname`. Two options:
+**However**, since this is a Next.js App Router layout (not middleware), we do not have direct access to `request.nextUrl.pathname`. Two options:
 
-1. **Move `/portal/change-password` outside the portal route group** (e.g., `/change-password`) so the portal layout doesn't apply.
+1. **Move `/portal/change-password` outside the portal route group** (e.g., `/change-password`) so the portal layout does not apply.
 2. **Use `headers()` to read the current path** from the request in the server component.
-3. **Create a separate route group** like `(portal-auth)` that doesn't have the forcePasswordChange check.
+3. **Create a separate route group** like `(portal-auth)` that does not have the forcePasswordChange check.
 
 **Recommendation:** Option 1 is simplest. Place the change-password page at `/portal/change-password/page.tsx` but wrap it with a check: the portal layout should check if the current path is `/portal/change-password` and skip the redirect. Since Next.js Server Components can access `headers()`, we can derive the pathname from the referer or use a different approach.
 
@@ -247,7 +247,7 @@ await db.insert(userProfile).values({
 })
 ```
 
-This is a one-line addition. Since the column has `default(false)`, it won't break any other code that inserts user profiles without this field.
+This is a one-line addition. Since the column has `default(false)`, it will not break any other code that inserts user profiles without this field.
 
 ---
 

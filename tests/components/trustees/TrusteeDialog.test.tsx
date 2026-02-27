@@ -1,9 +1,4 @@
-/**
- * TrusteeDialog Component Tests
- *
- * Tests for the TrusteeDialog component that wraps ResourceDialog
- * to provide a form for adding new trustees.
- */
+/** TrusteeDialog component tests — ResourceDialog wrapper for adding new trustees. */
 
 import '../../setup'
 import { afterEach, describe, expect, mock, test } from 'bun:test'

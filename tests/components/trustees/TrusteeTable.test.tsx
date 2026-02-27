@@ -1,10 +1,4 @@
-/**
- * TrusteeTable Component Tests
- *
- * Tests for the TrusteeTable component that displays trustee rows
- * with inline editing for name, email, phone, status, dates,
- * and a delete action for non-primary trustees.
- */
+/** TrusteeTable component tests — inline editing for name/email/phone/status/dates, delete for non-primary. */
 
 import '../../setup'
 import { afterEach, describe, expect, mock, test } from 'bun:test'

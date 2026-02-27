@@ -10,7 +10,6 @@ import {
 describe('formatters', () => {
     describe('formatDate', () => {
         test('formats valid date string', () => {
-            // Use a full ISO date to avoid timezone issues
             const result = formatDate('2025-01-15T12:00:00')
             expect(result).toBe('Jan 15, 2025')
         })
@@ -56,7 +55,6 @@ describe('formatters', () => {
 
     describe('calculateAge', () => {
         test('calculates age correctly', () => {
-            // This will need adjustment based on current date
             const today = new Date()
             const tenYearsAgo = new Date(
                 today.getFullYear() - 10,
@@ -69,11 +67,9 @@ describe('formatters', () => {
 
         test('handles birthday not yet occurred this year', () => {
             const today = new Date()
-            // Set birthday to next month
             const futureMonth = (today.getMonth() + 1) % 12
             const birthYear = today.getFullYear() - 25
             const dob = `${birthYear}-${String(futureMonth + 1).padStart(2, '0')}-15`
-            // Should be 24 since birthday hasn't occurred yet
             const age = calculateAge(dob)
             expect(age).toBe(24)
         })

@@ -1,9 +1,4 @@
-/**
- * DashboardStats Component Tests
- *
- * Tests for the DashboardStats component that displays task progress,
- * income, expenses, and net position stats on the admin dashboard.
- */
+/** DashboardStats component tests — task progress, income, expenses, and net position stats. */
 
 import '../../setup'
 import { afterEach, describe, expect, test } from 'bun:test'

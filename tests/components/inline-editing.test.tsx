@@ -1,9 +1,4 @@
-/**
- * Inline Editing Integration Tests
- *
- * Tests that verify inline editing works correctly across admin pages.
- * These tests simulate the full editing flow from click to save.
- */
+/** Inline editing integration tests — verifies click-to-save flows across admin pages. */
 
 import '../setup'
 import { afterEach, describe, expect, mock, test } from 'bun:test'
@@ -23,7 +18,6 @@ import {
 } from '../../src/components/editable-cells'
 import { DataTable } from '../../src/components/ui/data-table'
 
-// Simulated liability data
 interface Liability {
     id: number
     creditor: string
@@ -80,10 +74,8 @@ describe('Inline Editing Integration', () => {
 
             render(<DataTable columns={columns} data={testLiabilities} />)
 
-            // Click to edit Bank of America
             await user.click(screen.getByText('Bank of America'))
 
-            // Type new value
             const input = screen.getByRole('textbox')
             await user.clear(input)
             await user.type(input, 'New Creditor Name{Enter}')
@@ -119,7 +111,6 @@ describe('Inline Editing Integration', () => {
             await user.type(input, 'Changed Value')
             await user.keyboard('{Escape}')
 
-            // Original value should be displayed
             expect(screen.getByText('Chase')).toBeTruthy()
             expect(onSave).not.toHaveBeenCalled()
         })
@@ -147,7 +138,6 @@ describe('Inline Editing Integration', () => {
 
             render(<DataTable columns={columns} data={testLiabilities} />)
 
-            // Click formatted balance to edit
             await user.click(screen.getByText('$15,000.00'))
 
             const input = screen.getByRole('textbox')
@@ -183,7 +173,7 @@ describe('Inline Editing Integration', () => {
             await user.click(screen.getByText('$5,000.00'))
             const input = screen.getByRole('textbox')
             await user.clear(input)
-            // Input plain number (component passes through as-is)
+
             await user.type(input, '7500.00{Enter}')
 
             await waitFor(() => {
@@ -218,10 +208,8 @@ describe('Inline Editing Integration', () => {
                 <DataTable columns={columns} data={singleLiability} />,
             )
 
-            // Click to open select
             await user.click(screen.getByText('Active'))
 
-            // Select dropdown should be open - find native select by data-slot
             const select = container.querySelector(
                 '[data-slot="native-select"]',
             )
@@ -269,7 +257,6 @@ describe('Inline Editing Integration', () => {
 
             render(<DataTable columns={columns} data={testLiabilities} />)
 
-            // Edit creditor
             await user.click(screen.getByText('Bank of America'))
             let input = screen.getByRole('textbox')
             await user.clear(input)
@@ -279,7 +266,6 @@ describe('Inline Editing Integration', () => {
                 expect(onSaveCreditor).toHaveBeenCalledWith(1, 'Updated Bank')
             })
 
-            // Edit balance (different row)
             await user.click(screen.getByText('$5,000.00'))
             input = screen.getByRole('textbox')
             await user.clear(input)
@@ -322,12 +308,10 @@ describe('Inline Editing Integration', () => {
             await user.clear(input)
             await user.type(input, 'New Value{Enter}')
 
-            // Should not crash
             await waitFor(() => {
                 expect(onSave).toHaveBeenCalled()
             })
 
-            // Restore console.error
             console.error = originalError
         })
     })
@@ -362,10 +346,8 @@ describe('Inline Editing Integration', () => {
 
             render(<DataTable columns={columns} data={dataWithNull} />)
 
-            // Should show placeholder
             expect(screen.getByText('Enter creditor')).toBeTruthy()
 
-            // Click placeholder to edit
             await user.click(screen.getByText('Enter creditor'))
             const input = screen.getByRole('textbox')
             await user.type(input, 'New Creditor{Enter}')
@@ -421,7 +403,6 @@ describe('Page-specific inline editing patterns', () => {
             )
             const user = userEvent.setup()
 
-            // Simulating the pattern used in liabilities page
             const columns: ColumnDef<Liability>[] = [
                 {
                     accessorKey: 'creditor',
@@ -462,13 +443,11 @@ describe('Page-specific inline editing patterns', () => {
 
             render(<DataTable columns={columns} data={testLiabilities} />)
 
-            // Verify editable cells are rendered
             expect(screen.getByText('Bank of America')).toBeTruthy()
             expect(screen.getByText('$15,000.00')).toBeTruthy()
             // Use getAllByText since there are multiple "Active" badges
             expect(screen.getAllByText('Active').length).toBeGreaterThan(0)
 
-            // Edit creditor
             await user.click(screen.getByText('Bank of America'))
             expect(screen.getByRole('textbox')).toBeTruthy()
         })

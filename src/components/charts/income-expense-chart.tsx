@@ -1,9 +1,4 @@
-/**
- * Income vs Expense Chart
- *
- * Bar chart comparing income and expenses over time.
- * Uses Recharts BarChart for period-based comparison.
- */
+/** Income vs expense bar chart for period-based comparison. */
 'use client'
 
 import {
@@ -25,24 +20,16 @@ import {
 import { formatCurrency } from '@/utils/formatters'
 
 export interface IncomeExpenseDataPoint {
-    /** Period label (e.g., "Jan 2026", "Q1 2026", "2026") */
     period: string
-    /** Total income for the period */
     income: number
-    /** Total expenses for the period */
     expenses: number
-    /** Net cash flow (income - expenses) */
     netCashFlow?: number
 }
 
 interface IncomeExpenseChartProps {
-    /** Time series data points */
     data: IncomeExpenseDataPoint[]
-    /** Chart height in pixels */
     height?: number
-    /** Show net cash flow line */
     showNetCashFlow?: boolean
-    /** Show legend */
     showLegend?: boolean
 }
 
@@ -78,7 +65,6 @@ export function IncomeExpenseChart({
         )
     }
 
-    // Calculate net cash flow if not provided
     const chartData = data.map((d) => ({
         ...d,
         netCashFlow: d.netCashFlow ?? d.income - d.expenses,
@@ -158,9 +144,6 @@ export function IncomeExpenseChart({
     )
 }
 
-/**
- * Stacked variant for showing total income/expense composition
- */
 export function IncomeExpenseStackedChart({
     data,
     height = 300,

@@ -60,10 +60,9 @@ const ChartContainer = React.forwardRef<
             }
         }
 
-        // Initial measurement after a small delay to ensure CSS is applied
+        // Delay initial measurement to ensure CSS has been applied
         const timeoutId = setTimeout(updateDimensions, 50)
 
-        // Also observe for resize changes
         const resizeObserver = new ResizeObserver(updateDimensions)
         resizeObserver.observe(container)
 
@@ -78,7 +77,6 @@ const ChartContainer = React.forwardRef<
             <div
                 data-chart={chartId}
                 ref={(node) => {
-                    // Handle both refs
                     ;(
                         containerRef as React.MutableRefObject<HTMLDivElement | null>
                     ).current = node

@@ -6,17 +6,7 @@ import {
     getCurrentLoanPosition,
 } from '@/lib/amortization'
 
-/**
- * Unit tests for Amortization Calculation Utilities
- *
- * Tests for loan payment calculations including:
- * - Payment splitting (principal/interest/escrow)
- * - Monthly payment calculation from loan terms
- * - Payoff date estimation
- * - Current loan position analysis
- *
- * All money values use string inputs/outputs for database compatibility.
- */
+/** Amortization calculation tests — payment splits, monthly amounts, payoff dates, loan positions. Money as strings for DB compat. */
 
 describe('Amortization Calculation Utilities', () => {
     describe('calculatePaymentSplit', () => {
@@ -88,7 +78,6 @@ describe('Amortization Calculation Utilities', () => {
             })
 
             test('payment less than interest results in negative principal', () => {
-                // Payment doesn't cover interest - balance increases
                 const result = calculatePaymentSplit(
                     '500000.00',
                     '0.12', // 12% rate = 5000/month interest

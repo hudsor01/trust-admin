@@ -25,7 +25,6 @@ interface StatusBadgeProps {
 }
 
 const statusStyles: Record<StatusType, string> = {
-    // Trust-specific statuses
     current: 'bg-success/10 text-success border-success/20 hover:bg-success/20',
     successor:
         'bg-primary/10 text-primary border-primary/20 hover:bg-primary/20',
@@ -35,8 +34,6 @@ const statusStyles: Record<StatusType, string> = {
     denied: 'bg-destructive/10 text-destructive border-destructive/20 hover:bg-destructive/20',
     complete:
         'bg-success/10 text-success border-success/20 hover:bg-success/20',
-
-    // General statuses
     active: 'bg-success/10 text-success border-success/20 hover:bg-success/20',
     inactive: 'bg-muted text-muted-foreground border-muted hover:bg-muted/80',
     warning: 'bg-warning/10 text-warning border-warning/20 hover:bg-warning/20',
@@ -59,7 +56,6 @@ export function StatusBadge({ status, children, className }: StatusBadgeProps) {
     )
 }
 
-// Convenience exports for common statuses
 export function CurrentBadge({
     children = 'Current',
     className,

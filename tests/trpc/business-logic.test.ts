@@ -1,13 +1,4 @@
-/**
- * tRPC Business Logic Tests
- *
- * Tests critical business logic mutations across tRPC routers:
- * 1. Liability payment recording with balance updates + auto accounting entries
- * 2. HEMS request approve/deny workflow
- * 3. Trust accounting CRUD + year-end income-to-principal conversion
- * 4. Distribution create with correct field mapping
- * 5. Pending inventory item approve/reject workflow
- */
+/** tRPC business logic tests — liability payments, HEMS approve/deny, trust accounting conversion, distributions, pending inventory. */
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import { TRPCError } from '@trpc/server'
 import { eq } from 'drizzle-orm'
@@ -47,13 +38,11 @@ function adminCaller() {
     )
 }
 
-// Track all test data IDs for cleanup in afterAll
 const testData = {
     entityId: null as number | null,
     bankAccountId: null as number | null,
     liabilityId: null as number | null,
     beneficiaryId: null as number | null,
-    // IDs created by tests, tracked for cleanup
     hemsRequestIds: [] as number[],
     distributionIds: [] as number[],
     trustAccountingIds: [] as number[],
@@ -70,7 +59,6 @@ describe.skipIf(isProductionDb)('Business Logic', () => {
         const now = new Date().toISOString()
         const ts = Date.now().toString().slice(-8)
 
-        // Create a single entity for all business logic tests
         const [e1] = await db
             .insert(entity)
             .values({
@@ -84,7 +72,6 @@ describe.skipIf(isProductionDb)('Business Logic', () => {
             .returning()
         testData.entityId = e1.id
 
-        // Create a bank account (needed for liability payments + trust accounting)
         const [ba1] = await db
             .insert(bankAccount)
             .values({
@@ -99,7 +86,6 @@ describe.skipIf(isProductionDb)('Business Logic', () => {
             .returning()
         testData.bankAccountId = ba1.id
 
-        // Create a liability for payment tests
         const [l1] = await db
             .insert(liability)
             .values({
@@ -115,7 +101,6 @@ describe.skipIf(isProductionDb)('Business Logic', () => {
             .returning()
         testData.liabilityId = l1.id
 
-        // Create a beneficiary for HEMS + distribution tests
         const [ben1] = await db
             .insert(beneficiary)
             .values({
@@ -132,68 +117,58 @@ describe.skipIf(isProductionDb)('Business Logic', () => {
     }, TEST_TIMEOUT)
 
     afterAll(async () => {
-        // Clean up in reverse FK dependency order
-
-        // 1. Liability payments (depend on liability)
+        // Reverse FK order
         if (testData.liabilityId) {
             await db
                 .delete(liabilityPayment)
                 .where(eq(liabilityPayment.liabilityId, testData.liabilityId))
         }
 
-        // 2. Trust accounting entries (auto-generated from payments + manually created)
         if (testData.entityId) {
             await db
                 .delete(trustAccounting)
                 .where(eq(trustAccounting.entityId, testData.entityId))
         }
 
-        // 3. HEMS requests
         for (const id of testData.hemsRequestIds) {
             await db.delete(hemsRequest).where(eq(hemsRequest.id, id))
         }
 
-        // 4. Distributions (delete all for entity, including any auto-created by HEMS approval)
+        // Delete all for entity, including auto-created distributions from HEMS approval
         if (testData.entityId) {
             await db
                 .delete(distribution)
                 .where(eq(distribution.entityId, testData.entityId))
         }
 
-        // 5. Personal properties (created by pending inventory approve)
         for (const id of testData.personalPropertyIds) {
             await db.delete(personalProperty).where(eq(personalProperty.id, id))
         }
 
-        // 6. Pending inventory items
         for (const id of testData.pendingInventoryItemIds) {
             await db
                 .delete(pendingInventoryItem)
                 .where(eq(pendingInventoryItem.id, id))
         }
 
-        // 7. Beneficiary
         if (testData.beneficiaryId) {
             await db
                 .delete(beneficiary)
                 .where(eq(beneficiary.id, testData.beneficiaryId))
         }
 
-        // 8. Liability
         if (testData.liabilityId) {
             await db
                 .delete(liability)
                 .where(eq(liability.id, testData.liabilityId))
         }
 
-        // 9. Bank account
         if (testData.bankAccountId) {
             await db
                 .delete(bankAccount)
                 .where(eq(bankAccount.id, testData.bankAccountId))
         }
 
-        // 10. Entity (must be last)
         if (testData.entityId) {
             await db.delete(entity).where(eq(entity.id, testData.entityId))
         }
@@ -221,24 +196,20 @@ describe.skipIf(isProductionDb)('Business Logic', () => {
                     paymentMethod: 'CHECK',
                 })
 
-                // Verify the result contains the expected structure
                 expect(result).toBeDefined()
                 expect(result.payment).toBeDefined()
                 expect(result.payment.amount).toBe('1000.00')
                 expect(result.payment.principalPortion).toBe('800.00')
                 expect(result.payment.interestPortion).toBe('200.00')
 
-                // Verify liability balance was decreased
                 expect(result.liability).toBeDefined()
                 expect(
                     parseFloat(result.liability.currentBalance),
                 ).toBeLessThan(10000.0)
 
-                // Verify an accounting entry was created (auto-expense)
                 expect(result.accountingEntry).toBeDefined()
                 expect(result.accountingEntry).not.toBeNull()
 
-                // Verify the accounting entry exists in the database
                 const accountingEntries = await caller.trustAccounting.list({
                     entityId: testData.entityId!,
                 })
@@ -392,7 +363,6 @@ describe.skipIf(isProductionDb)('Business Logic', () => {
             async () => {
                 const caller = adminCaller()
 
-                // Create a second request to deny
                 const created = await caller.hemsRequest.create({
                     entityId: testData.entityId!,
                     beneficiaryId: testData.beneficiaryId!,
@@ -423,7 +393,6 @@ describe.skipIf(isProductionDb)('Business Logic', () => {
             async () => {
                 const caller = adminCaller()
 
-                // Create a third request for partial approval
                 const created = await caller.hemsRequest.create({
                     entityId: testData.entityId!,
                     beneficiaryId: testData.beneficiaryId!,
@@ -466,7 +435,7 @@ describe.skipIf(isProductionDb)('Business Logic', () => {
                         entityId: 999999, // nonexistent entity
                         approvedAmount: '2000.00',
                     })
-                    expect(true).toBe(false) // Should not reach
+                    expect(true).toBe(false)
                 } catch (err) {
                     expect(err).toBeInstanceOf(TRPCError)
                     expect((err as TRPCError).code).toBe('NOT_FOUND')
@@ -574,7 +543,6 @@ describe.skipIf(isProductionDb)('Business Logic', () => {
                     (s) => s.fiscalYear === new Date().getFullYear(),
                 )
                 expect(currentYear).toBeDefined()
-                // Should have at least the 2 income entries we created (1000 + 750)
                 expect(currentYear!.entryCount).toBeGreaterThanOrEqual(2)
                 expect(
                     parseFloat(currentYear!.totalAmount),
@@ -587,7 +555,6 @@ describe.skipIf(isProductionDb)('Business Logic', () => {
             'convertIncomeToPrincipal with no unconverted entries returns zero',
             async () => {
                 const caller = adminCaller()
-                // Use a fiscal year with no entries to test the empty path
                 const emptyFiscalYear = 1999
 
                 const result =
@@ -630,7 +597,6 @@ describe.skipIf(isProductionDb)('Business Logic', () => {
             'delete a trust accounting entry',
             async () => {
                 const caller = adminCaller()
-                // Create a throwaway entry to delete
                 const created = await caller.trustAccounting.create({
                     entityId: testData.entityId!,
                     bankAccountId: testData.bankAccountId!,
@@ -650,7 +616,6 @@ describe.skipIf(isProductionDb)('Business Logic', () => {
                 expect(deleted).toBeDefined()
                 expect(deleted.id).toBe(created.id)
 
-                // Verify it no longer exists
                 const fetched = await caller.trustAccounting.byId({
                     id: created.id,
                     entityId: testData.entityId!,
@@ -762,7 +727,6 @@ describe.skipIf(isProductionDb)('Business Logic', () => {
                 const caller = adminCaller()
                 const now = new Date().toISOString()
 
-                // Insert pending item directly via db.insert (no tRPC create procedure)
                 const [pendingItem] = await db
                     .insert(pendingInventoryItem)
                     .values({
@@ -791,7 +755,6 @@ describe.skipIf(isProductionDb)('Business Logic', () => {
                 expect(result.property.status).toBe('ACTIVE')
                 testData.personalPropertyIds.push(result.property.id)
 
-                // Verify the pending item status was updated
                 const updatedPending = await caller.pendingInventoryItem.byId(
                     pendingItem.id,
                 )
@@ -879,10 +842,9 @@ describe.skipIf(isProductionDb)('Business Logic', () => {
                         id: 999999,
                         entityId: testData.entityId!,
                     })
-                    expect(true).toBe(false) // Should not reach
+                    expect(true).toBe(false)
                 } catch (err) {
                     expect(err).toBeDefined()
-                    // The router throws a generic Error, not TRPCError
                     expect((err as Error).message).toContain(
                         'Pending item not found',
                     )

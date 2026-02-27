@@ -1,15 +1,6 @@
 'use client'
 
-/**
- * Bulk Entry Table Component
- *
- * Spreadsheet-style bulk entry table for rapidly entering multiple liabilities at once.
- * Features:
- * - Tab through cells, Enter to add rows
- * - Paste from Excel/Google Sheets
- * - Per-row validation with inline error display
- * - Type-aware column visibility
- */
+/** Spreadsheet-style bulk entry table with keyboard nav, clipboard paste, and per-row validation. */
 
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Plus, Save, Trash2 } from 'lucide-react'
@@ -38,10 +29,8 @@ import {
 } from '@/lib/type-utils'
 import { cn } from '@/lib/utils'
 
-// Derive options from schema enums (single source of truth)
 const LIABILITY_TYPES = enumToOptions(LIABILITY_TYPE_VALUES)
 
-// Row schema matching liability requirements
 const bulkLiabilityRowSchema = z.object({
     liabilityType: z.enum(LIABILITY_TYPE_VALUES),
     creditor: z.string().min(1, 'Required'),
@@ -51,7 +40,6 @@ const bulkLiabilityRowSchema = z.object({
         .regex(/^[\d,]+\.?\d*$/, 'Invalid amount'),
     interestRate: z.string().optional(),
     monthlyPayment: z.string().optional(),
-    // Loan term fields (mortgage/loan only)
     loanTermMonths: z.string().optional(),
     escrowMonthly: z.string().optional(),
 })
@@ -63,10 +51,7 @@ const bulkEntrySchema = z.object({
 export type BulkLiabilityRow = z.infer<typeof bulkLiabilityRowSchema>
 type BulkEntryForm = z.infer<typeof bulkEntrySchema>
 
-// Revolving credit types don't have fixed terms
 const isRevolvingType = (type: string) => type === 'CREDIT_CARD'
-
-// Loan types have amortization-specific fields
 const hasLoanTermFields = (type: string) =>
     type === 'MORTGAGE' || type === 'LOAN'
 
@@ -82,7 +67,7 @@ function createEmptyRow(): BulkLiabilityRow {
     }
 }
 
-// Map common type strings to enum values for paste handling
+/** Fuzzy-maps pasted text (e.g. "mortgage", "credit card") to LiabilityType enum values. */
 function mapPastedType(type: string | undefined): LiabilityType | null {
     if (!type) return null
     const lower = type.toLowerCase().trim()
@@ -123,7 +108,7 @@ export function BulkEntryTable({
         name: 'liabilities',
     })
 
-    // Watch first row's type to control column visibility for all rows
+    // First row's type drives column visibility for all rows
     const firstRowType = useWatch({
         control: form.control,
         name: 'liabilities.0.liabilityType',
@@ -132,13 +117,11 @@ export function BulkEntryTable({
     const showLoanTermFields = hasLoanTermFields(firstRowType || 'MORTGAGE')
     const isRevolving = isRevolvingType(firstRowType || 'MORTGAGE')
 
-    // Column count for keyboard navigation (depends on loan term fields)
     const colCount = useMemo(
         () => (showLoanTermFields ? 7 : 5),
         [showLoanTermFields],
     )
 
-    // Focus a specific cell by row and column
     const focusCell = useCallback(
         (row: number, col: number) => {
             if (row < 0 || row >= fields.length) return
@@ -156,23 +139,18 @@ export function BulkEntryTable({
         [fields.length],
     )
 
-    // Focus new row after render
     useEffect(() => {
         if (pendingFocusRow !== null && pendingFocusRow < fields.length) {
-            // Focus creditor column (col 1, skip type dropdown)
-            focusCell(pendingFocusRow, 1)
+            focusCell(pendingFocusRow, 1) // col 1 = creditor (skip type dropdown)
             setPendingFocusRow(null)
         }
     }, [fields.length, pendingFocusRow, focusCell])
 
-    // Keyboard navigation handler
     const handleKeyDown = useCallback(
         (e: React.KeyboardEvent, rowIdx: number, colIdx: number) => {
             if (e.key === 'Tab' && !e.shiftKey && colIdx === colCount - 1) {
-                // Tab on last column - move to first editable column of next row
                 e.preventDefault()
                 if (rowIdx === fields.length - 1) {
-                    // Last row - add new row and focus it
                     append(createEmptyRow())
                     setPendingFocusRow(fields.length)
                 } else {
@@ -203,13 +181,11 @@ export function BulkEntryTable({
         [fields.length, colCount, append, focusCell],
     )
 
-    // Clipboard paste handler
     const handlePaste = useCallback(
         (e: React.ClipboardEvent) => {
             const text = e.clipboardData.getData('text/plain')
             if (!text) return
 
-            // Excel/Sheets use tab for columns, newline for rows
             const rows = text
                 .split('\n')
                 .filter((row) => row.trim())
@@ -217,12 +193,11 @@ export function BulkEntryTable({
 
             if (rows.length === 0) return
 
-            // Only prevent default if we have valid tabular data
+            // Only intercept multi-column (tab-separated) paste; let single-value paste through to input
             if (rows.some((row) => row.length > 1)) {
                 e.preventDefault()
 
-                // Map pasted data to liability rows
-                // Assumes column order: Type, Creditor, Balance, Rate, Payment
+                // Expects column order: Type, Creditor, Balance, Rate, Payment
                 let addedCount = 0
                 for (const [type, creditor, balance, rate, payment] of rows) {
                     const liabilityType = mapPastedType(type) || 'OTHER'
@@ -250,7 +225,6 @@ export function BulkEntryTable({
         [append],
     )
 
-    // Add row with focus
     const addRowWithFocus = useCallback(() => {
         append(createEmptyRow())
         setPendingFocusRow(fields.length)
@@ -316,7 +290,6 @@ export function BulkEntryTable({
                 </table>
             </div>
 
-            {/* Action buttons */}
             <div className="flex justify-between">
                 <Button variant="outline" onClick={addRowWithFocus}>
                     <Plus className="h-4 w-4 mr-2" />
@@ -335,10 +308,6 @@ export function BulkEntryTable({
         </div>
     )
 }
-
-// =============================================================================
-// BULK ENTRY ROW COMPONENT
-// =============================================================================
 
 interface BulkEntryRowProps {
     index: number
@@ -370,12 +339,10 @@ function BulkEntryRow({
 
     return (
         <tr className="border-t hover:bg-muted/30">
-            {/* Type column */}
             <td className="px-1 py-1" data-row={index} data-col={0}>
                 <Select
                     value={liabilityType}
                     onValueChange={(v: string) =>
-                        // Cast is safe: Select options are all valid LiabilityType values
                         setValue(
                             `liabilities.${index}.liabilityType`,
                             v as LiabilityType,
@@ -395,7 +362,6 @@ function BulkEntryRow({
                 </Select>
             </td>
 
-            {/* Creditor column */}
             <td className="px-1 py-1" data-row={index} data-col={1}>
                 <Input
                     {...register(`liabilities.${index}.creditor`)}
@@ -408,7 +374,6 @@ function BulkEntryRow({
                 />
             </td>
 
-            {/* Balance column */}
             <td className="px-1 py-1" data-row={index} data-col={2}>
                 <Input
                     {...register(`liabilities.${index}.currentBalance`)}
@@ -421,7 +386,6 @@ function BulkEntryRow({
                 />
             </td>
 
-            {/* Rate column */}
             <td className="px-1 py-1" data-row={index} data-col={3}>
                 <Input
                     {...register(`liabilities.${index}.interestRate`)}
@@ -431,7 +395,6 @@ function BulkEntryRow({
                 />
             </td>
 
-            {/* Monthly Payment column */}
             <td className="px-1 py-1" data-row={index} data-col={4}>
                 <Input
                     {...register(`liabilities.${index}.monthlyPayment`)}
@@ -441,7 +404,6 @@ function BulkEntryRow({
                 />
             </td>
 
-            {/* Loan term columns (conditional) */}
             {showLoanTermFields && (
                 <>
                     <td className="px-1 py-1" data-row={index} data-col={5}>
@@ -463,7 +425,6 @@ function BulkEntryRow({
                 </>
             )}
 
-            {/* Delete button column */}
             <td className="px-1 py-1">
                 <Button
                     variant="ghost"

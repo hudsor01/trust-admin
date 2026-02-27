@@ -7,35 +7,10 @@ export interface UseResourceFormOptions<T> {
 }
 
 /**
- * Hook for managing form state in resource dialogs
+ * Dialog + TanStack Form state for CRUD resource dialogs (open/close, create/edit mode, submit).
  *
- * Encapsulates the common pattern of:
- * - Opening/closing dialog
- * - Tracking editing vs creating mode
- * - Form state management with TanStack Form
- * - Submit handling with loading state
- *
- * TypeScript Note: The return type is inferred rather than explicitly typed.
- * This follows TanStack Form's guidance: "You should never need to pass
- * a generic or use an internal type when leveraging TanStack Form."
- *
- * @param initialData - Default form data for create mode
- * @param onSubmit - Async function called on save (receives form data)
- *
- * @example
- * ```typescript
- * const vehicleForm = useResourceForm({
- *   initialData: { make: '', model: '', year: 2024 },
- *   onSubmit: async (data) => {
- *     await createVehicle(data)
- *   }
- * })
- *
- * // Access form instance for Field components
- * <vehicleForm.formInstance.Field name="make">
- *   {(field) => <Input value={field.state.value} ... />}
- * </vehicleForm.formInstance.Field>
- * ```
+ * Return type is intentionally inferred per TanStack Form guidance -- avoids
+ * passing generics or referencing internal form types.
  */
 export function useResourceForm<T>({
     initialData,
@@ -45,8 +20,6 @@ export function useResourceForm<T>({
     const [editing, setEditing] = useState<T | null>(null)
     const [isSubmitting, setIsSubmitting] = useState(false)
 
-    // TanStack Form instance - TypeScript infers types from defaultValues
-    // The generic T flows through: initialData: T -> defaultValues: T -> value: T
     const formInstance = useForm({
         defaultValues: initialData,
         onSubmit: async ({ value }) => {
@@ -64,7 +37,6 @@ export function useResourceForm<T>({
         const mergedDefaults = defaults
             ? { ...initialData, ...defaults }
             : initialData
-        // reset(values) sets form to provided values and updates defaultValues
         formInstance.reset(mergedDefaults)
         setIsOpen(true)
     }
@@ -77,7 +49,6 @@ export function useResourceForm<T>({
 
     const handleEdit = (item: T) => {
         setEditing(item)
-        // reset(values) properly sets all field values from the item
         formInstance.reset(item)
         setIsOpen(true)
     }
@@ -92,7 +63,6 @@ export function useResourceForm<T>({
         formInstance.handleSubmit()
     }
 
-    // Return type is inferred - no explicit interface needed
     return {
         isOpen,
         open: openDialog,
@@ -107,5 +77,4 @@ export function useResourceForm<T>({
     }
 }
 
-// Export the inferred return type for consumers who need it
 export type UseResourceFormReturn<T> = ReturnType<typeof useResourceForm<T>>

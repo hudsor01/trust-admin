@@ -1,23 +1,18 @@
-/**
- * tRPC Provider
- *
- * Wraps the app with tRPC and React Query providers.
- * Must be used in a Client Component.
- */
 'use client'
 
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister'
+import { QueryClient } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
+import {
+    type Persister,
+    PersistQueryClientProvider,
+} from '@tanstack/react-query-persist-client'
 import { httpBatchLink } from '@trpc/client'
 import { useState } from 'react'
 import { trpc } from './trpc'
 
 function getBaseUrl() {
-    if (typeof window !== 'undefined') {
-        // Browser - use relative URL
-        return ''
-    }
-    // SSR - use localhost
+    if (typeof window !== 'undefined') return ''
     return `http://localhost:${process.env.PORT ?? 3000}`
 }
 
@@ -27,12 +22,14 @@ export function TRPCProvider({ children }: { children: React.ReactNode }) {
             new QueryClient({
                 defaultOptions: {
                     queries: {
-                        // 30 seconds - balances financial freshness with reduced refetches
-                        staleTime: 1000 * 30,
-                        // 10 minutes - keep cached data longer for navigation performance
-                        gcTime: 1000 * 60 * 10,
-                        // Already disabled - prevent refetches on window focus
+                        // Financial data: 5 min fresh window, then background refetch.
+                        // Stale data served from localStorage for up to 24h between sessions.
+                        // refetchOnMount (default true) ensures fresh data on navigation.
+                        staleTime: 1000 * 60 * 5,
+                        gcTime: 1000 * 60 * 60 * 24,
+                        retry: 1,
                         refetchOnWindowFocus: false,
+                        refetchOnReconnect: false,
                     },
                 },
             }),
@@ -43,23 +40,42 @@ export function TRPCProvider({ children }: { children: React.ReactNode }) {
             links: [
                 httpBatchLink({
                     url: `${getBaseUrl()}/api/trpc`,
-                    headers: () => {
-                        // Include cookies for auth
-                        return {}
-                    },
+                    headers: () => ({}),
                 }),
             ],
         }),
     )
 
-    return (
+    const [persister] = useState<Persister | null>(() => {
+        if (typeof window === 'undefined') return null
+        return createSyncStoragePersister({
+            storage: window.localStorage,
+            key: 'trust-admin-query-cache',
+        })
+    })
+
+    const inner = (
         <trpc.Provider client={trpcClient} queryClient={queryClient}>
-            <QueryClientProvider client={queryClient}>
-                {children}
-                {process.env.NODE_ENV === 'development' && (
-                    <ReactQueryDevtools initialIsOpen={false} />
-                )}
-            </QueryClientProvider>
+            {children}
+            {process.env.NODE_ENV === 'development' && (
+                <ReactQueryDevtools initialIsOpen={false} />
+            )}
         </trpc.Provider>
+    )
+
+    if (!persister) return inner
+
+    return (
+        <PersistQueryClientProvider
+            client={queryClient}
+            persistOptions={{
+                persister,
+                maxAge: 1000 * 60 * 60 * 24, // 24 hours
+                // Bump on schema/API changes that alter cached data shapes
+                buster: 'v1',
+            }}
+        >
+            {inner}
+        </PersistQueryClientProvider>
     )
 }

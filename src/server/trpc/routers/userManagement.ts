@@ -1,13 +1,4 @@
-/**
- * User Management tRPC Router
- *
- * Owner-only procedures for managing all user accounts.
- * Uses Neon Auth Admin plugin for user CRUD and Better Auth admin APIs.
- * Uses userProfile table to link Neon Auth users to beneficiary records.
- *
- * Access: All mutation procedures require the trust owner (ownerProcedure).
- * Read-only isOwner check uses adminProcedure so any admin can query it.
- */
+/** Owner-only user CRUD via Neon Auth Admin API + userProfile linking. */
 import { TRPCError } from '@trpc/server'
 import { desc, eq } from 'drizzle-orm'
 import { z } from 'zod'
@@ -25,10 +16,7 @@ import {
 const OWNER_EMAIL = process.env.ADMIN_EMAIL ?? ''
 
 export const userManagementRouter = createTRPCRouter({
-    /**
-     * Check if current user is the trust owner.
-     * Used by the frontend to gate CRUD controls.
-     */
+    /** Used by frontend to gate user management CRUD controls. */
     isOwner: adminProcedure.query(async ({ ctx }) => {
         return {
             isOwner: ctx.user.email === OWNER_EMAIL,
@@ -36,12 +24,8 @@ export const userManagementRouter = createTRPCRouter({
         }
     }),
 
-    /**
-     * List ALL users from Neon Auth, enriched with userProfile data.
-     * Shows both admin and beneficiary users.
-     */
+    /** List all Neon Auth users enriched with userProfile + beneficiary data. */
     listAllUsers: ownerProcedure.query(async () => {
-        // 1. Fetch all users from Neon Auth
         const { data, error } = await authServer.admin.listUsers({
             query: {
                 limit: 100,
@@ -71,7 +55,6 @@ export const userManagementRouter = createTRPCRouter({
             banExpires?: Date | null
         }>
 
-        // 2. Fetch all userProfiles for enrichment
         const profiles = await db
             .select({
                 userId: userProfile.userId,
@@ -80,7 +63,6 @@ export const userManagementRouter = createTRPCRouter({
             })
             .from(userProfile)
 
-        // 3. Fetch all beneficiaries for name resolution
         const beneficiaries = await db
             .select({
                 id: beneficiary.id,
@@ -89,11 +71,9 @@ export const userManagementRouter = createTRPCRouter({
             })
             .from(beneficiary)
 
-        // 4. Build lookup maps
         const profileMap = new Map(profiles.map((p) => [p.userId, p]))
         const beneficiaryMap = new Map(beneficiaries.map((b) => [b.id, b]))
 
-        // 5. Merge and return
         return neonUsers.map((u) => {
             const profile = profileMap.get(u.id)
             const ben = profile?.beneficiaryId
@@ -120,15 +100,7 @@ export const userManagementRouter = createTRPCRouter({
         })
     }),
 
-    /**
-     * Create a beneficiary portal account
-     *
-     * 1. Validates beneficiary exists and has no existing account
-     * 2. Checks email is not already in use
-     * 3. Creates Neon Auth user with "user" native role
-     * 4. Creates userProfile with "beneficiary" app role
-     * 5. Logs activity for audit trail
-     */
+    /** Create a beneficiary portal account (Neon Auth user + userProfile link). */
     createBeneficiaryUser: ownerProcedure
         .input(
             z.object({
@@ -138,7 +110,6 @@ export const userManagementRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ input, ctx }) => {
-            // 1. Verify beneficiary exists
             const [ben] = await db
                 .select()
                 .from(beneficiary)
@@ -152,7 +123,6 @@ export const userManagementRouter = createTRPCRouter({
                 })
             }
 
-            // 2. Check no existing userProfile for this beneficiary
             const [existingProfile] = await db
                 .select()
                 .from(userProfile)
@@ -166,7 +136,6 @@ export const userManagementRouter = createTRPCRouter({
                 })
             }
 
-            // 3. Check if email is already taken by another Neon Auth user
             const { data: existingUsers, error: listError } =
                 await authServer.admin.listUsers({
                     query: {
@@ -189,7 +158,7 @@ export const userManagementRouter = createTRPCRouter({
                 })
             }
 
-            // 4. Create Neon Auth user — native role is always "user"
+            // Native role is always "user"; app role "beneficiary" is set in userProfile
             const { data: newUser, error: createError } =
                 await authServer.admin.createUser({
                     email: input.email,
@@ -207,13 +176,12 @@ export const userManagementRouter = createTRPCRouter({
 
             const createdUserId = newUser.user.id
 
-            // 5. Set emailVerified = true — required or Better Auth returns 403 on sign-in
+            // Required: Better Auth returns 403 on sign-in when emailVerified is false
             await getClient().unsafe(
                 `UPDATE neon_auth."user" SET "emailVerified" = true WHERE id = $1`,
                 [createdUserId],
             )
 
-            // 6. Create userProfile linking to beneficiary
             await db.insert(userProfile).values({
                 userId: createdUserId,
                 role: 'beneficiary',
@@ -221,7 +189,6 @@ export const userManagementRouter = createTRPCRouter({
                 forcePasswordChange: true,
             })
 
-            // 6. Log activity
             await createActivityLog({
                 tableName: 'user_profile',
                 recordId: createdUserId,
@@ -235,14 +202,10 @@ export const userManagementRouter = createTRPCRouter({
                 },
             })
 
-            // Return userId and email — never return the password
             return { userId: createdUserId, email: input.email }
         }),
 
-    /**
-     * List provisioned users with linked beneficiary info (legacy).
-     * Kept for backward compatibility. Prefer listAllUsers.
-     */
+    /** @deprecated Use listAllUsers instead. */
     listProvisionedUsers: adminProcedure.query(async () => {
         const results = await db
             .select({
@@ -264,9 +227,7 @@ export const userManagementRouter = createTRPCRouter({
         return results
     }),
 
-    /**
-     * Update user name or email via Neon Auth Admin API
-     */
+    /** Update user name or email via raw SQL (Neon Auth admin proxy returns 400). */
     updateUser: ownerProcedure
         .input(
             z.object({
@@ -276,7 +237,7 @@ export const userManagementRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ input, ctx }) => {
-            // Block owner from changing their own email (would lock out of ownerProcedure)
+            // Changing owner email would revoke ownerProcedure access (matched by ADMIN_EMAIL)
             if (input.userId === ctx.user.id && input.email) {
                 throw new TRPCError({
                     code: 'BAD_REQUEST',
@@ -296,9 +257,6 @@ export const userManagementRouter = createTRPCRouter({
                 })
             }
 
-            // Update neon_auth."user" directly via raw SQL.
-            // Neon Auth stores users in the neon_auth schema, not public.user.
-            // The admin API proxy (authServer.admin.updateUser) returns 400.
             const now = new Date().toISOString()
             const setClauses: string[] = []
             const params: (string | null)[] = []
@@ -339,9 +297,7 @@ export const userManagementRouter = createTRPCRouter({
             return { success: true }
         }),
 
-    /**
-     * Change Neon Auth native role AND userProfile app role
-     */
+    /** Sync both Neon Auth native role and userProfile app role. */
     setUserRole: ownerProcedure
         .input(
             z.object({
@@ -357,7 +313,6 @@ export const userManagementRouter = createTRPCRouter({
                 })
             }
 
-            // 1. Set Neon Auth native role
             const { error } = await authServer.admin.setRole({
                 userId: input.userId,
                 role: input.role,
@@ -370,11 +325,8 @@ export const userManagementRouter = createTRPCRouter({
                 })
             }
 
-            // 2. Update userProfile app role if profile exists.
-            //    When promoting to admin, set app role to 'admin'.
-            //    When demoting to 'user', preserve existing app role — do NOT
-            //    automatically assign 'beneficiary', which would grant portal
-            //    access to users who are not beneficiaries.
+            // Only promote to admin in userProfile; demoting to 'user' preserves
+            // existing app role to avoid granting unintended portal access.
             const [existing] = await db
                 .select()
                 .from(userProfile)
@@ -402,9 +354,7 @@ export const userManagementRouter = createTRPCRouter({
             return { success: true }
         }),
 
-    /**
-     * Reset a user's password via Neon Auth Admin API
-     */
+    /** Reset password and set forcePasswordChange flag. */
     resetUserPassword: ownerProcedure
         .input(
             z.object({
@@ -420,7 +370,6 @@ export const userManagementRouter = createTRPCRouter({
                 })
             }
 
-            // Verify user exists before calling external auth API
             const [profile] = await db
                 .select()
                 .from(userProfile)
@@ -462,9 +411,6 @@ export const userManagementRouter = createTRPCRouter({
             return { success: true }
         }),
 
-    /**
-     * Ban a user (temporarily restrict access)
-     */
     banUser: ownerProcedure
         .input(
             z.object({
@@ -503,9 +449,6 @@ export const userManagementRouter = createTRPCRouter({
             return { success: true }
         }),
 
-    /**
-     * Unban a user (lift access restriction)
-     */
     unbanUser: ownerProcedure
         .input(z.object({ userId: z.string() }))
         .mutation(async ({ input, ctx }) => {
@@ -532,7 +475,15 @@ export const userManagementRouter = createTRPCRouter({
         }),
 
     /**
-     * Permanently delete a user from both userProfile and Neon Auth
+     * Permanently remove a user's portal access (userProfile + Neon Auth).
+     *
+     * The linked `beneficiary` record is intentionally preserved — it is a
+     * legal trust entity referenced by distributions, HEMS requests, and
+     * accounting entries. Deleting the auth account revokes portal access
+     * without destroying the beneficiary's historical trust records.
+     *
+     * To remove someone as a beneficiary entirely, do so on the Beneficiaries
+     * page after first revoking their portal account here.
      */
     removeUser: ownerProcedure
         .input(z.object({ userId: z.string() }))
@@ -544,18 +495,13 @@ export const userManagementRouter = createTRPCRouter({
                 })
             }
 
-            // 1. Delete userProfile first so we can log oldValues.
-            //    If Neon Auth removal then fails, the profile is already gone
-            //    and the user cannot sign in (auth record still exists but
-            //    profile-dependent features won't work). This is safer than
-            //    the reverse order where a failed profile delete leaves an
-            //    orphan profile with no auth record (un-retryable state).
+            // Delete profile first: if Neon Auth removal fails, user still can't
+            // access profile-dependent features. Reverse order risks orphan profiles.
             const [deletedProfile] = await db
                 .delete(userProfile)
                 .where(eq(userProfile.userId, input.userId))
                 .returning()
 
-            // 2. Remove from Neon Auth
             const { error } = await authServer.admin.removeUser({
                 userId: input.userId,
             })
@@ -583,11 +529,7 @@ export const userManagementRouter = createTRPCRouter({
             return { success: true }
         }),
 
-    /**
-     * Clear forcePasswordChange flag after beneficiary successfully changes password.
-     * Uses protectedProcedure so it's callable during the password change flow,
-     * before the beneficiary has full portal access.
-     */
+    /** Uses protectedProcedure (not beneficiaryProcedure) so it's callable during the forced password change flow. */
     clearForcePasswordChange: protectedProcedure.mutation(async ({ ctx }) => {
         await db
             .update(userProfile)
@@ -597,9 +539,6 @@ export const userManagementRouter = createTRPCRouter({
         return { success: true }
     }),
 
-    /**
-     * Revoke all active sessions for a user (force logout)
-     */
     revokeUserSessions: ownerProcedure
         .input(z.object({ userId: z.string() }))
         .mutation(async ({ input, ctx }) => {

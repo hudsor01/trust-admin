@@ -1,14 +1,4 @@
-/**
- * Neon Auth Test Utilities
- *
- * Helper functions for testing with the Neon Auth system.
- * Provides utilities for creating test users, sessions, and verifying auth state.
- *
- * Key differences from legacy Better Auth helpers:
- * - Users are in neon_auth.user schema (managed by Neon)
- * - Custom fields (role, beneficiaryId) are in public.user_profile
- * - Sessions use JWT tokens via pg_session_jwt extension
- */
+/** Neon Auth test utilities — users in neon_auth.user, custom fields in public.user_profile, sessions via pg_session_jwt. */
 
 import { eq } from 'drizzle-orm'
 import { db, getClient } from '@/db'
@@ -47,9 +37,6 @@ export interface TestEntity {
 // DATABASE STATE CHECKS
 // =============================================================================
 
-/**
- * Check if Neon Auth extension is installed
- */
 export async function isNeonAuthInstalled(): Promise<boolean> {
     const client = getClient()
     try {
@@ -62,9 +49,6 @@ export async function isNeonAuthInstalled(): Promise<boolean> {
     }
 }
 
-/**
- * Check if pg_session_jwt extension is installed
- */
 export async function isPgSessionJwtInstalled(): Promise<boolean> {
     const client = getClient()
     try {
@@ -77,9 +61,6 @@ export async function isPgSessionJwtInstalled(): Promise<boolean> {
     }
 }
 
-/**
- * Check if auth.user_id() function exists
- */
 export async function authUserIdFunctionExists(): Promise<boolean> {
     const client = getClient()
     try {
@@ -93,9 +74,6 @@ export async function authUserIdFunctionExists(): Promise<boolean> {
     }
 }
 
-/**
- * Check if auth.jwt_session_init() function exists
- */
 export async function authJwtSessionInitExists(): Promise<boolean> {
     const client = getClient()
     try {
@@ -109,9 +87,6 @@ export async function authJwtSessionInitExists(): Promise<boolean> {
     }
 }
 
-/**
- * Get the count of users in neon_auth.user table
- */
 export async function getNeonAuthUserCount(): Promise<number> {
     const client = getClient()
     try {
@@ -119,7 +94,7 @@ export async function getNeonAuthUserCount(): Promise<number> {
             await client`SELECT COUNT(*)::int as count FROM neon_auth."user"`
         return result[0]?.count ?? 0
     } catch {
-        return -1 // -1 indicates error (table may not exist)
+        return -1
     }
 }
 
@@ -127,9 +102,6 @@ export async function getNeonAuthUserCount(): Promise<number> {
 // TEST DATA CREATION
 // =============================================================================
 
-/**
- * Create a test entity (trust)
- */
 export async function createTestEntity(name?: string): Promise<TestEntity> {
     const now = new Date().toISOString()
     const [created] = await db
@@ -149,9 +121,6 @@ export async function createTestEntity(name?: string): Promise<TestEntity> {
     return { id: created.id, name: created.name }
 }
 
-/**
- * Create a test beneficiary
- */
 export async function createTestBeneficiary(options: {
     entityId: number
     firstName?: string
@@ -182,11 +151,7 @@ export async function createTestBeneficiary(options: {
     }
 }
 
-/**
- * Create a test user profile (for existing Neon Auth user)
- * Note: In production, user_profile is auto-created by trigger.
- * This function creates profiles for test scenarios.
- */
+/** In production user_profile is auto-created by trigger; this creates profiles directly for tests. */
 export async function createTestUserProfile(options: {
     userId: string
     role: 'admin' | 'beneficiary'
@@ -208,9 +173,6 @@ export async function createTestUserProfile(options: {
     }
 }
 
-/**
- * Get user profile by user ID
- */
 export async function getUserProfile(
     userId: string,
 ): Promise<TestUserProfile | null> {
@@ -233,25 +195,16 @@ export async function getUserProfile(
 // TEST DATA CLEANUP
 // =============================================================================
 
-/**
- * Delete a test user profile
- */
 export async function deleteTestUserProfile(userId: string): Promise<void> {
     await db.delete(userProfile).where(eq(userProfile.userId, userId))
 }
 
-/**
- * Delete a test beneficiary
- */
 export async function deleteTestBeneficiary(
     beneficiaryId: number,
 ): Promise<void> {
     await db.delete(beneficiary).where(eq(beneficiary.id, beneficiaryId))
 }
 
-/**
- * Delete a test entity
- */
 export async function deleteTestEntity(entityId: number): Promise<void> {
     await db.delete(entity).where(eq(entity.id, entityId))
 }
@@ -260,9 +213,6 @@ export async function deleteTestEntity(entityId: number): Promise<void> {
 // AUTH STATE HELPERS
 // =============================================================================
 
-/**
- * Get current auth.user_id() from database
- */
 export async function getCurrentAuthUserId(): Promise<string | null> {
     const client = getClient()
     try {
@@ -273,9 +223,6 @@ export async function getCurrentAuthUserId(): Promise<string | null> {
     }
 }
 
-/**
- * Check if current session has admin role (via app.is_admin())
- */
 export async function isCurrentUserAdmin(): Promise<boolean> {
     const client = getClient()
     try {
@@ -286,9 +233,6 @@ export async function isCurrentUserAdmin(): Promise<boolean> {
     }
 }
 
-/**
- * Get current user's beneficiary ID (via app.get_user_beneficiary_id())
- */
 export async function getCurrentUserBeneficiaryId(): Promise<number | null> {
     const client = getClient()
     try {
@@ -306,12 +250,8 @@ export async function getCurrentUserBeneficiaryId(): Promise<number | null> {
 
 const BASE_URL = process.env.FRONTEND_URL ?? 'http://localhost:3000'
 
-/**
- * Check if the Next.js server is available
- */
 export async function isServerAvailable(): Promise<boolean> {
     try {
-        // Check root endpoint - Next.js dev server should return 200
         const res = await fetch(BASE_URL, {
             signal: AbortSignal.timeout(3000),
         })
@@ -321,16 +261,11 @@ export async function isServerAvailable(): Promise<boolean> {
     }
 }
 
-/**
- * Check if Neon Auth endpoints are available
- */
 export async function isNeonAuthAvailable(): Promise<boolean> {
     try {
-        // Try to access the auth sign-in page
         const res = await fetch(`${BASE_URL}/auth/sign-in`, {
             signal: AbortSignal.timeout(3000),
         })
-        // 200 or redirect (302/307) indicates auth is configured
         return res.status < 500
     } catch {
         return false

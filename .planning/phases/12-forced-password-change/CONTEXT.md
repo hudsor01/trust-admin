@@ -16,7 +16,7 @@ Migration:
 ALTER TABLE user_profile ADD COLUMN force_password_change BOOLEAN NOT NULL DEFAULT false;
 ```
 
-**Why `user_profile`?** — It's the app-managed table for user metadata. Neon Auth's `neon_auth.user` doesn't support custom fields.
+**Why `user_profile`?** — It's the app-managed table for user metadata. Neon Auth's `neon_auth.user` does not support custom fields.
 
 ## Interception Points
 

@@ -6,12 +6,6 @@ import { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
-/**
- * Admin Route Error Boundary
- *
- * Catches errors in admin routes and reports them to Sentry.
- * Displays within the admin layout for better UX.
- */
 export default function AdminError({
     error,
     reset,
@@ -20,7 +14,6 @@ export default function AdminError({
     reset: () => void
 }) {
     useEffect(() => {
-        // Report error to Sentry
         Sentry.captureException(error)
     }, [error])
 

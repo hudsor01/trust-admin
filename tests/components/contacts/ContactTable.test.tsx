@@ -1,10 +1,4 @@
-/**
- * ContactTable Component Tests
- *
- * Tests for the ContactTable component that displays professional contacts
- * (attorneys, accountants, financial advisors, etc.) with inline editing
- * and action buttons for view, edit, and delete.
- */
+/** ContactTable component tests — professional contacts with inline editing, view/edit/delete actions. */
 
 import '../../setup'
 import { afterEach, describe, expect, mock, test } from 'bun:test'

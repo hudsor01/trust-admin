@@ -1,11 +1,4 @@
-/**
- * Form helper utilities for type-safe field error handling
- */
-
-/**
- * Safely extract error message from TanStack Form field state
- * Handles both string errors and structured error objects with message property
- */
+/** Extract error message from TanStack Form field state (handles string and object errors). */
 export function getFieldError(field: {
     state: { meta: { errors?: unknown[] } }
 }): string | null {
@@ -14,12 +7,10 @@ export function getFieldError(field: {
 
     const firstError = errors[0]
 
-    // Handle string errors
     if (typeof firstError === 'string') {
         return firstError
     }
 
-    // Handle error objects with message property
     if (
         firstError &&
         typeof firstError === 'object' &&
@@ -29,13 +20,10 @@ export function getFieldError(field: {
         return typeof message === 'string' ? message : String(message)
     }
 
-    // Fallback to stringifying the error
     return String(firstError)
 }
 
-/**
- * Check if a field has any errors
- */
+/** Check if a field has any errors. */
 export function hasFieldError(field: {
     state: { meta: { errors?: unknown[] } }
 }): boolean {

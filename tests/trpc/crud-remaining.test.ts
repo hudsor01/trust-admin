@@ -1,15 +1,4 @@
-/**
- * tRPC CRUD Operations Tests - Remaining Routers
- *
- * Tests the full create -> list -> byId -> update -> delete lifecycle for:
- *
- *   1. liabilityPayment (liabilityId-scoped, not entity-scoped)
- *   2. valuation          (global, with forAsset)
- *   3. withdrawalRecord   (entity-scoped, with optional beneficiaryId filter)
- *
- * Note: document, trusteeFeeSchedule, trusteeFeeEntry were removed from tRPC
- * and are now served via Neon Data API (PostgREST).
- */
+/** tRPC CRUD tests for liabilityPayment, valuation, and withdrawalRecord routers (document/trustee fee routers moved to Neon Data API). */
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import { eq } from 'drizzle-orm'
 import { db } from '@/db'
@@ -48,15 +37,11 @@ function adminCaller() {
 /** Unique suffix to avoid collisions with parallel test runs */
 const TS = Date.now().toString().slice(-8)
 
-// Track all created record IDs for cleanup
 const testData = {
-    // Prerequisites (created in beforeAll via direct db.insert)
     entityId: null as number | null,
     beneficiaryId: null as number | null,
     liabilityId: null as number | null,
     vehicleId: null as number | null,
-
-    // IDs created by tests, tracked for cleanup
     liabilityPaymentIds: [] as number[],
     valuationIds: [] as number[],
     withdrawalRecordIds: [] as number[],
@@ -70,7 +55,6 @@ describe.skipIf(isProductionDb)('CRUD Operations - Remaining Routers', () => {
     beforeAll(async () => {
         const now = new Date().toISOString()
 
-        // 1. Entity
         const [e1] = await db
             .insert(entity)
             .values({
@@ -83,7 +67,6 @@ describe.skipIf(isProductionDb)('CRUD Operations - Remaining Routers', () => {
             .returning()
         testData.entityId = e1.id
 
-        // 2. Beneficiary (for withdrawalRecord)
         const [ben1] = await db
             .insert(beneficiary)
             .values({
@@ -98,7 +81,6 @@ describe.skipIf(isProductionDb)('CRUD Operations - Remaining Routers', () => {
             .returning()
         testData.beneficiaryId = ben1.id
 
-        // 3. Liability (for liabilityPayment)
         const [l1] = await db
             .insert(liability)
             .values({
@@ -114,7 +96,6 @@ describe.skipIf(isProductionDb)('CRUD Operations - Remaining Routers', () => {
             .returning()
         testData.liabilityId = l1.id
 
-        // 4. Vehicle (for valuation link)
         const [v1] = await db
             .insert(vehicle)
             .values({
@@ -132,43 +113,35 @@ describe.skipIf(isProductionDb)('CRUD Operations - Remaining Routers', () => {
     }, TEST_TIMEOUT)
 
     afterAll(async () => {
-        // Clean up in reverse FK order to avoid constraint violations.
-
-        // 1. withdrawalRecord (depends on beneficiary, entity)
+        // Reverse FK order
         for (const id of testData.withdrawalRecordIds) {
             await db.delete(withdrawalRecord).where(eq(withdrawalRecord.id, id))
         }
 
-        // 2. liabilityPayment (depends on liability)
         for (const id of testData.liabilityPaymentIds) {
             await db.delete(liabilityPayment).where(eq(liabilityPayment.id, id))
         }
 
-        // 3. valuation (depends on vehicle)
         for (const id of testData.valuationIds) {
             await db.delete(valuation).where(eq(valuation.id, id))
         }
 
-        // 4. vehicle
         if (testData.vehicleId) {
             await db.delete(vehicle).where(eq(vehicle.id, testData.vehicleId))
         }
 
-        // 5. liability (depends on entity)
         if (testData.liabilityId) {
             await db
                 .delete(liability)
                 .where(eq(liability.id, testData.liabilityId))
         }
 
-        // 6. beneficiary (depends on entity)
         if (testData.beneficiaryId) {
             await db
                 .delete(beneficiary)
                 .where(eq(beneficiary.id, testData.beneficiaryId))
         }
 
-        // 7. entity (must be last)
         if (testData.entityId) {
             await db.delete(entity).where(eq(entity.id, testData.entityId))
         }
@@ -224,7 +197,7 @@ describe.skipIf(isProductionDb)('CRUD Operations - Remaining Routers', () => {
                         (r) => r.id === testData.liabilityPaymentIds[0],
                     ),
                 ).toBe(true)
-                // All returned records should belong to our liability
+
                 for (const r of results) {
                     expect(r.liabilityId).toBe(testData.liabilityId)
                 }
@@ -265,7 +238,7 @@ describe.skipIf(isProductionDb)('CRUD Operations - Remaining Routers', () => {
                 expect(updated.id).toBe(payId)
                 expect(updated.amount).toBe('1600.00')
                 expect(updated.notes).toBe('Updated amount')
-                // Original fields should be preserved
+
                 expect(updated.liabilityId).toBe(testData.liabilityId)
                 expect(updated.paymentMethod).toBe('CHECK')
             },
@@ -285,14 +258,12 @@ describe.skipIf(isProductionDb)('CRUD Operations - Remaining Routers', () => {
                 expect(deleted).toBeDefined()
                 expect(deleted.id).toBe(payId)
 
-                // Verify it is gone
                 const result = await caller.liabilityPayment.byId({
                     id: payId,
                     entityId: testData.entityId!,
                 })
                 expect(result).toBeFalsy()
 
-                // Remove from cleanup since already deleted
                 testData.liabilityPaymentIds =
                     testData.liabilityPaymentIds.filter((id) => id !== payId)
             },
@@ -410,7 +381,7 @@ describe.skipIf(isProductionDb)('CRUD Operations - Remaining Routers', () => {
                 expect(updated.id).toBe(valId)
                 expect(updated.value).toBe('37500.00')
                 expect(updated.notes).toBe('Revised appraisal')
-                // Original fields should be preserved
+
                 expect(updated.vehicleId).toBe(testData.vehicleId)
                 expect(updated.valuationType).toBe('APPRAISAL')
             },
@@ -427,11 +398,9 @@ describe.skipIf(isProductionDb)('CRUD Operations - Remaining Routers', () => {
                 expect(deleted).toBeDefined()
                 expect(deleted.id).toBe(valId)
 
-                // Verify it is gone
                 const result = await caller.valuation.byId(valId)
                 expect(result).toBeUndefined()
 
-                // Remove from cleanup since already deleted
                 testData.valuationIds = testData.valuationIds.filter(
                     (id) => id !== valId,
                 )
@@ -509,7 +478,7 @@ describe.skipIf(isProductionDb)('CRUD Operations - Remaining Routers', () => {
                         (r) => r.id === testData.withdrawalRecordIds[0],
                     ),
                 ).toBe(true)
-                // All returned records should belong to our beneficiary
+
                 for (const r of results) {
                     expect(r.beneficiaryId).toBe(testData.beneficiaryId)
                 }
@@ -527,7 +496,6 @@ describe.skipIf(isProductionDb)('CRUD Operations - Remaining Routers', () => {
                 })
 
                 expect(Array.isArray(results)).toBe(true)
-                // Our withdrawal record should not be in the results
                 expect(
                     results.some(
                         (r) => r.id === testData.withdrawalRecordIds[0],
@@ -574,7 +542,7 @@ describe.skipIf(isProductionDb)('CRUD Operations - Remaining Routers', () => {
                 expect(updated.id).toBe(wrId)
                 expect(updated.status).toBe('ELIGIBLE')
                 expect(updated.notes).toBe('Beneficiary has reached age 25')
-                // Original fields should be preserved
+
                 expect(updated.withdrawalType).toBe('AGE_25')
                 expect(updated.eligibleAmount).toBe('100000.00')
                 expect(updated.beneficiaryId).toBe(testData.beneficiaryId)
@@ -595,14 +563,12 @@ describe.skipIf(isProductionDb)('CRUD Operations - Remaining Routers', () => {
                 expect(deleted).toBeDefined()
                 expect(deleted.id).toBe(wrId)
 
-                // Verify it is gone
                 const result = await caller.withdrawalRecord.byId({
                     id: wrId,
                     entityId: testData.entityId!,
                 })
                 expect(result).toBeUndefined()
 
-                // Remove from cleanup since already deleted
                 testData.withdrawalRecordIds =
                     testData.withdrawalRecordIds.filter((id) => id !== wrId)
             },

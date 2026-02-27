@@ -1,15 +1,4 @@
-/**
- * Neon Auth Integration Tests
- *
- * Tests the Neon Auth integration including:
- * - Auth infrastructure is properly configured
- * - User profile creation and management
- * - Role-based access control
- * - JWT session initialization for RLS
- *
- * Note: These tests verify the auth system is correctly configured,
- * not the actual login flow (which requires browser interaction).
- */
+/** Neon Auth integration tests — verifies infrastructure, user profiles, roles, and JWT session setup (not login flow). */
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import { getClient, initJwtSession } from '@/db'
 import { isProductionDb } from './helpers/db-guard'
@@ -62,7 +51,6 @@ describe.skipIf(isProductionDb)('Neon Auth Infrastructure', () => {
 
     test('neon_auth.user table is accessible', async () => {
         const count = await getNeonAuthUserCount()
-        // -1 means error, >= 0 means table exists
         expect(count).toBeGreaterThanOrEqual(0)
     })
 
@@ -89,7 +77,6 @@ describe.skipIf(isProductionDb)('User Profile Management', () => {
     }
 
     beforeAll(async () => {
-        // Create test entity and beneficiary
         const entity = await createTestEntity('User Profile Test Trust')
         testData.entityId = entity.id
 
@@ -102,7 +89,6 @@ describe.skipIf(isProductionDb)('User Profile Management', () => {
     }, TEST_TIMEOUT)
 
     afterAll(async () => {
-        // Cleanup in reverse order
         await deleteTestUserProfile(testData.adminUserId)
         await deleteTestUserProfile(testData.beneficiaryUserId)
         if (testData.beneficiaryId) {
@@ -208,7 +194,6 @@ describe.skipIf(isProductionDb)('App Schema Helper Functions', () => {
     })
 
     test('app.is_admin() returns false without JWT session', async () => {
-        // Without a valid JWT session, is_admin should return false
         const isAdmin = await isCurrentUserAdmin()
         expect(isAdmin).toBe(false)
     })
@@ -234,14 +219,11 @@ describe.skipIf(isProductionDb)('JWT Session Initialization', () => {
     })
 
     test('initJwtSession accepts a token parameter', async () => {
-        // This should not throw (even with invalid token)
-        // In production, invalid tokens just result in null user_id
+        // Invalid tokens result in null user_id rather than throwing in production
         try {
             await initJwtSession('invalid-test-token')
-            // If it doesn't throw, the function exists and accepts tokens
             expect(true).toBe(true)
         } catch (error) {
-            // Expected to fail with invalid token, but function should exist
             expect(error).toBeDefined()
         }
     })
@@ -280,11 +262,8 @@ describe.skipIf(isProductionDb)('Auto User Profile Creation', () => {
 // =============================================================================
 
 describe('Auth Utility Functions', () => {
-    // Note: authServer and authClient require Next.js runtime context.
-    // We test the logic of utility functions directly here.
-
+    // authServer/authClient require Next.js runtime, so utility logic is tested inline
     test('isAdmin logic works correctly', () => {
-        // Test the logic without importing the module
         const isAdmin = (user: { role?: string }) => user.role === 'admin'
 
         expect(isAdmin({ role: 'admin' })).toBe(true)
@@ -305,7 +284,6 @@ describe('Auth Utility Functions', () => {
     })
 
     test('IP extraction from headers works correctly', () => {
-        // Test the IP extraction logic
         const extractClientIP = (req: Request): string => {
             const IPV4_REGEX =
                 /^(?:(?:25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)\.){3}(?:25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)$/
@@ -341,12 +319,10 @@ describe('Auth Utility Functions', () => {
 
 describe('Environment Configuration', () => {
     test('NEON_AUTH_BASE_URL is configured', () => {
-        // In test environment, this may not be set, but we check the pattern
         const url = process.env.NEON_AUTH_BASE_URL
         if (url) {
             expect(url).toContain('neon')
         } else {
-            // Log warning but don't fail - tests can run without actual Neon Auth
             console.warn(
                 'NEON_AUTH_BASE_URL not set - some auth features may not work',
             )

@@ -1,10 +1,4 @@
-/**
- * BequestTable Component Tests
- *
- * Tests for the BequestTable component that renders two sections:
- * - Pending Bequests (with edit/delete/mark-distributed actions)
- * - Distributed Bequests (read-only display)
- */
+/** BequestTable component tests — pending bequests (with actions) and distributed bequests (read-only). */
 
 import '../../setup'
 import { afterEach, describe, expect, mock, test } from 'bun:test'

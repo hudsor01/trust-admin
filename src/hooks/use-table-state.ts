@@ -1,14 +1,4 @@
-/**
- * Table State Hook with URL Persistence
- *
- * Persists table sorting, pagination, and filtering state to URL query params
- * using nuqs. This enables:
- * - Shareable table views (copy/paste URL with filters)
- * - Browser back/forward navigation
- * - Refresh persistence
- *
- * @see https://nuqs.dev/docs/parsers
- */
+/** @see https://nuqs.dev/docs/parsers */
 'use client'
 
 import {
@@ -20,71 +10,32 @@ import {
 } from 'nuqs'
 import { useCallback, useMemo } from 'react'
 
-/**
- * Sort direction type
- */
 export type SortDirection = 'asc' | 'desc'
 
-/**
- * Table state configuration
- */
 interface TableStateConfig {
-    /** Default page size (default: 20) */
     defaultPageSize?: number
-    /** Default sort column (optional) */
     defaultSortColumn?: string
-    /** Default sort direction (default: 'desc') */
     defaultSortDirection?: SortDirection
-    /** URL param prefix for this table (for multiple tables on same page) */
+    /** Disambiguates URL params when multiple tables share a page */
     prefix?: string
 }
 
-/**
- * Table state return value
- */
 interface TableState {
-    // Pagination
     page: number
     pageSize: number
     setPage: (page: number) => void
     setPageSize: (size: number) => void
-
-    // Sorting
     sortColumn: string
     sortDirection: SortDirection
     setSort: (column: string, direction?: SortDirection) => void
     toggleSort: (column: string) => void
-
-    // Search/Filter
     search: string
     setSearch: (search: string) => void
-
-    // Utilities
     reset: () => void
     offset: number
 }
 
-/**
- * Hook for managing table state with URL persistence
- *
- * @example
- * ```tsx
- * const {
- *   page, setPage,
- *   sortColumn, sortDirection, setSort,
- *   search, setSearch,
- *   offset
- * } = useTableState({ defaultSortColumn: 'createdAt' })
- *
- * const { data } = trpc.beneficiary.list.useQuery({
- *   offset,
- *   limit: pageSize,
- *   orderBy: sortColumn,
- *   orderDir: sortDirection,
- *   search,
- * })
- * ```
- */
+/** Table sorting, pagination, and search state persisted to URL query params via nuqs. */
 export function useTableState(config: TableStateConfig = {}): TableState {
     const {
         defaultPageSize = 20,
@@ -93,10 +44,8 @@ export function useTableState(config: TableStateConfig = {}): TableState {
         prefix = '',
     } = config
 
-    // Create prefixed param names
     const paramName = (name: string) => (prefix ? `${prefix}_${name}` : name)
 
-    // Pagination state
     const [page, setPage] = useQueryState(
         paramName('page'),
         parseAsInteger.withDefault(1),
@@ -107,7 +56,6 @@ export function useTableState(config: TableStateConfig = {}): TableState {
         parseAsInteger.withDefault(defaultPageSize),
     )
 
-    // Sorting state
     const [sortColumn, setSortColumn] = useQueryState(
         paramName('sort'),
         parseAsString.withDefault(defaultSortColumn),
@@ -120,36 +68,29 @@ export function useTableState(config: TableStateConfig = {}): TableState {
         ),
     )
 
-    // Search/filter state
     const [search, setSearch] = useQueryState(
         paramName('q'),
         parseAsString.withDefault(''),
     )
 
-    // Calculate offset for pagination
     const offset = useMemo(() => (page - 1) * pageSize, [page, pageSize])
 
-    // Set sort with optional direction
     const setSort = useCallback(
         (column: string, direction?: SortDirection) => {
             setSortColumn(column)
             if (direction) {
                 setSortDirection(direction)
             }
-            // Reset to first page when sort changes
             setPage(1)
         },
         [setSortColumn, setSortDirection, setPage],
     )
 
-    // Toggle sort direction, or set new column with default direction
     const toggleSort = useCallback(
         (column: string) => {
             if (column === sortColumn) {
-                // Toggle direction
                 setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
             } else {
-                // New column, use default direction
                 setSortColumn(column)
                 setSortDirection(defaultSortDirection)
             }
@@ -165,7 +106,6 @@ export function useTableState(config: TableStateConfig = {}): TableState {
         ],
     )
 
-    // Reset all state to defaults
     const reset = useCallback(() => {
         setPage(1)
         setPageSize(defaultPageSize)
@@ -183,7 +123,6 @@ export function useTableState(config: TableStateConfig = {}): TableState {
         defaultSortDirection,
     ])
 
-    // Custom setSearch that resets to page 1
     const handleSetSearch = useCallback(
         (value: string) => {
             setSearch(value)
@@ -208,14 +147,7 @@ export function useTableState(config: TableStateConfig = {}): TableState {
     }
 }
 
-/**
- * Simplified hook for just pagination with URL persistence
- *
- * @example
- * ```tsx
- * const { page, setPage, pageSize, offset } = usePaginationState()
- * ```
- */
+/** Pagination-only subset of useTableState. */
 export function usePaginationState(defaultPageSize = 20) {
     const [page, setPage] = useQueryState('page', parseAsInteger.withDefault(1))
     const [pageSize, setPageSize] = useQueryState(
@@ -234,14 +166,7 @@ export function usePaginationState(defaultPageSize = 20) {
     }
 }
 
-/**
- * Simplified hook for just sorting with URL persistence
- *
- * @example
- * ```tsx
- * const { sortColumn, sortDirection, setSort, toggleSort } = useSortState('createdAt')
- * ```
- */
+/** Sorting-only subset of useTableState. */
 export function useSortState(
     defaultColumn = '',
     defaultDirection: SortDirection = 'desc',
@@ -294,31 +219,12 @@ export function useSortState(
     }
 }
 
-/**
- * Simplified hook for just search with URL persistence
- *
- * @example
- * ```tsx
- * const [search, setSearch] = useSearchState()
- * ```
- */
+/** Search-only subset of useTableState. */
 export function useSearchState(paramName = 'q') {
     return useQueryState(paramName, parseAsString.withDefault(''))
 }
 
-/**
- * Hook for multiple filter states with URL persistence
- *
- * @example
- * ```tsx
- * const [filters, setFilters] = useFilterStates({
- *   status: parseAsString.withDefault(''),
- *   type: parseAsString.withDefault(''),
- * })
- *
- * setFilters({ status: 'ACTIVE' })
- * ```
- */
+/** Multiple named filters persisted to URL query params. */
 export function useFilterStates<T extends Record<string, unknown>>(
     parsers: { [K in keyof T]: T[K] },
 ) {

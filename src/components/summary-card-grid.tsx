@@ -3,27 +3,7 @@ export interface SummaryCardGridProps {
     columns?: number
 }
 
-/**
- * Grid layout wrapper for SummaryCard components
- *
- * Provides responsive grid with consistent spacing.
- * - Mobile: 1 column
- * - Tablet: 2 columns
- * - Desktop: specified columns (default 3)
- *
- * @param children - SummaryCard components
- * @param columns - Number of columns on desktop (default: 3)
- *
- * @example
- * ```typescript
- * <SummaryCardGrid columns={4}>
- *   <SummaryCard title="Total Assets" value={assets} />
- *   <SummaryCard title="Total Liabilities" value={liabilities} />
- *   <SummaryCard title="Net Worth" value={netWorth} />
- *   <SummaryCard title="Monthly Income" value={income} />
- * </SummaryCardGrid>
- * ```
- */
+/** Responsive grid: 1 col mobile, 2 col tablet, `columns` on desktop (default 3). */
 export function SummaryCardGrid({
     children,
     columns = 3,

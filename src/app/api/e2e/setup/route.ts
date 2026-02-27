@@ -1,15 +1,4 @@
-/**
- * E2E Test Setup Route — DEV ONLY
- *
- * Creates dedicated E2E test accounts with known credentials.
- * Inserts directly into neon_auth.user + neon_auth.account tables
- * using the same scrypt password hash format as Better Auth.
- * Idempotent: safe to call on every test run.
- * Disabled in production.
- *
- * POST /api/e2e/setup
- */
-
+/** Idempotent E2E account provisioning (dev only). Inserts directly into neon_auth tables. */
 import { randomBytes, scryptSync } from 'node:crypto'
 import { asc, eq } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
@@ -23,12 +12,7 @@ export const E2E_ADMIN_PASSWORD = 'E2eTest@2026!'
 export const E2E_BENEFICIARY_EMAIL = 'e2e-ben@e2e.local'
 export const E2E_BENEFICIARY_PASSWORD = 'E2eTest@2026!'
 
-/**
- * Hash a password using Better Auth's exact scrypt format.
- * Matches better-auth/dist/crypto-*.mjs: N=16384, r=16, p=1, dkLen=64
- * Format: hex(salt) + ':' + hex(derivedKey)
- * Salt: hex-encoded 16 random bytes (the hex string IS the salt input to scrypt)
- */
+/** Better Auth scrypt format: N=16384, r=16, p=1, dkLen=64. Output: hex(salt):hex(key). */
 function hashPassword(password: string): string {
     const saltBytes = randomBytes(16)
     const salt = saltBytes.toString('hex') // 32-char hex string
@@ -41,10 +25,7 @@ function hashPassword(password: string): string {
     return `${salt}:${key.toString('hex')}`
 }
 
-/**
- * Ensure a user exists in neon_auth. Creates them if missing.
- * Returns the user ID.
- */
+/** Upserts a neon_auth user; returns their ID. */
 async function ensureAuthUser(
     email: string,
     password: string,
@@ -59,7 +40,7 @@ async function ensureAuthUser(
     `) as unknown as { id: string }[]
 
     if (existing[0]) {
-        // Update emailVerified and role in case they were wrong
+        // Fix emailVerified/role if stale from a prior run
         await sql`
             UPDATE neon_auth."user"
             SET "emailVerified" = true, role = ${role ?? null}
@@ -101,7 +82,6 @@ export async function POST(_request: Request) {
     const db = getPublicDb()
 
     try {
-        // --- Admin user ---
         const adminUserId = await ensureAuthUser(
             E2E_ADMIN_EMAIL,
             E2E_ADMIN_PASSWORD,
@@ -117,7 +97,6 @@ export async function POST(_request: Request) {
                 set: { role: 'admin' },
             })
 
-        // --- Find first beneficiary in entity 1 ---
         const [ben] = await db
             .select({ id: beneficiary.id })
             .from(beneficiary)
@@ -134,7 +113,6 @@ export async function POST(_request: Request) {
             )
         }
 
-        // --- Beneficiary user ---
         const benUserId = await ensureAuthUser(
             E2E_BENEFICIARY_EMAIL,
             E2E_BENEFICIARY_PASSWORD,

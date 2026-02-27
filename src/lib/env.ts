@@ -2,21 +2,10 @@ import { createEnv } from '@t3-oss/env-nextjs'
 import { z } from 'zod'
 
 /**
- * Environment variable validation for Trust Admin.
- *
- * Uses @t3-oss/env-nextjs to enforce the server/client boundary:
- * - `server`: only accessible server-side (never bundled to client)
- * - `client`: must be prefixed NEXT_PUBLIC_*, safe to expose to browser
- *
- * Validated at build time and at runtime startup.
- * Accessing an undefined required var throws immediately with a clear error.
- *
- * .trim() is applied before every format validator (.url(), .email()) to strip
- * trailing newlines that Vercel silently injects when env vars are copy-pasted.
- *
- * optionalUrl() — coerces empty strings to undefined before URL validation so
- * that GitHub Actions secrets (which evaluate to "" when unset) don't cause
- * "Invalid URL" build failures for optional vars.
+ * Environment variable validation via @t3-oss/env-nextjs.
+ * .trim() strips trailing newlines that Vercel silently injects on paste.
+ * optionalUrl() coerces "" to undefined so unset GitHub Actions secrets
+ * don't cause "Invalid URL" build failures.
  */
 const optionalUrl = () =>
     z.preprocess(
@@ -25,67 +14,47 @@ const optionalUrl = () =>
     )
 export const env = createEnv({
     server: {
-        // Database (required)
         DATABASE_URL: z
             .string()
             .trim()
             .url('DATABASE_URL must be a valid PostgreSQL connection string'),
 
-        // Neon Auth (required)
         NEON_AUTH_BASE_URL: z
             .string()
             .trim()
             .url('NEON_AUTH_BASE_URL must be a valid URL'),
 
-        // Trust owner — always gets admin role regardless of DB state.
-        // Required at build time: set ADMIN_EMAIL in GitHub Actions secrets.
+        // Always gets admin role regardless of DB state
         ADMIN_EMAIL: z
             .string()
             .trim()
             .email('ADMIN_EMAIL must be a valid email address'),
 
-        // Server runtime
         NODE_ENV: z
             .enum(['development', 'production', 'test'])
             .default('development'),
 
-        // Logging
         LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
 
-        // AI — inventory image analysis (optional)
         ANTHROPIC_API_KEY: z.string().optional(),
-
-        // Inventory form passphrase (optional)
         INVENTORY_ACCESS_CODE: z.string().optional(),
-
-        // File uploads (optional)
         UPLOADTHING_TOKEN: z.string().optional(),
 
-        // Error monitoring (optional)
         SENTRY_DSN: optionalUrl(),
         SENTRY_ORG: z.string().optional(),
         SENTRY_PROJECT: z.string().optional(),
         SENTRY_AUTH_TOKEN: z.string().optional(),
 
-        // Neon Auth cookie signing (optional)
         NEON_AUTH_COOKIE_SECRET: z.string().optional(),
-
-        // n8n webhook for password reset emails
         N8N_PASSWORD_RESET_WEBHOOK_URL: optionalUrl(),
     },
 
     client: {
-        // Error monitoring — public DSN safe to expose
         NEXT_PUBLIC_SENTRY_DSN: optionalUrl(),
-
-        // Neon Data API (PostgREST endpoint, optional)
         NEXT_PUBLIC_NEON_DATA_API_URL: optionalUrl(),
-
-        // App URL (used by NeonAuthUIProvider)
         NEXT_PUBLIC_APP_URL: optionalUrl(),
     },
 
-    // Next.js requires explicit mapping of NEXT_PUBLIC_ vars for runtime access
     runtimeEnv: {
         DATABASE_URL: process.env.DATABASE_URL,
         NEON_AUTH_BASE_URL: process.env.NEON_AUTH_BASE_URL,
@@ -108,19 +77,14 @@ export const env = createEnv({
         NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
     },
 
-    // Skip validation during CI builds where env vars are injected at runtime
     skipValidation: !!process.env.SKIP_ENV_VALIDATION,
 
-    // Force server-side mode so happy-dom (used in Bun component tests) doesn't
-    // trick @t3-oss/env-core into thinking we're in a browser. Without this,
-    // GlobalRegistrator.register() creates window and makes isServer=false,
-    // causing every server var access to throw "Attempted to access server-side
-    // environment variable on the client".
+    // Force server-side: happy-dom in tests creates `window`, which tricks
+    // @t3-oss/env-core into client mode and blocks server var access
     isServer: true,
 })
 
-// Shim for instrumentation.ts — createEnv validates at module import time,
-// so calling this confirms validation has already succeeded.
+// Shim for instrumentation.ts: triggers module-level createEnv validation.
 export function validateEnvironment(): void {
     void env.DATABASE_URL
 }

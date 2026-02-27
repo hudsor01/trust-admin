@@ -1,9 +1,4 @@
-/**
- * InvestmentAccountTable Component Tests
- *
- * Tests for the InvestmentAccountTable component that displays investment accounts
- * in a DataTable with inline editing, edit/delete actions, and empty states.
- */
+/** InvestmentAccountTable component tests — DataTable with inline editing, actions, and empty states. */
 
 import '../../setup'
 import { afterEach, describe, expect, mock, test } from 'bun:test'

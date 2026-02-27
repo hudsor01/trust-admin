@@ -1,36 +1,43 @@
-/**
- * Root tRPC Router
- *
- * Contains only routers with real business logic or cross-cutting concerns.
- * Pure CRUD tables are served directly via Neon Data API (PostgREST).
- */
 import { createTRPCRouter } from './init'
 
 import { activityLogRouter } from './routers/activityLog'
+import { bankAccountRouter } from './routers/bankAccount'
 import { beneficiaryRouter } from './routers/beneficiary'
 import { contactRouter } from './routers/contact'
+import { dashboardRouter } from './routers/dashboard'
 import { distributionRouter } from './routers/distribution'
 import { entityRouter } from './routers/entity'
 import { hemsRequestRouter } from './routers/hemsRequest'
+import { homesteadRouter } from './routers/homestead'
+import { investmentAccountRouter } from './routers/investmentAccount'
 import { liabilityRouter } from './routers/liability'
 import { liabilityPaymentRouter } from './routers/liabilityPayment'
 import { pendingInventoryItemRouter } from './routers/pendingInventoryItem'
+import { rentalPropertyRouter } from './routers/rentalProperty'
+import { specificBequestRouter } from './routers/specificBequest'
+import { taskRouter } from './routers/task'
 import { trustAccountingRouter } from './routers/trustAccounting'
+import { trusteeRouter } from './routers/trustee'
 import { userManagementRouter } from './routers/userManagement'
 import { valuationRouter } from './routers/valuation'
+import { vehicleRouter } from './routers/vehicle'
 import { withdrawalRecordRouter } from './routers/withdrawalRecord'
 
-/**
- * Root router — business logic only.
- *
- * Pure-CRUD tables (vehicle, homestead, bankAccount, etc.) were removed and
- * are now accessed via Neon Data API + TanStack Query in the frontend.
- */
 export const appRouter = createTRPCRouter({
     // Core / Auth
     entity: entityRouter,
     beneficiary: beneficiaryRouter,
     contact: contactRouter,
+
+    // Assets (pure CRUD)
+    bankAccount: bankAccountRouter,
+    investmentAccount: investmentAccountRouter,
+    homestead: homesteadRouter,
+    rentalProperty: rentalPropertyRouter,
+    vehicle: vehicleRouter,
+    trustee: trusteeRouter,
+    specificBequest: specificBequestRouter,
+    task: taskRouter,
 
     // Liabilities (multi-table transactions)
     liability: liabilityRouter,
@@ -51,6 +58,9 @@ export const appRouter = createTRPCRouter({
 
     // User management
     userManagement: userManagementRouter,
+
+    // Aggregate queries
+    dashboard: dashboardRouter,
 })
 
 export type AppRouter = typeof appRouter

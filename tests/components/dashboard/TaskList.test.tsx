@@ -1,9 +1,4 @@
-/**
- * TaskList Component Tests
- *
- * Tests for the TaskList component that displays grouped administrative tasks
- * with add, toggle, and notes functionality.
- */
+/** TaskList component tests — grouped admin tasks with add, toggle, and notes functionality. */
 
 import '../../setup'
 import { afterEach, describe, expect, mock, test } from 'bun:test'

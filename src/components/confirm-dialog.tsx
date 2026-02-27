@@ -1,21 +1,4 @@
-/**
- * Confirm Dialog Component
- *
- * A reusable confirmation dialog for destructive actions.
- * Wraps AlertDialog primitives for common use cases.
- *
- * @example
- * ```tsx
- * <ConfirmDialog
- *   open={isOpen}
- *   onOpenChange={setIsOpen}
- *   title="Delete Beneficiary"
- *   description="This action cannot be undone."
- *   onConfirm={handleDelete}
- *   variant="destructive"
- * />
- * ```
- */
+/** Confirmation dialog for destructive actions, wrapping AlertDialog primitives. */
 'use client'
 
 import { useState } from 'react'
@@ -34,27 +17,17 @@ import {
 import { buttonVariants } from './ui/button'
 
 interface ConfirmDialogProps {
-    /** Dialog open state (controlled) */
     open?: boolean
-    /** Callback when open state changes */
     onOpenChange?: (open: boolean) => void
-    /** Dialog title */
     title: string
-    /** Dialog description */
     description: string
-    /** Text for the confirm button */
     confirmText?: string
-    /** Text for the cancel button */
     cancelText?: string
-    /** Callback when user confirms */
     onConfirm: () => void | Promise<void>
-    /** Callback when user cancels */
     onCancel?: () => void
-    /** Button variant for confirm action */
     variant?: 'default' | 'destructive'
-    /** Optional trigger element (if not using controlled open state) */
+    /** Uncontrolled mode: renders a trigger element that opens the dialog on click. */
     trigger?: React.ReactNode
-    /** Whether the confirm action is loading */
     isLoading?: boolean
 }
 
@@ -123,25 +96,7 @@ export function ConfirmDialog({
     )
 }
 
-/**
- * Hook for managing confirm dialog state
- *
- * @example
- * ```tsx
- * const { dialogProps, confirm, isOpen } = useConfirmDialog({
- *   title: 'Delete Item',
- *   description: 'Are you sure?',
- *   onConfirm: async () => { await deleteItem() },
- * })
- *
- * return (
- *   <>
- *     <Button onClick={confirm}>Delete</Button>
- *     <ConfirmDialog {...dialogProps} />
- *   </>
- * )
- * ```
- */
+/** Manages open/close state; spread `dialogProps` onto `<ConfirmDialog>` and call `confirm()` to open. */
 export function useConfirmDialog(
     config: Omit<ConfirmDialogProps, 'open' | 'onOpenChange'>,
 ) {
@@ -159,11 +114,7 @@ export function useConfirmDialog(
     }
 }
 
-/**
- * Delete confirmation dialog preset
- *
- * Pre-configured for delete operations with destructive styling.
- */
+/** Pre-configured for delete operations with destructive styling. */
 export function DeleteConfirmDialog({
     itemName,
     onConfirm,

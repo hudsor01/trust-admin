@@ -1,14 +1,4 @@
-/**
- * Row-Level Security (RLS) Integration Tests
- *
- * Tests that RLS policies correctly enforce data isolation:
- * - Admins can see all records
- * - Beneficiaries can only see their own records
- * - Unauthenticated users see nothing
- * - JWT session initialization enables auth.user_id()
- *
- * These tests verify database-level security, not just application-level checks.
- */
+/** RLS integration tests — verifies admin/beneficiary/unauthenticated data isolation at the database level. */
 
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import { eq, sql } from 'drizzle-orm'
@@ -28,7 +18,6 @@ import { isProductionDb } from './helpers/db-guard'
 
 const TEST_TIMEOUT = 30000
 
-// Track test data for cleanup
 const testData = {
     entityId: null as number | null,
     adminUserId: null as string | null,
@@ -46,9 +35,6 @@ const testData = {
 // HELPER FUNCTIONS
 // =============================================================================
 
-/**
- * Check if RLS is enabled on a table
- */
 async function isRlsEnabled(tableName: string): Promise<boolean> {
     const client = getClient()
     const result = await client`
@@ -59,9 +45,6 @@ async function isRlsEnabled(tableName: string): Promise<boolean> {
     return result[0]?.relrowsecurity === true
 }
 
-/**
- * Get RLS policies for a table
- */
 async function getTablePolicies(tableName: string): Promise<
     Array<{
         policyname: string
@@ -84,9 +67,6 @@ async function getTablePolicies(tableName: string): Promise<
     }>
 }
 
-/**
- * Check if app schema helper functions exist
- */
 async function checkAppSchemaFunctions(): Promise<{
     isAdmin: boolean
     getUserRole: boolean
@@ -108,9 +88,6 @@ async function checkAppSchemaFunctions(): Promise<{
     }
 }
 
-/**
- * Get current auth.user_id() value (for debugging)
- */
 async function getCurrentAuthUserId(): Promise<string | null> {
     const client = getClient()
     try {
@@ -121,16 +98,12 @@ async function getCurrentAuthUserId(): Promise<string | null> {
     }
 }
 
-/**
- * Reset JWT session (clear auth context)
- */
 async function resetJwtSession(): Promise<void> {
     const client = getClient()
     try {
-        // Reset by setting to empty/null token
         await client`SELECT set_config('request.jwt.claims', '', true)`
     } catch {
-        // Ignore errors - session may not be initialized
+        // Session may not be initialized
     }
 }
 
@@ -140,7 +113,6 @@ async function resetJwtSession(): Promise<void> {
 
 describe.skipIf(isProductionDb)('Row-Level Security', () => {
     beforeAll(async () => {
-        // Create test entity
         const now = new Date().toISOString()
         const [createdEntity] = await db
             .insert(entity)
@@ -155,7 +127,6 @@ describe.skipIf(isProductionDb)('Row-Level Security', () => {
             .returning()
         testData.entityId = createdEntity.id
 
-        // Create two test beneficiaries
         const [ben1] = await db
             .insert(beneficiary)
             .values({
@@ -184,7 +155,6 @@ describe.skipIf(isProductionDb)('Row-Level Security', () => {
             .returning()
         testData.beneficiaryId2 = ben2.id
 
-        // Create user_profile records (simulating Neon Auth users)
         testData.adminUserId = `rls-admin-${Date.now()}`
         testData.beneficiaryUserId1 = `rls-ben1-${Date.now()}`
         testData.beneficiaryUserId2 = `rls-ben2-${Date.now()}`
@@ -207,7 +177,6 @@ describe.skipIf(isProductionDb)('Row-Level Security', () => {
             },
         ])
 
-        // Create distributions for each beneficiary
         const [dist1] = await db
             .insert(distribution)
             .values({
@@ -236,7 +205,6 @@ describe.skipIf(isProductionDb)('Row-Level Security', () => {
             .returning()
         testData.distributionId2 = dist2.id
 
-        // Create HEMS requests for each beneficiary
         const [hems1] = await db
             .insert(hemsRequest)
             .values({
@@ -347,7 +315,6 @@ describe.skipIf(isProductionDb)('Row-Level Security', () => {
             const policies = await getTablePolicies('beneficiary')
             expect(policies.length).toBeGreaterThan(0)
 
-            // Should have a policy that references app.is_admin() or similar
             const hasAccessPolicy = policies.some(
                 (p) =>
                     p.qual?.includes('is_admin') ||
@@ -387,20 +354,16 @@ describe.skipIf(isProductionDb)('Row-Level Security', () => {
         test('auth.user_id() returns null without JWT session', async () => {
             await resetJwtSession()
             const userId = await getCurrentAuthUserId()
-            // Without a valid JWT, should return null
             expect(userId).toBeNull()
         })
     })
 
     // =========================================================================
     // DATA ISOLATION TESTS (Application Level)
-    // These tests verify that the RLS policies are working by checking
-    // what data is visible through the application's database connection.
     // =========================================================================
 
     describe('Data Isolation - Application Level', () => {
         test('test data was created correctly', async () => {
-            // Verify all test data exists
             expect(testData.entityId).not.toBeNull()
             expect(testData.beneficiaryId1).not.toBeNull()
             expect(testData.beneficiaryId2).not.toBeNull()
@@ -488,9 +451,6 @@ describe.skipIf(isProductionDb)('Row-Level Security', () => {
 
     // =========================================================================
     // RLS POLICY BEHAVIOR TESTS
-    // These tests verify the RLS policies are correctly configured by
-    // examining the policy definitions and ensuring they reference the
-    // correct helper functions.
     // =========================================================================
 
     describe('RLS Policy Configuration', () => {
@@ -539,34 +499,22 @@ describe.skipIf(isProductionDb)('Row-Level Security', () => {
             const distributionPolicies = await getTablePolicies('distribution')
             const hemsPolicies = await getTablePolicies('hems_request')
 
-            // At least one policy should have a WITH CHECK clause
             const allPolicies = [
                 ...beneficiaryPolicies,
                 ...distributionPolicies,
                 ...hemsPolicies,
             ]
             const hasWithCheck = allPolicies.some((p) => p.with_check !== null)
-
-            // WITH CHECK is important for INSERT/UPDATE protection
             expect(hasWithCheck).toBe(true)
         })
     })
 
     // =========================================================================
     // CROSS-BENEFICIARY ISOLATION TESTS
-    // These tests verify that one beneficiary CANNOT see another beneficiary's
-    // data. This is the core RLS security requirement.
-    //
-    // Uses app.set_test_user() to simulate different users. In production,
-    // this test context is never set, so auth.user_id() from Neon Auth is used.
+    // Uses app.set_test_user() to simulate users; in production auth.user_id() is used instead.
     // =========================================================================
 
-    /**
-     * Run a query as a specific user with RLS enforced.
-     *
-     * IMPORTANT: neondb_owner has BYPASSRLS=true, so we must SET ROLE authenticated
-     * within a transaction to actually test RLS policies.
-     */
+    /** neondb_owner has BYPASSRLS, so SET ROLE authenticated is required to test RLS policies */
     async function runAsUser<T>(
         userId: string,
         queryFn: (
@@ -575,20 +523,13 @@ describe.skipIf(isProductionDb)('Row-Level Security', () => {
     ): Promise<T> {
         const client = getClient()
         return client.begin(async (sql) => {
-            // Switch to authenticated role (no BYPASSRLS)
             await sql.unsafe('SET ROLE authenticated')
-            // Set search_path to include public and app schemas
             await sql.unsafe('SET search_path TO public, app')
-            // Set test user context
             await sql`SELECT app.set_test_user(${userId})`
-            // Run the query
             return queryFn(sql)
         })
     }
 
-    /**
-     * Run a query without authentication (clear user context)
-     */
     async function runUnauthenticated<T>(
         queryFn: (
             sql: typeof getClient extends () => infer R ? R : never,
@@ -596,10 +537,8 @@ describe.skipIf(isProductionDb)('Row-Level Security', () => {
     ): Promise<T> {
         const client = getClient()
         return client.begin(async (sql) => {
-            // Switch to authenticated role (no BYPASSRLS)
             await sql.unsafe('SET ROLE authenticated')
             await sql.unsafe('SET search_path TO public, app')
-            // Clear any test user context
             await sql`SELECT app.clear_test_user()`
             return queryFn(sql)
         })
@@ -621,19 +560,16 @@ describe.skipIf(isProductionDb)('Row-Level Security', () => {
             await setTestUser(testData.beneficiaryUserId1!)
             const client = getClient()
 
-            // Check app.effective_user_id() returns correct value
             const userIdResult =
                 await client`SELECT app.effective_user_id() as user_id`
             expect(userIdResult[0]?.user_id).toBe(testData.beneficiaryUserId1)
 
-            // Check app.get_user_beneficiary_id() returns correct value
             const beneficiaryIdResult =
                 await client`SELECT app.get_user_beneficiary_id() as beneficiary_id`
             expect(Number(beneficiaryIdResult[0]?.beneficiary_id)).toBe(
                 testData.beneficiaryId1,
             )
 
-            // Check app.is_admin() returns false
             const isAdminResult =
                 await client`SELECT app.is_admin() as is_admin`
             expect(isAdminResult[0]?.is_admin).toBe(false)
@@ -645,12 +581,10 @@ describe.skipIf(isProductionDb)('Row-Level Security', () => {
             await setTestUser(testData.beneficiaryUserId2!)
             const client = getClient()
 
-            // Check app.effective_user_id() returns correct value
             const userIdResult =
                 await client`SELECT app.effective_user_id() as user_id`
             expect(userIdResult[0]?.user_id).toBe(testData.beneficiaryUserId2)
 
-            // Check app.get_user_beneficiary_id() returns correct value
             const beneficiaryIdResult =
                 await client`SELECT app.get_user_beneficiary_id() as beneficiary_id`
             expect(Number(beneficiaryIdResult[0]?.beneficiary_id)).toBe(
@@ -664,7 +598,6 @@ describe.skipIf(isProductionDb)('Row-Level Security', () => {
             await setTestUser(testData.adminUserId!)
             const client = getClient()
 
-            // Check app.is_admin() returns true
             const isAdminResult =
                 await client`SELECT app.is_admin() as is_admin`
             expect(isAdminResult[0]?.is_admin).toBe(true)
@@ -685,14 +618,12 @@ describe.skipIf(isProductionDb)('Row-Level Security', () => {
                 },
             )
 
-            // Should only see beneficiary 1's distribution
             expect(distributions.length).toBe(1)
             expect(Number(distributions[0]?.beneficiaryId)).toBe(
                 testData.beneficiaryId1,
             )
             expect(distributions[0]?.amount).toBe('1000.00')
 
-            // Should NOT see beneficiary 2's distribution
             const ben2Dist = distributions.find(
                 (d) => Number(d.beneficiaryId) === testData.beneficiaryId2,
             )
@@ -712,14 +643,12 @@ describe.skipIf(isProductionDb)('Row-Level Security', () => {
                 },
             )
 
-            // Should only see beneficiary 2's distribution
             expect(distributions.length).toBe(1)
             expect(Number(distributions[0]?.beneficiaryId)).toBe(
                 testData.beneficiaryId2,
             )
             expect(distributions[0]?.amount).toBe('2000.00')
 
-            // Should NOT see beneficiary 1's distribution
             const ben1Dist = distributions.find(
                 (d) => Number(d.beneficiaryId) === testData.beneficiaryId1,
             )
@@ -739,14 +668,12 @@ describe.skipIf(isProductionDb)('Row-Level Security', () => {
                 },
             )
 
-            // Should only see beneficiary 1's HEMS request
             expect(hemsRequests.length).toBe(1)
             expect(Number(hemsRequests[0]?.beneficiaryId)).toBe(
                 testData.beneficiaryId1,
             )
             expect(hemsRequests[0]?.category).toBe('HEALTH')
 
-            // Should NOT see beneficiary 2's HEMS request
             const ben2Hems = hemsRequests.find(
                 (h) => Number(h.beneficiaryId) === testData.beneficiaryId2,
             )
@@ -766,14 +693,12 @@ describe.skipIf(isProductionDb)('Row-Level Security', () => {
                 },
             )
 
-            // Should only see beneficiary 2's HEMS request
             expect(hemsRequests.length).toBe(1)
             expect(Number(hemsRequests[0]?.beneficiaryId)).toBe(
                 testData.beneficiaryId2,
             )
             expect(hemsRequests[0]?.category).toBe('EDUCATION')
 
-            // Should NOT see beneficiary 1's HEMS request
             const ben1Hems = hemsRequests.find(
                 (h) => Number(h.beneficiaryId) === testData.beneficiaryId1,
             )
@@ -794,7 +719,6 @@ describe.skipIf(isProductionDb)('Row-Level Security', () => {
                 },
             )
 
-            // Should only see their own record
             expect(beneficiaries.length).toBe(1)
             expect(Number(beneficiaries[0]?.id)).toBe(testData.beneficiaryId1)
             expect(beneficiaries[0]?.lastName).toBe('Beneficiary One')
@@ -814,7 +738,6 @@ describe.skipIf(isProductionDb)('Row-Level Security', () => {
                 },
             )
 
-            // Should only see their own record
             expect(beneficiaries.length).toBe(1)
             expect(Number(beneficiaries[0]?.id)).toBe(testData.beneficiaryId2)
             expect(beneficiaries[0]?.lastName).toBe('Beneficiary Two')
@@ -833,7 +756,6 @@ describe.skipIf(isProductionDb)('Row-Level Security', () => {
                 },
             )
 
-            // Admin should see both distributions
             expect(distributions.length).toBe(2)
             const ids = distributions.map((d) => Number(d.beneficiaryId))
             expect(ids).toContain(testData.beneficiaryId1)
@@ -853,7 +775,6 @@ describe.skipIf(isProductionDb)('Row-Level Security', () => {
                 },
             )
 
-            // Admin should see both HEMS requests
             expect(hemsRequests.length).toBe(2)
             const ids = hemsRequests.map((h) => Number(h.beneficiaryId))
             expect(ids).toContain(testData.beneficiaryId1)
@@ -874,7 +795,6 @@ describe.skipIf(isProductionDb)('Row-Level Security', () => {
                 },
             )
 
-            // Admin should see both beneficiaries
             expect(beneficiaries.length).toBe(2)
             const ids = beneficiaries.map((b) => Number(b.id))
             expect(ids).toContain(testData.beneficiaryId1)
@@ -922,9 +842,7 @@ describe.skipIf(isProductionDb)('Row-Level Security', () => {
     // =========================================================================
 
     describe('RLS on All Protected Tables', () => {
-        // These are the 28 tables with RLS enabled (11 original + 17 new)
         const rlsEnabledTables = [
-            // Original 11 tables
             'bank_account',
             'beneficiary',
             'distribution',
@@ -936,7 +854,6 @@ describe.skipIf(isProductionDb)('Row-Level Security', () => {
             'trust_accounting',
             'vehicle',
             'withdrawal_record',
-            // 17 new tables (added in phase 53)
             'artwork',
             'rental_property',
             'insurance_policy',

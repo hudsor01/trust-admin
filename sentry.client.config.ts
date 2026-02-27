@@ -1,27 +1,22 @@
-// This file configures the initialization of Sentry on the browser.
-// The config you add here will be used whenever a user loads a page in their browser.
-// https://docs.sentry.io/platforms/javascript/guides/nextjs/
+// Sentry browser-side init — loaded on every page
 
 import * as Sentry from '@sentry/nextjs'
 
 Sentry.init({
+    // NEXT_PUBLIC_* vars are inlined at build time — must be set before `next build`
     dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
-
-    // Enable when DSN is configured
-    // Note: NEXT_PUBLIC_SENTRY_DSN is inlined at build time — must be set before building
     enabled: !!process.env.NEXT_PUBLIC_SENTRY_DSN,
 
-    // 100% — low-traffic private app, capture everything
+    // Low-traffic private app — capture all traces
     tracesSampleRate: 1.0,
 
-    // Propagate trace headers to same-origin API routes (enables distributed tracing)
+    // Same-origin only — enables distributed tracing across client/server
     tracePropagationTargets: [
         'localhost',
         /^https:\/\/trust\.thehudsonfam\.com/,
     ],
 
-    // Replay integration — required for replaysSessionSampleRate/replaysOnErrorSampleRate to work
-    // maskAllText + blockAllMedia: protect PII (beneficiary names, financial data)
+    // PII protection: mask text and block media (beneficiary names, financial data)
     integrations: [
         Sentry.replayIntegration({
             maskAllText: true,
@@ -29,12 +24,10 @@ Sentry.init({
         }),
     ],
 
-    // Replay 10% of sessions, 100% of sessions with errors
     replaysSessionSampleRate: 0.1,
     replaysOnErrorSampleRate: 1.0,
 
-    // Drop all events from localhost — prevents E2E test runs and local dev
-    // from polluting the production error tracker with false "escalating" alerts
+    // Drop localhost events to prevent E2E/dev noise in production tracker
     beforeSend(event) {
         if (
             typeof window !== 'undefined' &&
@@ -45,12 +38,11 @@ Sentry.init({
         return event
     },
 
-    // Tag slow client-side navigations for easy filtering in Sentry dashboard
+    // Tag slow navigations + drop localhost transactions
     beforeSendTransaction(event) {
         if (event.measurements?.frames_slow?.value) {
             event.tags = { ...event.tags, slow_transaction: 'true' }
         }
-        // Drop localhost transactions too
         if (
             typeof window !== 'undefined' &&
             window.location.hostname === 'localhost'

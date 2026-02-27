@@ -738,7 +738,7 @@ bun run test:e2e --project=admin --grep "Asset"
 
 Note: If some URLs 404, update the test URLs to match actual routes (check `src/app/(admin)/` folder structure).
 
-**Step 3: Fix any route URLs that don't match**
+**Step 3: Fix any route URLs that do not match**
 
 Read `src/app/(admin)/` folder and correct any URL mismatches in `assets.e2e.ts`.
 
@@ -1047,7 +1047,7 @@ For each TS error from Layer 1:
 bun run lint:fix
 ```
 
-For violations that can't be auto-fixed, fix manually.
+For violations that cannot be auto-fixed, fix manually.
 
 **Step 4: Fix unit/integration test failures**
 
@@ -1111,6 +1111,6 @@ git commit -m "chore: close v4.0 comprehensive audit milestone"
 
 - **Test credentials:** `TEST_ADMIN_EMAIL` / `TEST_ADMIN_PASSWORD` and `TEST_BENEFICIARY_EMAIL` / `TEST_BENEFICIARY_PASSWORD` must be set in `.env` before running E2E. The admin creds are `ADMIN_EMAIL` + its password. The beneficiary creds must be a provisioned account with no `forcePasswordChange`.
 - **Route discovery:** If any asset page URL (Task 8) returns 404, run `ls src/app/(admin)/` to find correct URL segments.
-- **Auth setup must run first:** If `playwright/.auth/` files don't exist, the authenticated tests will fail. Always run `--project=setup-admin --project=setup-beneficiary` first, or run the full suite which respects `dependencies`.
+- **Auth setup must run first:** If `playwright/.auth/` files do not exist, the authenticated tests will fail. Always run `--project=setup-admin --project=setup-beneficiary` first, or run the full suite which respects `dependencies`.
 - **Workers=1:** Playwright is set to `workers: 1` to avoid session conflicts between concurrent tests. Increase if you add proper test isolation.
 - **Neon Data API:** Assets (bankAccount, investmentAccount, homestead, rentalProperty, vehicle, personalProperty, artwork) are served via Neon Data API (PostgREST), not tRPC. E2E tests cover their pages without needing tRPC integration tests.

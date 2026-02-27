@@ -1,9 +1,4 @@
-/**
- * LiabilitySummaryCards Component Tests
- *
- * Tests for the LiabilitySummaryCards component that displays three summary
- * cards: total liabilities, active debts, and total records.
- */
+/** LiabilitySummaryCards component tests — total liabilities, active debts, and total records cards. */
 
 import '../../setup'
 import { afterEach, describe, expect, test } from 'bun:test'

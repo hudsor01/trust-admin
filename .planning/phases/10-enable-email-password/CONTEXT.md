@@ -83,6 +83,6 @@ await authClient.changePassword({ currentPassword, newPassword })
 
 ## Risks
 
-- **Console config is blocking** — SDK won't work without it
+- **Console config is blocking** — SDK will not work without it
 - **No breaking changes** — magic link continues working if both enabled
 - **Existing sessions unaffected** — users stay logged in

@@ -1,10 +1,6 @@
 'use client'
 
-/**
- * Copy Button Component
- *
- * Button that copies text to clipboard with visual feedback.
- */
+/** Copies text to clipboard with visual feedback. */
 
 import { Check, Copy } from 'lucide-react'
 import { useState } from 'react'

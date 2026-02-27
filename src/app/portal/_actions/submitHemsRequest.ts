@@ -1,12 +1,5 @@
 'use server'
 
-/**
- * Server Action for HEMS Request Submission
- *
- * Provides progressive enhancement for the HEMS request form.
- * Works without JavaScript, then enhances with React 19 useActionState.
- */
-
 import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '@/db'
@@ -38,7 +31,7 @@ export async function submitHemsRequest(
     _prevState: HemsFormState,
     formData: FormData,
 ): Promise<HemsFormState> {
-    // Authenticate: Server Actions are callable via POST without rendering the page
+    // Server Actions are callable via POST without rendering the page — must authenticate
     const { data: session } = await authServer.getSession()
     if (!session?.user) {
         return {
@@ -47,7 +40,7 @@ export async function submitHemsRequest(
         }
     }
 
-    // Authorize: verify the caller is linked to the beneficiary they're submitting for
+    // Verify caller owns the beneficiary record they're submitting for
     const [profile] = await db
         .select({ beneficiaryId: userProfile.beneficiaryId })
         .from(userProfile)
@@ -70,7 +63,7 @@ export async function submitHemsRequest(
         }
     }
 
-    // Verify beneficiary ownership: caller can only submit for themselves
+    // Prevent cross-beneficiary submissions
     if (
         !profile?.beneficiaryId ||
         profile.beneficiaryId !== parsed.data.beneficiaryId
@@ -81,7 +74,7 @@ export async function submitHemsRequest(
         }
     }
 
-    // Verify entityId matches the beneficiary's entity
+    // Prevent entity mismatch (beneficiary can only submit for their own trust)
     const [ben] = await db
         .select({ entityId: beneficiary.entityId })
         .from(beneficiary)

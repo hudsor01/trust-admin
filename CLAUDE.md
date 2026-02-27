@@ -226,7 +226,7 @@ Steps: `createUser()` → set `emailVerified = true` via raw SQL → upsert `use
 ```typescript
 // ❌ Wrong cookie prefix
 import { getSessionCookie } from 'better-auth/cookies'
-getSessionCookie(request, { cookiePrefix: 'trust-admin' })  // Cookie doesn't exist
+getSessionCookie(request, { cookiePrefix: 'trust-admin' })  // Cookie does not exist
 
 // ❌ authClient in Server Components
 authClient.getSession()

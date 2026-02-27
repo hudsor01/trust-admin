@@ -1,12 +1,4 @@
-/**
- * DataTable Component Tests
- *
- * Tests for the main DataTable component that provides:
- * - Table rendering with TanStack Table
- * - Sorting, filtering, pagination
- * - Column visibility
- * - Loading and empty states
- */
+/** DataTable component tests — sorting, filtering, pagination, column visibility, loading/empty states. */
 
 import '../setup'
 import { afterEach, describe, expect, test } from 'bun:test'
@@ -298,8 +290,8 @@ describe('DataTable', () => {
 
     describe('row selection', () => {
         // Note: Row selection in DataTable requires adding a checkbox column to columns.
-        // The enableRowSelection prop enables selection state but doesn't auto-add checkboxes.
-        // These tests verify the prop is accepted and doesn't break rendering.
+        // The enableRowSelection prop enables selection state but does not auto-add checkboxes.
+        // These tests verify the prop is accepted and does not break rendering.
 
         test('accepts enableRowSelection prop', () => {
             render(

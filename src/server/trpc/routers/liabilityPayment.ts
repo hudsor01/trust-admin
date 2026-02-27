@@ -18,7 +18,7 @@ export const liabilityPaymentRouter = createTRPCRouter({
             }),
         )
         .query(async ({ input }) => {
-            // Join on liability to enforce entity isolation
+            // Payments lack entityId; join on liability to enforce entity isolation
             return db
                 .select({ liabilityPayment })
                 .from(liabilityPayment)
@@ -75,7 +75,6 @@ export const liabilityPaymentRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ input }) => {
-            // Verify the payment belongs to a liability in this entity before updating
             const existing = await db
                 .select({ liabilityPayment })
                 .from(liabilityPayment)
@@ -109,7 +108,6 @@ export const liabilityPaymentRouter = createTRPCRouter({
     delete: adminProcedure
         .input(z.object({ id: z.coerce.number(), entityId: z.coerce.number() }))
         .mutation(async ({ input }) => {
-            // Verify the payment belongs to a liability in this entity before deleting
             const existing = await db
                 .select({ liabilityPayment })
                 .from(liabilityPayment)

@@ -1,9 +1,4 @@
-/**
- * RentalPropertyTable Component Tests
- *
- * Tests for the RentalPropertyTable component that displays rental properties
- * in a DataTable with inline editing, edit/delete actions, and loading/empty states.
- */
+/** RentalPropertyTable component tests — DataTable with inline editing, actions, and loading/empty states. */
 
 import '../../setup'
 import { afterEach, describe, expect, mock, test } from 'bun:test'
