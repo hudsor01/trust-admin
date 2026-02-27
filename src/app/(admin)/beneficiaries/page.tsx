@@ -2,9 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import type { Beneficiary } from '@/db/schema'
-import { useEntityFilter } from '@/hooks/use-entity-filter'
 import { logger } from '@/lib/logger'
 import { isPositive, sumStrings } from '@/lib/money'
 import { trpc } from '@/lib/trpc'
@@ -19,21 +17,13 @@ const log = logger.create('Beneficiaries')
 
 export default function BeneficiariesPage() {
     const utils = trpc.useUtils()
-
-    // Use tRPC hooks for data fetching
-    const { data: entities = [], isLoading: entitiesLoading } =
-        trpc.entity.list.useQuery()
-    const [entityId, setEntityId] = useEntityFilter()
-    const selectedEntity = entityId || entities[0]?.id
+    const entityId = 1
 
     // Use optimized query that fetches beneficiaries with distributions in one query
     const {
         data: beneficiariesWithDist = [],
         isLoading: beneficiariesLoading,
-    } = trpc.beneficiary.listWithDistributions.useQuery(
-        { entityId: selectedEntity! },
-        { enabled: !!selectedEntity },
-    )
+    } = trpc.beneficiary.listWithDistributions.useQuery({ entityId })
 
     const updateBeneficiaryMutation = trpc.beneficiary.update.useMutation({
         onSuccess: () => {
@@ -60,7 +50,7 @@ export default function BeneficiariesPage() {
     ) => {
         return await updateBeneficiaryMutation.mutateAsync({
             id,
-            entityId: selectedEntity!,
+            entityId,
             data,
         })
     }
@@ -81,7 +71,7 @@ export default function BeneficiariesPage() {
         notes: '',
     })
 
-    const loading = entitiesLoading || beneficiariesLoading
+    const loading = beneficiariesLoading
 
     const handleMarkDeceased = async () => {
         if (!selectedBeneficiary || !deceasedDate) return
@@ -89,7 +79,7 @@ export default function BeneficiariesPage() {
         try {
             await markDeceasedMutation.mutateAsync({
                 beneficiaryId: selectedBeneficiary.id,
-                entityId: Number(selectedEntity),
+                entityId,
                 deceasedDate: `${deceasedDate}T00:00:00.000Z`,
             })
             setShowDeceasedForm(false)
@@ -137,7 +127,7 @@ export default function BeneficiariesPage() {
             // Refresh distributions for selected beneficiary using tRPC
             const updated = await utils.beneficiary.byId.fetch({
                 id: selectedBeneficiary.id,
-                entityId: selectedEntity!,
+                entityId,
             })
             if (updated) {
                 setSelectedBeneficiary({
@@ -190,20 +180,6 @@ export default function BeneficiariesPage() {
                         {formatCurrency(totalDistributed)} distributed
                     </p>
                 </div>
-                <NativeSelect
-                    value={selectedEntity || ''}
-                    onChange={(e) => setEntityId(e.target.value || null)}
-                    className="w-62.5"
-                >
-                    <NativeSelectOption value="" disabled>
-                        Select Trust
-                    </NativeSelectOption>
-                    {entities.map((e) => (
-                        <NativeSelectOption key={e.id} value={e.id}>
-                            {e.name}
-                        </NativeSelectOption>
-                    ))}
-                </NativeSelect>
             </div>
 
             {/* Summary Cards */}

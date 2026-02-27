@@ -14,7 +14,6 @@ import type {
     TrustAccounting,
     Vehicle,
 } from '@/db/schema'
-import { useEntityFilter } from '@/hooks/use-entity-filter'
 import { useNeonList } from '@/hooks/use-neon-data'
 import { useResourceForm } from '@/hooks/use-resource-form'
 import { logger } from '@/lib/logger'
@@ -31,39 +30,30 @@ const log = logger.create('Accounting')
 
 export default function AccountingPage() {
     const utils = trpc.useUtils()
-
-    const { data: entities = [], isLoading: entitiesLoading } =
-        trpc.entity.list.useQuery()
-    const [entityId, setEntityId] = useEntityFilter()
-    const selectedEntity = entityId ? Number(entityId) : entities[0]?.id
+    const entityId = 1
 
     // Fetch bank accounts for the current entity
     const { data: bankAccounts = [] } = useNeonList<BankAccount>(
         'bank_account',
-        selectedEntity ? { entity_id: selectedEntity } : undefined,
-        { enabled: !!selectedEntity },
+        { entity_id: entityId },
     )
 
     // Server-side aggregate totals across ALL entries (not just the current page)
-    const { data: allTotals = [] } = trpc.trustAccounting.totals.useQuery(
-        { entityId: selectedEntity! },
-        { enabled: !!selectedEntity },
-    )
+    const { data: allTotals = [] } = trpc.trustAccounting.totals.useQuery({
+        entityId,
+    })
 
     // Pagination state
-    const [currentPage, setCurrentPage] = useState(1)
+    const [currentPage, _setCurrentPage] = useState(1)
     const pageSize = 20
 
     // Use paginated query
     const { data: paginatedResult, isLoading: entriesLoading } =
-        trpc.trustAccounting.listPaginated.useQuery(
-            {
-                entityId: selectedEntity,
-                limit: pageSize,
-                offset: (currentPage - 1) * pageSize,
-            },
-            { enabled: !!selectedEntity },
-        )
+        trpc.trustAccounting.listPaginated.useQuery({
+            entityId,
+            limit: pageSize,
+            offset: (currentPage - 1) * pageSize,
+        })
 
     const entries = paginatedResult?.data || []
     const _totalCount = paginatedResult?.totalCount || 0
@@ -80,10 +70,7 @@ export default function AccountingPage() {
 
     // Year-end income-to-principal conversion
     const { data: unconvertedSummary = [] } =
-        trpc.trustAccounting.unconvertedIncomeSummary.useQuery(
-            { entityId: selectedEntity! },
-            { enabled: !!selectedEntity },
-        )
+        trpc.trustAccounting.unconvertedIncomeSummary.useQuery({ entityId })
 
     const convertIncomeMutation =
         trpc.trustAccounting.convertIncomeToPrincipal.useMutation({
@@ -98,10 +85,9 @@ export default function AccountingPage() {
     const [editingId, setEditingId] = useState<number | null>(null)
     const [convertingYear, setConvertingYear] = useState<number | null>(null)
     const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null)
-    const loading = entitiesLoading || entriesLoading
+    const loading = entriesLoading
 
     const handleConvertYear = async (fiscalYear: number) => {
-        if (!selectedEntity) return
         // Use the first bank account for the conversion entry
         const defaultBankAccount = bankAccounts[0]
         if (!defaultBankAccount) {
@@ -113,7 +99,7 @@ export default function AccountingPage() {
         setConvertingYear(fiscalYear)
         try {
             await convertIncomeMutation.mutateAsync({
-                entityId: selectedEntity,
+                entityId,
                 fiscalYear,
                 bankAccountId: defaultBankAccount.id,
             })
@@ -150,11 +136,10 @@ export default function AccountingPage() {
     } = useResourceForm<AccountingFormData>({
         initialData: defaultFormData,
         onSubmit: async (data) => {
-            if (!numericEntityId) return
             if (!data.bankAccountId) return // bankAccountId is required
             const bankAccountIdNum = Number.parseInt(data.bankAccountId, 10)
             const payload = {
-                entityId: numericEntityId,
+                entityId,
                 accountingDate: data.accountingDate,
                 entryType: data.entryType as AccountingEntryTypeEnum,
                 incomeType:
@@ -178,7 +163,7 @@ export default function AccountingPage() {
             if (isEditing && editingId) {
                 await updateEntryMutation.mutateAsync({
                     id: editingId,
-                    entityId: numericEntityId!,
+                    entityId,
                     data: payload,
                 })
             } else {
@@ -187,22 +172,6 @@ export default function AccountingPage() {
             setEditingId(null)
         },
     })
-
-    // Handle entity change - updates entity and resets pagination
-    const handleEntityChange = useCallback(
-        (newEntityId: string) => {
-            setEntityId(newEntityId || null)
-            setCurrentPage(1)
-        },
-        [setEntityId],
-    )
-
-    // Convert string entityId from URL to number for API calls
-    const numericEntityId = selectedEntity
-        ? typeof selectedEntity === 'string'
-            ? Number.parseInt(selectedEntity, 10)
-            : selectedEntity
-        : undefined
 
     const { dialogProps: deleteDialogProps, confirm: confirmDelete } =
         useConfirmDialog({
@@ -216,7 +185,7 @@ export default function AccountingPage() {
                 try {
                     await deleteEntryMutation.mutateAsync({
                         id: pendingDeleteId,
-                        entityId: numericEntityId!,
+                        entityId,
                     })
                 } catch (error) {
                     log.error('Failed to delete entry', { error })
@@ -237,7 +206,7 @@ export default function AccountingPage() {
     ) => {
         await updateEntryMutation.mutateAsync({
             id,
-            entityId: numericEntityId!,
+            entityId,
             data: updates,
         })
     }
@@ -299,12 +268,11 @@ export default function AccountingPage() {
 
     // Generate Texas 113.152 compliant accounting report
     const generateReport = useCallback(async () => {
-        if (!selectedEntity) return
         setGeneratingReport(true)
 
         try {
             // Fetch all required data for the report using tRPC
-            const entityFilter = { entity_id: `eq.${selectedEntity}` }
+            const entityFilter = { entity_id: `eq.${entityId}` }
             const [
                 bankAccountsData,
                 investmentAccounts,
@@ -312,6 +280,7 @@ export default function AccountingPage() {
                 rentalProperties,
                 vehicles,
                 liabilities,
+                entityData,
             ] = await Promise.all([
                 neonFetch<BankAccount[]>('bank_account', 'GET', {
                     params: entityFilter,
@@ -328,10 +297,11 @@ export default function AccountingPage() {
                 neonFetch<Vehicle[]>('vehicle', 'GET', {
                     params: entityFilter,
                 }),
-                utils.liability.list.fetch({ entityId: selectedEntity }),
+                utils.liability.list.fetch({ entityId }),
+                utils.entity.byId.fetch(entityId),
             ])
 
-            const entity = entities.find((e) => e.id === selectedEntity)
+            const entity = entityData
             const reportDate = new Date().toLocaleDateString('en-US', {
                 year: 'numeric',
                 month: 'long',
@@ -401,7 +371,7 @@ export default function AccountingPage() {
         } finally {
             setGeneratingReport(false)
         }
-    }, [selectedEntity, entities, incomeTotal, expenseTotal, netIncome, utils])
+    }, [incomeTotal, expenseTotal, netIncome, utils])
 
     // Handler for opening edit dialog from DataTable
     const openEditForm = (entry: TrustAccounting) => {
@@ -423,10 +393,7 @@ export default function AccountingPage() {
     return (
         <div className="space-y-6">
             <AccountingHeader
-                entities={entities}
-                selectedEntity={selectedEntity}
                 generatingReport={generatingReport}
-                onEntityChange={handleEntityChange}
                 onGenerateReport={generateReport}
                 onAddEntry={handleAddEntry}
             />

@@ -2,33 +2,15 @@
 
 import { FileText, Loader2, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select'
-
-interface Entity {
-    id: number
-    name: string
-}
 
 interface AccountingHeaderProps {
-    entities: Entity[]
-    selectedEntity: number | undefined
     generatingReport: boolean
-    onEntityChange: (newEntityId: string) => void
     onGenerateReport: () => void
     onAddEntry: () => void
 }
 
 export function AccountingHeader({
-    entities,
-    selectedEntity,
     generatingReport,
-    onEntityChange,
     onGenerateReport,
     onAddEntry,
 }: AccountingHeaderProps) {
@@ -43,25 +25,10 @@ export function AccountingHeader({
                 </p>
             </div>
             <div className="flex items-center gap-3">
-                <Select
-                    value={selectedEntity?.toString() ?? ''}
-                    onValueChange={onEntityChange}
-                >
-                    <SelectTrigger className="w-62.5">
-                        <SelectValue placeholder="Select Trust" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {entities.map((e) => (
-                            <SelectItem key={e.id} value={e.id.toString()}>
-                                {e.name}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
                 <Button
                     variant="outline"
                     onClick={onGenerateReport}
-                    disabled={generatingReport || !selectedEntity}
+                    disabled={generatingReport}
                 >
                     {generatingReport ? (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />

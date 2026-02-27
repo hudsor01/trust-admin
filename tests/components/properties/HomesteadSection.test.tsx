@@ -63,20 +63,6 @@ describe('HomesteadSection', () => {
         expect(screen.getByText('Add Homestead')).toBeTruthy()
     })
 
-    test('Add Homestead button is disabled when no entity selected', () => {
-        render(
-            <HomesteadSection
-                homestead={undefined}
-                selectedEntity={undefined}
-                onAdd={mock(() => {})}
-                onEdit={mock(() => {})}
-                onDelete={mock(() => {})}
-            />,
-        )
-        const addButton = screen.getByText('Add Homestead').closest('button')
-        expect(addButton?.disabled).toBe(true)
-    })
-
     test('calls onAdd when Add Homestead button is clicked', async () => {
         const user = userEvent.setup()
         const onAdd = mock(() => {})

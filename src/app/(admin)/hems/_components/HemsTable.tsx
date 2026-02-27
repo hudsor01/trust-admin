@@ -44,7 +44,6 @@ interface HemsTableProps {
     hemsDistributions: Distribution[]
     beneficiaries: Beneficiary[]
     isLoading: boolean
-    selectedEntity: number | null
     onNewRequest: () => void
 }
 
@@ -52,7 +51,6 @@ export function HemsTable({
     hemsDistributions,
     beneficiaries,
     isLoading,
-    selectedEntity,
     onNewRequest,
 }: HemsTableProps) {
     const hemsColumns: ColumnDef<Distribution>[] = [
@@ -121,7 +119,7 @@ export function HemsTable({
                             distributions
                         </CardDescription>
                     </div>
-                    <Button onClick={onNewRequest} disabled={!selectedEntity}>
+                    <Button onClick={onNewRequest}>
                         <Plus className="mr-2 h-4 w-4" />
                         New HEMS Request
                     </Button>

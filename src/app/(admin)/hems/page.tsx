@@ -5,16 +5,8 @@ import { useState } from 'react'
 import { SummaryCard } from '@/components/summary-card'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { Distribution, WithdrawalRecord } from '@/db/schema'
-import { useEntityFilter } from '@/hooks/use-entity-filter'
 import { useResourceForm } from '@/hooks/use-resource-form'
 import { addMoney, sumStrings } from '@/lib/money'
 import { trpc } from '@/lib/trpc'
@@ -30,26 +22,13 @@ import { WithdrawalsTable } from './_components/WithdrawalsTable'
 
 export default function DistributionsPage() {
     const utils = trpc.useUtils()
-
-    // Use tRPC hooks
-    const { data: entities = [], isLoading: entitiesLoading } =
-        trpc.entity.list.useQuery()
-    const [entityId, setEntityId] = useEntityFilter()
-    const selectedEntity = entityId
-        ? Number(entityId)
-        : (entities[0]?.id ?? null)
+    const entityId = 1
 
     const { data: beneficiaries = [], isLoading: beneficiariesLoading } =
-        trpc.beneficiary.list.useQuery(
-            { entityId: selectedEntity! },
-            { enabled: !!selectedEntity },
-        )
+        trpc.beneficiary.list.useQuery({ entityId })
 
     const { data: distributions = [], isLoading: distributionsLoading } =
-        trpc.distribution.list.useQuery(
-            { entityId: selectedEntity! },
-            { enabled: !!selectedEntity },
-        )
+        trpc.distribution.list.useQuery({ entityId })
 
     const createDistributionMutation = trpc.distribution.create.useMutation({
         onSuccess: () => {
@@ -67,18 +46,14 @@ export default function DistributionsPage() {
     })
 
     const { data: withdrawalRecords = [] } =
-        trpc.withdrawalRecord.list.useQuery(
-            { entityId: selectedEntity! },
-            { enabled: !!selectedEntity },
-        )
+        trpc.withdrawalRecord.list.useQuery({ entityId })
 
     const updateWithdrawalRecordMutation =
         trpc.withdrawalRecord.update.useMutation({
             onSuccess: () => utils.withdrawalRecord.list.invalidate(),
         })
 
-    const loading =
-        entitiesLoading || beneficiariesLoading || distributionsLoading
+    const loading = beneficiariesLoading || distributionsLoading
     const [activeTab, setActiveTab] = useState('hems')
     const [selectedWithdrawal, setSelectedWithdrawal] =
         useState<WithdrawalRecord | null>(null)
@@ -94,11 +69,10 @@ export default function DistributionsPage() {
             notes: '',
         },
         onSubmit: async (data) => {
-            if (!selectedEntity) return
             const amount = parseFloat(data.amount.replace(/[,$]/g, ''))
             await createDistributionMutation.mutateAsync({
                 beneficiaryId: Number(data.beneficiaryId),
-                entityId: selectedEntity!,
+                entityId,
                 distributionDate: new Date().toISOString(),
                 amount: amount.toString(),
                 distributionType: 'PRINCIPAL',
@@ -183,7 +157,7 @@ export default function DistributionsPage() {
     ) => {
         await updateDistributionMutation.mutateAsync({
             id,
-            entityId: selectedEntity!,
+            entityId,
             data: updates,
         })
     }
@@ -244,21 +218,6 @@ export default function DistributionsPage() {
                         HEMS requests and age-based withdrawals
                     </p>
                 </div>
-                <Select
-                    value={selectedEntity?.toString() || ''}
-                    onValueChange={(val) => setEntityId(val || null)}
-                >
-                    <SelectTrigger className="w-[250px]">
-                        <SelectValue placeholder="Select Trust" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {entities.map((e) => (
-                            <SelectItem key={e.id} value={e.id.toString()}>
-                                {e.name}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
             </div>
 
             {/* Summary Metrics */}
@@ -325,7 +284,6 @@ export default function DistributionsPage() {
                         hemsDistributions={hemsDistributions}
                         beneficiaries={beneficiaries}
                         isLoading={loading}
-                        selectedEntity={selectedEntity}
                         onNewRequest={() => hemsForm.open()}
                     />
                 </TabsContent>

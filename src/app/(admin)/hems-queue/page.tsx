@@ -42,7 +42,6 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import type { HemsRequest } from '@/db/schema'
-import { useEntityFilter } from '@/hooks/use-entity-filter'
 import { STATUS_VARIANTS } from '@/lib/constants'
 import { sumStrings } from '@/lib/money'
 import { trpc } from '@/lib/trpc'
@@ -76,20 +75,10 @@ const STATUS_LABELS: Record<string, string> = {
 
 export default function HemsQueuePage() {
     const utils = trpc.useUtils()
-
-    const { data: entities = [], isLoading: entitiesLoading } =
-        trpc.entity.list.useQuery()
-    const [entityId, setEntityId] = useEntityFilter()
-
-    // Derive numeric entity ID: use selected entity or fall back to first entity
-    const selectedEntity = entityId ? Number(entityId) : entities[0]?.id
-    const queryEnabled = !!selectedEntity
+    const entityId = 1
 
     const { data: requests = [], isLoading: requestsLoading } =
-        trpc.hemsRequest.listWithBeneficiary.useQuery(
-            { entityId: selectedEntity! },
-            { enabled: queryEnabled },
-        )
+        trpc.hemsRequest.listWithBeneficiary.useQuery({ entityId })
 
     // API returns joined beneficiary data
     const requestsWithBeneficiary =
@@ -126,7 +115,7 @@ export default function HemsQueuePage() {
         onSuccess: () => utils.hemsRequest.listWithBeneficiary.invalidate(),
     })
 
-    const loading = entitiesLoading || requestsLoading
+    const loading = requestsLoading
     const [activeTab, setActiveTab] = useState('pending')
 
     const [reviewingRequest, setReviewingRequest] =
@@ -262,7 +251,7 @@ export default function HemsQueuePage() {
         try {
             await approveRequestMutation.mutateAsync({
                 id: reviewingRequest.id,
-                entityId: selectedEntity!,
+                entityId,
                 approvedAmount,
                 reviewNotes,
                 distributionType,
@@ -281,7 +270,7 @@ export default function HemsQueuePage() {
         try {
             await denyRequestMutation.mutateAsync({
                 id: reviewingRequest.id,
-                entityId: selectedEntity!,
+                entityId,
                 reviewNotes,
             })
             setReviewingRequest(null)
@@ -292,44 +281,16 @@ export default function HemsQueuePage() {
         }
     }
 
-    if (entitiesLoading) {
-        return (
-            <div className="flex items-center justify-center h-64">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-        )
-    }
-
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-2xl font-semibold tracking-tight">
-                        HEMS Requests
-                    </h2>
-                    <p className="text-sm text-muted-foreground">
-                        Review and approve beneficiary distribution requests
-                    </p>
-                </div>
-                <Select
-                    value={entityId || 'all'}
-                    onValueChange={(val) => {
-                        setEntityId(val === 'all' ? null : val)
-                    }}
-                >
-                    <SelectTrigger className="w-[280px]">
-                        <SelectValue placeholder="All entities" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">All Entities</SelectItem>
-                        {entities.map((e) => (
-                            <SelectItem key={e.id} value={e.id.toString()}>
-                                {e.name}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
+            <div>
+                <h2 className="text-2xl font-semibold tracking-tight">
+                    HEMS Requests
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                    Review and approve beneficiary distribution requests
+                </p>
             </div>
 
             {/* Summary Cards */}

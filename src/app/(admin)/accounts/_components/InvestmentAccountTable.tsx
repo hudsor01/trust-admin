@@ -22,7 +22,6 @@ import {
 
 interface InvestmentAccountTableProps {
     investmentAccounts: InvestmentAccount[]
-    selectedEntity: number | undefined
     onAdd: () => void
     onEdit: (account: InvestmentAccount) => void
     onDelete: (id: number) => void
@@ -31,7 +30,6 @@ interface InvestmentAccountTableProps {
 
 export function InvestmentAccountTable({
     investmentAccounts,
-    selectedEntity,
     onAdd,
     onEdit,
     onDelete,
@@ -187,7 +185,7 @@ export function InvestmentAccountTable({
     return (
         <div className="space-y-4">
             <div className="flex justify-end">
-                <Button onClick={onAdd} disabled={!selectedEntity}>
+                <Button onClick={onAdd}>
                     <Plus className="h-4 w-4 mr-2" />
                     Add Investment Account
                 </Button>

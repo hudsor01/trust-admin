@@ -136,24 +136,6 @@ describe('RentalPropertyTable', () => {
         expect(screen.getByText('Add Rental Property')).toBeTruthy()
     })
 
-    test('Add Rental Property button is disabled when no entity selected', () => {
-        render(
-            <RentalPropertyTable
-                rentals={[]}
-                rentalsLoading={false}
-                selectedEntity={undefined}
-                onAdd={mock(() => {})}
-                onEdit={mock(() => {})}
-                onDelete={mock(() => {})}
-                onUpdateRental={mock(() => Promise.resolve())}
-            />,
-        )
-        const addButton = screen
-            .getByText('Add Rental Property')
-            .closest('button')
-        expect(addButton?.disabled).toBe(true)
-    })
-
     test('calls onAdd when Add Rental Property button clicked', async () => {
         const user = userEvent.setup()
         const onAdd = mock(() => {})

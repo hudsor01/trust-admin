@@ -41,7 +41,6 @@ interface LiabilityTableProps {
     onBulkSave: (rows: BulkLiabilityRow[]) => Promise<void>
     onBulkCancel: () => void
     onUpdateLiability: (id: number, data: Partial<Liability>) => Promise<void>
-    selectedEntity: number | undefined
 }
 
 export function LiabilityTable({
@@ -57,7 +56,6 @@ export function LiabilityTable({
     onBulkSave,
     onBulkCancel,
     onUpdateLiability,
-    selectedEntity,
 }: LiabilityTableProps) {
     const columns: ColumnDef<Liability>[] = [
         {
@@ -276,7 +274,7 @@ export function LiabilityTable({
                     )}
                 </Button>
                 {!bulkMode && (
-                    <Button onClick={onAdd} disabled={!selectedEntity}>
+                    <Button onClick={onAdd}>
                         <Plus className="h-4 w-4 mr-2" />
                         Add Liability
                     </Button>

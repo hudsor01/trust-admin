@@ -102,24 +102,6 @@ describe('InvestmentAccountTable', () => {
         expect(screen.getByText('Add Investment Account')).toBeTruthy()
     })
 
-    test('Add Investment Account button is disabled when no entity selected', () => {
-        render(
-            <InvestmentAccountTable
-                investmentAccounts={[]}
-                totalInvestmentValue="0.00"
-                selectedEntity={undefined}
-                onAdd={mock(() => {})}
-                onEdit={mock(() => {})}
-                onDelete={mock(() => {})}
-                onUpdate={mock(() => Promise.resolve())}
-            />,
-        )
-        const addButton = screen
-            .getByText('Add Investment Account')
-            .closest('button')
-        expect(addButton?.disabled).toBe(true)
-    })
-
     test('calls onAdd when Add Investment Account button is clicked', async () => {
         const user = userEvent.setup()
         const onAdd = mock(() => {})

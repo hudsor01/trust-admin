@@ -45,9 +45,7 @@ export default function UsersPage() {
     const { data: ownerCheck } = trpc.userManagement.isOwner.useQuery()
     const isOwner = ownerCheck?.isOwner ?? false
 
-    // Fetch entities for beneficiary queries
-    const { data: entities = [] } = trpc.entity.list.useQuery()
-    const defaultEntityId = entities[0]?.id
+    const entityId = 1
 
     // Fetch all users (owner-only, shows Neon Auth users enriched with app data)
     const {
@@ -66,8 +64,8 @@ export default function UsersPage() {
 
     // Fetch all beneficiaries for create dialog
     const { data: allBeneficiaries = [] } = trpc.beneficiary.list.useQuery(
-        { entityId: defaultEntityId! },
-        { enabled: !!defaultEntityId && isOwner },
+        { entityId },
+        { enabled: isOwner },
     )
 
     // ==========================================================================
