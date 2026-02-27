@@ -56,7 +56,11 @@ jobs:
           # strict validation at server startup. Vercel injects real secrets
           # during its own build; CI only needs to verify the code compiles.
           SKIP_ENV_VALIDATION: "1"
-          # Sentry source map upload (optional — build succeeds silently if absent)
+          # Neon Auth requires cookies.secret at module initialization time (not just
+          # at request time), so Next.js fails during page data collection without it.
+          # This placeholder satisfies the library; no real cookies are signed in CI.
+          NEON_AUTH_COOKIE_SECRET: "ci-build-placeholder-not-used-for-real-auth-xxxxxx"
+          # Sentry source map upload — optional, build proceeds without them
           SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
           SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
