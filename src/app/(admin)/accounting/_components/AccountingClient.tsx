@@ -17,7 +17,6 @@ import type {
 import { useResourceForm } from '@/hooks/use-resource-form'
 import { logger } from '@/lib/logger'
 import { subtractMoney, sumStrings } from '@/lib/money'
-import { neonFetch } from '@/lib/neon-data-api'
 import { trpc } from '@/lib/trpc'
 import { AccountingDialog } from './AccountingDialog'
 import { AccountingHeader } from './AccountingHeader'
@@ -250,7 +249,6 @@ export function AccountingClient() {
         setGeneratingReport(true)
 
         try {
-            const entityFilter = { entity_id: `eq.${entityId}` }
             const [
                 bankAccountsData,
                 investmentAccounts,
@@ -260,21 +258,11 @@ export function AccountingClient() {
                 liabilities,
                 entityData,
             ] = await Promise.all([
-                neonFetch<BankAccount[]>('bank_account', 'GET', {
-                    params: entityFilter,
-                }),
-                neonFetch<InvestmentAccount[]>('investment_account', 'GET', {
-                    params: entityFilter,
-                }),
-                neonFetch<Homestead[]>('homestead', 'GET', {
-                    params: entityFilter,
-                }),
-                neonFetch<RentalProperty[]>('rental_property', 'GET', {
-                    params: entityFilter,
-                }),
-                neonFetch<Vehicle[]>('vehicle', 'GET', {
-                    params: entityFilter,
-                }),
+                utils.bankAccount.list.fetch({ entityId }),
+                utils.investmentAccount.list.fetch({ entityId }),
+                utils.homestead.list.fetch({ entityId }),
+                utils.rentalProperty.list.fetch({ entityId }),
+                utils.vehicle.list.fetch({ entityId }),
                 utils.liability.list.fetch({ entityId }),
                 utils.entity.byId.fetch(entityId),
             ])
