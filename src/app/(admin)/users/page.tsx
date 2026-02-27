@@ -609,8 +609,8 @@ export default function UsersPage() {
                     setDeleteDialogOpen(open)
                     if (!open) setSelectedUser(null)
                 }}
-                title="Delete User"
-                description={`Are you sure you want to permanently delete ${displayName(selectedUser)}? This will remove them from both the application and Neon Auth. This action cannot be undone.`}
+                title="Delete Portal Account"
+                description={`This will permanently remove ${displayName(selectedUser)}'s login credentials and portal access. Their beneficiary record and trust history (distributions, HEMS requests) are preserved in the trust records. This action cannot be undone.`}
                 confirmText="Delete"
                 variant="destructive"
                 isLoading={removeUserMutation.isPending}

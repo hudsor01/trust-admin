@@ -532,7 +532,15 @@ export const userManagementRouter = createTRPCRouter({
         }),
 
     /**
-     * Permanently delete a user from both userProfile and Neon Auth
+     * Permanently remove a user's portal access (userProfile + Neon Auth).
+     *
+     * The linked `beneficiary` record is intentionally preserved — it is a
+     * legal trust entity referenced by distributions, HEMS requests, and
+     * accounting entries. Deleting the auth account revokes portal access
+     * without destroying the beneficiary's historical trust records.
+     *
+     * To remove someone as a beneficiary entirely, do so on the Beneficiaries
+     * page after first revoking their portal account here.
      */
     removeUser: ownerProcedure
         .input(z.object({ userId: z.string() }))
