@@ -17,6 +17,12 @@ Sentry.init({
     // 100% — low-traffic private app, capture everything
     tracesSampleRate: 1.0,
 
-    // Setting this option to true will print useful information to the console while you're setting up Sentry.
+    // Drop events from localhost
+    beforeSend(event) {
+        const url = event.request?.url ?? ''
+        if (url.includes('localhost') || url.includes('127.0.0.1')) return null
+        return event
+    },
+
     debug: false,
 })
