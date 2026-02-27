@@ -1,22 +1,45 @@
 'use client'
 
 import { Loader2 } from 'lucide-react'
+import dynamic from 'next/dynamic'
 import { useCallback, useMemo, useOptimistic, useState } from 'react'
 import { toast } from 'sonner'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { logger } from '@/lib/logger'
 import { subtractMoney, sumStrings } from '@/lib/money'
 import { trpc } from '@/lib/trpc'
 import { calculateAge, getWithdrawalStatus } from '@/utils/formatters'
-import { AccountingSummary } from './AccountingSummary'
 import { TASK_CATEGORIES } from './constants'
 import { DashboardAlerts } from './DashboardAlerts'
 import { DashboardStats } from './DashboardStats'
 import { FinancialCharts } from './FinancialCharts'
-import { LiabilitiesPanel } from './LiabilitiesPanel'
 import { TaskList } from './TaskList'
 import { TrustHeader } from './TrustHeader'
-import { WithdrawalsPanel } from './WithdrawalsPanel'
+
+const LiabilitiesPanel = dynamic(
+    () =>
+        import('./LiabilitiesPanel').then((m) => ({
+            default: m.LiabilitiesPanel,
+        })),
+    { loading: () => <Skeleton className="h-64 w-full" /> },
+)
+
+const WithdrawalsPanel = dynamic(
+    () =>
+        import('./WithdrawalsPanel').then((m) => ({
+            default: m.WithdrawalsPanel,
+        })),
+    { loading: () => <Skeleton className="h-64 w-full" /> },
+)
+
+const AccountingSummary = dynamic(
+    () =>
+        import('./AccountingSummary').then((m) => ({
+            default: m.AccountingSummary,
+        })),
+    { loading: () => <Skeleton className="h-64 w-full" /> },
+)
 
 const log = logger.create('Dashboard')
 
