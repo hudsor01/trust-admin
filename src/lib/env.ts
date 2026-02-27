@@ -37,7 +37,8 @@ export const env = createEnv({
             .trim()
             .url('NEON_AUTH_BASE_URL must be a valid URL'),
 
-        // Trust owner — always gets admin role regardless of DB state
+        // Trust owner — always gets admin role regardless of DB state.
+        // Required at build time: set ADMIN_EMAIL in GitHub Actions secrets.
         ADMIN_EMAIL: z
             .string()
             .trim()
