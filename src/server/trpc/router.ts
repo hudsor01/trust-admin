@@ -14,8 +14,10 @@ import { liabilityRouter } from './routers/liability'
 import { liabilityPaymentRouter } from './routers/liabilityPayment'
 import { pendingInventoryItemRouter } from './routers/pendingInventoryItem'
 import { rentalPropertyRouter } from './routers/rentalProperty'
+import { specificBequestRouter } from './routers/specificBequest'
 import { taskRouter } from './routers/task'
 import { trustAccountingRouter } from './routers/trustAccounting'
+import { trusteeRouter } from './routers/trustee'
 import { userManagementRouter } from './routers/userManagement'
 import { valuationRouter } from './routers/valuation'
 import { vehicleRouter } from './routers/vehicle'
@@ -33,6 +35,8 @@ export const appRouter = createTRPCRouter({
     homestead: homesteadRouter,
     rentalProperty: rentalPropertyRouter,
     vehicle: vehicleRouter,
+    trustee: trusteeRouter,
+    specificBequest: specificBequestRouter,
     task: taskRouter,
 
     // Liabilities (multi-table transactions)

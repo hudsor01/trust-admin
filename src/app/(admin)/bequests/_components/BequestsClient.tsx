@@ -5,7 +5,6 @@ import { useState } from 'react'
 import { ConfirmDialog, useConfirmDialog } from '@/components/confirm-dialog'
 import { Button } from '@/components/ui/button'
 import type { SpecificBequest } from '@/db/schema'
-import { useNeonList, useNeonMutations } from '@/hooks/use-neon-data'
 import { useResourceForm } from '@/hooks/use-resource-form'
 import { logger } from '@/lib/logger'
 import { trpc } from '@/lib/trpc'
@@ -16,21 +15,24 @@ import type { BequestFormData } from './types'
 const log = logger.create('Bequests')
 
 export function BequestsClient() {
+    const utils = trpc.useUtils()
     const entityId = 1
 
     const { data: beneficiaries = [] } = trpc.beneficiary.list.useQuery({
         entityId,
     })
     const { data: bequests = [], isLoading: bequestsLoading } =
-        useNeonList<SpecificBequest>('specific_bequest', {
-            entity_id: entityId,
-        })
+        trpc.specificBequest.list.useQuery({ entityId })
 
-    const {
-        create: createBequestMutation,
-        update: updateBequestMutation,
-        delete: deleteBequestMutation,
-    } = useNeonMutations<SpecificBequest>('specific_bequest')
+    const createBequestMutation = trpc.specificBequest.create.useMutation({
+        onSuccess: () => utils.specificBequest.list.invalidate(),
+    })
+    const updateBequestMutation = trpc.specificBequest.update.useMutation({
+        onSuccess: () => utils.specificBequest.list.invalidate(),
+    })
+    const deleteBequestMutation = trpc.specificBequest.delete.useMutation({
+        onSuccess: () => utils.specificBequest.list.invalidate(),
+    })
 
     const loading = bequestsLoading
 

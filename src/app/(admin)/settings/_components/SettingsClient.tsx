@@ -32,8 +32,6 @@ import {
     TableRow,
 } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import type { Trustee } from '@/db/schema'
-import { useNeonList, useNeonMutations } from '@/hooks/use-neon-data'
 import { useResourceForm } from '@/hooks/use-resource-form'
 import { trpc } from '@/lib/trpc'
 import { calculateAge } from '@/utils/formatters'
@@ -169,9 +167,10 @@ export function SettingsClient() {
     })
 
     const { data: trustees = [], isLoading: trusteesLoading } =
-        useNeonList<Trustee>('trustee', { entity_id: entityId })
-    const { update: updateTrusteeMutation } =
-        useNeonMutations<Trustee>('trustee')
+        trpc.trustee.list.useQuery({ entityId })
+    const updateTrusteeMutation = trpc.trustee.update.useMutation({
+        onSuccess: () => utils.trustee.list.invalidate(),
+    })
 
     const { data: contacts = [], isLoading: contactsLoading } =
         trpc.contact.list.useQuery()

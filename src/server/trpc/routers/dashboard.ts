@@ -70,6 +70,7 @@ export const dashboardRouter = createTRPCRouter({
                     .select()
                     .from(liability)
                     .where(eq(liability.entityId, entityId)),
+                // task table is global (no entityId column) — intentional for single-trust app
                 db.select().from(task),
             ])
 

@@ -5,6 +5,7 @@ import { BequestsClient } from './_components/BequestsClient'
 export default async function BequestsPage() {
     const helpers = await createTRPCHelpers()
     await Promise.all([
+        helpers.specificBequest.list.prefetch({ entityId: 1 }),
         helpers.beneficiary.list.prefetch({ entityId: 1 }),
         helpers.entity.list.prefetch(),
     ])

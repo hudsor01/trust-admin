@@ -22,8 +22,11 @@ export function TRPCProvider({ children }: { children: React.ReactNode }) {
             new QueryClient({
                 defaultOptions: {
                     queries: {
-                        staleTime: 1000 * 60 * 5, // 5 min
-                        gcTime: 1000 * 60 * 60 * 24, // 24 hrs — persist across sessions
+                        // Financial data: 5 min fresh window, then background refetch.
+                        // Stale data served from localStorage for up to 24h between sessions.
+                        // refetchOnMount (default true) ensures fresh data on navigation.
+                        staleTime: 1000 * 60 * 5,
+                        gcTime: 1000 * 60 * 60 * 24,
                         retry: 1,
                         refetchOnWindowFocus: false,
                         refetchOnReconnect: false,
@@ -60,13 +63,7 @@ export function TRPCProvider({ children }: { children: React.ReactNode }) {
         </trpc.Provider>
     )
 
-    if (!persister) {
-        return (
-            <trpc.Provider client={trpcClient} queryClient={queryClient}>
-                {children}
-            </trpc.Provider>
-        )
-    }
+    if (!persister) return inner
 
     return (
         <PersistQueryClientProvider
@@ -74,6 +71,7 @@ export function TRPCProvider({ children }: { children: React.ReactNode }) {
             persistOptions={{
                 persister,
                 maxAge: 1000 * 60 * 60 * 24, // 24 hours
+                // Bump on schema/API changes that alter cached data shapes
                 buster: 'v1',
             }}
         >

@@ -6,11 +6,10 @@ import { toast } from 'sonner'
 import { ConfirmDialog, useConfirmDialog } from '@/components/confirm-dialog'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import type { Trustee } from '@/db/schema'
-import { useNeonList, useNeonMutations } from '@/hooks/use-neon-data'
 import { useResourceForm } from '@/hooks/use-resource-form'
 import { trusteeFormDefaults } from '@/lib/form-factory'
 import { logger } from '@/lib/logger'
+import { trpc } from '@/lib/trpc'
 import { asTrusteeStatus } from '@/lib/type-utils'
 import { TrusteeDialog } from './TrusteeDialog'
 import { type TrusteeRow, TrusteeTable } from './TrusteeTable'
@@ -18,16 +17,21 @@ import { type TrusteeRow, TrusteeTable } from './TrusteeTable'
 const log = logger.create('Trustees')
 
 export function TrusteesClient() {
+    const utils = trpc.useUtils()
     const entityId = 1
 
     const { data: trustees = [], isLoading: trusteesLoading } =
-        useNeonList<Trustee>('trustee', { entity_id: entityId })
+        trpc.trustee.list.useQuery({ entityId })
 
-    const {
-        create: createTrusteeMutation,
-        update: updateTrusteeMutation,
-        delete: deleteTrusteeMutation,
-    } = useNeonMutations<Trustee>('trustee')
+    const createTrusteeMutation = trpc.trustee.create.useMutation({
+        onSuccess: () => utils.trustee.list.invalidate(),
+    })
+    const updateTrusteeMutation = trpc.trustee.update.useMutation({
+        onSuccess: () => utils.trustee.list.invalidate(),
+    })
+    const deleteTrusteeMutation = trpc.trustee.delete.useMutation({
+        onSuccess: () => utils.trustee.list.invalidate(),
+    })
 
     const trusteeForm = useResourceForm({
         initialData: trusteeFormDefaults(),

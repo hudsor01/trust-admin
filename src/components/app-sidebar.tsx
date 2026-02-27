@@ -50,7 +50,10 @@ export function AppSidebar() {
             utils.dashboard.summary.prefetch({ entityId })
             utils.entity.list.prefetch()
         },
-        trustees: () => utils.entity.list.prefetch(),
+        trustees: () => {
+            utils.trustee.list.prefetch({ entityId })
+            utils.entity.list.prefetch()
+        },
         beneficiaries: () => {
             utils.beneficiary.listWithDistributions.prefetch({ entityId })
             utils.entity.list.prefetch()
@@ -67,6 +70,7 @@ export function AppSidebar() {
             utils.entity.list.prefetch()
         },
         bequests: () => {
+            utils.specificBequest.list.prefetch({ entityId })
             utils.beneficiary.list.prefetch({ entityId })
             utils.entity.list.prefetch()
         },
@@ -94,7 +98,13 @@ export function AppSidebar() {
             utils.bankAccount.list.prefetch({ entityId })
             utils.entity.list.prefetch()
         },
+        inventoryQueue: () => utils.pendingInventoryItem.list.prefetch(),
         activityLog: () => utils.activityLog.list.prefetch({}),
+        settings: () => {
+            utils.beneficiary.list.prefetch({ entityId })
+            utils.trustee.list.prefetch({ entityId })
+            utils.contact.list.prefetch()
+        },
     }
 
     return (
@@ -382,7 +392,12 @@ export function AppSidebar() {
                                                     '/inventory-queue'
                                                 }
                                             >
-                                                <Link href="/inventory-queue">
+                                                <Link
+                                                    href="/inventory-queue"
+                                                    onMouseEnter={
+                                                        prefetch.inventoryQueue
+                                                    }
+                                                >
                                                     <span>Inventory Queue</span>
                                                 </Link>
                                             </SidebarMenuSubButton>
@@ -433,7 +448,10 @@ export function AppSidebar() {
                             isActive={pathname === '/settings'}
                             tooltip="Settings"
                         >
-                            <Link href="/settings">
+                            <Link
+                                href="/settings"
+                                onMouseEnter={prefetch.settings}
+                            >
                                 <span>Settings</span>
                             </Link>
                         </SidebarMenuButton>
