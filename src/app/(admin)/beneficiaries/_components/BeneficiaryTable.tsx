@@ -1,10 +1,10 @@
 'use client'
 
 import type { ColumnDef } from '@tanstack/react-table'
-import { Check, Circle, Eye } from 'lucide-react'
+import { Eye } from 'lucide-react'
 import {
     EditablePercentCell,
-    EditableSelectCell,
+    EditableTextCell,
 } from '@/components/editable-cells'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -13,19 +13,12 @@ import { DataTable } from '@/components/ui/data-table'
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import type { Beneficiary } from '@/db/schema'
 import { sumStrings } from '@/lib/money'
-import {
-    asDistributionStandard,
-    DISTRIBUTION_STANDARD_VALUES,
-    enumToOptions,
-} from '@/lib/type-utils'
 import { cn } from '@/lib/utils'
 import { formatCurrency } from '@/utils/formatters'
 import {
     type BeneficiaryWithDistributions,
     calculateEligibility,
 } from './types'
-
-const DISTRIBUTION_STANDARDS = enumToOptions(DISTRIBUTION_STANDARD_VALUES)
 
 interface BeneficiaryTableProps {
     beneficiaries: BeneficiaryWithDistributions[]
@@ -130,72 +123,105 @@ export function BeneficiaryTable({
             },
         },
         {
-            accessorKey: 'distributionStandard',
+            accessorKey: 'email',
             header: ({ column }) => (
-                <DataTableColumnHeader column={column} title="Standard" />
+                <DataTableColumnHeader column={column} title="Email" />
             ),
             cell: ({ row }) => (
-                <EditableSelectCell
-                    value={row.original.distributionStandard || 'HEMS'}
-                    options={DISTRIBUTION_STANDARDS}
+                <EditableTextCell
+                    value={row.original.email}
                     onSave={async (val) => {
                         await onUpdateBeneficiary(row.original.id, {
-                            distributionStandard: asDistributionStandard(val),
+                            email: val,
                         })
                     }}
+                    placeholder="Add email"
                 />
             ),
         },
         {
-            accessorKey: 'informed',
-            header: 'Notified',
+            accessorKey: 'phone',
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title="Phone" />
+            ),
             cell: ({ row }) => (
-                <Button
-                    variant={row.original.informed ? 'default' : 'outline'}
-                    size="icon"
-                    className={cn(
-                        'h-7 w-7',
-                        row.original.informed &&
-                            'bg-success hover:bg-success/90',
-                    )}
-                    onClick={() =>
-                        onUpdateBeneficiary(row.original.id, {
-                            informed: !row.original.informed,
+                <EditableTextCell
+                    value={row.original.phone}
+                    onSave={async (val) => {
+                        await onUpdateBeneficiary(row.original.id, {
+                            phone: val,
                         })
-                    }
-                >
-                    {row.original.informed ? (
-                        <Check className="h-3.5 w-3.5" />
-                    ) : (
-                        <Circle className="h-3.5 w-3.5" />
-                    )}
-                </Button>
+                    }}
+                    placeholder="Add phone"
+                />
             ),
         },
         {
-            accessorKey: 'releaseSigned',
-            header: 'Release',
+            accessorKey: 'streetAddress',
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title="Street Address" />
+            ),
             cell: ({ row }) => (
-                <Button
-                    variant={row.original.releaseSigned ? 'default' : 'outline'}
-                    size="icon"
-                    className={cn(
-                        'h-7 w-7',
-                        row.original.releaseSigned &&
-                            'bg-success hover:bg-success/90',
-                    )}
-                    onClick={() =>
-                        onUpdateBeneficiary(row.original.id, {
-                            releaseSigned: !row.original.releaseSigned,
+                <EditableTextCell
+                    value={row.original.streetAddress}
+                    onSave={async (val) => {
+                        await onUpdateBeneficiary(row.original.id, {
+                            streetAddress: val,
                         })
-                    }
-                >
-                    {row.original.releaseSigned ? (
-                        <Check className="h-3.5 w-3.5" />
-                    ) : (
-                        <Circle className="h-3.5 w-3.5" />
-                    )}
-                </Button>
+                    }}
+                    placeholder="Add address"
+                />
+            ),
+        },
+        {
+            accessorKey: 'city',
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title="City" />
+            ),
+            cell: ({ row }) => (
+                <EditableTextCell
+                    value={row.original.city}
+                    onSave={async (val) => {
+                        await onUpdateBeneficiary(row.original.id, {
+                            city: val,
+                        })
+                    }}
+                    placeholder="Add city"
+                />
+            ),
+        },
+        {
+            accessorKey: 'state',
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title="State" />
+            ),
+            cell: ({ row }) => (
+                <EditableTextCell
+                    value={row.original.state}
+                    onSave={async (val) => {
+                        await onUpdateBeneficiary(row.original.id, {
+                            state: val,
+                        })
+                    }}
+                    placeholder="Add state"
+                />
+            ),
+        },
+        {
+            accessorKey: 'zip',
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title="Zip" />
+            ),
+            cell: ({ row }) => (
+                <EditableTextCell
+                    value={row.original.zip}
+                    onSave={async (val) => {
+                        await onUpdateBeneficiary(row.original.id, {
+                            zip: val,
+                        })
+                    }}
+                    placeholder="Add zip"
+                />
             ),
         },
         {
