@@ -43,29 +43,20 @@ export default function AccountingPage() {
         entityId,
     })
 
-    // Pagination state
-    const [currentPage, _setCurrentPage] = useState(1)
-    const pageSize = 20
-
-    // Use paginated query
-    const { data: paginatedResult, isLoading: entriesLoading } =
-        trpc.trustAccounting.listPaginated.useQuery({
-            entityId,
-            limit: pageSize,
-            offset: (currentPage - 1) * pageSize,
-        })
-
-    const entries = paginatedResult?.data || []
-    const _totalCount = paginatedResult?.totalCount || 0
+    // Fetch all entries — DataTable handles client-side pagination.
+    // listPaginated was broken: currentPage never updated so only the first
+    // 20 server rows were ever fetched, making entries 21+ unreachable.
+    const { data: entries = [], isLoading: entriesLoading } =
+        trpc.trustAccounting.list.useQuery({ entityId })
 
     const createEntryMutation = trpc.trustAccounting.create.useMutation({
-        onSuccess: () => utils.trustAccounting.listPaginated.invalidate(),
+        onSuccess: () => utils.trustAccounting.list.invalidate(),
     })
     const updateEntryMutation = trpc.trustAccounting.update.useMutation({
-        onSuccess: () => utils.trustAccounting.listPaginated.invalidate(),
+        onSuccess: () => utils.trustAccounting.list.invalidate(),
     })
     const deleteEntryMutation = trpc.trustAccounting.delete.useMutation({
-        onSuccess: () => utils.trustAccounting.listPaginated.invalidate(),
+        onSuccess: () => utils.trustAccounting.list.invalidate(),
     })
 
     // Year-end income-to-principal conversion
@@ -75,7 +66,7 @@ export default function AccountingPage() {
     const convertIncomeMutation =
         trpc.trustAccounting.convertIncomeToPrincipal.useMutation({
             onSuccess: () => {
-                utils.trustAccounting.listPaginated.invalidate()
+                utils.trustAccounting.list.invalidate()
                 utils.trustAccounting.unconvertedIncomeSummary.invalidate()
             },
         })
