@@ -18,13 +18,6 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import type { PendingInventoryItem } from '@/db/schema'
@@ -58,9 +51,7 @@ const STATUS_VARIANTS: Record<
 
 export default function InventoryQueuePage() {
     const utils = trpc.useUtils()
-
-    const { data: entities = [], isLoading: entitiesLoading } =
-        trpc.entity.list.useQuery()
+    const entityId = 1
 
     const { data: items = [], isLoading: itemsLoading } =
         trpc.pendingInventoryItem.list.useQuery()
@@ -79,12 +70,11 @@ export default function InventoryQueuePage() {
         },
     })
 
-    const loading = entitiesLoading || itemsLoading
+    const loading = itemsLoading
     const [activeTab, setActiveTab] = useState('pending')
     const [reviewingItem, setReviewingItem] =
         useState<PendingInventoryItem | null>(null)
     const [reviewNotes, setReviewNotes] = useState('')
-    const [selectedEntityId, setSelectedEntityId] = useState<string>('')
 
     const pendingItems = useMemo(
         () => items.filter((i) => i.status === 'PENDING'),
@@ -219,14 +209,13 @@ export default function InventoryQueuePage() {
     const openReview = (item: PendingInventoryItem) => {
         setReviewingItem(item)
         setReviewNotes('')
-        setSelectedEntityId(entities[0]?.id?.toString() || '')
     }
 
     const handleApprove = async () => {
-        if (!reviewingItem || !selectedEntityId) return
+        if (!reviewingItem) return
         await approveMutation.mutateAsync({
             id: reviewingItem.id,
-            entityId: Number(selectedEntityId),
+            entityId,
             reviewNotes,
         })
     }
@@ -248,14 +237,6 @@ export default function InventoryQueuePage() {
             item.photoPath4,
             item.photoPath5,
         ].filter((url): url is string => Boolean(url))
-    }
-
-    if (entitiesLoading) {
-        return (
-            <div className="flex items-center justify-center h-64">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-        )
     }
 
     return (
@@ -539,46 +520,20 @@ export default function InventoryQueuePage() {
 
                             {/* Review Form (only for pending) */}
                             {reviewingItem.status === 'PENDING' && (
-                                <>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="entityId">
-                                            Assign to Entity *
-                                        </Label>
-                                        <Select
-                                            value={selectedEntityId}
-                                            onValueChange={setSelectedEntityId}
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select entity" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {entities.map((e) => (
-                                                    <SelectItem
-                                                        key={e.id}
-                                                        value={e.id.toString()}
-                                                    >
-                                                        {e.name}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <Label htmlFor="reviewNotes">
-                                            Notes (optional)
-                                        </Label>
-                                        <Textarea
-                                            id="reviewNotes"
-                                            value={reviewNotes}
-                                            onChange={(e) =>
-                                                setReviewNotes(e.target.value)
-                                            }
-                                            placeholder="Add any notes about this decision..."
-                                            rows={3}
-                                        />
-                                    </div>
-                                </>
+                                <div className="space-y-2">
+                                    <Label htmlFor="reviewNotes">
+                                        Notes (optional)
+                                    </Label>
+                                    <Textarea
+                                        id="reviewNotes"
+                                        value={reviewNotes}
+                                        onChange={(e) =>
+                                            setReviewNotes(e.target.value)
+                                        }
+                                        placeholder="Add any notes about this decision..."
+                                        rows={3}
+                                    />
+                                </div>
                             )}
                         </div>
                     )}
@@ -597,10 +552,7 @@ export default function InventoryQueuePage() {
                                 </Button>
                                 <Button
                                     onClick={handleApprove}
-                                    disabled={
-                                        approveMutation.isPending ||
-                                        !selectedEntityId
-                                    }
+                                    disabled={approveMutation.isPending}
                                     className="gap-2"
                                 >
                                     {approveMutation.isPending ? (

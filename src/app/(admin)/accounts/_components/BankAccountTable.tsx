@@ -22,7 +22,6 @@ import {
 
 interface BankAccountTableProps {
     bankAccounts: BankAccount[]
-    selectedEntity: number | undefined
     onAdd: () => void
     onEdit: (account: BankAccount) => void
     onDelete: (id: number) => void
@@ -31,7 +30,6 @@ interface BankAccountTableProps {
 
 export function BankAccountTable({
     bankAccounts,
-    selectedEntity,
     onAdd,
     onEdit,
     onDelete,
@@ -173,7 +171,7 @@ export function BankAccountTable({
     return (
         <div className="space-y-4">
             <div className="flex justify-end">
-                <Button onClick={onAdd} disabled={!selectedEntity}>
+                <Button onClick={onAdd}>
                     <Plus className="h-4 w-4 mr-2" />
                     Add Bank Account
                 </Button>

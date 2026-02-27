@@ -17,7 +17,6 @@ import { PROPERTY_TYPES } from './constants'
 
 interface HomesteadSectionProps {
     homestead: Homestead | undefined
-    selectedEntity: number | undefined
     onAdd: () => void
     onEdit: (h: Homestead) => void
     onDelete: (id: number) => void
@@ -25,7 +24,6 @@ interface HomesteadSectionProps {
 
 export function HomesteadSection({
     homestead,
-    selectedEntity,
     onAdd,
     onEdit,
     onDelete,
@@ -37,7 +35,7 @@ export function HomesteadSection({
                     <p className="mb-4 text-muted-foreground">
                         No homestead on record
                     </p>
-                    <Button onClick={onAdd} disabled={!selectedEntity}>
+                    <Button onClick={onAdd}>
                         <Plus className="mr-2 h-4 w-4" />
                         Add Homestead
                     </Button>

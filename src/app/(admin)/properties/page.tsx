@@ -4,21 +4,12 @@ import { Loader2 } from 'lucide-react'
 import { useState } from 'react'
 import { ConfirmDialog, useConfirmDialog } from '@/components/confirm-dialog'
 import { Badge } from '@/components/ui/badge'
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { Homestead, RentalProperty } from '@/db/schema'
-import { useEntityFilter } from '@/hooks/use-entity-filter'
 import { useNeonList, useNeonMutations } from '@/hooks/use-neon-data'
 import { useResourceForm } from '@/hooks/use-resource-form'
 import { toDateInput } from '@/lib/form-factory'
 import { logger } from '@/lib/logger'
-import { trpc } from '@/lib/trpc'
 import {
     asPropertyType,
     asRecordStatus,
@@ -94,21 +85,12 @@ const defaultRentalForm: RentalFormData = {
 }
 
 export default function PropertiesPage() {
-    const { data: entities = [], isLoading: entitiesLoading } =
-        trpc.entity.list.useQuery()
-    const [entityId, setEntityId] = useEntityFilter()
-    const selectedEntity = entityId ? Number(entityId) : entities[0]?.id
+    const entityId = 1
     const [activeTab, setActiveTab] = useState('homestead')
-
-    const queryEnabled = !!selectedEntity
 
     // Homestead queries and mutations
     const { data: homesteads = [], isLoading: homesteadsLoading } =
-        useNeonList<Homestead>(
-            'homestead',
-            selectedEntity ? { entity_id: selectedEntity } : undefined,
-            { enabled: queryEnabled },
-        )
+        useNeonList<Homestead>('homestead', { entity_id: entityId })
     const {
         create: createHomesteadMutation,
         update: updateHomesteadMutation,
@@ -117,11 +99,7 @@ export default function PropertiesPage() {
 
     // Rental property queries and mutations
     const { data: rentals = [], isLoading: rentalsLoading } =
-        useNeonList<RentalProperty>(
-            'rental_property',
-            selectedEntity ? { entity_id: selectedEntity } : undefined,
-            { enabled: queryEnabled },
-        )
+        useNeonList<RentalProperty>('rental_property', { entity_id: entityId })
     const {
         create: createRentalMutation,
         update: updateRentalMutation,
@@ -130,10 +108,9 @@ export default function PropertiesPage() {
 
     // Wrapper for inline edits in the rental table
     const updateRental = async (id: number, data: Partial<RentalProperty>) => {
-        if (!selectedEntity) return
         await updateRentalMutation.mutateAsync({
             id,
-            entityId: selectedEntity,
+            entityId,
             data,
         })
     }
@@ -148,10 +125,8 @@ export default function PropertiesPage() {
     const homesteadForm = useResourceForm<HomesteadFormData>({
         initialData: defaultHomesteadForm,
         onSubmit: async (data) => {
-            if (!selectedEntity) return
-
             const payload = {
-                entityId: selectedEntity,
+                entityId,
                 streetAddress: data.streetAddress,
                 city: data.city,
                 state: data.state,
@@ -183,7 +158,7 @@ export default function PropertiesPage() {
             if (homesteadForm.isEditing && editingHomesteadId) {
                 await updateHomesteadMutation.mutateAsync({
                     id: editingHomesteadId,
-                    entityId: selectedEntity,
+                    entityId,
                     data: payload,
                 })
             } else {
@@ -230,10 +205,8 @@ export default function PropertiesPage() {
     const rentalForm = useResourceForm<RentalFormData>({
         initialData: defaultRentalForm,
         onSubmit: async (data) => {
-            if (!selectedEntity) return
-
             const payload = {
-                entityId: selectedEntity,
+                entityId,
                 name: data.name,
                 streetAddress: data.streetAddress,
                 city: data.city,
@@ -270,7 +243,7 @@ export default function PropertiesPage() {
             if (rentalForm.isEditing && editingRentalId) {
                 await updateRentalMutation.mutateAsync({
                     id: editingRentalId,
-                    entityId: selectedEntity,
+                    entityId,
                     data: payload,
                 })
             } else {
@@ -318,7 +291,7 @@ export default function PropertiesPage() {
         })
     }
 
-    const loading = entitiesLoading || homesteadsLoading || rentalsLoading
+    const loading = homesteadsLoading || rentalsLoading
 
     const [pendingDeleteHomesteadId, setPendingDeleteHomesteadId] = useState<
         number | null
@@ -337,11 +310,11 @@ export default function PropertiesPage() {
         confirmText: 'Delete',
         variant: 'destructive',
         onConfirm: async () => {
-            if (pendingDeleteHomesteadId === null || !selectedEntity) return
+            if (pendingDeleteHomesteadId === null) return
             try {
                 await deleteHomesteadMutation.mutateAsync({
                     id: pendingDeleteHomesteadId,
-                    entityId: selectedEntity,
+                    entityId,
                 })
             } catch (err) {
                 log.error('Failed to delete homestead', { error: err })
@@ -361,11 +334,11 @@ export default function PropertiesPage() {
         confirmText: 'Delete',
         variant: 'destructive',
         onConfirm: async () => {
-            if (pendingDeleteRentalId === null || !selectedEntity) return
+            if (pendingDeleteRentalId === null) return
             try {
                 await deleteRentalMutation.mutateAsync({
                     id: pendingDeleteRentalId,
-                    entityId: selectedEntity,
+                    entityId,
                 })
             } catch (err) {
                 log.error('Failed to delete rental', { error: err })
@@ -407,58 +380,39 @@ export default function PropertiesPage() {
                         Manage real property assets
                     </p>
                 </div>
-                <Select
-                    value={selectedEntity?.toString() ?? ''}
-                    onValueChange={(val) => setEntityId(val || null)}
-                >
-                    <SelectTrigger className="w-[280px]">
-                        <SelectValue placeholder="Select entity" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {entities.map((e) => (
-                            <SelectItem key={e.id} value={e.id.toString()}>
-                                {e.name}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
             </div>
 
-            {selectedEntity && (
-                <Tabs value={activeTab} onValueChange={setActiveTab}>
-                    <TabsList>
-                        <TabsTrigger value="homestead">Homestead</TabsTrigger>
-                        <TabsTrigger value="rentals">
-                            Rental Properties
-                            <Badge variant="secondary" className="ml-2">
-                                {rentals.length}
-                            </Badge>
-                        </TabsTrigger>
-                    </TabsList>
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+                <TabsList>
+                    <TabsTrigger value="homestead">Homestead</TabsTrigger>
+                    <TabsTrigger value="rentals">
+                        Rental Properties
+                        <Badge variant="secondary" className="ml-2">
+                            {rentals.length}
+                        </Badge>
+                    </TabsTrigger>
+                </TabsList>
 
-                    <TabsContent value="homestead" className="mt-6">
-                        <HomesteadSection
-                            homestead={homestead}
-                            selectedEntity={selectedEntity}
-                            onAdd={() => homesteadForm.open()}
-                            onEdit={handleEditHomestead}
-                            onDelete={handleDeleteHomestead}
-                        />
-                    </TabsContent>
+                <TabsContent value="homestead" className="mt-6">
+                    <HomesteadSection
+                        homestead={homestead}
+                        onAdd={() => homesteadForm.open()}
+                        onEdit={handleEditHomestead}
+                        onDelete={handleDeleteHomestead}
+                    />
+                </TabsContent>
 
-                    <TabsContent value="rentals" className="mt-6">
-                        <RentalPropertyTable
-                            rentals={rentals}
-                            rentalsLoading={rentalsLoading}
-                            selectedEntity={selectedEntity}
-                            onAdd={() => rentalForm.open()}
-                            onEdit={handleEditRental}
-                            onDelete={handleDeleteRental}
-                            onUpdateRental={updateRental}
-                        />
-                    </TabsContent>
-                </Tabs>
-            )}
+                <TabsContent value="rentals" className="mt-6">
+                    <RentalPropertyTable
+                        rentals={rentals}
+                        rentalsLoading={rentalsLoading}
+                        onAdd={() => rentalForm.open()}
+                        onEdit={handleEditRental}
+                        onDelete={handleDeleteRental}
+                        onUpdateRental={updateRental}
+                    />
+                </TabsContent>
+            </Tabs>
 
             <HomesteadDialog
                 isOpen={homesteadForm.isOpen}

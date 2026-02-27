@@ -33,7 +33,6 @@ import {
 } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { Trustee } from '@/db/schema'
-import { useEntityFilter } from '@/hooks/use-entity-filter'
 import { useNeonList, useNeonMutations } from '@/hooks/use-neon-data'
 import { useResourceForm } from '@/hooks/use-resource-form'
 import { trpc } from '@/lib/trpc'
@@ -162,31 +161,17 @@ function ContactRow({
 
 export default function SettingsPage() {
     const utils = trpc.useUtils()
-
-    const { data: entities = [], isLoading: entitiesLoading } =
-        trpc.entity.list.useQuery()
-    const [entityId, setEntityId] = useEntityFilter()
-    const selectedEntity = entityId || entities[0]?.id
-    const numericEntityId = selectedEntity ? Number(selectedEntity) : undefined
+    const entityId = 1
     const [activeTab, setActiveTab] = useState('beneficiaries')
 
-    const queryEnabled = !!selectedEntity
-
     const { data: beneficiaries = [], isLoading: beneficiariesLoading } =
-        trpc.beneficiary.list.useQuery(
-            { entityId: selectedEntity },
-            { enabled: queryEnabled },
-        )
+        trpc.beneficiary.list.useQuery({ entityId })
     const updateBeneficiaryMutation = trpc.beneficiary.update.useMutation({
         onSuccess: () => utils.beneficiary.list.invalidate(),
     })
 
     const { data: trustees = [], isLoading: trusteesLoading } =
-        useNeonList<Trustee>(
-            'trustee',
-            selectedEntity ? { entity_id: Number(selectedEntity) } : undefined,
-            { enabled: queryEnabled },
-        )
+        useNeonList<Trustee>('trustee', { entity_id: entityId })
     const { update: updateTrusteeMutation } =
         useNeonMutations<Trustee>('trustee')
 
@@ -221,11 +206,7 @@ export default function SettingsPage() {
 
     const { formInstance } = contactForm
 
-    const loading =
-        entitiesLoading ||
-        beneficiariesLoading ||
-        trusteesLoading ||
-        contactsLoading
+    const loading = beneficiariesLoading || trusteesLoading || contactsLoading
 
     // Count how many people have birthdays set (for beneficiaries/trustees)
     const beneficiariesWithDob = beneficiaries.filter((b) => b.dob).length
@@ -269,32 +250,12 @@ export default function SettingsPage() {
             {/* People Configuration Section */}
             <Card>
                 <CardHeader>
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <CardTitle>People Configuration</CardTitle>
-                            <CardDescription>
-                                Manage birthdays, emails, and contact
-                                information for all people
-                            </CardDescription>
-                        </div>
-                        <Select
-                            value={selectedEntity?.toString() ?? ''}
-                            onValueChange={(val) => setEntityId(val || null)}
-                        >
-                            <SelectTrigger className="w-[250px]">
-                                <SelectValue placeholder="Select Trust" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {entities.map((e) => (
-                                    <SelectItem
-                                        key={e.id}
-                                        value={e.id.toString()}
-                                    >
-                                        {e.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                    <div>
+                        <CardTitle>People Configuration</CardTitle>
+                        <CardDescription>
+                            Manage birthdays, emails, and contact information
+                            for all people
+                        </CardDescription>
                     </div>
                 </CardHeader>
                 <CardContent>
@@ -356,7 +317,7 @@ export default function SettingsPage() {
                                                             {
                                                                 id: b.id,
                                                                 entityId:
-                                                                    numericEntityId!,
+                                                                    entityId,
                                                                 data: {
                                                                     dob: val,
                                                                 },
@@ -370,7 +331,7 @@ export default function SettingsPage() {
                                                             {
                                                                 id: b.id,
                                                                 entityId:
-                                                                    numericEntityId!,
+                                                                    entityId,
                                                                 data: {
                                                                     email: val,
                                                                 },
@@ -384,7 +345,7 @@ export default function SettingsPage() {
                                                             {
                                                                 id: b.id,
                                                                 entityId:
-                                                                    numericEntityId!,
+                                                                    entityId,
                                                                 data: {
                                                                     phone: val,
                                                                 },
@@ -434,7 +395,7 @@ export default function SettingsPage() {
                                                             {
                                                                 id: t.id,
                                                                 entityId:
-                                                                    numericEntityId!,
+                                                                    entityId,
                                                                 data: {
                                                                     dob: val,
                                                                 },
@@ -448,7 +409,7 @@ export default function SettingsPage() {
                                                             {
                                                                 id: t.id,
                                                                 entityId:
-                                                                    numericEntityId!,
+                                                                    entityId,
                                                                 data: {
                                                                     email: val,
                                                                 },
@@ -462,7 +423,7 @@ export default function SettingsPage() {
                                                             {
                                                                 id: t.id,
                                                                 entityId:
-                                                                    numericEntityId!,
+                                                                    entityId,
                                                                 data: {
                                                                     phone: val,
                                                                 },

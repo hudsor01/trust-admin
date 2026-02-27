@@ -22,6 +22,19 @@ Sentry.init({
         Sentry.vercelAIIntegration(),
     ],
 
+    // Drop all events from localhost — prevents E2E test runs and local dev
+    // from polluting the production error tracker
+    beforeSend(event) {
+        const url = event.request?.url ?? event.tags?.url ?? ''
+        if (
+            typeof url === 'string' &&
+            (url.includes('localhost') || url.includes('127.0.0.1'))
+        ) {
+            return null
+        }
+        return event
+    },
+
     // Capture slow database queries (over 500ms)
     // This helps identify N+1 queries and missing indexes
     beforeSendTransaction(event) {

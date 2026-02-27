@@ -1,19 +1,10 @@
 'use client'
 
-import { Loader2 } from 'lucide-react'
 import { useOptimistic, useState } from 'react'
 import { toast } from 'sonner'
 import type { BulkLiabilityRow } from '@/components/bulk-entry-table'
 import { ConfirmDialog, useConfirmDialog } from '@/components/confirm-dialog'
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select'
 import type { BankAccount, Liability } from '@/db/schema'
-import { useEntityFilter } from '@/hooks/use-entity-filter'
 import { useNeonList } from '@/hooks/use-neon-data'
 import { useResourceForm } from '@/hooks/use-resource-form'
 import { toDateInput } from '@/lib/form-factory'
@@ -39,20 +30,10 @@ const log = logger.create('Liabilities')
 
 export default function LiabilitiesPage() {
     const utils = trpc.useUtils()
-
-    const { data: entities = [], isLoading: entitiesLoading } =
-        trpc.entity.list.useQuery()
-    const [entityIdStr, setEntityIdStr] = useEntityFilter()
-    // Convert string entityId from URL to number for API calls
-    const selectedEntity = entityIdStr ? Number(entityIdStr) : entities[0]?.id
-
-    const queryEnabled = !!selectedEntity
+    const entityId = 1
 
     const { data: liabilities = [], isLoading: liabilitiesLoading } =
-        trpc.liability.list.useQuery(
-            { entityId: selectedEntity! },
-            { enabled: queryEnabled },
-        )
+        trpc.liability.list.useQuery({ entityId })
 
     // Optimistic state for instant UI updates on payment recording
     const [optimisticLiabilities, setOptimisticLiability] = useOptimistic(
@@ -68,8 +49,7 @@ export default function LiabilitiesPage() {
     // Fetch bank accounts for payment form
     const { data: bankAccounts = [] } = useNeonList<BankAccount>(
         'bank_account',
-        selectedEntity ? { entity_id: selectedEntity } : undefined,
-        { enabled: !!selectedEntity },
+        { entity_id: entityId },
     )
 
     const createLiabilityMutation = trpc.liability.create.useMutation({
@@ -116,7 +96,7 @@ export default function LiabilitiesPage() {
     const updateLiability = async (id: number, data: Partial<Liability>) => {
         await updateLiabilityMutation.mutateAsync({
             id,
-            entityId: selectedEntity!,
+            entityId,
             data,
         })
     }
@@ -130,10 +110,9 @@ export default function LiabilitiesPage() {
     const liabilityForm = useResourceForm<LiabilityFormData>({
         initialData: defaultFormData(),
         onSubmit: async (data) => {
-            if (!selectedEntity) return
             const liabilityType = asLiabilityType(data.liabilityType)
             const payload = {
-                entityId: selectedEntity,
+                entityId,
                 liabilityType,
                 creditor: data.creditor,
                 description: data.description || null,
@@ -168,7 +147,7 @@ export default function LiabilitiesPage() {
             if (liabilityForm.isEditing && editingLiabilityId) {
                 await updateLiabilityMutation.mutateAsync({
                     id: editingLiabilityId,
-                    entityId: selectedEntity!,
+                    entityId,
                     data: payload,
                 })
             } else {
@@ -218,7 +197,7 @@ export default function LiabilitiesPage() {
                           | 'OTHER')
 
             await recordPaymentMutation.mutateAsync({
-                entityId: selectedEntity!,
+                entityId,
                 liabilityId: payingLiabilityId,
                 paymentDate: data.paymentDate,
                 amount: data.amount,
@@ -270,7 +249,7 @@ export default function LiabilitiesPage() {
                 try {
                     await deleteLiabilityMutation.mutateAsync({
                         id: pendingDeleteId,
-                        entityId: selectedEntity!,
+                        entityId,
                     })
                 } catch (err) {
                     log.error('Failed to delete liability', { error: err })
@@ -302,19 +281,10 @@ export default function LiabilitiesPage() {
     }
 
     const handleBulkSave = async (rows: BulkLiabilityRow[]) => {
-        if (!selectedEntity) return
         await bulkCreateMutation.mutateAsync({
-            entityId: selectedEntity,
+            entityId,
             liabilities: rows,
         })
-    }
-
-    if (entitiesLoading) {
-        return (
-            <div className="flex justify-center items-center h-96">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-        )
     }
 
     const totalLiabilities = sumStrings(
@@ -345,51 +315,31 @@ export default function LiabilitiesPage() {
                         obligations
                     </p>
                 </div>
-                <Select
-                    value={selectedEntity?.toString() ?? ''}
-                    onValueChange={(val) => setEntityIdStr(val || null)}
-                >
-                    <SelectTrigger className="w-[280px]">
-                        <SelectValue placeholder="Select entity" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {entities.map((e) => (
-                            <SelectItem key={e.id} value={e.id.toString()}>
-                                {e.name}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
             </div>
 
-            {selectedEntity && (
-                <>
-                    {/* Summary Cards */}
-                    <LiabilitySummaryCards
-                        totalLiabilities={totalLiabilities}
-                        totalActive={totalActive}
-                        activeLiabilitiesCount={activeLiabilities.length}
-                        totalRecords={optimisticLiabilities.length}
-                    />
+            {/* Summary Cards */}
+            <LiabilitySummaryCards
+                totalLiabilities={totalLiabilities}
+                totalActive={totalActive}
+                activeLiabilitiesCount={activeLiabilities.length}
+                totalRecords={optimisticLiabilities.length}
+            />
 
-                    {/* Table + Bulk Entry */}
-                    <LiabilityTable
-                        liabilities={optimisticLiabilities}
-                        isLoading={liabilitiesLoading}
-                        bulkMode={bulkMode}
-                        bulkCreatePending={bulkCreateMutation.isPending}
-                        onBulkModeToggle={() => setBulkMode(!bulkMode)}
-                        onAdd={() => liabilityForm.open()}
-                        onEdit={handleEditLiability}
-                        onDelete={handleDelete}
-                        onRecordPayment={openPaymentDialog}
-                        onBulkSave={handleBulkSave}
-                        onBulkCancel={() => setBulkMode(false)}
-                        onUpdateLiability={updateLiability}
-                        selectedEntity={selectedEntity}
-                    />
-                </>
-            )}
+            {/* Table + Bulk Entry */}
+            <LiabilityTable
+                liabilities={optimisticLiabilities}
+                isLoading={liabilitiesLoading}
+                bulkMode={bulkMode}
+                bulkCreatePending={bulkCreateMutation.isPending}
+                onBulkModeToggle={() => setBulkMode(!bulkMode)}
+                onAdd={() => liabilityForm.open()}
+                onEdit={handleEditLiability}
+                onDelete={handleDelete}
+                onRecordPayment={openPaymentDialog}
+                onBulkSave={handleBulkSave}
+                onBulkCancel={() => setBulkMode(false)}
+                onUpdateLiability={updateLiability}
+            />
 
             {/* Form Dialog */}
             <LiabilityDialog

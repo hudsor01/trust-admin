@@ -1,18 +1,9 @@
 'use client'
 
-import { Loader2 } from 'lucide-react'
 import { useState } from 'react'
 import { ConfirmDialog, useConfirmDialog } from '@/components/confirm-dialog'
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { BankAccount, InvestmentAccount } from '@/db/schema'
-import { useEntityFilter } from '@/hooks/use-entity-filter'
 import { useNeonList, useNeonMutations } from '@/hooks/use-neon-data'
 import { useResourceForm } from '@/hooks/use-resource-form'
 import {
@@ -22,7 +13,6 @@ import {
 } from '@/lib/form-factory'
 import { logger } from '@/lib/logger'
 import { sumStrings } from '@/lib/money'
-import { trpc } from '@/lib/trpc'
 import { asRecordStatus, asTransferStatus } from '@/lib/type-utils'
 import { formatCurrency } from '@/utils/formatters'
 import { BankAccountDialog } from './_components/BankAccountDialog'
@@ -34,19 +24,13 @@ import { InvestmentAccountTable } from './_components/InvestmentAccountTable'
 const log = logger.create('Accounts')
 
 export default function AccountsPage() {
-    const { data: entities = [], isLoading: entitiesLoading } =
-        trpc.entity.list.useQuery()
-    const [entityIdStr, setEntityIdStr] = useEntityFilter()
-    const selectedEntity = entityIdStr ? Number(entityIdStr) : entities[0]?.id
+    const entityId = 1
     const [activeTab, setActiveTab] = useState('bank')
-
-    const queryEnabled = !!selectedEntity
 
     // Bank account queries and mutations
     const { data: bankAccounts = [] } = useNeonList<BankAccount>(
         'bank_account',
-        selectedEntity ? { entity_id: selectedEntity } : undefined,
-        { enabled: queryEnabled },
+        { entity_id: entityId },
     )
     const {
         create: createBankAccountMutation,
@@ -57,8 +41,7 @@ export default function AccountsPage() {
     // Investment account queries and mutations
     const { data: investmentAccounts = [] } = useNeonList<InvestmentAccount>(
         'investment_account',
-        selectedEntity ? { entity_id: selectedEntity } : undefined,
-        { enabled: queryEnabled },
+        { entity_id: entityId },
     )
     const {
         create: createInvestmentAccountMutation,
@@ -71,10 +54,9 @@ export default function AccountsPage() {
         id: number,
         data: Partial<BankAccount>,
     ) => {
-        if (!selectedEntity) return
         await updateBankAccountMutation.mutateAsync({
             id,
-            entityId: selectedEntity,
+            entityId,
             data,
         })
     }
@@ -83,10 +65,9 @@ export default function AccountsPage() {
         id: number,
         data: Partial<InvestmentAccount>,
     ) => {
-        if (!selectedEntity) return
         await updateInvestmentAccountMutation.mutateAsync({
             id,
-            entityId: selectedEntity,
+            entityId,
             data,
         })
     }
@@ -97,9 +78,8 @@ export default function AccountsPage() {
     const bankForm = useResourceForm<BankFormData>({
         initialData: bankAccountFormDefaults(),
         onSubmit: async (data) => {
-            if (!selectedEntity) return
             const payload = {
-                entityId: selectedEntity,
+                entityId,
                 institution: data.institution,
                 accountType: data.accountType,
                 accountName: data.accountName,
@@ -114,7 +94,7 @@ export default function AccountsPage() {
             if (bankForm.isEditing && editingBankId) {
                 await updateBankAccountMutation.mutateAsync({
                     id: editingBankId,
-                    entityId: selectedEntity,
+                    entityId,
                     data: payload,
                 })
             } else {
@@ -132,9 +112,8 @@ export default function AccountsPage() {
     const investmentForm = useResourceForm<InvestmentFormData>({
         initialData: investmentAccountFormDefaults(),
         onSubmit: async (data) => {
-            if (!selectedEntity) return
             const payload = {
-                entityId: selectedEntity,
+                entityId,
                 institution: data.institution,
                 accountType: data.accountType,
                 accountName: data.accountName,
@@ -153,7 +132,7 @@ export default function AccountsPage() {
             if (investmentForm.isEditing && editingInvestmentId) {
                 await updateInvestmentAccountMutation.mutateAsync({
                     id: editingInvestmentId,
-                    entityId: selectedEntity,
+                    entityId,
                     data: payload,
                 })
             } else {
@@ -214,11 +193,11 @@ export default function AccountsPage() {
             confirmText: 'Delete',
             variant: 'destructive',
             onConfirm: async () => {
-                if (pendingDeleteBankId === null || !selectedEntity) return
+                if (pendingDeleteBankId === null) return
                 try {
                     await deleteBankAccountMutation.mutateAsync({
                         id: pendingDeleteBankId,
-                        entityId: selectedEntity,
+                        entityId,
                     })
                 } catch (err) {
                     log.error('Failed to delete bank account', { error: err })
@@ -238,11 +217,11 @@ export default function AccountsPage() {
         confirmText: 'Delete',
         variant: 'destructive',
         onConfirm: async () => {
-            if (pendingDeleteInvestmentId === null || !selectedEntity) return
+            if (pendingDeleteInvestmentId === null) return
             try {
                 await deleteInvestmentAccountMutation.mutateAsync({
                     id: pendingDeleteInvestmentId,
-                    entityId: selectedEntity,
+                    entityId,
                 })
             } catch (err) {
                 log.error('Failed to delete investment account', { error: err })
@@ -262,14 +241,6 @@ export default function AccountsPage() {
         confirmDeleteInvestment()
     }
 
-    if (entitiesLoading) {
-        return (
-            <div className="flex justify-center items-center h-96">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-        )
-    }
-
     const totalBankValue = sumStrings(bankAccounts.map((a) => a.dodValue))
     const totalInvestmentValue = sumStrings(
         investmentAccounts.map((a) => a.dodValue),
@@ -287,59 +258,40 @@ export default function AccountsPage() {
                         Manage financial accounts
                     </p>
                 </div>
-                <Select
-                    value={selectedEntity?.toString() ?? ''}
-                    onValueChange={(val) => setEntityIdStr(val || null)}
-                >
-                    <SelectTrigger className="w-[280px]">
-                        <SelectValue placeholder="Select entity" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {entities.map((e) => (
-                            <SelectItem key={e.id} value={e.id.toString()}>
-                                {e.name}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
             </div>
 
-            {selectedEntity && (
-                <Tabs value={activeTab} onValueChange={setActiveTab}>
-                    <TabsList>
-                        <TabsTrigger value="bank">
-                            Bank Accounts ({bankAccounts.length}) -{' '}
-                            {formatCurrency(totalBankValue.toString())}
-                        </TabsTrigger>
-                        <TabsTrigger value="investment">
-                            Investment Accounts ({investmentAccounts.length}) -{' '}
-                            {formatCurrency(totalInvestmentValue.toString())}
-                        </TabsTrigger>
-                    </TabsList>
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+                <TabsList>
+                    <TabsTrigger value="bank">
+                        Bank Accounts ({bankAccounts.length}) -{' '}
+                        {formatCurrency(totalBankValue.toString())}
+                    </TabsTrigger>
+                    <TabsTrigger value="investment">
+                        Investment Accounts ({investmentAccounts.length}) -{' '}
+                        {formatCurrency(totalInvestmentValue.toString())}
+                    </TabsTrigger>
+                </TabsList>
 
-                    <TabsContent value="bank" className="space-y-4">
-                        <BankAccountTable
-                            bankAccounts={bankAccounts}
-                            selectedEntity={selectedEntity}
-                            onAdd={() => bankForm.open()}
-                            onEdit={handleEditBank}
-                            onDelete={handleDeleteBank}
-                            onUpdate={updateBankAccount}
-                        />
-                    </TabsContent>
+                <TabsContent value="bank" className="space-y-4">
+                    <BankAccountTable
+                        bankAccounts={bankAccounts}
+                        onAdd={() => bankForm.open()}
+                        onEdit={handleEditBank}
+                        onDelete={handleDeleteBank}
+                        onUpdate={updateBankAccount}
+                    />
+                </TabsContent>
 
-                    <TabsContent value="investment" className="space-y-4">
-                        <InvestmentAccountTable
-                            investmentAccounts={investmentAccounts}
-                            selectedEntity={selectedEntity}
-                            onAdd={() => investmentForm.open()}
-                            onEdit={handleEditInvestment}
-                            onDelete={handleDeleteInvestment}
-                            onUpdate={updateInvestmentAccount}
-                        />
-                    </TabsContent>
-                </Tabs>
-            )}
+                <TabsContent value="investment" className="space-y-4">
+                    <InvestmentAccountTable
+                        investmentAccounts={investmentAccounts}
+                        onAdd={() => investmentForm.open()}
+                        onEdit={handleEditInvestment}
+                        onDelete={handleDeleteInvestment}
+                        onUpdate={updateInvestmentAccount}
+                    />
+                </TabsContent>
+            </Tabs>
 
             <BankAccountDialog
                 isOpen={bankForm.isOpen}

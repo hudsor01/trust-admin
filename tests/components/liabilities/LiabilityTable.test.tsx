@@ -97,18 +97,6 @@ describe('LiabilityTable', () => {
         expect(screen.getByText('Add Liability')).toBeTruthy()
     })
 
-    test('Add Liability button is disabled when no entity selected', () => {
-        render(
-            <LiabilityTable
-                {...defaultProps}
-                selectedEntity={undefined}
-                bulkMode={false}
-            />,
-        )
-        const addButton = screen.getByText('Add Liability').closest('button')
-        expect(addButton?.disabled).toBe(true)
-    })
-
     test('calls onAdd when Add Liability button clicked', async () => {
         const user = userEvent.setup()
         const onAdd = mock(() => {})

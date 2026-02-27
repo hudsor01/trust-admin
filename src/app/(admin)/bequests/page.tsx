@@ -4,15 +4,7 @@ import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import { ConfirmDialog, useConfirmDialog } from '@/components/confirm-dialog'
 import { Button } from '@/components/ui/button'
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select'
 import type { SpecificBequest } from '@/db/schema'
-import { useEntityFilter } from '@/hooks/use-entity-filter'
 import { useNeonList, useNeonMutations } from '@/hooks/use-neon-data'
 import { useResourceForm } from '@/hooks/use-resource-form'
 import { logger } from '@/lib/logger'
@@ -24,21 +16,15 @@ import type { BequestFormData } from './_components/types'
 const log = logger.create('Bequests')
 
 export default function BequestsPage() {
-    const { data: entities = [], isLoading: entitiesLoading } =
-        trpc.entity.list.useQuery()
-    const [entityIdStr, setEntityIdStr] = useEntityFilter()
-    const selectedEntity = entityIdStr ? Number(entityIdStr) : entities[0]?.id
+    const entityId = 1
 
-    const { data: beneficiaries = [] } = trpc.beneficiary.list.useQuery(
-        { entityId: selectedEntity! },
-        { enabled: !!selectedEntity },
-    )
+    const { data: beneficiaries = [] } = trpc.beneficiary.list.useQuery({
+        entityId,
+    })
     const { data: bequests = [], isLoading: bequestsLoading } =
-        useNeonList<SpecificBequest>(
-            'specific_bequest',
-            selectedEntity ? { entity_id: selectedEntity } : undefined,
-            { enabled: !!selectedEntity },
-        )
+        useNeonList<SpecificBequest>('specific_bequest', {
+            entity_id: entityId,
+        })
 
     const {
         create: createBequestMutation,
@@ -46,7 +32,7 @@ export default function BequestsPage() {
         delete: deleteBequestMutation,
     } = useNeonMutations<SpecificBequest>('specific_bequest')
 
-    const loading = entitiesLoading || bequestsLoading
+    const loading = bequestsLoading
 
     const [editingBequestId, setEditingBequestId] = useState<number | null>(
         null,
@@ -63,9 +49,8 @@ export default function BequestsPage() {
             notes: '',
         },
         onSubmit: async (data) => {
-            if (!selectedEntity) return
             const payload = {
-                entityId: selectedEntity!,
+                entityId,
                 description: data.description,
                 category: data.category || 'OTHER',
                 beneficiaryId: data.beneficiaryId
@@ -78,7 +63,7 @@ export default function BequestsPage() {
             if (bequestForm.isEditing && editingBequestId) {
                 await updateBequestMutation.mutateAsync({
                     id: editingBequestId,
-                    entityId: selectedEntity!,
+                    entityId,
                     data: payload,
                 })
             } else {
@@ -100,7 +85,7 @@ export default function BequestsPage() {
                 try {
                     await deleteBequestMutation.mutateAsync({
                         id: pendingDeleteId,
-                        entityId: selectedEntity!,
+                        entityId,
                     })
                 } catch (error) {
                     log.error('Failed to delete bequest', { error })
@@ -121,7 +106,7 @@ export default function BequestsPage() {
     ) => {
         await updateBequestMutation.mutateAsync({
             id,
-            entityId: selectedEntity!,
+            entityId,
             data: updates,
         })
     }
@@ -130,7 +115,7 @@ export default function BequestsPage() {
         try {
             await updateBequestMutation.mutateAsync({
                 id: bequest.id,
-                entityId: selectedEntity!,
+                entityId,
                 data: { dateDistributed: new Date().toISOString() },
             })
         } catch (error) {
@@ -168,30 +153,10 @@ export default function BequestsPage() {
                         {distributedBequests.length} distributed
                     </p>
                 </div>
-                <div className="flex items-center gap-2">
-                    <Select
-                        value={selectedEntity ? String(selectedEntity) : ''}
-                        onValueChange={(val) => setEntityIdStr(val || null)}
-                    >
-                        <SelectTrigger className="w-[250px]">
-                            <SelectValue placeholder="Select Trust" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {entities.map((e) => (
-                                <SelectItem key={e.id} value={String(e.id)}>
-                                    {e.name}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                    <Button
-                        onClick={() => bequestForm.open()}
-                        disabled={!selectedEntity}
-                    >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Bequest
-                    </Button>
-                </div>
+                <Button onClick={() => bequestForm.open()}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Bequest
+                </Button>
             </div>
 
             {/* Pending and Distributed Tables */}

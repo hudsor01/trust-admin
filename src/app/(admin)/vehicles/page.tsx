@@ -1,24 +1,15 @@
 'use client'
 
-import { Loader2, Plus } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { useCallback, useState } from 'react'
 import { ConfirmDialog, useConfirmDialog } from '@/components/confirm-dialog'
 import { Button } from '@/components/ui/button'
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select'
 import type { Vehicle } from '@/db/schema'
-import { useEntityFilter } from '@/hooks/use-entity-filter'
 import { useNeonList, useNeonMutations } from '@/hooks/use-neon-data'
 import { useResourceForm } from '@/hooks/use-resource-form'
 import { toDateInput, vehicleFormDefaults } from '@/lib/form-factory'
 import { logger } from '@/lib/logger'
 import { sumStrings } from '@/lib/money'
-import { trpc } from '@/lib/trpc'
 import {
     asRecordStatus,
     asTitleStatus,
@@ -32,17 +23,10 @@ import { VehicleTable } from './_components/VehicleTable'
 const log = logger.create('Vehicles')
 
 export default function VehiclesPage() {
-    const { data: entities = [], isLoading: entitiesLoading } =
-        trpc.entity.list.useQuery()
-    const [entityIdStr, setEntityIdStr] = useEntityFilter()
-    const selectedEntity = entityIdStr ? Number(entityIdStr) : entities[0]?.id
+    const entityId = 1
 
     const { data: vehicles = [], isLoading: vehiclesLoading } =
-        useNeonList<Vehicle>(
-            'vehicle',
-            selectedEntity ? { entity_id: selectedEntity } : undefined,
-            { enabled: !!selectedEntity },
-        )
+        useNeonList<Vehicle>('vehicle', { entity_id: entityId })
 
     const {
         create: createVehicleMutation,
@@ -60,11 +44,11 @@ export default function VehiclesPage() {
             confirmText: 'Delete',
             variant: 'destructive',
             onConfirm: async () => {
-                if (!pendingDelete || !selectedEntity) return
+                if (!pendingDelete) return
                 try {
                     await deleteVehicleMutation.mutateAsync({
                         id: pendingDelete.id,
-                        entityId: selectedEntity,
+                        entityId,
                     })
                 } catch (err) {
                     log.error('Failed to delete vehicle', { error: err })
@@ -77,10 +61,8 @@ export default function VehiclesPage() {
     const vehicleForm = useResourceForm({
         initialData: vehicleFormDefaults(),
         onSubmit: async (data) => {
-            if (!selectedEntity) return
-
             const payload = {
-                entityId: selectedEntity,
+                entityId,
                 year: data.year,
                 make: data.make,
                 model: data.model,
@@ -107,7 +89,7 @@ export default function VehiclesPage() {
                 const editingId = (vehicleForm.editing as Vehicle).id
                 await updateVehicleMutation.mutateAsync({
                     id: editingId,
-                    entityId: selectedEntity,
+                    entityId,
                     data: payload,
                 })
             } else {
@@ -143,27 +125,18 @@ export default function VehiclesPage() {
 
     const handleInlineUpdate = useCallback(
         async (id: number, updates: Partial<Vehicle>) => {
-            if (!selectedEntity) return
             try {
                 await updateVehicleMutation.mutateAsync({
                     id,
-                    entityId: selectedEntity,
+                    entityId,
                     data: updates,
                 })
             } catch (err) {
                 log.error('Failed to update vehicle', { error: err })
             }
         },
-        [updateVehicleMutation, selectedEntity],
+        [updateVehicleMutation],
     )
-
-    if (entitiesLoading) {
-        return (
-            <div className="flex justify-center items-center h-96">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-        )
-    }
 
     const totalValue = sumStrings(vehicles.map((v) => v.dodValue))
 
@@ -181,43 +154,24 @@ export default function VehiclesPage() {
                             ` - Total DOD Value: ${formatCurrency(totalValue)}`}
                     </p>
                 </div>
-                <Select
-                    value={selectedEntity?.toString() ?? ''}
-                    onValueChange={(val) => setEntityIdStr(val || null)}
-                >
-                    <SelectTrigger className="w-70">
-                        <SelectValue placeholder="Select entity" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {entities.map((e) => (
-                            <SelectItem key={e.id} value={e.id.toString()}>
-                                {e.name}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
             </div>
 
-            {selectedEntity && (
-                <>
-                    {/* Actions */}
-                    <div className="flex justify-end">
-                        <Button onClick={vehicleForm.handleAdd}>
-                            <Plus className="h-4 w-4 mr-2" />
-                            Add Vehicle
-                        </Button>
-                    </div>
+            {/* Actions */}
+            <div className="flex justify-end">
+                <Button onClick={vehicleForm.handleAdd}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Vehicle
+                </Button>
+            </div>
 
-                    {/* Table */}
-                    <VehicleTable
-                        vehicles={vehicles}
-                        isLoading={vehiclesLoading}
-                        onEdit={handleEdit}
-                        onDelete={handleDelete}
-                        onInlineUpdate={handleInlineUpdate}
-                    />
-                </>
-            )}
+            {/* Table */}
+            <VehicleTable
+                vehicles={vehicles}
+                isLoading={vehiclesLoading}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                onInlineUpdate={handleInlineUpdate}
+            />
 
             {/* Vehicle Form Dialog */}
             <VehicleDialog

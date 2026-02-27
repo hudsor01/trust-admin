@@ -23,7 +23,6 @@ import { asRentalStatus, asTransferStatus } from '@/lib/type-utils'
 interface RentalPropertyTableProps {
     rentals: RentalProperty[]
     rentalsLoading: boolean
-    selectedEntity: number | undefined
     onAdd: () => void
     onEdit: (r: RentalProperty) => void
     onDelete: (id: number) => void
@@ -33,7 +32,6 @@ interface RentalPropertyTableProps {
 export function RentalPropertyTable({
     rentals,
     rentalsLoading,
-    selectedEntity,
     onAdd,
     onEdit,
     onDelete,
@@ -172,7 +170,7 @@ export function RentalPropertyTable({
     return (
         <>
             <div className="mb-4 flex justify-end">
-                <Button onClick={onAdd} disabled={!selectedEntity}>
+                <Button onClick={onAdd}>
                     <Plus className="mr-2 h-4 w-4" />
                     Add Rental Property
                 </Button>

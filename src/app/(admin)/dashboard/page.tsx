@@ -32,15 +32,9 @@ const log = logger.create('Dashboard')
 
 export default function DashboardPage() {
     const queryClient = useQueryClient()
-    // Use tRPC hooks for entity and business-logic data
-    const { data: allEntities = [], isLoading: entitiesLoading } =
-        trpc.entity.list.useQuery()
+    const entityId = 1
     const { data: tasks = [], isLoading: tasksLoading } =
         useNeonList<Task>('task')
-
-    // Derive primary entity ID for all entity-scoped queries
-    const selectedEntity = allEntities[0]?.id
-    const queryEnabled = !!selectedEntity
 
     // Optimistic state for instant UI updates on task completion toggle
     const [optimisticTasks, setOptimisticTask] = useOptimistic(
@@ -52,63 +46,37 @@ export default function DashboardPage() {
     )
 
     const { data: beneficiaries = [], isLoading: beneficiariesLoading } =
-        trpc.beneficiary.list.useQuery(
-            { entityId: selectedEntity! },
-            { enabled: queryEnabled },
-        )
+        trpc.beneficiary.list.useQuery({ entityId })
     const {
         data: withdrawalRecords = [],
         isLoading: withdrawalRecordsLoading,
-    } = trpc.withdrawalRecord.list.useQuery(
-        { entityId: selectedEntity! },
-        { enabled: queryEnabled },
-    )
+    } = trpc.withdrawalRecord.list.useQuery({ entityId })
     const { data: accountingEntries = [], isLoading: accountingLoading } =
-        trpc.trustAccounting.list.useQuery(
-            { entityId: selectedEntity! },
-            { enabled: queryEnabled },
-        )
+        trpc.trustAccounting.list.useQuery({ entityId })
     const { data: hemsRequests = [], isLoading: hemsLoading } =
-        trpc.hemsRequest.list.useQuery(
-            { entityId: selectedEntity! },
-            { enabled: queryEnabled },
-        )
+        trpc.hemsRequest.list.useQuery({ entityId })
 
     // Asset queries for charts (via Neon Data API)
-    const entityFilter = selectedEntity
-        ? { entity_id: selectedEntity }
-        : undefined
+    const entityFilter = { entity_id: entityId }
     const { data: bankAccounts = [], isLoading: bankAccountsLoading } =
-        useNeonList<BankAccount>('bank_account', entityFilter, {
-            enabled: queryEnabled,
-        })
+        useNeonList<BankAccount>('bank_account', entityFilter)
     const { data: investmentAccounts = [], isLoading: investmentsLoading } =
-        useNeonList<InvestmentAccount>('investment_account', entityFilter, {
-            enabled: queryEnabled,
-        })
+        useNeonList<InvestmentAccount>('investment_account', entityFilter)
     const { data: homesteads = [], isLoading: homesteadsLoading } =
-        useNeonList<Homestead>('homestead', entityFilter, {
-            enabled: queryEnabled,
-        })
+        useNeonList<Homestead>('homestead', entityFilter)
     const { data: rentalProperties = [], isLoading: rentalsLoading } =
-        useNeonList<RentalProperty>('rental_property', entityFilter, {
-            enabled: queryEnabled,
-        })
+        useNeonList<RentalProperty>('rental_property', entityFilter)
     const { data: vehicles = [], isLoading: vehiclesLoading } =
-        useNeonList<Vehicle>('vehicle', entityFilter, { enabled: queryEnabled })
+        useNeonList<Vehicle>('vehicle', entityFilter)
 
     // Liability query stays in tRPC (business logic router)
     const { data: liabilities = [], isLoading: liabilitiesLoading } =
-        trpc.liability.list.useQuery(
-            { entityId: selectedEntity! },
-            { enabled: queryEnabled },
-        )
+        trpc.liability.list.useQuery({ entityId })
 
     const { create: createTaskMutation, update: updateTaskMutation } =
         useNeonMutations<Task>('task')
 
     const loading =
-        entitiesLoading ||
         tasksLoading ||
         beneficiariesLoading ||
         withdrawalRecordsLoading ||
@@ -121,8 +89,8 @@ export default function DashboardPage() {
         vehiclesLoading ||
         liabilitiesLoading
 
-    // Get primary entity
-    const entity = allEntities.length > 0 ? allEntities[0] : null
+    // Get primary entity for TrustHeader
+    const { data: entity = null } = trpc.entity.byId.useQuery(entityId)
 
     // Local UI state
     const [newTaskTitle, setNewTaskTitle] = useState('')

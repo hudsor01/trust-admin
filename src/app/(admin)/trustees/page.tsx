@@ -6,20 +6,11 @@ import { toast } from 'sonner'
 import { ConfirmDialog, useConfirmDialog } from '@/components/confirm-dialog'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select'
 import type { Trustee } from '@/db/schema'
-import { useEntityFilter } from '@/hooks/use-entity-filter'
 import { useNeonList, useNeonMutations } from '@/hooks/use-neon-data'
 import { useResourceForm } from '@/hooks/use-resource-form'
 import { trusteeFormDefaults } from '@/lib/form-factory'
 import { logger } from '@/lib/logger'
-import { trpc } from '@/lib/trpc'
 import { asTrusteeStatus } from '@/lib/type-utils'
 import { TrusteeDialog } from './_components/TrusteeDialog'
 import { type TrusteeRow, TrusteeTable } from './_components/TrusteeTable'
@@ -27,17 +18,10 @@ import { type TrusteeRow, TrusteeTable } from './_components/TrusteeTable'
 const log = logger.create('Trustees')
 
 export default function TrusteesPage() {
-    const { data: entities = [], isLoading: entitiesLoading } =
-        trpc.entity.list.useQuery()
-    const [entityId, setEntityId] = useEntityFilter()
-    const selectedEntity = entityId ? Number(entityId) : entities[0]?.id
+    const entityId = 1
 
     const { data: trustees = [], isLoading: trusteesLoading } =
-        useNeonList<Trustee>(
-            'trustee',
-            selectedEntity ? { entity_id: selectedEntity } : undefined,
-            { enabled: !!selectedEntity },
-        )
+        useNeonList<Trustee>('trustee', { entity_id: entityId })
 
     const {
         create: createTrusteeMutation,
@@ -48,9 +32,8 @@ export default function TrusteesPage() {
     const trusteeForm = useResourceForm({
         initialData: trusteeFormDefaults(),
         onSubmit: async (data) => {
-            if (!selectedEntity) return
             const payload = {
-                entityId: selectedEntity,
+                entityId,
                 name: data.name,
                 status: asTrusteeStatus(data.status ?? ''),
                 order: data.order,
@@ -76,7 +59,7 @@ export default function TrusteesPage() {
                 try {
                     await deleteTrusteeMutation.mutateAsync({
                         id: pendingDeleteId,
-                        entityId: selectedEntity!,
+                        entityId,
                     })
                     toast.success('Trustee deleted')
                 } catch (error) {
@@ -97,7 +80,7 @@ export default function TrusteesPage() {
         try {
             await updateTrusteeMutation.mutateAsync({
                 id,
-                entityId: selectedEntity!,
+                entityId,
                 data,
             })
             toast.success('Trustee updated')
@@ -107,7 +90,7 @@ export default function TrusteesPage() {
         }
     }
 
-    const loading = entitiesLoading || trusteesLoading
+    const loading = trusteesLoading
 
     const currentTrustees = trustees
         .filter((t) => t.status === 'ACTIVE')
@@ -120,30 +103,10 @@ export default function TrusteesPage() {
                 <h2 className="text-2xl font-semibold tracking-tight text-balance">
                     Trustees
                 </h2>
-                <div className="flex items-center gap-3">
-                    <Select
-                        value={selectedEntity?.toString() ?? ''}
-                        onValueChange={(val) => setEntityId(val || null)}
-                    >
-                        <SelectTrigger className="w-[250px]">
-                            <SelectValue placeholder="Select Trust" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {entities.map((e) => (
-                                <SelectItem key={e.id} value={String(e.id)}>
-                                    {e.name}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                    <Button
-                        onClick={() => trusteeForm.open()}
-                        disabled={!selectedEntity}
-                    >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Trustee
-                    </Button>
-                </div>
+                <Button onClick={() => trusteeForm.open()}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Trustee
+                </Button>
             </div>
 
             <Card>
@@ -174,10 +137,7 @@ export default function TrusteesPage() {
                 <h3 className="text-lg font-semibold tracking-tight">
                     Arbiters
                 </h3>
-                <Button
-                    onClick={() => trusteeForm.open({ status: 'ARBITER' })}
-                    disabled={!selectedEntity}
-                >
+                <Button onClick={() => trusteeForm.open({ status: 'ARBITER' })}>
                     <Plus className="h-4 w-4 mr-2" />
                     Add Arbiter
                 </Button>

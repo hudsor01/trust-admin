@@ -33,10 +33,29 @@ Sentry.init({
     replaysSessionSampleRate: 0.1,
     replaysOnErrorSampleRate: 1.0,
 
+    // Drop all events from localhost — prevents E2E test runs and local dev
+    // from polluting the production error tracker with false "escalating" alerts
+    beforeSend(event) {
+        if (
+            typeof window !== 'undefined' &&
+            window.location.hostname === 'localhost'
+        ) {
+            return null
+        }
+        return event
+    },
+
     // Tag slow client-side navigations for easy filtering in Sentry dashboard
     beforeSendTransaction(event) {
         if (event.measurements?.frames_slow?.value) {
             event.tags = { ...event.tags, slow_transaction: 'true' }
+        }
+        // Drop localhost transactions too
+        if (
+            typeof window !== 'undefined' &&
+            window.location.hostname === 'localhost'
+        ) {
+            return null
         }
         return event
     },

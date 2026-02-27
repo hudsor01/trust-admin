@@ -82,7 +82,6 @@ const defaultProps = {
     hemsDistributions: sampleDistributions,
     beneficiaries: sampleBeneficiaries,
     isLoading: false,
-    selectedEntity: 10,
     onNewRequest: mock(() => {}),
 }
 
@@ -158,22 +157,13 @@ describe('HemsTable', () => {
             expect(screen.getByText('New HEMS Request')).toBeTruthy()
         })
 
-        test('"New HEMS Request" button is enabled when selectedEntity is set', () => {
-            render(<HemsTable {...defaultProps} selectedEntity={10} />)
+        test('"New HEMS Request" button is enabled', () => {
+            render(<HemsTable {...defaultProps} />)
 
             const button = screen.getByRole('button', {
                 name: /New HEMS Request/,
             })
             expect(button.hasAttribute('disabled')).toBe(false)
-        })
-
-        test('"New HEMS Request" button is disabled when selectedEntity is null', () => {
-            render(<HemsTable {...defaultProps} selectedEntity={null} />)
-
-            const button = screen.getByRole('button', {
-                name: /New HEMS Request/,
-            })
-            expect(button.hasAttribute('disabled')).toBe(true)
         })
 
         test('calls onNewRequest when "New HEMS Request" button is clicked', async () => {
