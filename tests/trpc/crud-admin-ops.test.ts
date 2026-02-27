@@ -19,11 +19,12 @@ import type { TRPCError } from '@trpc/server'
 import { eq } from 'drizzle-orm'
 import { db } from '@/db'
 import { activityLog, beneficiary, entity, userProfile } from '@/db/schema'
-import { OWNER_EMAIL } from '@/lib/constants'
 import { createCallerFactory } from '@/server/trpc/init'
 import { appRouter } from '@/server/trpc/router'
 import { isProductionDb } from '../helpers/db-guard'
 import { createAdminContext } from '../helpers/mock-context'
+
+const OWNER_EMAIL = process.env.ADMIN_EMAIL ?? ''
 
 // =============================================================================
 // TEST CONFIGURATION

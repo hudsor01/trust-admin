@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { authServer } from '@/lib/auth'
+import { env } from '@/lib/env'
 import {
     analyzeInventoryImageWithCompressed,
     type InventoryAnalysisResult,
@@ -87,7 +88,7 @@ export async function POST(
         }
 
         // Check for API key
-        if (!process.env.ANTHROPIC_API_KEY) {
+        if (!env.ANTHROPIC_API_KEY) {
             return NextResponse.json(
                 {
                     success: false,

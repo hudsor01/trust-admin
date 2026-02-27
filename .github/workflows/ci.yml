@@ -1,17 +1,14 @@
 # CI — Trust Admin
 #
-# Required GitHub secrets (Settings → Secrets and variables → Actions):
-#   DATABASE_URL            Neon pooled connection string (sslmode=require)
-#   NEON_AUTH_BASE_URL      Neon Auth base URL for the project
-#   ADMIN_EMAIL             Trust owner email (always gets admin role)
-#   ANTHROPIC_API_KEY       Claude API key (for AI-assisted features)
-#   UPLOADTHING_TOKEN       UploadThing token for file uploads
-#   NEXT_PUBLIC_SENTRY_DSN  Sentry DSN (public, client-side)
-#   SENTRY_DSN              Sentry DSN (server-side)
+# Env validation strategy:
+#   - Build step uses SKIP_ENV_VALIDATION=1 — no app secrets required in CI.
+#   - instrumentation.ts validates all required vars at server startup.
+#   - Vercel injects real secrets during its own build + deployment.
+#
+# Optional GitHub secrets (only needed for Sentry source map uploads):
 #   SENTRY_ORG              Sentry organization slug
 #   SENTRY_PROJECT          Sentry project slug
 #   SENTRY_AUTH_TOKEN       Sentry auth token (for source map upload)
-#   NEON_AUTH_COOKIE_SECRET Cookie signing secret for Neon Auth sessions
 
 name: CI
 
@@ -55,14 +52,15 @@ jobs:
       - name: Build Next.js application
         run: bun run build
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          NEON_AUTH_BASE_URL: ${{ secrets.NEON_AUTH_BASE_URL }}
-          ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          UPLOADTHING_TOKEN: ${{ secrets.UPLOADTHING_TOKEN }}
-          NEXT_PUBLIC_SENTRY_DSN: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN }}
-          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+          # Skip Zod env validation at build time — instrumentation.ts handles
+          # strict validation at server startup. Vercel injects real secrets
+          # during its own build; CI only needs to verify the code compiles.
+          SKIP_ENV_VALIDATION: "1"
+          # Neon Auth requires cookies.secret at module initialization time (not just
+          # at request time), so Next.js fails during page data collection without it.
+          # This placeholder satisfies the library; no real cookies are signed in CI.
+          NEON_AUTH_COOKIE_SECRET: "ci-build-placeholder-not-used-for-real-auth-xxxxxx"
+          # Sentry source map upload — optional, build proceeds without them
           SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
           SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          NEON_AUTH_COOKIE_SECRET: ${{ secrets.NEON_AUTH_COOKIE_SECRET }}

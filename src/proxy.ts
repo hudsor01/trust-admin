@@ -11,12 +11,6 @@
  */
 
 import { type NextRequest, NextResponse } from 'next/server'
-import { authServer } from '@/lib/auth/server'
-
-export default authServer.middleware({
-    // Redirects unauthenticated users to sign-in page
-    loginUrl: '/auth/sign-in',
-})
 
 export async function proxy(request: NextRequest) {
     const { pathname } = request.nextUrl
@@ -28,6 +22,7 @@ export async function proxy(request: NextRequest) {
         '/api/auth',
         '/api/trpc',
         '/api/inventory',
+        '/api/e2e',
         '/forms',
         '/_next',
         '/favicon.ico',

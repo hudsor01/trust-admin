@@ -386,11 +386,10 @@ Admin       → marks distribution paid → status: DISTRIBUTED (manual)
 ```bash
 DATABASE_URL=postgresql://user:pass@ep-xxx-pooler.region.aws.neon.tech/neondb?sslmode=require
 NEON_AUTH_BASE_URL=https://ep-xxx.neonauth.region.aws.neon.tech/neondb/auth
+NEXT_PUBLIC_APP_URL=http://localhost:3000  # App base URL — used by NeonAuthUIProvider.baseURL for forgot-password reset links; set to https://trust.thehudsonfam.com in Vercel
 ADMIN_EMAIL=rhudsontspr@gmail.com   # Always gets admin role regardless of DB state
 UPLOADTHING_TOKEN=<token>
 RESEND_API_KEY=<key>
-TRUSTED_ORIGINS=https://trust.thehudsonfam.com
-FRONTEND_URL=https://trust.thehudsonfam.com
 SENTRY_ORG=<org-slug>               # URL slug from sentry.io/organizations/<slug>/ — NOT display name
 SENTRY_PROJECT=<project-slug>       # URL slug from Sentry project settings — NOT display name
 SENTRY_AUTH_TOKEN=<token>           # Required for source map uploads; build silently skips if absent

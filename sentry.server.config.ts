@@ -10,14 +10,16 @@ Sentry.init({
     // Enable when DSN is configured (production, or dev for testing)
     enabled: !!process.env.SENTRY_DSN,
 
-    // Performance monitoring sample rates
-    // 10% of transactions for general performance data
-    tracesSampleRate: 0.1,
+    // 100% — low-traffic private app, capture everything
+    tracesSampleRate: 1.0,
 
     // Integrations for enhanced monitoring
     integrations: [
         // PostgreSQL query tracing (auto-instruments pg driver)
         Sentry.postgresIntegration(),
+        // Vercel AI SDK tracing — tracks Claude calls, latency, token usage
+        // Requires experimental_telemetry.isEnabled: true per generateObject/generateText call
+        Sentry.vercelAIIntegration(),
     ],
 
     // Capture slow database queries (over 500ms)

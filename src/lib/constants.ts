@@ -13,17 +13,6 @@ import {
 } from './type-utils'
 
 // =============================================================================
-// AUTH
-// =============================================================================
-
-/**
- * The trust owner's email address.
- * Loaded from ADMIN_EMAIL env var — never hardcoded in source.
- * This user has elevated privileges for user management.
- */
-export const OWNER_EMAIL = process.env.ADMIN_EMAIL ?? ''
-
-// =============================================================================
 // SELECT OPTIONS (derived from schema enums)
 // =============================================================================
 

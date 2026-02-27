@@ -1,13 +1,22 @@
-# State: Trust Admin - Email/Password Auth Migration
+# State: Trust Admin
 
 ## Current Position
 
-Phase: 52 of 53 (forced-password-change) - IN PROGRESS
-Plan: 1 of 1 in phase (plan exists, execution in progress)
-Status: In progress
-Last activity: 2026-02-20 - Fixing proxy + auth flow for beneficiary sign-in
+Milestone: v3.0 Email/Password Auth Migration — **COMPLETE**
+Phase: 14 of 14 — All phases shipped
+Status: Between milestones — ready for v4.0 planning
 
-Progress: ██████░░░░ 60%
+Progress: ██████████ 100% (v3.0)
+
+## What Was Just Completed (Outside GSD — 2026-02-24)
+
+Custom forgot-password / reset-password flow implemented:
+- `password_reset_token` DB table
+- `POST /api/auth/custom/forgot-password` — SQL lookup, token generation, n8n webhook call
+- `POST /api/auth/custom/reset-password` — token validation, password update via authServer
+- Custom UI: `ForgotPasswordForm`, `ResetPasswordForm` in `src/app/auth/[path]/_components/`
+- n8n workflow: Webhook → Code node (builds HTML) → Send Email (Gmail SMTP)
+- Production checklist: verify `NEXT_PUBLIC_APP_URL` on Vercel + n8n attribution toggle
 
 ## Accumulated Context
 
@@ -16,22 +25,17 @@ Progress: ██████░░░░ 60%
 - **userProfile.role is source of truth for tRPC authorization** (not Neon Auth native role)
 - **ADMIN_EMAIL env var overrides role** — owner email always gets admin regardless of DB state
 - Neon Auth native role ("admin"/"user") used only by layout guards for routing
-- "user" role is safe fallback for users without a userProfile record
 - RLS via `initJwtSession()` already implemented
-- Drizzle configured with `entities.roles.provider: 'neon'`
 - **Hybrid driver approach:** neon() HTTP for Drizzle, postgres.js for raw SQL
-- Neon Auth supports email/password natively (credentials plugin enabled)
 - **Two-step provisioning:** authServer.admin.createUser() → set emailVerified=true via raw SQL → upsert userProfile
 - **emailVerified MUST be set to true** for admin-created users or sign-in returns 403
 - **Neon Auth updateUser() returns 400** — use raw SQL against neon_auth."user" instead
 - **neon_auth."user" uses camelCase columns** ("emailVerified", "updatedAt", "createdAt")
-- **public.user table has 0 rows** — it's a leftover, ignore it
-- **Single login page** at /auth/sign-in with AuthView redirectTo="/" — no separate admin/beneficiary logins
-- **Neon Auth cookie** is `__Secure-neon-auth.session_token` — NOT `trust-admin.*` (old Better Auth prefix no longer applies)
-- **proxy.ts at src/proxy.ts** (NOT src/app/proxy.ts) — Next.js 16 proxy convention
-- **x-pathname header** injected by proxy into request headers; portal layout reads it to prevent redirect loops
+- **Single login page** at /auth/sign-in with AuthView redirectTo="/"
+- **Neon Auth cookie** is `__Secure-neon-auth.session_token`
+- **proxy.ts at src/proxy.ts** — Next.js 16 proxy convention
 - **forcePasswordChange flag** in user_profile — set to true when admin creates beneficiary account
-- **upsert pattern** for user_profile inserts (onConflictDoUpdate) to handle retries
+- **Forgot password** uses custom flow (n8n webhook) — Neon Auth email not used
 
 ### Auth API Patterns That Work
 
@@ -54,38 +58,19 @@ await getSql().query(`UPDATE neon_auth."user" SET "updatedAt" = $1 WHERE id = $2
 // List users
 const { users } = await authServer.admin.listUsers({ query: { limit: 100, offset: 0 } })
 
-// Set role
-await authServer.admin.setRole({ userId, role: 'admin' })
-
-// Ban/unban
-await authServer.admin.banUser({ userId, banReason: '...' })
-await authServer.admin.unbanUser({ userId })
-
-// Delete
-await authServer.admin.removeUser({ userId })
+// Forgot password — direct SQL lookup (NOT listUsers)
+const rows = await sql`SELECT id, name, email FROM neon_auth."user" WHERE lower(email) = lower(${email}) LIMIT 1`
 ```
-
-### Blockers/Concerns Carried Forward
-
-- Phase 52 plan exists but execution incomplete — proxy/auth fixes done in session, need checkpoint verification
-
-### Deferred Issues
-
-None
 
 ## Roadmap Evolution
 
-- 2026-01-23: Milestone v1.0 created — Neon Platform Integration, 6 phases
-- 2026-01-23: All 6 phases completed
-- 2026-01-30: Milestone v9.0 created — Email/Password Auth Migration, 5 phases (49-53)
-- 2026-01-30: Phase 49 (fix-role-mismatch) completed — 1 plan
-- 2026-01-31: Phase 50 (enable-email-password) completed — 1 plan
-- 2026-01-31: Phase 51 plan 01 (backend provisioning router) completed
-- 2026-02-11: Phase 51 plan 02 (Users CRUD page) completed — full user management UI
-- 2026-02-20: Phase 52 (forced-password-change) in progress — proxy/auth fixes applied
+- 2026-01-23: v1.0 shipped — Neon Platform Integration (phases 1-6)
+- 2026-01-22: v2.0 shipped — Public Inventory Form (phases 7-8)
+- 2026-02-22: v3.0 shipped — Email/Password Auth Migration (phases 9-14)
+- 2026-02-24: Forgot-password flow built outside GSD (unplanned)
 
 ## Session Continuity
 
-Last session: 2026-02-20
-Stopped at: Fixed proxy cookie check + auth redirect flow; phase 52 checkpoint pending
+Last session: 2026-02-24
+Stopped at: Forgot-password flow complete, ready for v4.0 milestone planning
 Resume file: None

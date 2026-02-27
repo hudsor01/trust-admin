@@ -11,8 +11,14 @@ Sentry.init({
     // Note: NEXT_PUBLIC_SENTRY_DSN is inlined at build time — must be set before building
     enabled: !!process.env.NEXT_PUBLIC_SENTRY_DSN,
 
-    // 10% of transactions for performance data
-    tracesSampleRate: 0.1,
+    // 100% — low-traffic private app, capture everything
+    tracesSampleRate: 1.0,
+
+    // Propagate trace headers to same-origin API routes (enables distributed tracing)
+    tracePropagationTargets: [
+        'localhost',
+        /^https:\/\/trust\.thehudsonfam\.com/,
+    ],
 
     // Replay integration — required for replaysSessionSampleRate/replaysOnErrorSampleRate to work
     // maskAllText + blockAllMedia: protect PII (beneficiary names, financial data)

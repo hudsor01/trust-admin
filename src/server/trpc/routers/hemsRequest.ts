@@ -151,6 +151,15 @@ export const hemsRequestRouter = createTRPCRouter({
                 entityId: z.coerce.number(),
                 approvedAmount: z.string().optional(),
                 reviewNotes: z.string().optional(),
+                distributionType: z
+                    .enum([
+                        'INCOME',
+                        'PRINCIPAL',
+                        'CAPITAL_GAIN',
+                        'EXPENSE_REIMBURSEMENT',
+                        'OTHER',
+                    ])
+                    .optional(),
             }),
         )
         .mutation(async ({ input }) => {
@@ -189,6 +198,7 @@ export const hemsRequestRouter = createTRPCRouter({
                         entityId: input.entityId,
                         approvedAmount: input.approvedAmount,
                         reviewNotes: input.reviewNotes,
+                        distributionType: input.distributionType,
                         existing: {
                             beneficiaryId: existing.beneficiaryId,
                             category: existing.category,

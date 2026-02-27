@@ -133,6 +133,13 @@ export default function HemsQueuePage() {
         useState<HemsRequestWithBeneficiary | null>(null)
     const [approvedAmount, setApprovedAmount] = useState('')
     const [reviewNotes, setReviewNotes] = useState('')
+    const [distributionType, setDistributionType] = useState<
+        | 'INCOME'
+        | 'PRINCIPAL'
+        | 'CAPITAL_GAIN'
+        | 'EXPENSE_REIMBURSEMENT'
+        | 'OTHER'
+    >('INCOME')
     const [submitting, setSubmitting] = useState(false)
 
     const pendingRequests = useMemo(
@@ -246,6 +253,7 @@ export default function HemsQueuePage() {
         setReviewingRequest(request)
         setApprovedAmount(request.amountRequested)
         setReviewNotes('')
+        setDistributionType('INCOME')
     }
 
     const handleApprove = async () => {
@@ -257,6 +265,7 @@ export default function HemsQueuePage() {
                 entityId: selectedEntity!,
                 approvedAmount,
                 reviewNotes,
+                distributionType,
             })
             setReviewingRequest(null)
         } catch {
@@ -583,6 +592,45 @@ export default function HemsQueuePage() {
                                         />
                                         <p className="text-xs text-muted-foreground">
                                             May differ from requested amount
+                                        </p>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="distributionType">
+                                            Distribution Source
+                                        </Label>
+                                        <Select
+                                            value={distributionType}
+                                            onValueChange={(v) =>
+                                                setDistributionType(
+                                                    v as typeof distributionType,
+                                                )
+                                            }
+                                        >
+                                            <SelectTrigger id="distributionType">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="INCOME">
+                                                    Income
+                                                </SelectItem>
+                                                <SelectItem value="PRINCIPAL">
+                                                    Principal
+                                                </SelectItem>
+                                                <SelectItem value="CAPITAL_GAIN">
+                                                    Capital Gain
+                                                </SelectItem>
+                                                <SelectItem value="EXPENSE_REIMBURSEMENT">
+                                                    Expense Reimbursement
+                                                </SelectItem>
+                                                <SelectItem value="OTHER">
+                                                    Other
+                                                </SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        <p className="text-xs text-muted-foreground">
+                                            Texas Property Code requires
+                                            tracking income vs. principal
                                         </p>
                                     </div>
 

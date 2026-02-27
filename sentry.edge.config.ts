@@ -14,8 +14,8 @@ Sentry.init({
     // Only enable when DSN is configured
     enabled: !!dsn,
 
-    // Adjust sample rate in production (1.0 = 100% of events)
-    tracesSampleRate: 0.1,
+    // 100% — low-traffic private app, capture everything
+    tracesSampleRate: 1.0,
 
     // Setting this option to true will print useful information to the console while you're setting up Sentry.
     debug: false,
