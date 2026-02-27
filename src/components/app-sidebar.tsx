@@ -24,10 +24,14 @@ import {
     SidebarMenuSubItem,
 } from '@/components/ui/sidebar'
 import { authClient } from '@/lib/auth/client'
+import { trpc } from '@/lib/trpc'
+
+const entityId = 1
 
 export function AppSidebar() {
     const pathname = usePathname()
     const router = useRouter()
+    const utils = trpc.useUtils()
     const [distributionsOpen, setDistributionsOpen] = useState(true)
     const [assetsOpen, setAssetsOpen] = useState(true)
 
@@ -40,6 +44,58 @@ export function AppSidebar() {
         '/vehicles',
         '/inventory-queue',
     ].includes(pathname)
+
+    const prefetch = {
+        dashboard: () => {
+            utils.dashboard.summary.prefetch({ entityId })
+            utils.entity.list.prefetch()
+        },
+        trustees: () => utils.entity.list.prefetch(),
+        beneficiaries: () => {
+            utils.beneficiary.listWithDistributions.prefetch({ entityId })
+            utils.entity.list.prefetch()
+        },
+        contacts: () => utils.contact.list.prefetch(),
+        users: () => utils.userManagement.listAllUsers.prefetch(),
+        hemsQueue: () => {
+            utils.hemsRequest.listWithBeneficiary.prefetch({ entityId })
+            utils.beneficiary.list.prefetch({ entityId })
+            utils.entity.list.prefetch()
+        },
+        hems: () => {
+            utils.hemsRequest.listWithBeneficiary.prefetch({ entityId })
+            utils.entity.list.prefetch()
+        },
+        bequests: () => {
+            utils.beneficiary.list.prefetch({ entityId })
+            utils.entity.list.prefetch()
+        },
+        accounting: () => {
+            utils.trustAccounting.list.prefetch({ entityId })
+            utils.bankAccount.list.prefetch({ entityId })
+            utils.entity.list.prefetch()
+        },
+        properties: () => {
+            utils.homestead.list.prefetch({ entityId })
+            utils.rentalProperty.list.prefetch({ entityId })
+            utils.entity.list.prefetch()
+        },
+        accounts: () => {
+            utils.bankAccount.list.prefetch({ entityId })
+            utils.investmentAccount.list.prefetch({ entityId })
+            utils.entity.list.prefetch()
+        },
+        vehicles: () => {
+            utils.vehicle.list.prefetch({ entityId })
+            utils.entity.list.prefetch()
+        },
+        liabilities: () => {
+            utils.liability.list.prefetch({ entityId })
+            utils.bankAccount.list.prefetch({ entityId })
+            utils.entity.list.prefetch()
+        },
+        activityLog: () => utils.activityLog.list.prefetch({}),
+    }
 
     return (
         <Sidebar collapsible="icon">
@@ -76,7 +132,10 @@ export function AppSidebar() {
                                 isActive={pathname === '/dashboard'}
                                 tooltip="Dashboard"
                             >
-                                <Link href="/dashboard">
+                                <Link
+                                    href="/dashboard"
+                                    onMouseEnter={prefetch.dashboard}
+                                >
                                     <span>Dashboard</span>
                                 </Link>
                             </SidebarMenuButton>
@@ -84,7 +143,7 @@ export function AppSidebar() {
                     </SidebarMenu>
                 </SidebarGroup>
 
-                {/* Administration - flat list of people */}
+                {/* Administration */}
                 <SidebarGroup>
                     <SidebarGroupLabel>Administration</SidebarGroupLabel>
                     <SidebarMenu className="pl-2">
@@ -94,7 +153,10 @@ export function AppSidebar() {
                                 isActive={pathname === '/trustees'}
                                 tooltip="Trustees"
                             >
-                                <Link href="/trustees">
+                                <Link
+                                    href="/trustees"
+                                    onMouseEnter={prefetch.trustees}
+                                >
                                     <span>Trustees</span>
                                 </Link>
                             </SidebarMenuButton>
@@ -106,7 +168,10 @@ export function AppSidebar() {
                                 isActive={pathname === '/beneficiaries'}
                                 tooltip="Beneficiaries"
                             >
-                                <Link href="/beneficiaries">
+                                <Link
+                                    href="/beneficiaries"
+                                    onMouseEnter={prefetch.beneficiaries}
+                                >
                                     <span>Beneficiaries</span>
                                 </Link>
                             </SidebarMenuButton>
@@ -118,7 +183,10 @@ export function AppSidebar() {
                                 isActive={pathname === '/contacts'}
                                 tooltip="Contacts"
                             >
-                                <Link href="/contacts">
+                                <Link
+                                    href="/contacts"
+                                    onMouseEnter={prefetch.contacts}
+                                >
                                     <span>Contacts</span>
                                 </Link>
                             </SidebarMenuButton>
@@ -130,13 +198,16 @@ export function AppSidebar() {
                                 isActive={pathname === '/users'}
                                 tooltip="Users"
                             >
-                                <Link href="/users">
+                                <Link
+                                    href="/users"
+                                    onMouseEnter={prefetch.users}
+                                >
                                     <span>Users</span>
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
 
-                        {/* Distributions - collapsed submenu for distribution actions */}
+                        {/* Distributions submenu */}
                         <Collapsible
                             open={distributionsOpen}
                             onOpenChange={setDistributionsOpen}
@@ -164,7 +235,12 @@ export function AppSidebar() {
                                                     pathname === '/hems-queue'
                                                 }
                                             >
-                                                <Link href="/hems-queue">
+                                                <Link
+                                                    href="/hems-queue"
+                                                    onMouseEnter={
+                                                        prefetch.hemsQueue
+                                                    }
+                                                >
                                                     <span>Review Queue</span>
                                                 </Link>
                                             </SidebarMenuSubButton>
@@ -174,7 +250,10 @@ export function AppSidebar() {
                                                 asChild
                                                 isActive={pathname === '/hems'}
                                             >
-                                                <Link href="/hems">
+                                                <Link
+                                                    href="/hems"
+                                                    onMouseEnter={prefetch.hems}
+                                                >
                                                     <span>
                                                         Distribution History
                                                     </span>
@@ -188,7 +267,12 @@ export function AppSidebar() {
                                                     pathname === '/bequests'
                                                 }
                                             >
-                                                <Link href="/bequests">
+                                                <Link
+                                                    href="/bequests"
+                                                    onMouseEnter={
+                                                        prefetch.bequests
+                                                    }
+                                                >
                                                     <span>
                                                         Specific Bequests
                                                     </span>
@@ -212,13 +296,16 @@ export function AppSidebar() {
                                 isActive={pathname === '/accounting'}
                                 tooltip="Trust Accounting"
                             >
-                                <Link href="/accounting">
+                                <Link
+                                    href="/accounting"
+                                    onMouseEnter={prefetch.accounting}
+                                >
                                     <span>Trust Accounting</span>
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
 
-                        {/* Assets */}
+                        {/* Assets submenu */}
                         <Collapsible
                             open={assetsOpen}
                             onOpenChange={setAssetsOpen}
@@ -243,7 +330,12 @@ export function AppSidebar() {
                                                     pathname === '/properties'
                                                 }
                                             >
-                                                <Link href="/properties">
+                                                <Link
+                                                    href="/properties"
+                                                    onMouseEnter={
+                                                        prefetch.properties
+                                                    }
+                                                >
                                                     <span>Properties</span>
                                                 </Link>
                                             </SidebarMenuSubButton>
@@ -255,7 +347,12 @@ export function AppSidebar() {
                                                     pathname === '/accounts'
                                                 }
                                             >
-                                                <Link href="/accounts">
+                                                <Link
+                                                    href="/accounts"
+                                                    onMouseEnter={
+                                                        prefetch.accounts
+                                                    }
+                                                >
                                                     <span>Accounts</span>
                                                 </Link>
                                             </SidebarMenuSubButton>
@@ -267,7 +364,12 @@ export function AppSidebar() {
                                                     pathname === '/vehicles'
                                                 }
                                             >
-                                                <Link href="/vehicles">
+                                                <Link
+                                                    href="/vehicles"
+                                                    onMouseEnter={
+                                                        prefetch.vehicles
+                                                    }
+                                                >
                                                     <span>Vehicles</span>
                                                 </Link>
                                             </SidebarMenuSubButton>
@@ -296,7 +398,10 @@ export function AppSidebar() {
                                 isActive={pathname === '/liabilities'}
                                 tooltip="Liabilities"
                             >
-                                <Link href="/liabilities">
+                                <Link
+                                    href="/liabilities"
+                                    onMouseEnter={prefetch.liabilities}
+                                >
                                     <span>Liabilities</span>
                                 </Link>
                             </SidebarMenuButton>
@@ -308,7 +413,10 @@ export function AppSidebar() {
                                 isActive={pathname === '/activity-log'}
                                 tooltip="Activity Log"
                             >
-                                <Link href="/activity-log">
+                                <Link
+                                    href="/activity-log"
+                                    onMouseEnter={prefetch.activityLog}
+                                >
                                     <span>Activity Log</span>
                                 </Link>
                             </SidebarMenuButton>
