@@ -6,6 +6,7 @@ export default async function LiabilitiesPage() {
     const helpers = await createTRPCHelpers()
     await Promise.all([
         helpers.liability.list.prefetch({ entityId: 1 }),
+        helpers.bankAccount.list.prefetch({ entityId: 1 }),
         helpers.entity.list.prefetch(),
     ])
     return (

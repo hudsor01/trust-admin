@@ -1,19 +1,9 @@
 'use client'
 
-import { useQueryClient } from '@tanstack/react-query'
 import { Loader2 } from 'lucide-react'
 import { useCallback, useMemo, useOptimistic, useState } from 'react'
 import { toast } from 'sonner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import type {
-    BankAccount,
-    Homestead,
-    InvestmentAccount,
-    RentalProperty,
-    Task,
-    Vehicle,
-} from '@/db/schema'
-import { useNeonList, useNeonMutations } from '@/hooks/use-neon-data'
 import { logger } from '@/lib/logger'
 import { subtractMoney, sumStrings } from '@/lib/money'
 import { trpc } from '@/lib/trpc'
@@ -31,10 +21,23 @@ import { WithdrawalsPanel } from './WithdrawalsPanel'
 const log = logger.create('Dashboard')
 
 export function DashboardClient() {
-    const queryClient = useQueryClient()
+    const utils = trpc.useUtils()
     const entityId = 1
-    const { data: tasks = [], isLoading: tasksLoading } =
-        useNeonList<Task>('task')
+
+    const { data: summary, isLoading: summaryLoading } =
+        trpc.dashboard.summary.useQuery({ entityId })
+
+    const bankAccounts = summary?.bankAccounts ?? []
+    const investmentAccounts = summary?.investmentAccounts ?? []
+    const homesteads = summary?.homesteads ?? []
+    const rentalProperties = summary?.rentalProperties ?? []
+    const vehicles = summary?.vehicles ?? []
+    const tasks = summary?.tasks ?? []
+    const beneficiaries = summary?.beneficiaries ?? []
+    const withdrawalRecords = summary?.withdrawalRecords ?? []
+    const accountingEntries = summary?.accountingEntries ?? []
+    const hemsRequests = summary?.hemsRequests ?? []
+    const liabilities = summary?.liabilities ?? []
 
     const [optimisticTasks, setOptimisticTask] = useOptimistic(
         tasks,
@@ -44,47 +47,15 @@ export function DashboardClient() {
             ),
     )
 
-    const { data: beneficiaries = [], isLoading: beneficiariesLoading } =
-        trpc.beneficiary.list.useQuery({ entityId })
-    const {
-        data: withdrawalRecords = [],
-        isLoading: withdrawalRecordsLoading,
-    } = trpc.withdrawalRecord.list.useQuery({ entityId })
-    const { data: accountingEntries = [], isLoading: accountingLoading } =
-        trpc.trustAccounting.list.useQuery({ entityId })
-    const { data: hemsRequests = [], isLoading: hemsLoading } =
-        trpc.hemsRequest.list.useQuery({ entityId })
+    const createTask = trpc.task.create.useMutation({
+        onSuccess: () => utils.dashboard.summary.invalidate({ entityId }),
+    })
 
-    const entityFilter = { entity_id: entityId }
-    const { data: bankAccounts = [], isLoading: bankAccountsLoading } =
-        useNeonList<BankAccount>('bank_account', entityFilter)
-    const { data: investmentAccounts = [], isLoading: investmentsLoading } =
-        useNeonList<InvestmentAccount>('investment_account', entityFilter)
-    const { data: homesteads = [], isLoading: homesteadsLoading } =
-        useNeonList<Homestead>('homestead', entityFilter)
-    const { data: rentalProperties = [], isLoading: rentalsLoading } =
-        useNeonList<RentalProperty>('rental_property', entityFilter)
-    const { data: vehicles = [], isLoading: vehiclesLoading } =
-        useNeonList<Vehicle>('vehicle', entityFilter)
+    const updateTask = trpc.task.update.useMutation({
+        onSuccess: () => utils.dashboard.summary.invalidate({ entityId }),
+    })
 
-    const { data: liabilities = [], isLoading: liabilitiesLoading } =
-        trpc.liability.list.useQuery({ entityId })
-
-    const { create: createTaskMutation, update: updateTaskMutation } =
-        useNeonMutations<Task>('task')
-
-    const loading =
-        tasksLoading ||
-        beneficiariesLoading ||
-        withdrawalRecordsLoading ||
-        accountingLoading ||
-        hemsLoading ||
-        bankAccountsLoading ||
-        investmentsLoading ||
-        homesteadsLoading ||
-        rentalsLoading ||
-        vehiclesLoading ||
-        liabilitiesLoading
+    const loading = summaryLoading
 
     const { data: entity = null } = trpc.entity.byId.useQuery(entityId)
 
@@ -96,24 +67,24 @@ export function DashboardClient() {
         async (task: (typeof optimisticTasks)[number]) => {
             setOptimisticTask({ id: task.id, completed: !task.completed })
             try {
-                await updateTaskMutation.mutateAsync({
+                await updateTask.mutateAsync({
                     id: task.id,
                     data: { completed: !task.completed },
                 })
             } catch (error) {
                 log.error('Failed to update task', { error })
                 toast.error('Failed to update task')
-                queryClient.invalidateQueries({ queryKey: ['neon', 'task'] })
+                utils.dashboard.summary.invalidate({ entityId })
             }
         },
-        [setOptimisticTask, updateTaskMutation, queryClient],
+        [setOptimisticTask, updateTask, utils],
     )
 
     const addTask = useCallback(async () => {
         if (!newTaskTitle.trim()) return
 
         try {
-            await createTaskMutation.mutateAsync({
+            await createTask.mutateAsync({
                 title: newTaskTitle,
                 category: newTaskCategory,
                 sortOrder: optimisticTasks.length,
@@ -122,17 +93,12 @@ export function DashboardClient() {
         } catch (error) {
             log.error('Failed to add task', { error })
         }
-    }, [
-        newTaskTitle,
-        newTaskCategory,
-        optimisticTasks.length,
-        createTaskMutation,
-    ])
+    }, [newTaskTitle, newTaskCategory, optimisticTasks.length, createTask])
 
     const updateTaskNotes = useCallback(
         async (taskId: number, notes: string) => {
             try {
-                await updateTaskMutation.mutateAsync({
+                await updateTask.mutateAsync({
                     id: taskId,
                     data: { notes },
                 })
@@ -140,7 +106,7 @@ export function DashboardClient() {
                 log.error('Failed to update notes', { error })
             }
         },
-        [updateTaskMutation],
+        [updateTask],
     )
 
     const { completedCount, totalCount, progressPercent, overdueTasks, today } =

@@ -14,7 +14,6 @@ import type {
     TrustAccounting,
     Vehicle,
 } from '@/db/schema'
-import { useNeonList } from '@/hooks/use-neon-data'
 import { useResourceForm } from '@/hooks/use-resource-form'
 import { logger } from '@/lib/logger'
 import { subtractMoney, sumStrings } from '@/lib/money'
@@ -32,10 +31,9 @@ export function AccountingClient() {
     const utils = trpc.useUtils()
     const entityId = 1
 
-    const { data: bankAccounts = [] } = useNeonList<BankAccount>(
-        'bank_account',
-        { entity_id: entityId },
-    )
+    const { data: bankAccounts = [] } = trpc.bankAccount.list.useQuery({
+        entityId,
+    })
 
     const { data: allTotals = [] } = trpc.trustAccounting.totals.useQuery({
         entityId,

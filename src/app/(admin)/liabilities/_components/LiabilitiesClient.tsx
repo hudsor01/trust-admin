@@ -4,8 +4,7 @@ import { useOptimistic, useState } from 'react'
 import { toast } from 'sonner'
 import type { BulkLiabilityRow } from '@/components/bulk-entry-table'
 import { ConfirmDialog, useConfirmDialog } from '@/components/confirm-dialog'
-import type { BankAccount, Liability } from '@/db/schema'
-import { useNeonList } from '@/hooks/use-neon-data'
+import type { Liability } from '@/db/schema'
 import { useResourceForm } from '@/hooks/use-resource-form'
 import { toDateInput } from '@/lib/form-factory'
 import { logger } from '@/lib/logger'
@@ -45,10 +44,9 @@ export function LiabilitiesClient() {
             ),
     )
 
-    const { data: bankAccounts = [] } = useNeonList<BankAccount>(
-        'bank_account',
-        { entity_id: entityId },
-    )
+    const { data: bankAccounts = [] } = trpc.bankAccount.list.useQuery({
+        entityId,
+    })
 
     const createLiabilityMutation = trpc.liability.create.useMutation({
         onSuccess: () => {
