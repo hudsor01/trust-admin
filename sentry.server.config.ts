@@ -22,10 +22,13 @@ Sentry.init({
         Sentry.vercelAIIntegration(),
     ],
 
-    // Drop all events from localhost — prevents E2E test runs and local dev
-    // from polluting the production error tracker
+    // Drop request-originated events from localhost — prevents E2E test runs
+    // and local dev from polluting the production error tracker.
+    // Events with no request URL (background jobs, cron errors, queue workers)
+    // intentionally pass through: they are server-side events, not localhost
+    // web requests, and should always be captured regardless of origin.
     beforeSend(event) {
-        const url = event.request?.url ?? event.tags?.url ?? ''
+        const url = event.request?.url ?? event.tags?.url
         if (
             typeof url === 'string' &&
             (url.includes('localhost') || url.includes('127.0.0.1'))
