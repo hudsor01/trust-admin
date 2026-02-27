@@ -31,7 +31,7 @@ export function PaymentImpactPreview({
     // Defer input for smooth typing
     const deferredAmount = useDeferredValue(amount)
 
-    // Skip for revolving credit (credit cards don't have fixed amortization)
+    // Skip for revolving credit (credit cards do not have fixed amortization)
     const isRevolving = isRevolvingType(liability.liabilityType)
 
     // Calculate payment split when deferred value settles
@@ -85,7 +85,7 @@ export function PaymentImpactPreview({
         isRevolving,
     ])
 
-    // Don't render for revolving credit or if no valid calculation
+    // Do not render for revolving credit or if no valid calculation
     if (isRevolving || !calculated?.split) return null
 
     const { split, payoff } = calculated
@@ -103,10 +103,10 @@ export function PaymentImpactPreview({
 
     return (
         <div className="space-y-3 mt-4">
-            {/* Warning for payment that doesn't cover interest */}
+            {/* Warning for payment that does not cover interest */}
             {isNegativePrincipal && (
                 <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-800">
-                    Payment doesn't cover interest. Balance will increase.
+                    Payment does not cover interest. Balance will increase.
                 </div>
             )}
 

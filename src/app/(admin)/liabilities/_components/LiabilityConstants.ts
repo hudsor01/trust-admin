@@ -53,7 +53,7 @@ export interface PaymentFormData {
     notes: string
 }
 
-// Revolving credit types don't have fixed terms
+// Revolving credit types do not have fixed terms
 export const isRevolvingType = (type: string) => type === 'CREDIT_CARD'
 
 // Loan types have amortization-specific fields

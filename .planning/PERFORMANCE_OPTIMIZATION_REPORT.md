@@ -348,7 +348,7 @@ liabilities/
 // Good - tree-shakeable
 import { DollarSign, List, Loader2 } from 'lucide-react'
 
-// Bad - prevents tree-shaking (verify this isn't happening)
+// Bad - prevents tree-shaking (verify this is not happening)
 import * as Icons from 'lucide-react'
 ```
 

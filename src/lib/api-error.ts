@@ -16,8 +16,8 @@ const log = logger.api
 
 export type ErrorCode =
     | 'VALIDATION_ERROR' // Zod validation failed
-    | 'NOT_FOUND' // Resource doesn't exist
-    | 'REFERENCE_ERROR' // FK reference doesn't exist
+    | 'NOT_FOUND' // Resource does not exist
+    | 'REFERENCE_ERROR' // FK reference does not exist
     | 'CONFLICT' // Unique constraint violation
     | 'UNAUTHORIZED' // Not authenticated
     | 'FORBIDDEN' // Not authorized

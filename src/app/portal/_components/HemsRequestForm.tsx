@@ -73,7 +73,7 @@ export function HemsRequestForm({
     onSuccess,
     onCancel,
 }: HemsRequestFormProps) {
-    // Track category separately since Radix Select doesn't use native select
+    // Track category separately since Radix Select does not use native select
     const [category, setCategory] = useState('')
 
     // React 19 useActionState for Server Action

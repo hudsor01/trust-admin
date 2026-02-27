@@ -125,7 +125,7 @@ export async function POST(
         try {
             photoUrls = await uploadInventoryImages(compressedImages)
         } catch {
-            // Don't fail - analysis is still valuable without photos
+            // Do not fail - analysis is still valuable without photos
         }
 
         return NextResponse.json({

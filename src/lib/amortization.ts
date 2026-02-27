@@ -181,7 +181,7 @@ export function estimatePayoffDate(
     const monthlyRate = rate / 12
     const interestDue = balanceNum * monthlyRate
 
-    // If payment doesn't exceed interest, loan can never be paid off
+    // If payment does not exceed interest, loan can never be paid off
     if (effectivePayment <= interestDue) {
         return null
     }

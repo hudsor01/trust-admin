@@ -286,7 +286,7 @@ This is NOT:
 - **Low**: Poor image, unusual item, or significant uncertainty - recommend professional appraisal
 
 ## CRITICAL INSTRUCTIONS:
-1. Be SPECIFIC about what you see - don't guess at brands you can't identify
+1. Be SPECIFIC about what you see - do not guess at brands you cannot identify
 2. Provide realistic VALUE RANGES reflecting market uncertainty
 3. Explain your RATIONALE so the trustee understands the valuation basis
 4. Flag items that may warrant professional appraisal (jewelry, fine art, antiques)

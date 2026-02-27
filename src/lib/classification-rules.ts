@@ -84,7 +84,7 @@ const SPECIAL_RULES: Record<string, AllocationClass> = {
     // Eminent domain/condemnation proceeds
     CONDEMNATION_PROCEEDS: 'PRINCIPAL',
 
-    // Stock splits don't create income
+    // Stock splits do not create income
     STOCK_SPLIT: 'PRINCIPAL',
 
     // Return of capital is not income

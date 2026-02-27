@@ -35,7 +35,7 @@ CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_activity_log_new_values_gin
 -- ============================================
 
 -- These settings improve index build performance on PostgreSQL 17
--- They're applied during index creation and don't affect runtime queries
+-- They're applied during index creation and do not affect runtime queries
 
 -- Enable parallel index builds (PostgreSQL 17 has improved parallel GIN)
 SET max_parallel_maintenance_workers = 4;

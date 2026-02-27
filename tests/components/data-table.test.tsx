@@ -298,8 +298,8 @@ describe('DataTable', () => {
 
     describe('row selection', () => {
         // Note: Row selection in DataTable requires adding a checkbox column to columns.
-        // The enableRowSelection prop enables selection state but doesn't auto-add checkboxes.
-        // These tests verify the prop is accepted and doesn't break rendering.
+        // The enableRowSelection prop enables selection state but does not auto-add checkboxes.
+        // These tests verify the prop is accepted and does not break rendering.
 
         test('accepts enableRowSelection prop', () => {
             render(

@@ -3,7 +3,7 @@
 
 [test]
 # Note: bun 1.3 has no testMatch/pathIgnorePatterns exclude support.
-# E2E files use .e2e.ts extension so bun's default *.spec.ts pattern doesn't match them.
+# E2E files use .e2e.ts extension so bun's default *.spec.ts pattern does not match them.
 # Run E2E tests with: bun run test:e2e (uses Playwright)
 
 # Enable code coverage reporting

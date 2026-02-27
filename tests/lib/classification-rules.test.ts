@@ -235,7 +235,7 @@ describe('Principal vs Income Classification Rules', () => {
 
     describe('Edge Cases', () => {
         test('Both income and expense type provided (income takes precedence)', () => {
-            // This shouldn't happen in practice, but test priority
+            // This should not happen in practice, but test priority
             expect(classifyTransaction('DIVIDEND', 'TAX')).toBe('INCOME')
         })
 

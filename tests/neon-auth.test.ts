@@ -238,7 +238,7 @@ describe.skipIf(isProductionDb)('JWT Session Initialization', () => {
         // In production, invalid tokens just result in null user_id
         try {
             await initJwtSession('invalid-test-token')
-            // If it doesn't throw, the function exists and accepts tokens
+            // If it does not throw, the function exists and accepts tokens
             expect(true).toBe(true)
         } catch (error) {
             // Expected to fail with invalid token, but function should exist
@@ -346,7 +346,7 @@ describe('Environment Configuration', () => {
         if (url) {
             expect(url).toContain('neon')
         } else {
-            // Log warning but don't fail - tests can run without actual Neon Auth
+            // Log warning but do not fail - tests can run without actual Neon Auth
             console.warn(
                 'NEON_AUTH_BASE_URL not set - some auth features may not work',
             )

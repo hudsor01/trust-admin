@@ -1,7 +1,7 @@
 import { defineConfig } from 'drizzle-kit'
 
 // Prefer direct connection for migrations (bypasses PgBouncer pooling)
-// Pooled connections don't support prepared statements used by migrations
+// Pooled connections do not support prepared statements used by migrations
 const databaseUrl = process.env.DATABASE_URL_DIRECT || process.env.DATABASE_URL
 if (!databaseUrl) {
     throw new Error(

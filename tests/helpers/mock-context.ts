@@ -5,7 +5,7 @@
  * eliminating the need for `as any` casts on the session object.
  *
  * The Context type from createContext() includes a `session` field whose type
- * comes from authServer.getSession().data. In tests, we don't have a real
+ * comes from authServer.getSession().data. In tests, we do not have a real
  * auth session, so we construct a minimal mock that satisfies the Context type.
  */
 import type { AppUser, Context } from '@/server/trpc/init'

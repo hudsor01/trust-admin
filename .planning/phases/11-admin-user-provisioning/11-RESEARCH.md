@@ -110,16 +110,16 @@ export const userManagementRouter = createTRPCRouter({
 ```
 
 ### Anti-Patterns to Avoid
-- **Don't set Neon Auth role to "beneficiary":** Neon Auth only uses "admin"/"user". App role lives in `user_profile.role`
-- **Don't call admin methods from client-side:** All admin methods require server-side context with auth secret
-- **Don't expose temp password in API response beyond initial creation:** Show once in UI, never persist or return again
-- **Don't skip user_profile creation:** Without it, tRPC context defaults to "user" role (no beneficiary access)
+- **Do not set Neon Auth role to "beneficiary":** Neon Auth only uses "admin"/"user". App role lives in `user_profile.role`
+- **Do not call admin methods from client-side:** All admin methods require server-side context with auth secret
+- **Do not expose temp password in API response beyond initial creation:** Show once in UI, never persist or return again
+- **Do not skip user_profile creation:** Without it, tRPC context defaults to "user" role (no beneficiary access)
 </architecture_patterns>
 
 <dont_hand_roll>
-## Don't Hand-Roll
+## Do not Hand-Roll
 
-| Problem | Don't Build | Use Instead | Why |
+| Problem | Do not Build | Use Instead | Why |
 |---------|-------------|-------------|-----|
 | User creation | Custom SQL to neon_auth tables | `authServer.admin.createUser()` | Neon Auth manages password hashing, account records, session handling |
 | Password setting | Direct DB update | `authServer.admin.setUserPassword()` | Better Auth handles bcrypt hashing, credential provider linking |
@@ -141,8 +141,8 @@ export const userManagementRouter = createTRPCRouter({
 **Warning signs:** 401 errors on `setRole`/`setUserPassword` but `createUser` works fine.
 
 ### Pitfall 2: Role Confusion (Neon Auth vs App)
-**What goes wrong:** New user can't access beneficiary features despite being created correctly
-**Why it happens:** Setting `role: "beneficiary"` in `createUser` doesn't work — Neon Auth only has "admin"/"user" roles. The app role must be set in `user_profile.role`.
+**What goes wrong:** New user cannot access beneficiary features despite being created correctly
+**Why it happens:** Setting `role: "beneficiary"` in `createUser` does not work — Neon Auth only has "admin"/"user" roles. The app role must be set in `user_profile.role`.
 **How to avoid:** Always create with `role: "user"` in Neon Auth, then set `role: 'beneficiary'` in `user_profile`.
 **Warning signs:** User appears in Neon Auth but tRPC returns "user" role.
 
@@ -153,7 +153,7 @@ export const userManagementRouter = createTRPCRouter({
 **Warning signs:** 500 error from `createUser` with duplicate key violation.
 
 ### Pitfall 4: User Login Failure After createUser
-**What goes wrong:** User created via admin API can't log in with password
+**What goes wrong:** User created via admin API cannot log in with password
 **Why it happens:** Known Better Auth issue (#5879) — `createUser` may not properly create the credential provider link in some versions
 **How to avoid:** After creating user, verify by checking that account record exists. If login fails, `setUserPassword` can re-establish the credential provider.
 **Warning signs:** User exists in neon_auth.user but has no "credential" account type.
@@ -327,7 +327,7 @@ await createActivityLog({
 **Key finding:** Better Auth issue #3717 notes that `createUser` is the only admin method that works without session headers. All other methods require session cookies. However, in the Neon Auth setup, `createAuthServer()` automatically reads cookies from `next/headers`, so this is handled transparently when called from route handlers.
 
 **Known issues to monitor:**
-- Better Auth #5879: Users sometimes can't login after `createUser` — may need `setUserPassword` as fallback
+- Better Auth #5879: Users sometimes cannot login after `createUser` — may need `setUserPassword` as fallback
 - Better Auth #3717: Most admin methods require session — PR #4385 may fix this in future versions
 </sota_updates>
 

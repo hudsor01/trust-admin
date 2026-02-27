@@ -73,7 +73,7 @@ describe('formatters', () => {
             const futureMonth = (today.getMonth() + 1) % 12
             const birthYear = today.getFullYear() - 25
             const dob = `${birthYear}-${String(futureMonth + 1).padStart(2, '0')}-15`
-            // Should be 24 since birthday hasn't occurred yet
+            // Should be 24 since birthday has not occurred yet
             const age = calculateAge(dob)
             expect(age).toBe(24)
         })

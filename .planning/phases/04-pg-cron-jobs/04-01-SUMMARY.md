@@ -59,7 +59,7 @@ SELECT * FROM cron.job_run_details ORDER BY start_time DESC LIMIT 10;
 
 ## Alternative: GitHub Actions Cron
 
-If always-on compute isn't worth it, use GitHub Actions:
+If always-on compute is not worth it, use GitHub Actions:
 
 ```yaml
 # .github/workflows/maintenance.yml

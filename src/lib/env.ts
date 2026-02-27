@@ -15,7 +15,7 @@ import { z } from 'zod'
  * trailing newlines that Vercel silently injects when env vars are copy-pasted.
  *
  * optionalUrl() — coerces empty strings to undefined before URL validation so
- * that GitHub Actions secrets (which evaluate to "" when unset) don't cause
+ * that GitHub Actions secrets (which evaluate to "" when unset) do not cause
  * "Invalid URL" build failures for optional vars.
  */
 const optionalUrl = () =>
@@ -111,7 +111,7 @@ export const env = createEnv({
     // Skip validation during CI builds where env vars are injected at runtime
     skipValidation: !!process.env.SKIP_ENV_VALIDATION,
 
-    // Force server-side mode so happy-dom (used in Bun component tests) doesn't
+    // Force server-side mode so happy-dom (used in Bun component tests) does not
     // trick @t3-oss/env-core into thinking we're in a browser. Without this,
     // GlobalRegistrator.register() creates window and makes isServer=false,
     // causing every server var access to throw "Attempted to access server-side

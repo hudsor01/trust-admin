@@ -29,7 +29,7 @@ export function createFormDefaults<T extends Record<string, unknown>>(
         for (const key in defaults) {
             const value = defaults[key]
             // Type assertion needed here because we're dynamically determining if value is a function
-            // The generic type system can't track this at compile time, but we know it's safe
+            // The generic type system cannot track this at compile time, but we know it's safe
             result[key] = (
                 typeof value === 'function'
                     ? (value as () => T[typeof key])()

@@ -116,7 +116,7 @@ export default function LiabilitiesPage() {
                 liabilityType,
                 creditor: data.creditor,
                 description: data.description || null,
-                // For revolving credit, original amount isn't meaningful
+                // For revolving credit, original amount is not meaningful
                 originalAmount: isRevolvingType(data.liabilityType)
                     ? data.currentBalance || '0'
                     : data.originalAmount || '0',
@@ -185,7 +185,7 @@ export default function LiabilitiesPage() {
                 setOptimisticLiability({ id: payingLiabilityId, newBalance })
             }
 
-            // Map CREDIT_CARD to OTHER since tRPC schema doesn't include it
+            // Map CREDIT_CARD to OTHER since tRPC schema does not include it
             const paymentMethod =
                 data.paymentMethod === 'CREDIT_CARD'
                     ? 'OTHER'

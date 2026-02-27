@@ -72,7 +72,7 @@ completed: 2026-01-31
 
 ## Decisions Made
 
-- **Used `credentials` prop instead of `emailAndPassword`:** The plan specified `emailAndPassword` but this prop doesn't exist on NeonAuthUIProvider. The actual prop from @daveyplate/better-auth-ui is `credentials`. Discovered via TypeScript error during type check.
+- **Used `credentials` prop instead of `emailAndPassword`:** The plan specified `emailAndPassword` but this prop does not exist on NeonAuthUIProvider. The actual prop from @daveyplate/better-auth-ui is `credentials`. Discovered via TypeScript error during type check.
 - **Kept both auth methods:** `emailOTP` (magic link) and `credentials` (email/password) both enabled, giving users choice.
 
 ## Deviations from Plan
@@ -81,7 +81,7 @@ completed: 2026-01-31
 
 **1. [Rule 3 - Blocking] Corrected prop name from `emailAndPassword` to `credentials`**
 - **Found during:** Task 1 (Enable emailAndPassword prop)
-- **Issue:** Plan specified `emailAndPassword` prop but NeonAuthUIProvider doesn't accept it — TypeScript error TS2322
+- **Issue:** Plan specified `emailAndPassword` prop but NeonAuthUIProvider does not accept it — TypeScript error TS2322
 - **Fix:** Changed to `credentials` prop which is the correct name from @daveyplate/better-auth-ui types
 - **Files modified:** src/app/layout.tsx
 - **Verification:** `bun run typecheck` passes, `bun run build` succeeds

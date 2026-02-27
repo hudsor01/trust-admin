@@ -58,7 +58,7 @@ Given this is a low-traffic trust administration app:
 | Setting | Recommended | Rationale |
 |---------|-------------|-----------|
 | Min CU | 0.25 | Low traffic, cost efficiency |
-| Max CU | 2 | Trust data isn't huge |
+| Max CU | 2 | Trust data is not huge |
 | Suspend | 5 min | Default is fine |
 
 These can be adjusted after monitoring shows actual patterns.
@@ -67,4 +67,4 @@ These can be adjusted after monitoring shows actual patterns.
 
 - **Scale to zero:** Keep enabled for cost savings
 - **Avoid always-on:** Only disable if pg_cron is critical
-- **Right-size max CU:** Don't pay for capacity you don't use
+- **Right-size max CU:** Do not pay for capacity you do not use

@@ -54,7 +54,7 @@ export function useNeonList<T>(
 }
 
 /** Standard create/update/delete mutations for a Neon Data API table.
- *  entityId is optional — omit for tables that don't have an entity_id column (e.g. task). */
+ *  entityId is optional — omit for tables that do not have an entity_id column (e.g. task). */
 export function useNeonMutations<TModel extends { id: number }>(table: string) {
     const queryClient = useQueryClient()
 

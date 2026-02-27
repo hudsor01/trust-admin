@@ -555,7 +555,7 @@ export const userManagementRouter = createTRPCRouter({
             // 1. Delete userProfile first so we can log oldValues.
             //    If Neon Auth removal then fails, the profile is already gone
             //    and the user cannot sign in (auth record still exists but
-            //    profile-dependent features won't work). This is safer than
+            //    profile-dependent features will not work). This is safer than
             //    the reverse order where a failed profile delete leaves an
             //    orphan profile with no auth record (un-retryable state).
             const [deletedProfile] = await db

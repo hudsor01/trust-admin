@@ -87,7 +87,7 @@ export async function getEntityById(id: number) {
 
 /**
  * PERF: Lite variant - returns only entity fields without relations
- * Use for dashboards, dropdowns, and contexts where relations aren't needed
+ * Use for dashboards, dropdowns, and contexts where relations are not needed
  */
 export async function getEntityByIdLite(id: number) {
     return db.query.entity.findFirst({
@@ -155,7 +155,7 @@ export async function getBeneficiaryById(id: number) {
 
 /**
  * PERF: Lite variant - returns only beneficiary fields without relations
- * Use for dropdowns, validation checks, and contexts where relations aren't needed
+ * Use for dropdowns, validation checks, and contexts where relations are not needed
  */
 export async function getBeneficiaryByIdLite(id: number) {
     return db.query.beneficiary.findFirst({

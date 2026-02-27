@@ -117,7 +117,7 @@ export async function createContext(_opts: { headers: Headers }) {
     if (session?.user && session?.session?.token) {
         // Fetch JWT and userProfile in parallel — both can start as soon as we
         // have a session. The JWT is needed for RLS (setRequestAuthToken);
-        // userProfile uses getPublicDb() (BYPASSRLS) so it doesn't need the JWT.
+        // userProfile uses getPublicDb() (BYPASSRLS) so it does not need the JWT.
         const publicDb = getPublicDb()
         let jwtToken: string | null
         let profileRows: {

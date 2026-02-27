@@ -63,7 +63,7 @@ const bulkEntrySchema = z.object({
 export type BulkLiabilityRow = z.infer<typeof bulkLiabilityRowSchema>
 type BulkEntryForm = z.infer<typeof bulkEntrySchema>
 
-// Revolving credit types don't have fixed terms
+// Revolving credit types do not have fixed terms
 const isRevolvingType = (type: string) => type === 'CREDIT_CARD'
 
 // Loan types have amortization-specific fields

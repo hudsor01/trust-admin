@@ -88,7 +88,7 @@ describe('Amortization Calculation Utilities', () => {
             })
 
             test('payment less than interest results in negative principal', () => {
-                // Payment doesn't cover interest - balance increases
+                // Payment does not cover interest - balance increases
                 const result = calculatePaymentSplit(
                     '500000.00',
                     '0.12', // 12% rate = 5000/month interest

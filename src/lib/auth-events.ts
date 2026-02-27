@@ -34,10 +34,10 @@ export function recordAuthEvent(
                     reason: details.reason,
                     timestamp: new Date().toISOString(),
                 },
-                // createdAt has default CURRENT_TIMESTAMP, don't set explicitly
+                // createdAt has default CURRENT_TIMESTAMP, do not set explicitly
             })
         } catch (error) {
-            // Don't fail requests if audit logging fails
+            // Do not fail requests if audit logging fails
             logger.db.error('Failed to record auth event', { action, error })
             Sentry.captureException(error, {
                 tags: { subsystem: 'auth-events' },

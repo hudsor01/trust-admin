@@ -11,7 +11,7 @@ const securityHeaders = [
         value: 'nosniff',
     },
     {
-        // Disable XSS filter (modern browsers don't need it, can cause issues)
+        // Disable XSS filter (modern browsers do not need it, can cause issues)
         key: 'X-XSS-Protection',
         value: '0',
     },

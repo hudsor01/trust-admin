@@ -92,7 +92,7 @@ describe('VehicleTable', () => {
                 onInlineUpdate={mock(async () => {})}
             />,
         )
-        // Table renders in loading state - just verify it doesn't crash
+        // Table renders in loading state - just verify it does not crash
         expect(screen.getByRole('table')).toBeTruthy()
     })
 
