@@ -129,6 +129,7 @@ export default withSentryConfig(nextConfig, {
 
     org: process.env.SENTRY_ORG,
     project: process.env.SENTRY_PROJECT,
+    authToken: process.env.SENTRY_AUTH_TOKEN,
 
     // Only upload source maps in production when auth token is present
     sourcemaps: {
