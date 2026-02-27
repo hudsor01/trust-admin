@@ -76,7 +76,7 @@ export default function LiabilitiesPage() {
     const recordPaymentMutation = trpc.liability.recordPayment.useMutation({
         onSuccess: (result) => {
             utils.liability.list.invalidate()
-            utils.trustAccounting.listPaginated.invalidate()
+            utils.trustAccounting.list.invalidate()
             toast.success(
                 `Payment recorded. Balance: ${formatCurrency(result.liability.currentBalance)}`,
             )

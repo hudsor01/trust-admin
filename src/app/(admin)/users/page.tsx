@@ -193,7 +193,7 @@ export default function UsersPage() {
             invalidateUsers()
             setDeleteDialogOpen(false)
             setSelectedUser(null)
-            toast.success('User deleted')
+            toast.success('Portal account deleted')
         },
         onError: (err) => toast.error(err.message),
     })

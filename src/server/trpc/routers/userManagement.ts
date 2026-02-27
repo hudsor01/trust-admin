@@ -221,7 +221,7 @@ export const userManagementRouter = createTRPCRouter({
                 forcePasswordChange: true,
             })
 
-            // 6. Log activity
+            // 7. Log activity
             await createActivityLog({
                 tableName: 'user_profile',
                 recordId: createdUserId,
