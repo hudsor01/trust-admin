@@ -13,7 +13,16 @@ import { z } from 'zod'
  *
  * .trim() is applied before every format validator (.url(), .email()) to strip
  * trailing newlines that Vercel silently injects when env vars are copy-pasted.
+ *
+ * optionalUrl() — coerces empty strings to undefined before URL validation so
+ * that GitHub Actions secrets (which evaluate to "" when unset) don't cause
+ * "Invalid URL" build failures for optional vars.
  */
+const optionalUrl = () =>
+    z.preprocess(
+        (v) => (typeof v === 'string' && v.trim() === '' ? undefined : v),
+        z.string().trim().url().optional(),
+    )
 export const env = createEnv({
     server: {
         // Database (required)
@@ -52,7 +61,7 @@ export const env = createEnv({
         UPLOADTHING_TOKEN: z.string().optional(),
 
         // Error monitoring (optional)
-        SENTRY_DSN: z.string().trim().url().optional(),
+        SENTRY_DSN: optionalUrl(),
         SENTRY_ORG: z.string().optional(),
         SENTRY_PROJECT: z.string().optional(),
         SENTRY_AUTH_TOKEN: z.string().optional(),
@@ -61,18 +70,18 @@ export const env = createEnv({
         NEON_AUTH_COOKIE_SECRET: z.string().optional(),
 
         // n8n webhook for password reset emails
-        N8N_PASSWORD_RESET_WEBHOOK_URL: z.string().trim().url().optional(),
+        N8N_PASSWORD_RESET_WEBHOOK_URL: optionalUrl(),
     },
 
     client: {
         // Error monitoring — public DSN safe to expose
-        NEXT_PUBLIC_SENTRY_DSN: z.string().trim().url().optional(),
+        NEXT_PUBLIC_SENTRY_DSN: optionalUrl(),
 
         // Neon Data API (PostgREST endpoint, optional)
-        NEXT_PUBLIC_NEON_DATA_API_URL: z.string().trim().url().optional(),
+        NEXT_PUBLIC_NEON_DATA_API_URL: optionalUrl(),
 
         // App URL (used by NeonAuthUIProvider)
-        NEXT_PUBLIC_APP_URL: z.string().trim().url().optional(),
+        NEXT_PUBLIC_APP_URL: optionalUrl(),
     },
 
     // Next.js requires explicit mapping of NEXT_PUBLIC_ vars for runtime access
