@@ -1,21 +1,6 @@
-/**
- * Mock tRPC Context Helpers for Tests
- *
- * Provides properly typed mock contexts for tRPC caller factory,
- * eliminating the need for `as any` casts on the session object.
- *
- * The Context type from createContext() includes a `session` field whose type
- * comes from authServer.getSession().data. In tests, we do not have a real
- * auth session, so we construct a minimal mock that satisfies the Context type.
- */
+/** Typed mock tRPC contexts for caller factory — no real auth session needed in tests. */
 import type { AppUser, Context } from '@/server/trpc/init'
 
-/**
- * Minimal mock session shape that satisfies Context['session'].
- * In production, this comes from authServer.getSession() which returns
- * a complex Better Auth session type. For tests, we only need the fields
- * that tRPC procedures actually access.
- */
 interface MockSessionUser {
     id: string
     name: string
@@ -32,11 +17,6 @@ interface MockSession {
     session: { token: string }
 }
 
-/**
- * Create a properly typed admin Context for tRPC callers.
- *
- * @param overrides - Optional overrides for the user fields
- */
 export function createAdminContext(overrides?: {
     id?: string
     name?: string
@@ -79,12 +59,6 @@ export function createAdminContext(overrides?: {
     }
 }
 
-/**
- * Create a properly typed beneficiary Context for tRPC callers.
- *
- * @param beneficiaryId - The beneficiary ID to link to (null if unlinked)
- * @param overrides - Optional overrides for the user fields
- */
 export function createBeneficiaryContext(
     beneficiaryId: number | null,
     overrides?: {

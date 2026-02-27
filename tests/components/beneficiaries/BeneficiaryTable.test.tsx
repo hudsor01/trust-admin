@@ -1,9 +1,4 @@
-/**
- * BeneficiaryTable Component Tests
- *
- * Tests for the beneficiary table component that shows beneficiary data
- * with inline editing, eligibility badges, and action buttons.
- */
+/** BeneficiaryTable component tests — inline editing, eligibility badges, and action buttons. */
 
 import '../../setup'
 import { afterEach, describe, expect, mock, test } from 'bun:test'

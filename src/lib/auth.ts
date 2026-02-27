@@ -1,11 +1,4 @@
-/**
- * Neon Auth - Main Entry Point
- *
- * Re-exports the auth client and server from their respective modules.
- * Also provides type definitions and utility functions.
- *
- * @see https://neon.com/docs/auth/overview
- */
+/** Neon Auth entry point: types, guards, IP validation, and re-exports. */
 
 import { logger } from './logger'
 
@@ -15,9 +8,7 @@ const log = logger.auth
 // TYPE DEFINITIONS
 // =============================================================================
 
-/**
- * Session type from Neon Auth
- */
+/** Neon Auth session (from neon_auth.session table). */
 export interface NeonAuthSession {
     id: string
     expiresAt: Date
@@ -29,10 +20,7 @@ export interface NeonAuthSession {
     userId: string
 }
 
-/**
- * User type from Neon Auth (neon_auth.user table)
- * Note: Custom fields like beneficiaryId are stored in user_profile table
- */
+/** Neon Auth user. Custom fields (beneficiaryId) live in user_profile. */
 export interface NeonAuthUser {
     id: string
     name: string
@@ -47,19 +35,13 @@ export interface NeonAuthUser {
     banExpires?: Date | null
 }
 
-/**
- * Extended user type with app-specific fields
- * The role and beneficiaryId come from user_profile table
- * "user" is a fallback for authenticated users without a userProfile record
- */
+/** Extended with user_profile fields. "user" = fallback when no profile exists. */
 export type AppUser = NeonAuthUser & {
     role: 'admin' | 'beneficiary' | 'user'
     beneficiaryId?: number | null
 }
 
-/**
- * Session data returned by neonAuth()
- */
+/** Session data returned by neonAuth(). */
 export type SessionData =
     | { session: NeonAuthSession; user: NeonAuthUser }
     | { session: null; user: null }
@@ -87,10 +69,7 @@ const IPV4_REGEX =
 const IPV6_REGEX =
     /^(?:(?:[a-fA-F\d]{1,4}:){7}[a-fA-F\d]{1,4}|(?:[a-fA-F\d]{1,4}:){1,7}:|(?:[a-fA-F\d]{1,4}:){1,6}:[a-fA-F\d]{1,4}|(?:[a-fA-F\d]{1,4}:){1,5}(?::[a-fA-F\d]{1,4}){1,2}|(?:[a-fA-F\d]{1,4}:){1,4}(?::[a-fA-F\d]{1,4}){1,3}|(?:[a-fA-F\d]{1,4}:){1,3}(?::[a-fA-F\d]{1,4}){1,4}|(?:[a-fA-F\d]{1,4}:){1,2}(?::[a-fA-F\d]{1,4}){1,5}|[a-fA-F\d]{1,4}:(?::[a-fA-F\d]{1,4}){1,6}|:(?::[a-fA-F\d]{1,4}){1,7}|::(?:[fF]{4}:)?(?:(?:25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)\.){3}(?:25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)|(?:[a-fA-F\d]{1,4}:){1,4}:(?:(?:25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)\.){3}(?:25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d))$/
 
-/**
- * Validates and extracts client IP address from request headers
- * Prevents log injection attacks by validating IP format
- */
+/** Extract and validate client IP from headers to prevent log injection. */
 export function extractClientIP(req: Request): string {
     const forwarded = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
     const realIp = req.headers.get('x-real-ip')?.trim()
@@ -114,9 +93,5 @@ export function extractClientIP(req: Request): string {
 // AUTH CLIENT/SERVER EXPORTS
 // =============================================================================
 
-// Re-export client and server - these are lazy-loaded to avoid initialization issues
-// in test environments. Import directly from './auth/client' or './auth/server' if needed.
 export { authClient } from './auth/client'
 export { authServer } from './auth/server'
-
-// Note: NEON_AUTH_BASE_URL validation is handled by @t3-oss/env-nextjs in src/lib/env.ts

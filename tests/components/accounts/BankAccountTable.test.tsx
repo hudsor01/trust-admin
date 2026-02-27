@@ -1,9 +1,4 @@
-/**
- * BankAccountTable Component Tests
- *
- * Tests for the BankAccountTable component that displays bank accounts in a
- * DataTable with inline editing, edit/delete actions, and empty/loading states.
- */
+/** BankAccountTable component tests — DataTable with inline editing, actions, and empty/loading states. */
 
 import '../../setup'
 import { afterEach, describe, expect, mock, test } from 'bun:test'

@@ -5,10 +5,7 @@ import {
     isPrincipalTransaction,
 } from '@/lib/classification-rules'
 
-/**
- * Unit tests for Principal/Income Classification Rules
- * Based on Texas Property Code 116 (Uniform Principal and Income Act)
- */
+/** Principal/Income classification rules per Texas Property Code 116 (Uniform Principal and Income Act). */
 
 describe('Principal vs Income Classification Rules', () => {
     describe('Income Types', () => {
@@ -177,56 +174,33 @@ describe('Principal vs Income Classification Rules', () => {
 
     describe('Real-World Scenarios', () => {
         test('Scenario: Rental property monthly operations', () => {
-            // Rent collected → INCOME
             expect(classifyTransaction('RENT', null)).toBe('INCOME')
-
-            // Property insurance premium → INCOME (ordinary expense)
             expect(classifyTransaction(null, 'INSURANCE')).toBe('INCOME')
-
-            // Plumbing repair → INCOME (maintenance, not improvement)
             expect(classifyTransaction(null, 'REPAIR')).toBe('INCOME')
-
-            // Utilities → INCOME
             expect(classifyTransaction(null, 'UTILITY')).toBe('INCOME')
-
-            // New HVAC system → PRINCIPAL (capital improvement)
             expect(classifyTransaction(null, null, 'CAPITAL_IMPROVEMENT')).toBe(
                 'PRINCIPAL',
             )
         })
 
         test('Scenario: Investment account activity', () => {
-            // Quarterly dividend → INCOME
             expect(classifyTransaction('DIVIDEND', null)).toBe('INCOME')
-
-            // Bond interest → INCOME
             expect(classifyTransaction('INTEREST', null)).toBe('INCOME')
-
-            // Sold stock at profit → PRINCIPAL
             expect(classifyTransaction('CAPITAL_GAIN', null)).toBe('PRINCIPAL')
-
-            // Brokerage fee → INCOME (administrative)
             expect(classifyTransaction(null, 'PROFESSIONAL_FEE')).toBe('INCOME')
         })
 
         test('Scenario: Trust administration costs', () => {
-            // Trustee annual fee → INCOME
             expect(classifyTransaction(null, 'TRUSTEE_FEE')).toBe('INCOME')
-
-            // Attorney fees for trust accounting → INCOME
             expect(classifyTransaction(null, 'PROFESSIONAL_FEE')).toBe('INCOME')
-
-            // County filing fees → INCOME
             expect(classifyTransaction(null, 'FILING_FEE')).toBe('INCOME')
         })
 
         test('Scenario: Sale of trust vehicle', () => {
-            // Sale proceeds → PRINCIPAL (corpus transaction)
             expect(classifyTransaction('SALE_PROCEEDS', null)).toBe('PRINCIPAL')
         })
 
         test('Scenario: Fire insurance claim', () => {
-            // Insurance proceeds for destroyed property → PRINCIPAL
             expect(classifyTransaction(null, null, 'INSURANCE_PROCEEDS')).toBe(
                 'PRINCIPAL',
             )
@@ -235,7 +209,6 @@ describe('Principal vs Income Classification Rules', () => {
 
     describe('Edge Cases', () => {
         test('Both income and expense type provided (income takes precedence)', () => {
-            // This should not happen in practice, but test priority
             expect(classifyTransaction('DIVIDEND', 'TAX')).toBe('INCOME')
         })
 

@@ -1,22 +1,8 @@
-/**
- * Sentry Performance Monitoring Utilities
- *
- * Use these helpers to instrument custom operations for performance tracking:
- * - Database queries (Drizzle)
- * - tRPC procedures
- * - Business operations (HEMS approval, distributions, etc.)
- */
+/** Sentry tracing helpers for DB queries, tRPC procedures, and business operations. */
 
 import * as Sentry from '@sentry/nextjs'
 
-/**
- * Wrap a database operation with Sentry tracing
- *
- * @example
- * const users = await traceDbQuery('users.findMany', async () => {
- *     return db.query.users.findMany()
- * })
- */
+/** Wrap a DB operation with Sentry tracing. */
 export async function traceDbQuery<T>(
     name: string,
     operation: () => Promise<T>,
@@ -33,17 +19,7 @@ export async function traceDbQuery<T>(
     )
 }
 
-/**
- * Wrap a tRPC procedure with Sentry tracing
- *
- * @example
- * // In a tRPC router
- * list: protectedProcedure.query(async ({ ctx }) => {
- *     return traceTrpcProcedure('beneficiary.list', async () => {
- *         return beneficiaryCrud.findAll()
- *     })
- * })
- */
+/** Wrap a tRPC procedure with Sentry tracing. */
 export async function traceTrpcProcedure<T>(
     procedureName: string,
     operation: () => Promise<T>,
@@ -61,15 +37,7 @@ export async function traceTrpcProcedure<T>(
     )
 }
 
-/**
- * Wrap a business operation with Sentry tracing
- * Use for critical workflows like HEMS processing, distributions, etc.
- *
- * @example
- * await traceBusinessOperation('hems.approve', { requestId: 123 }, async () => {
- *     // approval logic
- * })
- */
+/** Wrap a business operation (HEMS, distributions, etc.) with Sentry tracing. */
 export async function traceBusinessOperation<T>(
     operationName: string,
     attributes: Record<string, string | number | boolean>,
@@ -85,20 +53,7 @@ export async function traceBusinessOperation<T>(
     )
 }
 
-/**
- * Set user context for all subsequent Sentry events
- * Call this after authentication to attach user info to errors/traces
- *
- * @example
- * // In tRPC context creation
- * if (session?.user) {
- *     setSentryUser({
- *         id: session.user.id,
- *         email: session.user.email,
- *         role: userProfile?.role,
- *     })
- * }
- */
+/** Set user context on Sentry scope (call after authentication). */
 export function setSentryUser(user: {
     id: string
     email?: string | null
@@ -110,7 +65,6 @@ export function setSentryUser(user: {
         email: user.email ?? undefined,
     })
 
-    // Add custom tags for filtering
     if (user.role) {
         Sentry.setTag('user.role', user.role)
     }
@@ -119,19 +73,12 @@ export function setSentryUser(user: {
     }
 }
 
-/**
- * Clear user context (on logout)
- */
+/** Clear user context on logout. */
 export function clearSentryUser() {
     Sentry.setUser(null)
 }
 
-/**
- * Add breadcrumb for tracking user actions
- *
- * @example
- * addBreadcrumb('user.action', 'Clicked approve HEMS request', { requestId: 123 })
- */
+/** Add breadcrumb for tracking user actions. */
 export function addBreadcrumb(
     category: string,
     message: string,
@@ -145,22 +92,12 @@ export function addBreadcrumb(
     })
 }
 
-/**
- * Capture a custom metric
- * Use for tracking business KPIs like processing times
- *
- * @example
- * captureMetric('hems.approval_time_ms', approvalDurationMs, {
- *     category: 'HEALTH',
- *     amount_range: 'high',
- * })
- */
+/** Capture a custom metric (distribution, in milliseconds). */
 export function captureMetric(
     name: string,
     value: number,
     tags?: Record<string, string>,
 ) {
-    // Sentry metrics API - use setTag for custom dimensions
     if (tags) {
         for (const [key, val] of Object.entries(tags)) {
             Sentry.setTag(key, val)
@@ -171,14 +108,7 @@ export function captureMetric(
     })
 }
 
-/**
- * Measure and report a timing
- *
- * @example
- * const stopTimer = startTimer('beneficiary.share_recalculation')
- * // ... do work ...
- * stopTimer() // Reports duration to Sentry
- */
+/** Start a timer; call the returned function to report duration to Sentry. */
 export function startTimer(name: string, tags?: Record<string, string>) {
     const start = performance.now()
 

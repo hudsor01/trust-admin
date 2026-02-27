@@ -1,9 +1,4 @@
-/**
- * UsersTable Component Tests
- *
- * Tests for the UsersTable component that displays NeonAuthUser data
- * with support for owner vs. read-only modes, error states, and loading.
- */
+/** UsersTable component tests — NeonAuthUser display with owner/read-only modes, error, and loading states. */
 
 import '../../setup'
 import { afterEach, describe, expect, mock, test } from 'bun:test'

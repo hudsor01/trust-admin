@@ -1,11 +1,5 @@
 'use client'
 
-/**
- * HEMS Request Queue
- *
- * Admin page for reviewing and approving/denying HEMS requests from beneficiaries.
- */
-
 import type { ColumnDef } from '@tanstack/react-table'
 import {
     CheckCircle,
@@ -80,11 +74,9 @@ export default function HemsQueuePage() {
     const { data: requests = [], isLoading: requestsLoading } =
         trpc.hemsRequest.listWithBeneficiary.useQuery({ entityId })
 
-    // API returns joined beneficiary data
     const requestsWithBeneficiary =
         requests as unknown as HemsRequestWithBeneficiary[]
 
-    // Optimistic state for instant UI updates on approval/denial
     const [optimisticRequests] = useOptimistic(
         requestsWithBeneficiary,
         (
@@ -283,7 +275,6 @@ export default function HemsQueuePage() {
 
     return (
         <div className="space-y-6">
-            {/* Header */}
             <div>
                 <h2 className="text-2xl font-semibold tracking-tight">
                     HEMS Requests
@@ -293,7 +284,6 @@ export default function HemsQueuePage() {
                 </p>
             </div>
 
-            {/* Summary Cards */}
             <div className="grid gap-4 md:grid-cols-3">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -362,7 +352,6 @@ export default function HemsQueuePage() {
                 </Card>
             </div>
 
-            {/* Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList>
                     <TabsTrigger value="pending" className="gap-2">
@@ -404,7 +393,6 @@ export default function HemsQueuePage() {
                 </TabsContent>
             </Tabs>
 
-            {/* Review Dialog */}
             <Dialog
                 open={!!reviewingRequest}
                 onOpenChange={() => setReviewingRequest(null)}
@@ -428,7 +416,6 @@ export default function HemsQueuePage() {
 
                     {reviewingRequest && (
                         <div className="space-y-4">
-                            {/* Request Details */}
                             <div className="rounded-lg border p-4 space-y-3">
                                 <div className="flex justify-between">
                                     <span className="text-sm text-muted-foreground">
@@ -464,7 +451,6 @@ export default function HemsQueuePage() {
                                 )}
                             </div>
 
-                            {/* Justification */}
                             <div>
                                 <Label className="text-sm text-muted-foreground">
                                     Justification
@@ -474,7 +460,6 @@ export default function HemsQueuePage() {
                                 </p>
                             </div>
 
-                            {/* If already reviewed, show review info */}
                             {reviewingRequest.status !== 'PENDING' && (
                                 <div className="rounded-lg border p-4 space-y-2">
                                     <div className="flex justify-between">
@@ -532,7 +517,6 @@ export default function HemsQueuePage() {
                                 </div>
                             )}
 
-                            {/* Review Form (only for pending) */}
                             {reviewingRequest.status === 'PENDING' && (
                                 <>
                                     <div className="space-y-2">

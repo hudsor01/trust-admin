@@ -21,7 +21,6 @@ import {
     TITLE_STATUS_VALUES,
 } from '@/lib/type-utils'
 
-// Derive options from schema enums (single source of truth)
 export const TITLE_STATUS = enumToOptions(TITLE_STATUS_VALUES)
 export const ASSET_STATUS = enumToOptions(RECORD_STATUS_VALUES, (v) =>
     ['ACTIVE', 'SOLD', 'TRANSFERRED', 'DISPOSED'].includes(v),

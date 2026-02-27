@@ -1,9 +1,4 @@
-/**
- * BequestDialog Component Tests
- *
- * Tests for the BequestDialog component that wraps ResourceDialog
- * to provide a form for creating/editing specific bequests.
- */
+/** BequestDialog component tests — ResourceDialog wrapper for creating/editing specific bequests. */
 
 import '../../setup'
 import { afterEach, describe, expect, mock, test } from 'bun:test'

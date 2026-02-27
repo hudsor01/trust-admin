@@ -34,20 +34,14 @@ import { ResetPasswordDialog } from './_components/ResetPasswordDialog'
 import type { NeonAuthUser } from './_components/types'
 import { UsersTable } from './_components/UsersTable'
 
-// =============================================================================
-// Page Component
-// =============================================================================
-
 export default function UsersPage() {
     const utils = trpc.useUtils()
 
-    // Owner check for gating CRUD controls
     const { data: ownerCheck } = trpc.userManagement.isOwner.useQuery()
     const isOwner = ownerCheck?.isOwner ?? false
 
     const entityId = 1
 
-    // Fetch all users (owner-only, shows Neon Auth users enriched with app data)
     const {
         data: allUsers = [],
         isLoading: usersLoading,
@@ -56,21 +50,16 @@ export default function UsersPage() {
         enabled: isOwner,
     })
 
-    // Fallback: non-owner admins see provisioned users only
     const { data: provisionedUsers = [], isLoading: provisionedLoading } =
         trpc.userManagement.listProvisionedUsers.useQuery(undefined, {
             enabled: !isOwner,
         })
 
-    // Fetch all beneficiaries for create dialog
     const { data: allBeneficiaries = [] } = trpc.beneficiary.list.useQuery(
         { entityId },
         { enabled: isOwner },
     )
 
-    // ==========================================================================
-    // Dialog state
-    // ==========================================================================
     const [createDialogOpen, setCreateDialogOpen] = useState(false)
     const [editDialogOpen, setEditDialogOpen] = useState(false)
     const [roleDialogOpen, setRoleDialogOpen] = useState(false)
@@ -79,10 +68,8 @@ export default function UsersPage() {
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
     const [revokeDialogOpen, setRevokeDialogOpen] = useState(false)
 
-    // Selected user for actions
     const [selectedUser, setSelectedUser] = useState<NeonAuthUser | null>(null)
 
-    // Create form state
     const [selectedBeneficiaryId, setSelectedBeneficiaryId] = useState<
         string | null
     >(null)
@@ -90,29 +77,21 @@ export default function UsersPage() {
     const [tempPassword, setTempPassword] = useState('')
     const [showPassword, setShowPassword] = useState(false)
 
-    // Edit form state
     const [editName, setEditName] = useState('')
     const [editEmail, setEditEmail] = useState('')
 
-    // Role form state
     const [newRole, setNewRole] = useState<'admin' | 'user'>('user')
 
-    // Reset password state
     const [newPassword, setNewPassword] = useState('')
     const [showNewPassword, setShowNewPassword] = useState(false)
 
-    // Ban form state
     const [banReason, setBanReason] = useState('')
 
-    // Success state for temp password
     const [createdCredentials, setCreatedCredentials] = useState<{
         email: string
         tempPassword: string
     } | null>(null)
 
-    // ==========================================================================
-    // Mutations
-    // ==========================================================================
     const invalidateUsers = () => {
         utils.userManagement.listAllUsers.invalidate()
         utils.userManagement.listProvisionedUsers.invalidate()
@@ -208,9 +187,6 @@ export default function UsersPage() {
             onError: (err) => toast.error(err.message),
         })
 
-    // ==========================================================================
-    // Derived data
-    // ==========================================================================
     const unlinkedBeneficiaries = useMemo(() => {
         const linkedIds = new Set(
             allUsers
@@ -220,9 +196,6 @@ export default function UsersPage() {
         return allBeneficiaries.filter((b) => !linkedIds.has(b.id))
     }, [allUsers, allBeneficiaries])
 
-    // ==========================================================================
-    // Action handlers
-    // ==========================================================================
     const handleBeneficiarySelect = (beneficiaryId: string) => {
         setSelectedBeneficiaryId(beneficiaryId)
         const ben = allBeneficiaries.find((b) => b.id === Number(beneficiaryId))
@@ -277,9 +250,6 @@ export default function UsersPage() {
     const displayName = (user: NeonAuthUser | null) =>
         user?.name || user?.email || 'this user'
 
-    // ==========================================================================
-    // Table columns (full view for owner)
-    // ==========================================================================
     const ownerColumns: ColumnDef<NeonAuthUser>[] = [
         {
             id: 'name',
@@ -440,14 +410,10 @@ export default function UsersPage() {
         },
     ]
 
-    // ==========================================================================
-    // Read-only columns for non-owner admins
-    // ==========================================================================
     const readOnlyColumns: ColumnDef<NeonAuthUser>[] = ownerColumns.filter(
         (c) => c.id !== 'actions',
     )
 
-    // Adapt provisioned users to NeonAuthUser shape for non-owner view
     const readOnlyData: NeonAuthUser[] = useMemo(
         () =>
             provisionedUsers.map((u) => ({

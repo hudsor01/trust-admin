@@ -26,7 +26,6 @@ export const beneficiaryRouter = createTRPCRouter({
                 .where(eq(beneficiary.entityId, input.entityId))
         }),
 
-    // Optimized query that includes distributions in a single query (avoids N+1)
     listWithDistributions: adminProcedure
         .input(z.object({ entityId: z.coerce.number() }))
         .query(async ({ input }) => {
@@ -106,7 +105,6 @@ export const beneficiaryRouter = createTRPCRouter({
             return deleted
         }),
 
-    // Portal: Get own beneficiary data
     me: beneficiaryProcedure.query(async ({ ctx }) => {
         if (!ctx.user.beneficiaryId) {
             return null
@@ -114,7 +112,6 @@ export const beneficiaryRouter = createTRPCRouter({
         return getBeneficiaryById(ctx.user.beneficiaryId)
     }),
 
-    // Portal: Update own contact info (email, phone, address)
     updateMyContact: beneficiaryProcedure
         .input(
             z.object({
@@ -177,12 +174,7 @@ export const beneficiaryRouter = createTRPCRouter({
     // If beneficiary dies before complete distribution, share goes pro-rata
     // =========================================================================
 
-    /**
-     * Mark a beneficiary as deceased and recalculate shares
-     *
-     * Per Trust Section 7.01: If a beneficiary dies before complete distribution,
-     * their share goes pro-rata to other living beneficiaries.
-     */
+    /** Per Trust Section 7.01: deceased beneficiary's share goes pro-rata to living beneficiaries. */
     markDeceased: adminProcedure
         .input(
             z.object({
@@ -204,7 +196,6 @@ export const beneficiaryRouter = createTRPCRouter({
                     deceasedDate: input.deceasedDate,
                 },
                 async () => {
-                    // Verify the beneficiary belongs to this entity
                     const ben = await db.query.beneficiary.findFirst({
                         where: and(
                             eq(beneficiary.id, input.beneficiaryId),
@@ -225,9 +216,6 @@ export const beneficiaryRouter = createTRPCRouter({
             )
         }),
 
-    /**
-     * Manually recalculate shares after a beneficiary death
-     */
     recalculateShares: adminProcedure
         .input(
             z.object({

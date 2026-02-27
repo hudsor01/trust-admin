@@ -1,25 +1,10 @@
 'use client'
 
-/**
- * TanStack Query hooks for Neon Data API
- *
- * Drop-in replacement for tRPC CRUD hooks on pure data tables.
- *
- * Usage:
- *   // List with filter
- *   const { data: vehicles = [] } = useNeonList<Vehicle>('vehicle', { entity_id: entityId })
- *
- *   // CRUD mutations (same interface as useCrudMutations)
- *   const { create, update, delete: remove } = useNeonMutations<Vehicle>('vehicle')
- *   await create.mutateAsync({ entityId, year: 2020, make: 'Toyota', ... })
- *   await update.mutateAsync({ id: 1, entityId: 1, data: { make: 'Honda' } })
- *   await remove.mutateAsync({ id: 1, entityId: 1 })
- */
+/** TanStack Query CRUD hooks for Neon Data API -- drop-in replacement for tRPC on pure data tables. */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { neonFetch } from '@/lib/neon-data-api'
 
-/** Build a stable query key for a neon table + optional filters */
 export function neonKey(
     table: string,
     filter?: Record<string, number | string | null | undefined>,
@@ -27,7 +12,6 @@ export function neonKey(
     return ['neon', table, filter] as const
 }
 
-/** List rows from a table, optionally filtered by column equality */
 export function useNeonList<T>(
     table: string,
     filter?: Record<string, number | null | undefined>,
@@ -53,8 +37,7 @@ export function useNeonList<T>(
     })
 }
 
-/** Standard create/update/delete mutations for a Neon Data API table.
- *  entityId is optional — omit for tables that do not have an entity_id column (e.g. task). */
+/** entityId is optional -- omit for tables without an entity_id column (e.g. task). */
 export function useNeonMutations<TModel extends { id: number }>(table: string) {
     const queryClient = useQueryClient()
 

@@ -1,12 +1,6 @@
 import { defineConfig, devices } from '@playwright/test'
 
-/**
- * E2E test config.
- * Run: bun run test:e2e
- * Requires: dev server running on :3000 (bun run dev)
- * Auth credentials: TEST_ADMIN_EMAIL, TEST_ADMIN_PASSWORD,
- *   TEST_BENEFICIARY_EMAIL, TEST_BENEFICIARY_PASSWORD in .env
- */
+/** Requires dev server on :3000. Auth credentials from .env. */
 export default defineConfig({
     globalSetup: './tests/e2e/global-setup.ts',
     testDir: './tests/e2e',
@@ -43,7 +37,7 @@ export default defineConfig({
                 storageState: 'playwright/.auth/admin.json',
             },
             dependencies: ['setup-admin'],
-            // Ignore portal, setup, and auth flow tests (auth tests need unauthenticated context)
+            // Auth tests need unauthenticated context — run in separate project
             testIgnore: [
                 '**/portal/**',
                 '**/setup/**',

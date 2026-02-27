@@ -1,19 +1,4 @@
-/**
- * tRPC Admin Operations Tests - activityLog & userManagement Routers
- *
- * Tests two admin-only routers:
- *
- * activityLog (read-only):
- *   - list (with pagination)
- *   - byId
- *   - withChanges (raw SQL with JSON_TABLE)
- *   - search (JSONB field search against newValues)
- *
- * userManagement (validation paths only - external auth API calls are skipped):
- *   - listProvisionedUsers
- *   - createBeneficiaryUser validation (NOT_FOUND, CONFLICT)
- *   - resetUserPassword validation (NOT_FOUND)
- */
+/** tRPC admin operations tests — activityLog (list/byId/withChanges/search) and userManagement (validation paths only). */
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import type { TRPCError } from '@trpc/server'
 import { eq } from 'drizzle-orm'
@@ -58,7 +43,6 @@ function ownerCaller() {
 /** Unique suffix to avoid collisions with parallel test runs */
 const TS = Date.now().toString().slice(-8)
 
-// Track all created record IDs for cleanup
 const testIds = {
     entityId: null as number | null,
     beneficiary1Id: null as number | null,
@@ -75,7 +59,6 @@ describe.skipIf(isProductionDb)(
     'Admin Operations - activityLog & userManagement Routers',
     () => {
         beforeAll(async () => {
-            // 1. Create a parent entity for beneficiaries
             const [createdEntity] = await db
                 .insert(entity)
                 .values({
@@ -90,7 +73,6 @@ describe.skipIf(isProductionDb)(
 
             const now = new Date().toISOString()
 
-            // 2. Create beneficiary 1 (for userManagement NOT_FOUND and happy-path setup)
             const [ben1] = await db
                 .insert(beneficiary)
                 .values({
@@ -104,7 +86,7 @@ describe.skipIf(isProductionDb)(
                 .returning()
             testIds.beneficiary1Id = ben1.id
 
-            // 3. Create beneficiary 2 (for CONFLICT test - will have a userProfile)
+            // Has a userProfile to trigger CONFLICT test
             const [ben2] = await db
                 .insert(beneficiary)
                 .values({
@@ -118,7 +100,6 @@ describe.skipIf(isProductionDb)(
                 .returning()
             testIds.beneficiary2Id = ben2.id
 
-            // 4. Insert a userProfile for beneficiary2 to trigger CONFLICT
             const profileUserId = `test-profile-${TS}`
             await db.insert(userProfile).values({
                 userId: profileUserId,
@@ -127,7 +108,6 @@ describe.skipIf(isProductionDb)(
             })
             testIds.userProfileUserId = profileUserId
 
-            // 5. Insert activity log entries for read-query tests
             const logEntries = await db
                 .insert(activityLog)
                 .values([
@@ -171,21 +151,17 @@ describe.skipIf(isProductionDb)(
         }, TEST_TIMEOUT)
 
         afterAll(async () => {
-            // Clean up in reverse FK order
-
-            // 1. Delete userProfile records
+            // Reverse FK order
             if (testIds.userProfileUserId) {
                 await db
                     .delete(userProfile)
                     .where(eq(userProfile.userId, testIds.userProfileUserId))
             }
 
-            // 2. Delete activity log entries
             for (const id of testIds.activityLogIds) {
                 await db.delete(activityLog).where(eq(activityLog.id, id))
             }
 
-            // 3. Delete beneficiaries
             if (testIds.beneficiary2Id) {
                 await db
                     .delete(beneficiary)
@@ -197,7 +173,6 @@ describe.skipIf(isProductionDb)(
                     .where(eq(beneficiary.id, testIds.beneficiary1Id))
             }
 
-            // 4. Delete entity
             if (testIds.entityId) {
                 await db.delete(entity).where(eq(entity.id, testIds.entityId))
             }
@@ -215,7 +190,6 @@ describe.skipIf(isProductionDb)(
                     const results = await caller.activityLog.list()
 
                     expect(Array.isArray(results)).toBe(true)
-                    // Should contain at least the entries we inserted in beforeAll
                     expect(results.length).toBeGreaterThanOrEqual(
                         testIds.activityLogIds.length,
                     )
@@ -240,12 +214,10 @@ describe.skipIf(isProductionDb)(
                 async () => {
                     const caller = adminCaller()
 
-                    // Get the first page
                     const page1 = await caller.activityLog.list({
                         limit: 1,
                         offset: 0,
                     })
-                    // Get the second page
                     const page2 = await caller.activityLog.list({
                         limit: 1,
                         offset: 1,
@@ -254,7 +226,6 @@ describe.skipIf(isProductionDb)(
                     expect(page1.length).toBeLessThanOrEqual(1)
                     expect(page2.length).toBeLessThanOrEqual(1)
 
-                    // If both pages have results, they should be different entries
                     if (page1.length > 0 && page2.length > 0) {
                         expect(page1[0].id).not.toBe(page2[0].id)
                     }
@@ -283,7 +254,6 @@ describe.skipIf(isProductionDb)(
                 'byId returns undefined for non-existent id',
                 async () => {
                     const caller = adminCaller()
-                    // Use a very large ID that is unlikely to exist
                     const result = await caller.activityLog.byId(999999999)
 
                     expect(result).toBeUndefined()
@@ -314,7 +284,6 @@ describe.skipIf(isProductionDb)(
                 'byId returns entry with both oldValues and newValues for UPDATE action',
                 async () => {
                     const caller = adminCaller()
-                    // The second entry is an UPDATE with both old and new values
                     const targetId = testIds.activityLogIds[1]
                     const result = await caller.activityLog.byId(targetId)
 
@@ -365,14 +334,12 @@ describe.skipIf(isProductionDb)(
                 'search by status field returns matching entries',
                 async () => {
                     const caller = adminCaller()
-                    // We inserted an entry with newValues.status = 'ACTIVE'
                     const results = await caller.activityLog.search({
                         fieldName: 'status',
                         fieldValue: 'ACTIVE',
                     })
 
                     expect(Array.isArray(results)).toBe(true)
-                    // Should find at least one of our test entries
                     const hasTestEntry = results.some(
                         (r) =>
                             r.recordId === `test-record-${TS}-1` ||
@@ -387,7 +354,6 @@ describe.skipIf(isProductionDb)(
                 'search by firstName field returns matching entries',
                 async () => {
                     const caller = adminCaller()
-                    // The UPDATE entry has newValues.firstName = `NewName${TS}`
                     const results = await caller.activityLog.search({
                         fieldName: 'firstName',
                         fieldValue: `NewName${TS}`,
@@ -410,17 +376,13 @@ describe.skipIf(isProductionDb)(
                 'search by liabilityType field returns matching entries',
                 async () => {
                     const caller = adminCaller()
-                    // The DELETE entry has oldValues.liabilityType = 'MORTGAGE'
-                    // But search looks at newValues, not oldValues, so this should be empty
-                    // for our test data since the DELETE entry has no newValues
+                    // search uses newValues only, not oldValues
                     const results = await caller.activityLog.search({
                         fieldName: 'liabilityType',
                         fieldValue: 'MORTGAGE',
                     })
 
                     expect(Array.isArray(results)).toBe(true)
-                    // The DELETE entry has liabilityType in oldValues, not newValues,
-                    // so it should NOT appear in search results (search uses newValues only)
                     const hasDeleteEntry = results.some(
                         (r) => r.recordId === `test-record-${TS}-3`,
                     )
@@ -454,10 +416,8 @@ describe.skipIf(isProductionDb)(
                                 'tableName' as 'status' /* intentionally invalid value for test */,
                             fieldValue: 'entity',
                         })
-                        // Should not reach here - tableName is not in the searchable allowlist
                         expect(true).toBe(false)
                     } catch (error: unknown) {
-                        // Zod validation should reject the invalid fieldName
                         expect(error).toBeDefined()
                     }
                 },
@@ -478,7 +438,6 @@ describe.skipIf(isProductionDb)(
                         await caller.userManagement.listProvisionedUsers()
 
                     expect(Array.isArray(results)).toBe(true)
-                    // Should contain at least the userProfile we inserted in beforeAll
                     const hasTestProfile = results.some(
                         (r) => r.userId === testIds.userProfileUserId,
                     )
@@ -502,13 +461,11 @@ describe.skipIf(isProductionDb)(
                     expect(testProfile?.beneficiaryId).toBe(
                         testIds.beneficiary2Id,
                     )
-                    // Left join with beneficiary should populate these fields
                     expect(testProfile?.firstName).toBe(`BenTwo${TS}`)
                     expect(testProfile?.lastName).toBe('Test')
                     expect(testProfile?.beneficiaryEmail).toBe(
                         `ben2-${TS}@test.com`,
                     )
-                    // Should have a createdAt timestamp
                     expect(testProfile?.createdAt).toBeDefined()
                 },
                 TEST_TIMEOUT,
@@ -524,7 +481,6 @@ describe.skipIf(isProductionDb)(
                             email: `nonexistent-${TS}@test.com`,
                             tempPassword: 'Password123!',
                         })
-                        // Should not reach here
                         expect(true).toBe(false)
                     } catch (error: unknown) {
                         const trpcError = error as TRPCError
@@ -540,13 +496,11 @@ describe.skipIf(isProductionDb)(
                 async () => {
                     const caller = ownerCaller()
                     try {
-                        // beneficiary2 already has a userProfile from beforeAll setup
                         await caller.userManagement.createBeneficiaryUser({
                             beneficiaryId: testIds.beneficiary2Id!,
                             email: `conflict-${TS}@test.com`,
                             tempPassword: 'Password123!',
                         })
-                        // Should not reach here
                         expect(true).toBe(false)
                     } catch (error: unknown) {
                         const trpcError = error as TRPCError
@@ -569,10 +523,8 @@ describe.skipIf(isProductionDb)(
                             email: `short-pw-${TS}@test.com`,
                             tempPassword: 'short', // Less than 8 characters
                         })
-                        // Should not reach here
                         expect(true).toBe(false)
                     } catch (error: unknown) {
-                        // Zod validation should reject the short password
                         expect(error).toBeDefined()
                     }
                 },
@@ -589,10 +541,8 @@ describe.skipIf(isProductionDb)(
                             email: 'not-an-email',
                             tempPassword: 'Password123!',
                         })
-                        // Should not reach here
                         expect(true).toBe(false)
                     } catch (error: unknown) {
-                        // Zod validation should reject the invalid email
                         expect(error).toBeDefined()
                     }
                 },
@@ -608,7 +558,6 @@ describe.skipIf(isProductionDb)(
                             userId: `non-existent-user-${TS}`,
                             newPassword: 'NewPassword123!',
                         })
-                        // Should not reach here
                         expect(true).toBe(false)
                     } catch (error: unknown) {
                         const trpcError = error as TRPCError
@@ -628,10 +577,8 @@ describe.skipIf(isProductionDb)(
                             userId: testIds.userProfileUserId!,
                             newPassword: 'short', // Less than 8 characters
                         })
-                        // Should not reach here
                         expect(true).toBe(false)
                     } catch (error: unknown) {
-                        // Zod validation should reject the short password
                         expect(error).toBeDefined()
                     }
                 },

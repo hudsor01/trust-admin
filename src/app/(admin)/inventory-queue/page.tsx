@@ -228,7 +228,6 @@ export default function InventoryQueuePage() {
         })
     }
 
-    // Get photo URLs from item (filters out null/undefined)
     const getPhotoUrls = (item: PendingInventoryItem) => {
         return [
             item.photoPath1,
@@ -241,7 +240,6 @@ export default function InventoryQueuePage() {
 
     return (
         <div className="space-y-6">
-            {/* Header */}
             <div>
                 <h2 className="text-2xl font-semibold tracking-tight">
                     Inventory Queue
@@ -251,7 +249,6 @@ export default function InventoryQueuePage() {
                 </p>
             </div>
 
-            {/* Summary Cards */}
             <div className="grid gap-4 md:grid-cols-3">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -307,7 +304,6 @@ export default function InventoryQueuePage() {
                 </Card>
             </div>
 
-            {/* Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList>
                     <TabsTrigger value="pending" className="gap-2">
@@ -338,7 +334,6 @@ export default function InventoryQueuePage() {
                 </TabsContent>
             </Tabs>
 
-            {/* Review Dialog */}
             <Dialog
                 open={!!reviewingItem}
                 onOpenChange={() => setReviewingItem(null)}
@@ -357,7 +352,6 @@ export default function InventoryQueuePage() {
 
                     {reviewingItem && (
                         <div className="space-y-4">
-                            {/* Photos */}
                             {getPhotoUrls(reviewingItem).length > 0 && (
                                 <div>
                                     <Label className="text-sm text-muted-foreground">
@@ -384,7 +378,6 @@ export default function InventoryQueuePage() {
                                 </div>
                             )}
 
-                            {/* Item Details */}
                             <div className="rounded-lg border p-4 space-y-3">
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
@@ -436,7 +429,6 @@ export default function InventoryQueuePage() {
                                 </div>
                             </div>
 
-                            {/* Description */}
                             {reviewingItem.description && (
                                 <div>
                                     <Label className="text-sm text-muted-foreground">
@@ -448,7 +440,6 @@ export default function InventoryQueuePage() {
                                 </div>
                             )}
 
-                            {/* Submitter Info */}
                             {(reviewingItem.submitterName ||
                                 reviewingItem.submitterEmail ||
                                 reviewingItem.submitterPhone) && (
@@ -476,7 +467,6 @@ export default function InventoryQueuePage() {
                                 </div>
                             )}
 
-                            {/* Review info for already reviewed items */}
                             {reviewingItem.status !== 'PENDING' && (
                                 <div className="rounded-lg border p-4 space-y-2">
                                     <div className="flex justify-between">
@@ -518,7 +508,6 @@ export default function InventoryQueuePage() {
                                 </div>
                             )}
 
-                            {/* Review Form (only for pending) */}
                             {reviewingItem.status === 'PENDING' && (
                                 <div className="space-y-2">
                                     <Label htmlFor="reviewNotes">

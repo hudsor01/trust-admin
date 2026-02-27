@@ -1,9 +1,4 @@
-/**
- * VehicleTable Component Tests
- *
- * Tests for the VehicleTable component that displays vehicles in a DataTable
- * with inline editing, edit/delete actions, and loading/empty states.
- */
+/** VehicleTable component tests — DataTable with inline editing, actions, and loading/empty states. */
 
 import '../../setup'
 import { afterEach, describe, expect, mock, test } from 'bun:test'

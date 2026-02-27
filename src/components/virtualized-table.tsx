@@ -24,49 +24,13 @@ export interface VirtualizedTableProps<T> {
     columns: ColumnDef<T>[]
     emptyMessage?: string
     isLoading?: boolean
-    /**
-     * Height of each row in pixels for virtualization calculation
-     * @default 53
-     */
     rowHeight?: number
-    /**
-     * Maximum height of the table body before scrolling
-     * @default 600
-     */
     maxHeight?: number
-    /**
-     * Number of rows to render outside the visible area
-     * @default 5
-     */
+    /** Rows rendered outside visible area to reduce flicker during fast scroll. */
     overscan?: number
 }
 
-/**
- * Virtualized data table for large datasets.
- *
- * Uses @tanstack/react-virtual to only render visible rows,
- * dramatically improving performance for tables with 100+ rows.
- *
- * Uses the same TanStack Table ColumnDef format as DataTable.
- *
- * @example
- * ```tsx
- * const columns: ColumnDef<ActivityLog>[] = [
- *   {
- *     accessorKey: 'createdAt',
- *     header: ({ column }) => <DataTableColumnHeader column={column} title="Timestamp" />,
- *     cell: ({ row }) => formatDate(row.original.createdAt),
- *   },
- * ]
- *
- * <VirtualizedTable
- *   data={activityLogs} // 1000+ rows
- *   columns={columns}
- *   maxHeight={500}
- *   rowHeight={48}
- * />
- * ```
- */
+/** PERF: Only renders visible rows via @tanstack/react-virtual. Same ColumnDef API as DataTable. */
 export function VirtualizedTable<T>({
     data,
     columns,
@@ -90,7 +54,7 @@ export function VirtualizedTable<T>({
 
     const { rows } = table.getRowModel()
 
-    // PERF: Memoize virtualizer callbacks to prevent unnecessary recalculations
+    // PERF: Stable refs prevent virtualizer from recalculating on every render
     const getScrollElement = useCallback(() => parentRef.current, [])
     const estimateSize = useCallback(() => rowHeight, [rowHeight])
 

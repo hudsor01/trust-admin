@@ -1,15 +1,10 @@
 import { toast } from 'sonner'
 import { ApiError } from '@/lib/api-error'
 
-/**
- * Hook for displaying user-friendly error notifications
- * Handles both ApiError and generic Error objects
- */
+/** Displays user-friendly toast notifications for ApiError, Error, and unknown error types. */
 export function useToastError() {
     const showError = (error: unknown) => {
-        // Handle ApiError with structured error data
         if (error instanceof ApiError) {
-            // Check for validation errors with field details
             if (error.code === 'VALIDATION_ERROR' && error.details?.fields) {
                 const fields = error.details.fields as Record<string, string>
                 const fieldErrors = Object.entries(fields)
@@ -22,7 +17,6 @@ export function useToastError() {
                 return
             }
 
-            // Show regular ApiError
             toast.error(error.message, {
                 description:
                     error.code !== 'INTERNAL_ERROR'
@@ -32,9 +26,7 @@ export function useToastError() {
             return
         }
 
-        // Handle generic Error objects
         if (error instanceof Error) {
-            // Network errors
             if (
                 error.message.includes('fetch') ||
                 error.message.includes('network')
@@ -46,14 +38,12 @@ export function useToastError() {
                 return
             }
 
-            // Show generic error message
             toast.error('Error', {
                 description: error.message || 'An unexpected error occurred',
             })
             return
         }
 
-        // Handle unknown error types
         toast.error('Error', {
             description: 'An unexpected error occurred. Please try again.',
         })

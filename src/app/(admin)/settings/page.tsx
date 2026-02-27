@@ -49,7 +49,6 @@ const CONTACT_ROLES = [
     { value: 'OTHER', label: 'Other' },
 ]
 
-// Person row component for beneficiaries/trustees
 function PersonRow({
     name,
     dob,
@@ -106,7 +105,6 @@ function PersonRow({
     )
 }
 
-// Contact row component (no birthday - professional contacts)
 function ContactRow({
     name,
     role,
@@ -184,7 +182,6 @@ export default function SettingsPage() {
         onSuccess: () => utils.contact.list.invalidate(),
     })
 
-    // Contact form using useResourceForm hook
     const contactForm = useResourceForm({
         initialData: {
             name: '',
@@ -208,13 +205,11 @@ export default function SettingsPage() {
 
     const loading = beneficiariesLoading || trusteesLoading || contactsLoading
 
-    // Count how many people have birthdays set (for beneficiaries/trustees)
     const beneficiariesWithDob = beneficiaries.filter((b) => b.dob).length
     const trusteesWithDob = trustees.filter((t) => t.dob).length
 
     return (
         <div className="space-y-6">
-            {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-2xl font-semibold tracking-tight">
@@ -226,7 +221,6 @@ export default function SettingsPage() {
                 </div>
             </div>
 
-            {/* Appearance Section */}
             <Card>
                 <CardHeader>
                     <CardTitle>Appearance</CardTitle>
@@ -247,7 +241,6 @@ export default function SettingsPage() {
                 </CardContent>
             </Card>
 
-            {/* People Configuration Section */}
             <Card>
                 <CardHeader>
                     <div>
@@ -440,7 +433,6 @@ export default function SettingsPage() {
 
                         <TabsContent value="contacts">
                             <div className="space-y-4">
-                                {/* Add Contact Button */}
                                 <div className="flex justify-end">
                                     <Button
                                         size="sm"
@@ -451,7 +443,6 @@ export default function SettingsPage() {
                                     </Button>
                                 </div>
 
-                                {/* Add Contact Dialog */}
                                 <ResourceDialog
                                     open={contactForm.isOpen}
                                     onOpenChange={contactForm.close}
@@ -460,7 +451,6 @@ export default function SettingsPage() {
                                     isLoading={contactForm.isSubmitting}
                                 >
                                     <div className="space-y-4">
-                                        {/* Name - Required */}
                                         <formInstance.Field name="name">
                                             {(field) => (
                                                 <div className="space-y-2">
@@ -495,7 +485,6 @@ export default function SettingsPage() {
                                             )}
                                         </formInstance.Field>
 
-                                        {/* Company */}
                                         <formInstance.Field name="company">
                                             {(field) => (
                                                 <div className="space-y-2">
@@ -522,7 +511,6 @@ export default function SettingsPage() {
                                             )}
                                         </formInstance.Field>
 
-                                        {/* Role */}
                                         <formInstance.Field name="role">
                                             {(field) => (
                                                 <div className="space-y-2">
@@ -570,7 +558,6 @@ export default function SettingsPage() {
                                             )}
                                         </formInstance.Field>
 
-                                        {/* Email */}
                                         <formInstance.Field name="email">
                                             {(field) => (
                                                 <div className="space-y-2">
@@ -598,7 +585,6 @@ export default function SettingsPage() {
                                             )}
                                         </formInstance.Field>
 
-                                        {/* Phone */}
                                         <formInstance.Field name="phone">
                                             {(field) => (
                                                 <div className="space-y-2">

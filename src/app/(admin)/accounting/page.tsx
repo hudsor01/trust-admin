@@ -32,20 +32,16 @@ export default function AccountingPage() {
     const utils = trpc.useUtils()
     const entityId = 1
 
-    // Fetch bank accounts for the current entity
     const { data: bankAccounts = [] } = useNeonList<BankAccount>(
         'bank_account',
         { entity_id: entityId },
     )
 
-    // Server-side aggregate totals across ALL entries (not just the current page)
     const { data: allTotals = [] } = trpc.trustAccounting.totals.useQuery({
         entityId,
     })
 
-    // Fetch all entries — DataTable handles client-side pagination.
-    // listPaginated was broken: currentPage never updated so only the first
-    // 20 server rows were ever fetched, making entries 21+ unreachable.
+    // Full list query -- DataTable handles client-side pagination (see f343692)
     const { data: entries = [], isLoading: entriesLoading } =
         trpc.trustAccounting.list.useQuery({ entityId })
 
@@ -59,7 +55,6 @@ export default function AccountingPage() {
         onSuccess: () => utils.trustAccounting.list.invalidate(),
     })
 
-    // Year-end income-to-principal conversion
     const { data: unconvertedSummary = [] } =
         trpc.trustAccounting.unconvertedIncomeSummary.useQuery({ entityId })
 
@@ -79,7 +74,6 @@ export default function AccountingPage() {
     const loading = entriesLoading
 
     const handleConvertYear = async (fiscalYear: number) => {
-        // Use the first bank account for the conversion entry
         const defaultBankAccount = bankAccounts[0]
         if (!defaultBankAccount) {
             toast.error(
@@ -202,7 +196,6 @@ export default function AccountingPage() {
         })
     }
 
-    // Page-local entry splits (for table tabs only — not for summary totals)
     const { incomeEntries, expenseEntries } = useMemo(() => {
         return {
             incomeEntries: entries.filter((e) => e.entryType === 'INCOME'),
@@ -210,8 +203,7 @@ export default function AccountingPage() {
         }
     }, [entries])
 
-    // Summary card totals — computed server-side from ALL entries, not just the current page.
-    // Texas 113.152(2) requires categorization by principal and income.
+    // Texas Property Code 113.152(2): categorize by principal vs income
     const {
         incomeTotal,
         expenseTotal,
@@ -250,19 +242,16 @@ export default function AccountingPage() {
         }
     }, [allTotals])
 
-    // Filter based on active tab
     const filteredEntries = useMemo(() => {
         if (activeTab === 'income') return incomeEntries
         if (activeTab === 'expense') return expenseEntries
         return entries
     }, [activeTab, entries, incomeEntries, expenseEntries])
 
-    // Generate Texas 113.152 compliant accounting report
     const generateReport = useCallback(async () => {
         setGeneratingReport(true)
 
         try {
-            // Fetch all required data for the report using tRPC
             const entityFilter = { entity_id: `eq.${entityId}` }
             const [
                 bankAccountsData,
@@ -299,7 +288,6 @@ export default function AccountingPage() {
                 day: 'numeric',
             })
 
-            // Build HTML report per Texas Property Code 113.152
             const reportHtml = `
 <!DOCTYPE html>
 <html>
@@ -351,7 +339,6 @@ export default function AccountingPage() {
 </html>
       `
 
-            // Open report in new window
             const reportWindow = window.open('', '_blank')
             if (reportWindow) {
                 reportWindow.document.write(reportHtml)
@@ -364,7 +351,6 @@ export default function AccountingPage() {
         }
     }, [incomeTotal, expenseTotal, netIncome, utils])
 
-    // Handler for opening edit dialog from DataTable
     const openEditForm = (entry: TrustAccounting) => {
         setEditingId(entry.id)
         handleEditEntry({

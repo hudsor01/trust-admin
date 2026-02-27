@@ -27,30 +27,7 @@ interface UseEditableCellReturn {
     handleKeyDown: (e: React.KeyboardEvent) => void
 }
 
-/**
- * Hook for managing inline-editable cell state.
- *
- * Encapsulates the common editing/saving state pattern:
- * - editing: whether cell is in edit mode
- * - editValue: current value in the input
- * - saving: whether save is in progress
- *
- * Provides handlers for:
- * - startEditing: enter edit mode
- * - cancelEditing: exit edit mode without saving
- * - handleChange: update editValue
- * - handleSave: save and exit edit mode
- * - handleKeyDown: Enter saves, Escape cancels
- *
- * @example
- * const { editing, editValue, saving, startEditing, handleChange, handleSave, handleKeyDown } =
- *   useEditableCell({
- *     value,
- *     onSave,
- *     formatForEdit: (v) => v || '',
- *     parseFromEdit: (v) => v || null,
- *   })
- */
+/** Inline-editable cell state: edit mode, value tracking, save/cancel, and Enter/Escape key handling. */
 export function useEditableCell<T>(
     options: UseEditableCellOptions<T>,
 ): UseEditableCellReturn {
@@ -81,7 +58,7 @@ export function useEditableCell<T>(
             ? parseFromEdit(editValue)
             : (editValue as unknown as T)
 
-        // Check if value changed (compare formatted versions for consistency)
+        // Skip save if value hasn't changed
         const currentFormatted = formatForEdit
             ? formatForEdit(value)
             : String(value ?? '')

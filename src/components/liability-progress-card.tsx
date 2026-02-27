@@ -24,16 +24,6 @@ const LIABILITY_TYPE_LABELS: Record<string, string> = {
     OTHER: 'Other',
 }
 
-/**
- * LiabilityProgressCard - Visual representation of liability payoff progress
- *
- * Shows:
- * - Creditor name and liability type badge
- * - Progress bar (% paid off)
- * - Payment position (X of Y payments) for loans with terms
- * - Estimated payoff date
- * - Monthly payment amount
- */
 export function LiabilityProgressCard({
     liability,
     showDetails = true,
@@ -44,12 +34,10 @@ export function LiabilityProgressCard({
     const isRevolvingCredit =
         liability.isRevolvingCredit || liability.liabilityType === 'CREDIT_CARD'
 
-    // Calculate progress percentage
     const progressPercent =
         original > 0 ? Math.round(((original - current) / original) * 100) : 0
     const isPaidOff = current <= 0
 
-    // Get loan position (for loans with terms)
     let loanPosition: {
         paymentsMade: number
         paymentsRemaining: number
@@ -74,7 +62,6 @@ export function LiabilityProgressCard({
         }
     }
 
-    // Get payoff estimate
     let payoffEstimate: { payoffDate: string; monthsRemaining: number } | null =
         null
     if (
@@ -100,7 +87,6 @@ export function LiabilityProgressCard({
         liability.liabilityType
 
     if (compact) {
-        // Compact version for dashboard list
         return (
             <div className="flex items-center gap-3 py-2">
                 <div className="flex-1 min-w-0">
@@ -139,11 +125,9 @@ export function LiabilityProgressCard({
         )
     }
 
-    // Full card version
     return (
         <Card>
             <CardContent className="pt-4">
-                {/* Header */}
                 <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
                         <span className="font-medium">
@@ -160,7 +144,6 @@ export function LiabilityProgressCard({
                     )}
                 </div>
 
-                {/* Progress bar */}
                 <div className="space-y-2">
                     <Progress
                         value={progressPercent}
@@ -189,10 +172,8 @@ export function LiabilityProgressCard({
                     </div>
                 </div>
 
-                {/* Details */}
                 {showDetails && !isPaidOff && (
                     <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-                        {/* Payment position (for loans with terms) */}
                         {loanPosition && (
                             <div>
                                 <div className="text-muted-foreground">
@@ -206,7 +187,6 @@ export function LiabilityProgressCard({
                             </div>
                         )}
 
-                        {/* Payoff date */}
                         {payoffEstimate && (
                             <div>
                                 <div className="text-muted-foreground">
@@ -218,7 +198,6 @@ export function LiabilityProgressCard({
                             </div>
                         )}
 
-                        {/* Monthly payment */}
                         {liability.monthlyPayment && (
                             <div>
                                 <div className="text-muted-foreground">
@@ -232,7 +211,6 @@ export function LiabilityProgressCard({
                             </div>
                         )}
 
-                        {/* Interest rate */}
                         {liability.interestRate && (
                             <div>
                                 <div className="text-muted-foreground">
@@ -248,7 +226,7 @@ export function LiabilityProgressCard({
                     </div>
                 )}
 
-                {/* No original amount edge case */}
+                {/* Missing original amount -- can't show progress, just balance */}
                 {!original && !isPaidOff && (
                     <div className="mt-2 text-xs text-muted-foreground">
                         Original amount not recorded - showing current balance

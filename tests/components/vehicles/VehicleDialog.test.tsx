@@ -1,9 +1,4 @@
-/**
- * VehicleDialog Component Tests
- *
- * Tests for the VehicleDialog component that wraps ResourceDialog
- * to provide a form for creating/editing vehicles.
- */
+/** VehicleDialog component tests — ResourceDialog wrapper for creating/editing vehicles. */
 
 import '../../setup'
 import { afterEach, describe, expect, mock, test } from 'bun:test'
@@ -11,11 +6,7 @@ import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { VehicleDialog } from '../../../src/app/(admin)/vehicles/_components/VehicleDialog'
 
-/**
- * Create a minimal formInstance mock for VehicleDialog.
- * When isOpen=false, the dialog does not render form fields,
- * so the formInstance.Field is never called.
- */
+/** isOpen=false means form fields never render, so formInstance.Field is never called. */
 const makeFormInstance = () => ({
     Field: mock(
         ({

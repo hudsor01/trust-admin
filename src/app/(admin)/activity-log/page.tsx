@@ -1,12 +1,5 @@
 'use client'
 
-/**
- * Activity Log Viewer
- *
- * Displays the audit trail of all database changes for compliance and debugging.
- * Uses virtualized table for performance with large datasets.
- */
-
 import type { ColumnDef } from '@tanstack/react-table'
 import { ClipboardList, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
@@ -57,13 +50,11 @@ export default function ActivityLogPage() {
     const [tableFilter, setTableFilter] = useState<string>('all')
     const [selectedLog, setSelectedLog] = useState<ActivityLogType | null>(null)
 
-    // Get unique table names for filter
     const tableNames = useMemo(() => {
         const names = new Set(logs.map((log) => log.tableName))
         return Array.from(names).sort()
     }, [logs])
 
-    // Filter logs based on selected filters
     const filteredLogs = useMemo(() => {
         return logs.filter((log) => {
             const matchesAction =
@@ -74,7 +65,6 @@ export default function ActivityLogPage() {
         })
     }, [logs, actionFilter, tableFilter])
 
-    // Calculate summary stats
     const stats = useMemo(() => {
         return {
             total: logs.length,
@@ -84,13 +74,11 @@ export default function ActivityLogPage() {
         }
     }, [logs])
 
-    // Format JSON for display
     const formatJson = (data: Record<string, unknown> | null) => {
         if (!data) return 'null'
         return JSON.stringify(data, null, 2)
     }
 
-    // Column definitions for VirtualizedTable (TanStack format)
     const columns: ColumnDef<ActivityLogType>[] = useMemo(
         () => [
             {
@@ -162,7 +150,6 @@ export default function ActivityLogPage() {
 
     return (
         <div className="space-y-6">
-            {/* Header */}
             <div className="flex items-center gap-3">
                 <ClipboardList className="h-6 w-6 text-muted-foreground" />
                 <div>
@@ -175,7 +162,6 @@ export default function ActivityLogPage() {
                 </div>
             </div>
 
-            {/* Summary Cards */}
             <div className="grid gap-4 md:grid-cols-4">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -244,7 +230,6 @@ export default function ActivityLogPage() {
                 </Card>
             </div>
 
-            {/* Filters */}
             <div className="flex gap-4">
                 <div className="w-48">
                     <Select
@@ -280,7 +265,6 @@ export default function ActivityLogPage() {
                 </div>
             </div>
 
-            {/* Data Table with virtualization for large datasets */}
             <VirtualizedTable
                 columns={columns}
                 data={filteredLogs}
@@ -290,7 +274,6 @@ export default function ActivityLogPage() {
                 rowHeight={48}
             />
 
-            {/* Detail Dialog */}
             <Dialog
                 open={!!selectedLog}
                 onOpenChange={() => setSelectedLog(null)}
@@ -318,7 +301,6 @@ export default function ActivityLogPage() {
 
                     {selectedLog && (
                         <div className="space-y-4">
-                            {/* Metadata */}
                             <div className="grid grid-cols-2 gap-4 text-sm">
                                 <div>
                                     <p className="text-muted-foreground">
@@ -344,7 +326,6 @@ export default function ActivityLogPage() {
                                 )}
                             </div>
 
-                            {/* Old Values */}
                             {selectedLog?.oldValues && (
                                 <div>
                                     <p className="text-sm font-medium mb-2 text-muted-foreground">
@@ -361,7 +342,6 @@ export default function ActivityLogPage() {
                                 </div>
                             )}
 
-                            {/* New Values */}
                             {selectedLog?.newValues && (
                                 <div>
                                     <p className="text-sm font-medium mb-2 text-muted-foreground">

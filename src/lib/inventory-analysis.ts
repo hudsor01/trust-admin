@@ -3,53 +3,36 @@ import { generateObject } from 'ai'
 import sharp from 'sharp'
 import { z } from 'zod'
 
-// Target 2MB for both Anthropic API and Uploadthing storage
-const TARGET_IMAGE_SIZE_BYTES = 2 * 1024 * 1024 // 2MB target
+// 2MB limit: Anthropic vision API and Uploadthing storage
+const TARGET_IMAGE_SIZE_BYTES = 2 * 1024 * 1024
 
-/**
- * Compresses an image to fit within Anthropic's size limits
- *
- * Uses progressive quality reduction and resizing to achieve target size
- * while maintaining image quality for accurate analysis.
- *
- * @param base64Data - Base64 encoded image data
- * @param mimeType - Original MIME type
- * @returns Compressed image as base64 with updated mimeType
- */
+/** Compress an image to fit within the 2MB target via progressive quality reduction. */
 export async function compressImage(
     base64Data: string,
     mimeType: string,
 ): Promise<{ base64: string; mimeType: string }> {
-    // Decode base64 to buffer
     const buffer = Buffer.from(base64Data, 'base64')
     const originalSize = buffer.length
 
-    // If already under limit, return as-is
     if (originalSize <= TARGET_IMAGE_SIZE_BYTES) {
         return { base64: base64Data, mimeType }
     }
 
-    // Debug: image compression started (only logged in development)
-
-    // Get image metadata
     const metadata = await sharp(buffer).metadata()
     const { width = 4000, height = 3000 } = metadata
 
-    // Calculate scale factor based on how much we need to reduce
-    // Area scales with square of dimensions, so sqrt for linear scale
+    // Area scales with square of dimensions; sqrt gives linear scale factor
     const sizeRatio = originalSize / TARGET_IMAGE_SIZE_BYTES
-    const scaleFactor = Math.min(1, 1 / Math.sqrt(sizeRatio * 1.2)) // 1.2x buffer for compression
+    const scaleFactor = Math.min(1, 1 / Math.sqrt(sizeRatio * 1.2))
 
-    // Calculate new dimensions (maintain aspect ratio)
     const newWidth = Math.round(width * scaleFactor)
     const newHeight = Math.round(height * scaleFactor)
 
-    // Max dimension cap (4096 is a good limit for Claude vision)
+    // Claude vision max dimension
     const maxDim = 4096
     const finalWidth = Math.min(newWidth, maxDim)
     const finalHeight = Math.min(newHeight, maxDim)
 
-    // Compress with progressive quality reduction if needed
     let quality = 85
     let compressedBuffer: Buffer
     let attempts = 0
@@ -70,7 +53,6 @@ export async function compressImage(
             attempts < maxAttempts
         ) {
             quality -= 10
-            // Retry with lower quality
         }
     } while (
         compressedBuffer.length > TARGET_IMAGE_SIZE_BYTES &&
@@ -79,19 +61,10 @@ export async function compressImage(
 
     return {
         base64: compressedBuffer.toString('base64'),
-        mimeType: 'image/jpeg', // Always output as JPEG after compression
+        mimeType: 'image/jpeg', // Always JPEG after compression
     }
 }
 
-/**
- * Inventory Analysis using Vercel AI SDK with Claude Opus 4.5
- *
- * Uses Claude's flagship vision model for accurate identification,
- * condition assessment, and fair market valuation of personal property
- * items for trust inventory purposes.
- */
-
-// DB enum values from schema.ts
 type DbCategory =
     | 'JEWELRY'
     | 'ART'
@@ -100,9 +73,7 @@ type DbCategory =
     | 'FURNITURE'
     | 'OTHER'
 
-/**
- * Maps AI-suggested category to database enum value
- */
+/** Maps AI-suggested category to the DB enum value. */
 export function mapToDbCategory(aiCategory: string): DbCategory {
     const normalized = aiCategory.toLowerCase().trim()
 
@@ -134,10 +105,7 @@ export function mapToDbCategory(aiCategory: string): DbCategory {
     return mapping[normalized] || 'OTHER'
 }
 
-/**
- * Zod schema for AI analysis response
- * Used by AI SDK's generateObject for type-safe structured output
- */
+/** AI SDK structured output schema for inventory analysis. */
 export const InventoryAnalysisSchema = z.object({
     name: z
         .string()
@@ -230,20 +198,13 @@ export const InventoryAnalysisSchema = z.object({
 
 export type InventoryAnalysis = z.infer<typeof InventoryAnalysisSchema>
 
-/**
- * Response type with DB-mapped category
- */
+/** Analysis result with DB-mapped category. */
 export interface InventoryAnalysisResult extends InventoryAnalysis {
     dbCategory: DbCategory
     rawCategory: string
 }
 
-/**
- * Domain-specific system prompt for trust inventory analysis
- *
- * Claude Opus 4.5 excels at careful, detailed analysis - this prompt
- * leverages that strength for accurate estate valuation.
- */
+/** System prompt for Claude vision-based estate valuation. */
 export const INVENTORY_ANALYSIS_SYSTEM_PROMPT = `You are an expert estate appraiser and personal property specialist with decades of experience in trust administration, estate sales, and antique/collectible valuation.
 
 Your role is to analyze photos of personal property items and provide ACCURATE fair market valuations for trust inventory purposes. This is a legal document - accuracy matters.
@@ -294,22 +255,12 @@ This is NOT:
 
 Remember: You're helping a trustee fulfill their fiduciary duty. Conservative, defensible valuations are preferred over optimistic guesses.`
 
-/**
- * Image input for inventory analysis
- */
 export interface InventoryImage {
     base64: string
     mimeType: string
 }
 
-/**
- * Analyzes inventory images using Claude Opus 4.5 via Vercel AI SDK
- *
- * Images are automatically compressed if they exceed Anthropic's 5MB limit.
- *
- * @param images - Array of images (base64 encoded with mimeType)
- * @returns Parsed and validated inventory analysis with DB category mapping
- */
+/** Analyze inventory images via Claude Opus 4.5. Auto-compresses oversized images. */
 export async function analyzeInventoryImage(
     images: InventoryImage[],
 ): Promise<InventoryAnalysisResult> {
@@ -317,12 +268,10 @@ export async function analyzeInventoryImage(
         throw new Error('At least one image is required')
     }
 
-    // Compress images that exceed Anthropic's size limit
     const compressedImages = await Promise.all(
         images.map((img) => compressImage(img.base64, img.mimeType)),
     )
 
-    // Build content array with compressed images and text prompt
     const content: Array<
         | { type: 'text'; text: string }
         | { type: 'image'; image: string; mimeType: string }
@@ -341,7 +290,6 @@ export async function analyzeInventoryImage(
         },
     ]
 
-    // Use Claude Opus 4.5 for best-in-class analysis
     const { object } = await generateObject({
         model: anthropic('claude-opus-4-5-20251101'),
         schema: InventoryAnalysisSchema,
@@ -352,16 +300,14 @@ export async function analyzeInventoryImage(
                 content,
             },
         ],
-        temperature: 0.1, // Low temperature for consistent, careful analysis
+        temperature: 0.1, // Low temp for consistent valuation
         experimental_telemetry: {
             isEnabled: true,
             functionId: 'inventory-analysis',
-            recordInputs: false, // Inputs are base64 images — too large for Sentry
-            recordOutputs: true, // Capture the valuation result for debugging
+            recordInputs: false, // Base64 images too large for Sentry
+            recordOutputs: true,
         },
     })
-
-    // Map to DB category
     return {
         ...object,
         rawCategory: object.category,
@@ -369,31 +315,17 @@ export async function analyzeInventoryImage(
     }
 }
 
-/**
- * Compressed image with base64 and mimeType
- */
 export interface CompressedImage {
     base64: string
     mimeType: string
 }
 
-/**
- * Result of analysis with compressed images included
- */
 export interface AnalysisWithImages {
     analysis: InventoryAnalysisResult
     compressedImages: CompressedImage[]
 }
 
-/**
- * Analyzes inventory images and returns both analysis and compressed images.
- *
- * This version is used when photos need to be stored - it returns the
- * compressed images so they can be uploaded to permanent storage.
- *
- * @param images - Array of images (base64 encoded with mimeType)
- * @returns Analysis result and compressed images for storage
- */
+/** Like analyzeInventoryImage but also returns compressed images for upload to storage. */
 export async function analyzeInventoryImageWithCompressed(
     images: InventoryImage[],
 ): Promise<AnalysisWithImages> {
@@ -401,12 +333,10 @@ export async function analyzeInventoryImageWithCompressed(
         throw new Error('At least one image is required')
     }
 
-    // Compress images that exceed size limit
     const compressedImages = await Promise.all(
         images.map((img) => compressImage(img.base64, img.mimeType)),
     )
 
-    // Build content array with compressed images and text prompt
     const content: Array<
         | { type: 'text'; text: string }
         | { type: 'image'; image: string; mimeType: string }
@@ -425,7 +355,6 @@ export async function analyzeInventoryImageWithCompressed(
         },
     ]
 
-    // Use Claude Opus 4.5 for best-in-class analysis
     const { object } = await generateObject({
         model: anthropic('claude-opus-4-5-20251101'),
         schema: InventoryAnalysisSchema,
@@ -440,12 +369,10 @@ export async function analyzeInventoryImageWithCompressed(
         experimental_telemetry: {
             isEnabled: true,
             functionId: 'inventory-analysis',
-            recordInputs: false, // Inputs are base64 images — too large for Sentry
-            recordOutputs: true, // Capture the valuation result for debugging
+            recordInputs: false,
+            recordOutputs: true,
         },
     })
-
-    // Map to DB category
     const analysis: InventoryAnalysisResult = {
         ...object,
         rawCategory: object.category,

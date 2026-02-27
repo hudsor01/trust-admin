@@ -10,12 +10,8 @@ import {
 } from '@/lib/inventory-analysis'
 import { uploadInventoryImages } from '@/lib/uploadthing-server'
 
-// Allow up to 60 seconds for Claude Opus 4.5 image analysis + compression + upload
 export const maxDuration = 60
 
-/**
- * Schema for a single image
- */
 const ImageSchema = z.object({
     base64: z.string().min(1, 'Image data is required'),
     mimeType: z
@@ -26,10 +22,6 @@ const ImageSchema = z.object({
         ),
 })
 
-/**
- * Request schema for inventory image analysis
- * Supports multiple images of the same item (e.g., front + back with serial)
- */
 const AnalyzeRequestSchema = z.object({
     images: z
         .array(ImageSchema)
@@ -37,18 +29,12 @@ const AnalyzeRequestSchema = z.object({
         .max(5, 'Maximum 5 images per item'),
 })
 
-/**
- * Response type for successful analysis (now includes photo URLs)
- */
 interface AnalyzeSuccessResponse {
     success: true
     data: InventoryAnalysisResult
     photoUrls: string[]
 }
 
-/**
- * Response type for errors
- */
 interface AnalyzeErrorResponse {
     success: false
     error: string
@@ -57,28 +43,11 @@ interface AnalyzeErrorResponse {
 
 type AnalyzeResponse = AnalyzeSuccessResponse | AnalyzeErrorResponse
 
-/**
- * POST /api/inventory/analyze
- *
- * Analyzes images of a personal property item using Claude Opus 4.5
- * via Vercel AI SDK with native structured output.
- *
- * Supports multiple images of the same item (e.g., front view + back with
- * model/serial number) for more accurate identification and valuation.
- *
- * Request body:
- * - images: Array of { base64: string, mimeType: string } (1-5 images)
- *
- * Response:
- * - success: boolean
- * - data: Full analysis including value ranges, rationale, condition notes
- * - error: string (on failure)
- */
+/** Analyzes inventory images via Claude for item identification and valuation. */
 export async function POST(
     request: NextRequest,
 ): Promise<NextResponse<AnalyzeResponse>> {
     try {
-        // Auth check - only admins can analyze inventory
         const { data: session } = await authServer.getSession()
         if (!session?.user || session.user.role !== 'admin') {
             return NextResponse.json(
@@ -87,7 +56,6 @@ export async function POST(
             )
         }
 
-        // Check for API key
         if (!env.ANTHROPIC_API_KEY) {
             return NextResponse.json(
                 {
@@ -98,10 +66,7 @@ export async function POST(
             )
         }
 
-        // Parse request body
         const body = await request.json()
-
-        // Validate request
         const validationResult = AnalyzeRequestSchema.safeParse(body)
         if (!validationResult.success) {
             return NextResponse.json(
@@ -116,16 +81,14 @@ export async function POST(
 
         const { images } = validationResult.data
 
-        // Analyze the images using Claude Opus 4.5 and get compressed versions
         const { analysis, compressedImages } =
             await analyzeInventoryImageWithCompressed(images)
 
-        // Upload compressed images to Uploadthing for permanent storage
         let photoUrls: string[] = []
         try {
             photoUrls = await uploadInventoryImages(compressedImages)
         } catch {
-            // Do not fail - analysis is still valuable without photos
+            // Non-fatal: analysis is still valuable without stored photos
         }
 
         return NextResponse.json({
@@ -134,9 +97,7 @@ export async function POST(
             photoUrls,
         })
     } catch (error) {
-        // Check for API errors
         if (error instanceof Error) {
-            // Rate limiting
             if (error.message.includes('rate limit')) {
                 return NextResponse.json(
                     {
@@ -147,7 +108,6 @@ export async function POST(
                 )
             }
 
-            // Authentication errors
             if (
                 error.message.includes('401') ||
                 error.message.includes('authentication')
@@ -162,7 +122,6 @@ export async function POST(
             }
         }
 
-        // Generic error (Sentry captures these automatically)
         return NextResponse.json(
             {
                 success: false,

@@ -1,21 +1,10 @@
 /**
- * Type-safe money utilities using native JavaScript
- *
- * Pattern:
- * - STORE: Strings in DB (e.g., "1500.00") for precision
- * - CALCULATE: Integer cents to avoid floating-point errors
- * - DISPLAY: Intl.NumberFormat for locale-aware formatting
- *
- * @example
- * formatMoney("1500.50") // "$1,500.50"
- * addMoney("100.50", "200.25") // "300.75"
- * subtractMoney("500.00", "200.25") // "299.75"
+ * Money utilities: strings in DB, integer cents for math, Intl for display.
+ * Avoids floating-point errors by converting to cents before arithmetic.
  */
 
-// Type for money stored as strings in database
 export type MoneyString = string | null | undefined
 
-// Reusable USD formatter
 const usdFormat = new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
@@ -23,10 +12,7 @@ const usdFormat = new Intl.NumberFormat('en-US', {
     maximumFractionDigits: 2,
 })
 
-/**
- * Convert a string amount to integer cents
- * Handles null/undefined/empty strings safely
- */
+/** Convert a string amount to integer cents. Returns 0 for null/empty/NaN. */
 export function toCents(amount: MoneyString): number {
     if (!amount || amount.trim() === '') return 0
     const cleaned = amount.replace(/[$,]/g, '').trim()
@@ -34,48 +20,33 @@ export function toCents(amount: MoneyString): number {
     return Number.isNaN(parsed) ? 0 : Math.round(parsed * 100)
 }
 
-/**
- * Convert integer cents to string for database storage
- */
+/** Convert integer cents back to a string for DB storage. */
 export function fromCents(cents: number): string {
     return (cents / 100).toFixed(2)
 }
 
-/**
- * Format a money string as USD currency for display
- */
+/** Format a money string as USD currency (e.g. "$1,500.50"). */
 export function formatMoney(amount: MoneyString): string {
     const cents = toCents(amount)
     return usdFormat.format(cents / 100)
 }
 
-/**
- * Sum an array of money strings
- */
+/** Sum an array of money strings, returning a DB-format string. */
 export function sumStrings(amounts: MoneyString[]): string {
     if (amounts.length === 0) return '0.00'
     const totalCents = amounts.reduce((sum, amt) => sum + toCents(amt), 0)
     return fromCents(totalCents)
 }
 
-/**
- * Add two money values
- */
 export function addMoney(a: MoneyString, b: MoneyString): string {
     return fromCents(toCents(a) + toCents(b))
 }
 
-/**
- * Subtract one money value from another
- */
 export function subtractMoney(a: MoneyString, b: MoneyString): string {
     return fromCents(toCents(a) - toCents(b))
 }
 
-/**
- * Compare two money values
- * @returns -1 if a < b, 0 if equal, 1 if a > b
- */
+/** @returns -1 if a < b, 0 if equal, 1 if a > b */
 export function compareMoney(a: MoneyString, b: MoneyString): -1 | 0 | 1 {
     const aCents = toCents(a)
     const bCents = toCents(b)
@@ -84,26 +55,17 @@ export function compareMoney(a: MoneyString, b: MoneyString): -1 | 0 | 1 {
     return 0
 }
 
-/**
- * Check if a money value is zero
- */
 export function isZero(amount: MoneyString): boolean {
     return toCents(amount) === 0
 }
 
-/**
- * Check if a money value is positive
- */
 export function isPositive(amount: MoneyString): boolean {
     return toCents(amount) > 0
 }
 
-/**
- * Check if a money value is negative
- */
 export function isNegative(amount: MoneyString): boolean {
     return toCents(amount) < 0
 }
 
-// Legacy exports for backwards compatibility
+// Legacy aliases
 export { toCents as toDinero, fromCents as toMoneyString }

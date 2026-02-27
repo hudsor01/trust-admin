@@ -4,8 +4,7 @@ import { Loader2 } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
-// PERF: Lazy load heavy chart components (recharts ~100KB gzipped)
-// Charts are below the fold, so this reduces initial bundle significantly
+// Lazy-loaded: recharts is ~100KB gzipped and these are below the fold
 const AssetAllocationChart = dynamic(
     () =>
         import('@/components/charts/asset-allocation-chart').then(

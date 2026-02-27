@@ -16,7 +16,7 @@ import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import type { Beneficiary, Distribution } from '@/db/schema'
 import { formatCurrency, formatDate } from '@/utils/formatters'
 
-// HEMS categories with descriptions (not a schema enum, kept as constant)
+/** Not a DB enum -- UI-only labels and descriptions for the four HEMS pillars. */
 export const HEMS_CATEGORIES = [
     {
         value: 'HEALTH',
@@ -140,7 +140,6 @@ export function HemsTable({
                 </CardContent>
             </Card>
 
-            {/* Recent HEMS Distributions */}
             <Card>
                 <CardHeader>
                     <CardTitle className="text-lg">

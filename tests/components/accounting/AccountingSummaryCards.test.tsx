@@ -1,9 +1,4 @@
-/**
- * AccountingSummaryCards Component Tests
- *
- * Tests for the summary cards that display income totals, expense totals,
- * net change, deductible expenses, and principal vs income breakdown.
- */
+/** AccountingSummaryCards component tests — income/expense totals, net change, deductible, principal vs income. */
 
 import '../../setup'
 import { afterEach, describe, expect, mock, test } from 'bun:test'

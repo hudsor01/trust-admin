@@ -1,9 +1,4 @@
-/**
- * BeneficiarySummaryCards Component Tests
- *
- * Tests for the summary cards showing beneficiary statistics:
- * total shares, notified count, releases signed, and total distributed.
- */
+/** BeneficiarySummaryCards component tests — total shares, notified count, releases signed, total distributed. */
 
 import '../../setup'
 import { afterEach, describe, expect, test } from 'bun:test'

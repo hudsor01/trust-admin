@@ -1,11 +1,4 @@
-/**
- * Error Boundary Component
- *
- * Wraps components to catch and handle React errors gracefully.
- * Integrates with Sentry for error reporting.
- *
- * @see https://github.com/bvaughn/react-error-boundary
- */
+/** Error boundaries with Sentry integration. */
 'use client'
 
 import * as Sentry from '@sentry/nextjs'
@@ -25,9 +18,6 @@ interface ErrorFallbackProps extends FallbackProps {
     description?: string
 }
 
-/**
- * Get error message from unknown error type
- */
 function getErrorMessage(error: unknown): string {
     if (error instanceof Error) {
         return error.message
@@ -38,9 +28,6 @@ function getErrorMessage(error: unknown): string {
     return 'An unexpected error occurred'
 }
 
-/**
- * Default fallback UI for error boundaries
- */
 function ErrorFallback({
     error,
     resetErrorBoundary,
@@ -82,31 +69,13 @@ function ErrorFallback({
 
 interface AppErrorBoundaryProps {
     children: React.ReactNode
-    /** Optional custom fallback component */
     fallback?: React.ComponentType<FallbackProps>
-    /** Callback when error boundary resets */
     onReset?: () => void
-    /** Custom title for the error UI */
     title?: string
-    /** Custom description for the error UI */
     description?: string
 }
 
-/**
- * Application Error Boundary
- *
- * Catches JavaScript errors in child components and:
- * 1. Logs to Sentry with full context
- * 2. Displays a user-friendly error UI
- * 3. Provides reset functionality
- *
- * @example
- * ```tsx
- * <AppErrorBoundary>
- *   <MyComponent />
- * </AppErrorBoundary>
- * ```
- */
+/** Page-level error boundary: reports to Sentry and shows a full-card error UI with retry. */
 export function AppErrorBoundary({
     children,
     fallback: CustomFallback,
@@ -115,7 +84,6 @@ export function AppErrorBoundary({
     description,
 }: AppErrorBoundaryProps) {
     const handleError = (error: unknown, info: React.ErrorInfo) => {
-        // Report to Sentry with component stack
         Sentry.captureException(error, {
             extra: {
                 componentStack: info.componentStack,
@@ -147,10 +115,6 @@ export function AppErrorBoundary({
     )
 }
 
-/**
- * Lightweight error boundary for individual components
- * Shows a minimal error state without full card UI
- */
 function MinimalFallback({ error, resetErrorBoundary }: FallbackProps) {
     const errorMessage = getErrorMessage(error)
 
@@ -164,12 +128,7 @@ function MinimalFallback({ error, resetErrorBoundary }: FallbackProps) {
     )
 }
 
-/**
- * Component-level error boundary
- *
- * For wrapping individual components that might fail
- * without taking down the entire page.
- */
+/** Component-level boundary: inline error strip instead of full-page card. */
 export function ComponentErrorBoundary({
     children,
     onReset,
@@ -185,7 +144,7 @@ export function ComponentErrorBoundary({
             tags: {
                 errorBoundary: 'ComponentErrorBoundary',
             },
-            level: 'warning', // Lower severity for component-level errors
+            level: 'warning', // Lower severity since individual widgets failing is less critical
         })
     }
 

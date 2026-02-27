@@ -36,7 +36,7 @@ export async function POST(request: Request) {
             )
         }
 
-        // Find the user by email directly — avoids paginated listUsers scan
+        // Direct SQL lookup avoids paginated listUsers scan
         const sql = getSql()
         const [user] = (await sql`
             SELECT id FROM neon_auth."user"
@@ -51,10 +51,9 @@ export async function POST(request: Request) {
             )
         }
 
-        // Set new password
         await authServer.admin.setUserPassword({ userId: user.id, newPassword })
 
-        // Mark token used
+        // Mark token consumed so it can't be reused
         await db
             .update(passwordResetToken)
             .set({ usedAt: new Date() })

@@ -40,7 +40,6 @@ export const hemsRequestRouter = createTRPCRouter({
                 .where(eq(hemsRequest.entityId, input.entityId))
         }),
 
-    // List with beneficiary info
     listWithBeneficiary: adminProcedure
         .input(
             z.object({
@@ -55,7 +54,6 @@ export const hemsRequestRouter = createTRPCRouter({
             })
         }),
 
-    // Get pending requests for queue
     pending: adminProcedure
         .input(z.object({ entityId: z.coerce.number() }))
         .query(async ({ input }) => {
@@ -143,7 +141,7 @@ export const hemsRequestRouter = createTRPCRouter({
             return deleted
         }),
 
-    // Special: Approve HEMS request
+    /** Approve: sets APPROVED status and auto-creates a distribution record. */
     approve: adminProcedure
         .input(
             z.object({
@@ -174,7 +172,6 @@ export const hemsRequestRouter = createTRPCRouter({
                     approvedAmount: input.approvedAmount ?? 'full',
                 },
                 async () => {
-                    // Verify request exists and is in PENDING status
                     const existing = await db.query.hemsRequest.findFirst({
                         where: and(
                             eq(hemsRequest.id, input.id),
@@ -210,7 +207,6 @@ export const hemsRequestRouter = createTRPCRouter({
             )
         }),
 
-    // Special: Deny HEMS request
     deny: adminProcedure
         .input(
             z.object({
@@ -226,7 +222,6 @@ export const hemsRequestRouter = createTRPCRouter({
                 'hems.deny',
                 { requestId: input.id },
                 async () => {
-                    // Verify request exists and is in PENDING status
                     const existing = await db.query.hemsRequest.findFirst({
                         where: and(
                             eq(hemsRequest.id, input.id),
@@ -272,11 +267,10 @@ export const hemsRequestRouter = createTRPCRouter({
             )
         }),
 
-    // Portal: Beneficiary submits request
     submit: beneficiaryProcedure
         .input(insertHemsRequestSchema)
         .mutation(async ({ input, ctx }) => {
-            // Ensure beneficiary can only submit for themselves
+            // Beneficiaries can only submit requests for themselves
             if (
                 !ctx.user.beneficiaryId ||
                 input.beneficiaryId !== ctx.user.beneficiaryId
@@ -287,7 +281,7 @@ export const hemsRequestRouter = createTRPCRouter({
                 })
             }
 
-            // Verify entityId matches the beneficiary's actual entity (always enforced)
+            // Verify entityId matches the beneficiary's actual entity
             const [ben] = await db
                 .select({ entityId: beneficiary.entityId })
                 .from(beneficiary)
@@ -330,7 +324,6 @@ export const hemsRequestRouter = createTRPCRouter({
             )
         }),
 
-    // Portal: Beneficiary views own requests
     myRequests: beneficiaryProcedure.query(async ({ ctx }) => {
         if (!ctx.user.beneficiaryId) {
             return []

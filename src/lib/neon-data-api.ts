@@ -1,24 +1,13 @@
 'use client'
 
-/**
- * Neon Data API client
- *
- * PostgREST-compatible REST client for direct database access.
- * Handles JWT auth via Neon Auth, and bidirectional snake_case↔camelCase transforms.
- *
- * Usage:
- *   import { neonFetch } from '@/lib/neon-data-api'
- *   const rows = await neonFetch<Vehicle[]>('vehicle', 'GET', { params: { entity_id: 'eq.1' } })
- */
+/** PostgREST client for Neon Data API with JWT auth and snake/camel transforms. */
 
 import { authClient } from '@/lib/auth/client'
 
-// snake_case → camelCase
 function snakeToCamel(str: string): string {
     return str.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase())
 }
 
-// camelCase → snake_case
 function camelToSnake(str: string): string {
     return str.replace(/([A-Z])/g, (c) => `_${c.toLowerCase()}`)
 }
@@ -56,7 +45,7 @@ function transformRequestBody(value: unknown): unknown {
 async function getJwt(): Promise<string> {
     let result = await authClient.token()
     if (!result.data?.token) {
-        // Retry once after brief delay to handle transient auth token issues
+        // Retry once after brief delay for transient token issues
         await new Promise<void>((r) => setTimeout(r, 200))
         result = await authClient.token()
     }
@@ -67,14 +56,7 @@ async function getJwt(): Promise<string> {
 
 export type QueryParams = Record<string, string>
 
-/**
- * Low-level Data API fetch.
- *
- * @param table  - Table name (snake_case, e.g. 'bank_account')
- * @param method - HTTP method
- * @param options.params - PostgREST query params (e.g. { entity_id: 'eq.1' })
- * @param options.body   - Request body (camelCase — auto-converted to snake_case)
- */
+/** Low-level Data API fetch. Body is auto-converted from camelCase to snake_case. */
 export async function neonFetch<T>(
     table: string,
     method: 'GET' | 'POST' | 'PATCH' | 'DELETE',

@@ -1,11 +1,5 @@
-/**
- * Type Utilities
- *
- * Type-safe casting utilities for enum values from form inputs and editable cells.
- * These ensure runtime values match the expected TypeScript types.
- */
+/** Type-safe enum casts for form inputs and editable cells. */
 
-// Import enums from schema to derive values
 import {
     allocationClass,
     distributionStandard,
@@ -30,7 +24,6 @@ import {
     withdrawalStatus,
 } from '@/db/schema'
 
-// Derive types from the pgEnum definitions
 export type RecordStatus = (typeof recordStatus.enumValues)[number]
 export type DistributionType = (typeof distributionType.enumValues)[number]
 export type LiabilityType = (typeof liabilityType.enumValues)[number]
@@ -55,7 +48,6 @@ export type TrustType = (typeof trustType.enumValues)[number]
 export type WithdrawalStatus = (typeof withdrawalStatus.enumValues)[number]
 export type TrusteeFeeStatus = (typeof trusteeFeeStatus.enumValues)[number]
 
-// Enum value arrays derived directly from schema (single source of truth)
 export const RECORD_STATUS_VALUES = recordStatus.enumValues
 export const DISTRIBUTION_TYPE_VALUES = distributionType.enumValues
 export const LIABILITY_TYPE_VALUES = liabilityType.enumValues
@@ -78,10 +70,7 @@ export const TRUST_TYPE_VALUES = trustType.enumValues
 export const WITHDRAWAL_STATUS_VALUES = withdrawalStatus.enumValues
 export const TRUSTEE_FEE_STATUS_VALUES = trusteeFeeStatus.enumValues
 
-/**
- * Helper to convert enum values to select options with labels
- * Transforms SCREAMING_SNAKE_CASE to Title Case
- */
+/** Convert enum values to select options (SCREAMING_SNAKE -> Title Case). */
 export function enumToOptions<T extends readonly string[]>(
     values: T,
     filter?: (value: T[number]) => boolean,
@@ -97,86 +86,50 @@ export function enumToOptions<T extends readonly string[]>(
         .map((value) => ({ value, label: toLabel(value) }))
 }
 
-/**
- * Type-safe cast for RecordStatus
- */
 export function asRecordStatus(value: string): RecordStatus {
     return value as RecordStatus
 }
 
-/**
- * Type-safe cast for DistributionType
- */
 export function asDistributionType(value: string): DistributionType {
     return value as DistributionType
 }
 
-/**
- * Type-safe cast for LiabilityType
- */
 export function asLiabilityType(value: string): LiabilityType {
     return value as LiabilityType
 }
 
-/**
- * Type-safe cast for PaymentMethod
- */
 export function asPaymentMethod(value: string): PaymentMethod {
     return value as PaymentMethod
 }
 
-/**
- * Type-safe cast for PropertyType
- */
 export function asPropertyType(value: string): PropertyType {
     return value as PropertyType
 }
 
-/**
- * Type-safe cast for RentalStatus
- */
 export function asRentalStatus(value: string): RentalStatus {
     return value as RentalStatus
 }
 
-/**
- * Type-safe cast for TitleStatus
- */
 export function asTitleStatus(value: string): TitleStatus {
     return value as TitleStatus
 }
 
-/**
- * Type-safe cast for TransferStatus
- */
 export function asTransferStatus(value: string): TransferStatus {
     return value as TransferStatus
 }
 
-/**
- * Type-safe cast for DistributionStandard
- */
 export function asDistributionStandard(value: string): DistributionStandard {
     return value as DistributionStandard
 }
 
-/**
- * Type-safe cast for TrusteeStatus
- */
 export function asTrusteeStatus(value: string): TrusteeStatus {
     return value as TrusteeStatus
 }
 
-/**
- * Type-safe cast for AllocationClass
- */
 export function asAllocationClass(value: string): AllocationClass {
     return value as AllocationClass
 }
 
-/**
- * Type-safe cast for ValuationType (nullable)
- */
 export function asValuationType(value: string | null): ValuationType | null {
     return value as ValuationType | null
 }

@@ -32,9 +32,9 @@ import {
     withdrawalRecord,
 } from './schema'
 
-// ============================================
-// Reusable Validation Helpers
-// ============================================
+// ---------------------------------------------------------------------------
+// Validation Helpers
+// ---------------------------------------------------------------------------
 
 const emailValidation = z
     .string()
@@ -50,18 +50,13 @@ const phoneValidation = z
     .nullable()
     .optional()
 
-/**
- * VULN-009 FIX: Improved numeric validation
- * - Checks for NaN and Infinity
- * - Enforces maximum value bounds
- * - Prevents scientific notation bypass
- */
-const MAX_CURRENCY_VALUE = 999_999_999_999.99 // ~1 trillion
+/** Rejects NaN, Infinity, and scientific notation bypass (VULN-009). */
+const MAX_CURRENCY_VALUE = 999_999_999_999.99
 
 const positiveNumberValidation = z
     .string()
     .refine((val) => {
-        if (!val) return true // null/empty is ok (optional field)
+        if (!val) return true
         const num = parseFloat(val)
         return (
             !Number.isNaN(num) &&
@@ -72,8 +67,7 @@ const positiveNumberValidation = z
     }, `Must be a valid positive number (max ${MAX_CURRENCY_VALUE.toLocaleString()})`)
     .refine((val) => {
         if (!val) return true
-        // Enforce max 2 decimal places to match DB numeric(12,2)
-        return !/\.\d{3,}/.test(val)
+        return !/\.\d{3,}/.test(val) // DB columns are numeric(12,2)
     }, 'Must have at most 2 decimal places')
     .nullable()
     .optional()
@@ -102,7 +96,7 @@ const requiredZipValidation = z
     .string()
     .regex(/^\d{5}$/, 'ZIP code must be exactly 5 digits')
 
-// City: letters, spaces, hyphens, apostrophes, periods (handles "Fort Worth", "St. Paul", "O'Brien")
+// Allows "Fort Worth", "St. Paul", "O'Brien"
 const cityValidation = z
     .string()
     .min(2, 'City must be at least 2 characters')
@@ -110,14 +104,12 @@ const cityValidation = z
     .nullable()
     .optional()
 
-// State: exactly 2 uppercase letters (US state abbreviation)
 const stateValidation = z
     .string()
     .regex(/^[A-Z]{2}$/, 'State must be 2 uppercase letters (e.g. TX)')
     .nullable()
     .optional()
 
-// Street address: letters, numbers, spaces, and common address characters (#, ., -)
 const streetAddressValidation = z
     .string()
     .min(5, 'Street address must be at least 5 characters')
@@ -377,7 +369,6 @@ export const insertWithdrawalRecordSchema = createInsertSchema(
 )
 export const selectWithdrawalRecordSchema = createSelectSchema(withdrawalRecord)
 
-// Update schemas - for resources that need specific update validation
 export const updateTrusteeSchema = insertTrusteeSchema.partial()
 export const updateVehicleSchema = insertVehicleSchema.partial()
 export const updateWithdrawalRecordSchema =
@@ -410,7 +401,6 @@ export const updateInsurancePolicySchema = insertInsurancePolicySchema.partial()
 export const updatePendingInventoryItemSchema =
     insertPendingInventoryItemSchema.partial()
 
-// User Profile schemas
 export const insertUserProfileSchema = createInsertSchema(userProfile, {
     createdAt: (schema) => schema.optional(),
     updatedAt: (schema) => schema.optional(),

@@ -19,7 +19,6 @@ export default function BeneficiariesPage() {
     const utils = trpc.useUtils()
     const entityId = 1
 
-    // Use optimized query that fetches beneficiaries with distributions in one query
     const {
         data: beneficiariesWithDist = [],
         isLoading: beneficiariesLoading,
@@ -55,7 +54,6 @@ export default function BeneficiariesPage() {
         })
     }
 
-    // Cast to include distributions (already fetched by listWithDistributions)
     const beneficiaries =
         beneficiariesWithDist as BeneficiaryWithDistributions[]
     const [selectedBeneficiary, setSelectedBeneficiary] =
@@ -85,7 +83,6 @@ export default function BeneficiariesPage() {
             setShowDeceasedForm(false)
             setDeceasedDate('')
             setSelectedBeneficiary(null)
-            // The mutation invalidates the query, so beneficiaries will reload
         } catch (error) {
             log.error('Failed to mark deceased', { error })
             toast.error('Failed to mark beneficiary as deceased')
@@ -124,7 +121,6 @@ export default function BeneficiariesPage() {
                 notes: '',
             })
 
-            // Refresh distributions for selected beneficiary using tRPC
             const updated = await utils.beneficiary.byId.fetch({
                 id: selectedBeneficiary.id,
                 entityId,
@@ -169,7 +165,6 @@ export default function BeneficiariesPage() {
 
     return (
         <div className="space-y-6">
-            {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-2xl font-semibold tracking-tight text-balance">
@@ -182,7 +177,6 @@ export default function BeneficiariesPage() {
                 </div>
             </div>
 
-            {/* Summary Cards */}
             <BeneficiarySummaryCards
                 totalShares={totalShares}
                 informedCount={informedCount}
@@ -191,7 +185,6 @@ export default function BeneficiariesPage() {
                 totalBeneficiaries={beneficiaries.length}
             />
 
-            {/* Beneficiary List */}
             <BeneficiaryTable
                 beneficiaries={beneficiaries}
                 isLoading={loading}
@@ -199,7 +192,6 @@ export default function BeneficiariesPage() {
                 onUpdateBeneficiary={updateBeneficiary}
             />
 
-            {/* Beneficiary Detail Dialog */}
             <BeneficiaryDialog
                 selectedBeneficiary={selectedBeneficiary}
                 onClose={() => {

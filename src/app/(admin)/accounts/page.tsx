@@ -27,7 +27,6 @@ export default function AccountsPage() {
     const entityId = 1
     const [activeTab, setActiveTab] = useState('bank')
 
-    // Bank account queries and mutations
     const { data: bankAccounts = [] } = useNeonList<BankAccount>(
         'bank_account',
         { entity_id: entityId },
@@ -38,7 +37,6 @@ export default function AccountsPage() {
         delete: deleteBankAccountMutation,
     } = useNeonMutations<BankAccount>('bank_account')
 
-    // Investment account queries and mutations
     const { data: investmentAccounts = [] } = useNeonList<InvestmentAccount>(
         'investment_account',
         { entity_id: entityId },
@@ -49,7 +47,6 @@ export default function AccountsPage() {
         delete: deleteInvestmentAccountMutation,
     } = useNeonMutations<InvestmentAccount>('investment_account')
 
-    // Wrapper functions to match inline cell API
     const updateBankAccount = async (
         id: number,
         data: Partial<BankAccount>,
@@ -72,7 +69,6 @@ export default function AccountsPage() {
         })
     }
 
-    // Bank Account Dialog - useResourceForm hook
     const [editingBankId, setEditingBankId] = useState<number | null>(null)
 
     const bankForm = useResourceForm<BankFormData>({
@@ -104,7 +100,6 @@ export default function AccountsPage() {
         },
     })
 
-    // Investment Account Dialog - useResourceForm hook
     const [editingInvestmentId, setEditingInvestmentId] = useState<
         number | null
     >(null)
@@ -145,7 +140,6 @@ export default function AccountsPage() {
     const { formInstance: bankFormInstance } = bankForm
     const { formInstance: investmentFormInstance } = investmentForm
 
-    // Custom edit handlers that transform entity -> form data
     const handleEditBank = (bank: BankAccount) => {
         setEditingBankId(bank.id)
         bankForm.handleEdit({
@@ -248,7 +242,6 @@ export default function AccountsPage() {
 
     return (
         <div className="space-y-6">
-            {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-2xl font-semibold tracking-tight text-balance">

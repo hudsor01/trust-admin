@@ -1,11 +1,3 @@
-/**
- * Alert Dialog Component
- *
- * A modal dialog that interrupts the user with important content
- * and expects a response.
- *
- * @see https://www.radix-ui.com/primitives/docs/components/alert-dialog
- */
 'use client'
 
 import * as AlertDialogPrimitive from '@radix-ui/react-alert-dialog'

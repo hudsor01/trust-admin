@@ -2,14 +2,7 @@ import { createUploadthing, type FileRouter } from 'uploadthing/server'
 
 const f = createUploadthing()
 
-/**
- * Uploadthing file router for the trust admin application.
- *
- * inventoryPhoto: Handles photo uploads for inventory items.
- * - Max 5 images per upload
- * - Max 2MB per image (compressed)
- * - Accepts JPEG, PNG, WebP
- */
+/** Inventory photo uploads: max 5 images, 2MB each. */
 export const uploadRouter = {
     inventoryPhoto: f({
         image: {

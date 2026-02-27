@@ -35,7 +35,6 @@ export default function LiabilitiesPage() {
     const { data: liabilities = [], isLoading: liabilitiesLoading } =
         trpc.liability.list.useQuery({ entityId })
 
-    // Optimistic state for instant UI updates on payment recording
     const [optimisticLiabilities, setOptimisticLiability] = useOptimistic(
         liabilities,
         (current, update: { id: number; newBalance: string }) =>
@@ -46,7 +45,6 @@ export default function LiabilitiesPage() {
             ),
     )
 
-    // Fetch bank accounts for payment form
     const { data: bankAccounts = [] } = useNeonList<BankAccount>(
         'bank_account',
         { entity_id: entityId },
@@ -92,7 +90,6 @@ export default function LiabilitiesPage() {
         onError: (error) => toast.error(error.message),
     })
 
-    // Wrapper function to match inline cell API
     const updateLiability = async (id: number, data: Partial<Liability>) => {
         await updateLiabilityMutation.mutateAsync({
             id,
@@ -128,7 +125,6 @@ export default function LiabilitiesPage() {
                     ? null
                     : data.dueDate || null,
                 paymentDueDay: parseInt(data.paymentDueDay, 10) || null,
-                // Loan term fields (only for mortgages/loans)
                 loanTermMonths: hasLoanTermFields(data.liabilityType)
                     ? parseInt(data.loanTermMonths, 10) || null
                     : null,
@@ -138,9 +134,7 @@ export default function LiabilitiesPage() {
                 escrowMonthly: hasLoanTermFields(data.liabilityType)
                     ? data.escrowMonthly || null
                     : null,
-                // Auto-set based on type
                 isRevolvingCredit: isRevolvingType(data.liabilityType),
-                // allocationClass moved to payment level (per-payment allocation)
                 status: asRecordStatus(data.status),
                 notes: data.notes || null,
             }
@@ -168,7 +162,6 @@ export default function LiabilitiesPage() {
         onSubmit: async (data) => {
             if (!payingLiabilityId) return
 
-            // Calculate optimistic new balance
             const liability = optimisticLiabilities.find(
                 (l) => l.id === payingLiabilityId,
             )
@@ -181,7 +174,6 @@ export default function LiabilitiesPage() {
                     0,
                     currentBalance - paymentAmount,
                 ).toFixed(2)
-                // Optimistic update - shows instantly
                 setOptimisticLiability({ id: payingLiabilityId, newBalance })
             }
 
@@ -228,7 +220,6 @@ export default function LiabilitiesPage() {
             monthlyPayment: l.monthlyPayment?.toString() || '',
             dueDate: toDateInput(l.dueDate) || null,
             paymentDueDay: l.paymentDueDay?.toString() || '',
-            // Loan term fields
             loanTermMonths: l.loanTermMonths?.toString() || '',
             loanStartDate: toDateInput(l.loanStartDate) || null,
             escrowMonthly: l.escrowMonthly?.toString() || '',
@@ -266,7 +257,6 @@ export default function LiabilitiesPage() {
 
     const openPaymentDialog = (l: Liability) => {
         setPayingLiabilityId(l.id)
-        // Default to first bank account if available
         const defaultBankAccountId = bankAccounts[0]?.id?.toString() || ''
         paymentForm.handleEdit({
             paymentDate: new Date().toISOString().split('T')[0] ?? '',
@@ -304,7 +294,6 @@ export default function LiabilitiesPage() {
 
     return (
         <div className="space-y-6">
-            {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-2xl font-semibold tracking-tight text-balance">
@@ -317,7 +306,6 @@ export default function LiabilitiesPage() {
                 </div>
             </div>
 
-            {/* Summary Cards */}
             <LiabilitySummaryCards
                 totalLiabilities={totalLiabilities}
                 totalActive={totalActive}
@@ -325,7 +313,6 @@ export default function LiabilitiesPage() {
                 totalRecords={optimisticLiabilities.length}
             />
 
-            {/* Table + Bulk Entry */}
             <LiabilityTable
                 liabilities={optimisticLiabilities}
                 isLoading={liabilitiesLoading}
@@ -341,7 +328,6 @@ export default function LiabilitiesPage() {
                 onUpdateLiability={updateLiability}
             />
 
-            {/* Form Dialog */}
             <LiabilityDialog
                 isOpen={liabilityForm.isOpen}
                 isEditing={liabilityForm.isEditing}
@@ -351,7 +337,6 @@ export default function LiabilitiesPage() {
                 formInstance={liabilityFormInstance}
             />
 
-            {/* Payment Dialog */}
             <PaymentDialog
                 isOpen={paymentForm.isOpen}
                 isSubmitting={paymentForm.isSubmitting}

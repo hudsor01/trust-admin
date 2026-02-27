@@ -16,8 +16,6 @@ import { addBreadcrumb, traceBusinessOperation } from '@/lib/sentry'
 import { adminProcedure, createTRPCRouter } from '../init'
 
 export const trustAccountingRouter = createTRPCRouter({
-    // PERF: Add default limit to prevent unbounded queries
-    // For large result sets, use listPaginated instead
     list: adminProcedure
         .input(
             z.object({
@@ -26,7 +24,7 @@ export const trustAccountingRouter = createTRPCRouter({
             }),
         )
         .query(async ({ input }) => {
-            const limit = input.limit ?? 500 // Default limit to prevent memory issues
+            const limit = input.limit ?? 500
             return db
                 .select()
                 .from(trustAccounting)
@@ -89,7 +87,6 @@ export const trustAccountingRouter = createTRPCRouter({
             return created
         }),
 
-    // Special: Create entry with auto-classification
     createEntry: adminProcedure
         .input(insertTrustAccountingSchema)
         .mutation(async ({ input }) => {
@@ -151,16 +148,7 @@ export const trustAccountingRouter = createTRPCRouter({
     // "All income not distributed shall be added to principal at least annually"
     // =========================================================================
 
-    /**
-     * Get summary of unconverted income by fiscal year
-     *
-     * Shows how much undistributed income is pending conversion to principal
-     * for each fiscal year.
-     */
-    /**
-     * Server-side aggregate totals across ALL entries (not just one page).
-     * Used for summary cards so they always reflect the full ledger.
-     */
+    /** Aggregate totals across ALL entries (not just one page) for summary cards. */
     totals: adminProcedure
         .input(z.object({ entityId: z.coerce.number() }))
         .query(async ({ input }) => {
@@ -187,18 +175,6 @@ export const trustAccountingRouter = createTRPCRouter({
             return getUnconvertedIncomeSummary(input.entityId)
         }),
 
-    /**
-     * Convert undistributed income to principal for a fiscal year
-     *
-     * Per Trust Section 7.10(c): All income not distributed shall be added
-     * to principal at least annually. This procedure:
-     * 1. Finds all unconverted income entries for the fiscal year
-     * 2. Creates a single principal entry for the total
-     * 3. Marks all original entries as converted
-     *
-     * @param entityId - The trust entity
-     * @param fiscalYear - The fiscal year to convert (e.g., 2024)
-     */
     convertIncomeToPrincipal: adminProcedure
         .input(
             z.object({

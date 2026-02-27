@@ -1,22 +1,4 @@
-/**
- * tRPC CRUD Operations Tests - Liability & Beneficiary Routers
- *
- * Tests the full create -> list -> byId -> update -> delete lifecycle
- * plus special mutations for:
- *
- * Liability router:
- *   - Standard CRUD (entity-scoped)
- *   - bulkCreate (multi-row insert with numeric cleaning)
- *   - getPayments (entity-ownership validation)
- *   - getPayoffProjection (amortization calculation)
- *
- * Beneficiary router:
- *   - Standard CRUD (entity-scoped)
- *   - listWithDistributions (optimized N+1 avoidance)
- *   - me (beneficiary portal self-lookup)
- *   - markDeceased (Section 7.01 death handling)
- *   - recalculateShares (pro-rata redistribution)
- */
+/** tRPC CRUD tests for liability + beneficiary routers — standard CRUD, bulkCreate, getPayments, getPayoffProjection, me, markDeceased, recalculateShares. */
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import { eq } from 'drizzle-orm'
 import { db } from '@/db'
@@ -61,7 +43,6 @@ function beneficiaryCaller(beneficiaryId: number | null) {
     )
 }
 
-// Track all created record IDs for cleanup
 const testData = {
     entityId: null as number | null,
     bankAccountId: null as number | null,
@@ -84,7 +65,6 @@ describe.skipIf(isProductionDb)(
     'CRUD Operations - Liability & Beneficiary Routers',
     () => {
         beforeAll(async () => {
-            // Create a parent entity for all tests
             const [testEntity] = await db
                 .insert(entity)
                 .values({
@@ -97,7 +77,6 @@ describe.skipIf(isProductionDb)(
                 .returning()
             testData.entityId = testEntity.id
 
-            // Create a bank account (needed for recordPayment context)
             const [testBank] = await db
                 .insert(bankAccount)
                 .values({
@@ -114,29 +93,25 @@ describe.skipIf(isProductionDb)(
         }, TEST_TIMEOUT)
 
         afterAll(async () => {
-            // Clean up in reverse FK order to avoid constraint violations.
-            // Bulk-delete all liabilities by entityId (catches bulk-created ones too)
+            // Reverse FK order; bulk-delete catches liabilities from bulkCreate tests
             if (testData.entityId) {
                 await db
                     .delete(liability)
                     .where(eq(liability.entityId, testData.entityId))
             }
 
-            // Delete individual beneficiaries (including ones from markDeceased/recalculate tests)
             if (testData.entityId) {
                 await db
                     .delete(beneficiary)
                     .where(eq(beneficiary.entityId, testData.entityId))
             }
 
-            // Delete bank account
             if (testData.bankAccountId) {
                 await db
                     .delete(bankAccount)
                     .where(eq(bankAccount.id, testData.bankAccountId))
             }
 
-            // Delete entity last
             if (testData.entityId) {
                 await db.delete(entity).where(eq(entity.id, testData.entityId))
             }
@@ -202,7 +177,6 @@ describe.skipIf(isProductionDb)(
                     expect(result).toBeDefined()
                     expect(result?.id).toBe(testData.liabilityId)
                     expect(result?.creditor).toBe(`Test Creditor ${TS}`)
-                    // Should include relations from the with clause
                     expect(result).toHaveProperty('entity')
                     expect(result).toHaveProperty('payments')
                     expect(Array.isArray(result?.payments)).toBe(true)
@@ -223,7 +197,7 @@ describe.skipIf(isProductionDb)(
                     expect(updated).toBeDefined()
                     expect(updated.id).toBe(testData.liabilityId)
                     expect(updated.creditor).toBe(`Updated Creditor ${TS}`)
-                    // Original fields preserved
+
                     expect(updated.originalAmount).toBe('50000.00')
                     expect(updated.liabilityType).toBe('LOAN')
                 },
@@ -242,14 +216,12 @@ describe.skipIf(isProductionDb)(
                     expect(deleted).toBeDefined()
                     expect(deleted.id).toBe(testData.liabilityId)
 
-                    // Verify it is gone
                     const result = await caller.liability.byId({
                         id: testData.liabilityId!,
                         entityId: testData.entityId!,
                     })
                     expect(result).toBeUndefined()
 
-                    // Clear tracked ID so afterAll does not attempt double-delete
                     testData.liabilityId = null
                 },
                 TEST_TIMEOUT,
@@ -290,7 +262,6 @@ describe.skipIf(isProductionDb)(
                     expect(Array.isArray(results)).toBe(true)
                     expect(results).toHaveLength(2)
 
-                    // Check first liability (mortgage)
                     expect(results[0].creditor).toBe(`Bulk Mortgage Co ${TS}`)
                     expect(results[0].liabilityType).toBe('MORTGAGE')
                     // Commas should be cleaned from numeric values
@@ -299,7 +270,6 @@ describe.skipIf(isProductionDb)(
                     expect(results[0].status).toBe('ACTIVE')
                     expect(results[0].interestRate).toBe('6.500')
 
-                    // Check second liability (loan)
                     expect(results[1].creditor).toBe(`Bulk Auto Lender ${TS}`)
                     expect(results[1].currentBalance).toBe('18500.00')
                 },
@@ -338,7 +308,6 @@ describe.skipIf(isProductionDb)(
             let paymentsTestLiabilityId: number
 
             beforeAll(async () => {
-                // Create a liability specifically for payment tests
                 const caller = adminCaller()
                 const created = await caller.liability.create({
                     entityId: testData.entityId!,
@@ -378,7 +347,6 @@ describe.skipIf(isProductionDb)(
                             liabilityId: paymentsTestLiabilityId,
                             entityId: wrongEntityId,
                         })
-                        // Should not reach here
                         expect(true).toBe(false)
                     } catch (error: unknown) {
                         const trpcError = error as { code?: string }
@@ -398,7 +366,6 @@ describe.skipIf(isProductionDb)(
                 'returns null for liability without interestRate',
                 async () => {
                     const caller = adminCaller()
-                    // Create a liability with no interest rate
                     const created = await caller.liability.create({
                         entityId: testData.entityId!,
                         liabilityType: 'LOAN',
@@ -424,7 +391,6 @@ describe.skipIf(isProductionDb)(
                 'returns null for revolving credit (CREDIT_CARD) even with interestRate',
                 async () => {
                     const caller = adminCaller()
-                    // Create a revolving credit liability with interest rate
                     const created = await caller.liability.create({
                         entityId: testData.entityId!,
                         liabilityType: 'CREDIT_CARD',
@@ -443,7 +409,6 @@ describe.skipIf(isProductionDb)(
                             entityId: testData.entityId!,
                         })
 
-                    // Revolving credit should return null (isRevolvingCredit check)
                     expect(projection).toBeNull()
                 },
                 TEST_TIMEOUT,
@@ -481,7 +446,6 @@ describe.skipIf(isProductionDb)(
                     expect(projection).toHaveProperty('payoffDate')
                     expect(projection).toHaveProperty('totalInterest')
                     expect(projection!.monthsRemaining).toBeGreaterThan(0)
-                    // totalInterest should be a numeric string
                     expect(
                         parseFloat(projection!.totalInterest),
                     ).toBeGreaterThan(0)
@@ -550,7 +514,6 @@ describe.skipIf(isProductionDb)(
                     expect(
                         results.some((r) => r.id === testData.beneficiaryId),
                     ).toBe(true)
-                    // Each result should have a distributions property from the relation
                     const found = results.find(
                         (r) => r.id === testData.beneficiaryId,
                     )
@@ -591,7 +554,7 @@ describe.skipIf(isProductionDb)(
                     expect(updated).toBeDefined()
                     expect(updated.id).toBe(testData.beneficiaryId)
                     expect(updated.sharePercent).toBe('35.00')
-                    // Original fields preserved
+
                     expect(updated.firstName).toBe(`TestFirst${TS}`)
                     expect(updated.relationship).toBe('CHILD')
                 },
@@ -610,14 +573,12 @@ describe.skipIf(isProductionDb)(
                     expect(deleted).toBeDefined()
                     expect(deleted.id).toBe(testData.beneficiaryId)
 
-                    // Verify it is gone
                     const result = await caller.beneficiary.byId({
                         id: testData.beneficiaryId!,
                         entityId: testData.entityId!,
                     })
                     expect(result).toBeUndefined()
 
-                    // Clear tracked ID so afterAll does not attempt double-delete
                     testData.beneficiaryId = null
                 },
                 TEST_TIMEOUT,
@@ -632,7 +593,6 @@ describe.skipIf(isProductionDb)(
             let meBeneficiaryId: number
 
             beforeAll(async () => {
-                // Create a beneficiary for the portal "me" test
                 const [created] = await db
                     .insert(beneficiary)
                     .values({
@@ -667,7 +627,6 @@ describe.skipIf(isProductionDb)(
                     const caller = beneficiaryCaller(null)
                     const result = await caller.beneficiary.me()
 
-                    // The router returns null when beneficiaryId is null
                     expect(result).toBeNull()
                 },
                 TEST_TIMEOUT,
@@ -680,7 +639,6 @@ describe.skipIf(isProductionDb)(
 
                     try {
                         await caller.beneficiary.me()
-                        // Should not reach here
                         expect(true).toBe(false)
                     } catch (error: unknown) {
                         const trpcError = error as { code?: string }
@@ -699,7 +657,6 @@ describe.skipIf(isProductionDb)(
             let deceasedBeneficiaryId: number
 
             beforeAll(async () => {
-                // Create a beneficiary to mark as deceased
                 const [created] = await db
                     .insert(beneficiary)
                     .values({
@@ -730,7 +687,6 @@ describe.skipIf(isProductionDb)(
                     expect(result).toHaveProperty('success')
                     expect(result.success).toBe(true)
 
-                    // Verify the beneficiary was updated in the database
                     const updated = await db.query.beneficiary.findFirst({
                         where: eq(beneficiary.id, deceasedBeneficiaryId),
                     })
@@ -747,7 +703,6 @@ describe.skipIf(isProductionDb)(
 
         describe('beneficiary.recalculateShares', () => {
             beforeAll(async () => {
-                // Create two beneficiaries: one to exclude, one living
                 const [ben2] = await db
                     .insert(beneficiary)
                     .values({
@@ -790,11 +745,9 @@ describe.skipIf(isProductionDb)(
                     expect(result.success).toBe(true)
 
                     if (result.shareRecalculated) {
-                        // The deceased beneficiary's share should be redistributed
                         expect(result).toHaveProperty('updates')
                         expect(Array.isArray(result.updates)).toBe(true)
 
-                        // Excluded beneficiary's share should be set to 0
                         const excludedBen =
                             await db.query.beneficiary.findFirst({
                                 where: eq(

@@ -1,9 +1,4 @@
-/**
- * Column Helpers Tests
- *
- * Tests for the TanStack Table column helper functions that generate
- * column definitions for DataTable components.
- */
+/** Column helper tests — TanStack Table column definition generators for DataTable components. */
 
 import { describe, expect, test } from 'bun:test'
 import type { ColumnDef } from '@tanstack/react-table'

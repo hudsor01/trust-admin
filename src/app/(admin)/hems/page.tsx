@@ -58,7 +58,6 @@ export default function DistributionsPage() {
     const [selectedWithdrawal, setSelectedWithdrawal] =
         useState<WithdrawalRecord | null>(null)
 
-    // HEMS Request Form
     const hemsForm = useResourceForm<HemsFormData>({
         initialData: {
             beneficiaryId: '',
@@ -88,7 +87,6 @@ export default function DistributionsPage() {
 
     const { formInstance: hemsFormInstance } = hemsForm
 
-    // Withdrawal Processing Form
     const withdrawalForm = useResourceForm<WithdrawalFormData>({
         initialData: {
             amount: '',
@@ -99,7 +97,7 @@ export default function DistributionsPage() {
             if (!selectedWithdrawal) return
             const amount = parseFloat(data.amount.replace(/[,$]/g, ''))
 
-            // Create distribution first
+            // Two-step: create distribution, then link to withdrawal record (with rollback on failure)
             const distData = await createDistributionMutation.mutateAsync({
                 beneficiaryId: selectedWithdrawal.beneficiaryId,
                 entityId: selectedWithdrawal.entityId,
@@ -119,7 +117,6 @@ export default function DistributionsPage() {
                 throw new Error('Failed to create distribution')
             }
 
-            // Then update the withdrawal record — if this fails, clean up the distribution
             try {
                 await updateWithdrawalRecordMutation.mutateAsync({
                     id: selectedWithdrawal.id,
@@ -208,7 +205,6 @@ export default function DistributionsPage() {
 
     return (
         <div className="space-y-6">
-            {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-2xl font-semibold tracking-tight text-balance">
@@ -220,7 +216,6 @@ export default function DistributionsPage() {
                 </div>
             </div>
 
-            {/* Summary Metrics */}
             <div className="@container">
                 <div className="grid gap-4 @xs:grid-cols-2 @lg:grid-cols-4">
                     <SummaryCard
@@ -242,7 +237,6 @@ export default function DistributionsPage() {
                 </div>
             </div>
 
-            {/* Alerts */}
             {eligibleWithdrawals.length > 0 && (
                 <Alert className="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950">
                     <AlertCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
@@ -306,7 +300,6 @@ export default function DistributionsPage() {
                 </TabsContent>
             </Tabs>
 
-            {/* HEMS Request Modal */}
             <HemsDialog
                 isOpen={hemsForm.isOpen}
                 isSubmitting={hemsForm.isSubmitting}
@@ -316,7 +309,6 @@ export default function DistributionsPage() {
                 formInstance={hemsFormInstance}
             />
 
-            {/* Withdrawal Processing Modal */}
             <WithdrawalDialog
                 isOpen={withdrawalForm.isOpen}
                 isSubmitting={withdrawalForm.isSubmitting}

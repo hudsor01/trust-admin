@@ -1,7 +1,4 @@
-/**
- * Simple structured logger for Trust Admin
- * Uses Bun's built-in console with consistent formatting
- */
+/** Structured logger with module namespacing and configurable level. */
 
 type LogLevel = 'debug' | 'info' | 'warn' | 'error'
 

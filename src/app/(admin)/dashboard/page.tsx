@@ -36,7 +36,6 @@ export default function DashboardPage() {
     const { data: tasks = [], isLoading: tasksLoading } =
         useNeonList<Task>('task')
 
-    // Optimistic state for instant UI updates on task completion toggle
     const [optimisticTasks, setOptimisticTask] = useOptimistic(
         tasks,
         (current, update: { id: number; completed: boolean }) =>
@@ -56,7 +55,6 @@ export default function DashboardPage() {
     const { data: hemsRequests = [], isLoading: hemsLoading } =
         trpc.hemsRequest.list.useQuery({ entityId })
 
-    // Asset queries for charts (via Neon Data API)
     const entityFilter = { entity_id: entityId }
     const { data: bankAccounts = [], isLoading: bankAccountsLoading } =
         useNeonList<BankAccount>('bank_account', entityFilter)
@@ -69,7 +67,6 @@ export default function DashboardPage() {
     const { data: vehicles = [], isLoading: vehiclesLoading } =
         useNeonList<Vehicle>('vehicle', entityFilter)
 
-    // Liability query stays in tRPC (business logic router)
     const { data: liabilities = [], isLoading: liabilitiesLoading } =
         trpc.liability.list.useQuery({ entityId })
 
@@ -89,18 +86,14 @@ export default function DashboardPage() {
         vehiclesLoading ||
         liabilitiesLoading
 
-    // Get primary entity for TrustHeader
     const { data: entity = null } = trpc.entity.byId.useQuery(entityId)
 
-    // Local UI state
     const [newTaskTitle, setNewTaskTitle] = useState('')
     const [newTaskCategory, setNewTaskCategory] = useState('OTHER')
     const [expandedTask, setExpandedTask] = useState<number | null>(null)
 
-    // PERF: Memoize handlers to prevent unnecessary re-renders of child components
     const toggleTask = useCallback(
         async (task: (typeof optimisticTasks)[number]) => {
-            // Optimistic update - toggles instantly
             setOptimisticTask({ id: task.id, completed: !task.completed })
             try {
                 await updateTaskMutation.mutateAsync({
@@ -110,7 +103,6 @@ export default function DashboardPage() {
             } catch (error) {
                 log.error('Failed to update task', { error })
                 toast.error('Failed to update task')
-                // Revert optimistic state by re-fetching real data
                 queryClient.invalidateQueries({ queryKey: ['neon', 'task'] })
             }
         },
@@ -151,7 +143,6 @@ export default function DashboardPage() {
         [updateTaskMutation],
     )
 
-    // PERF: Memoize task statistics to prevent recalculation on unrelated renders
     const { completedCount, totalCount, progressPercent, overdueTasks, today } =
         useMemo(() => {
             const completed = optimisticTasks.filter((t) => t.completed).length
@@ -172,7 +163,6 @@ export default function DashboardPage() {
             }
         }, [optimisticTasks])
 
-    // PERF: Memoize grouped tasks to prevent expensive sort operations on every render
     const groupedTasks = useMemo(
         () =>
             TASK_CATEGORIES.map((cat) => ({
@@ -194,7 +184,6 @@ export default function DashboardPage() {
         [optimisticTasks],
     )
 
-    // PERF: Memoize accounting totals to avoid expensive array operations
     const { incomeTotal, expenseTotal, netIncome } = useMemo(() => {
         const income = sumStrings(
             accountingEntries
@@ -213,7 +202,6 @@ export default function DashboardPage() {
         }
     }, [accountingEntries])
 
-    // PERF: Memoize asset calculations - these involve multiple array operations
     const { totalLiabilities, totalAssets, assetAllocationData } =
         useMemo(() => {
             const bankTotal = sumStrings(
@@ -280,7 +268,6 @@ export default function DashboardPage() {
             liabilities,
         ])
 
-    // PERF: Memoize liability statistics
     const {
         activeLiabilities,
         liabilityPayoffPercent,
@@ -308,7 +295,6 @@ export default function DashboardPage() {
         }
     }, [liabilities, totalLiabilities])
 
-    // PERF: Memoize withdrawal data calculations - involves nested loops and sorting
     const { withdrawalData, eligibleNow, upcomingMilestones } = useMemo(() => {
         const grandchildren = beneficiaries.filter(
             (b) => b.relationshipType === 'GRANDCHILD',
@@ -392,7 +378,6 @@ export default function DashboardPage() {
         }
     }, [beneficiaries, withdrawalRecords])
 
-    // PERF: Memoize pending HEMS calculations
     const { pendingHems, pendingHemsTotal } = useMemo(() => {
         const pending = hemsRequests.filter((r) => r.status === 'PENDING')
         return {

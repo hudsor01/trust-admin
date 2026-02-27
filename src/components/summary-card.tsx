@@ -14,37 +14,6 @@ export interface SummaryCardProps {
     formatter?: (value: number) => string
 }
 
-/**
- * Reusable summary card for displaying metrics
- *
- * @param title - Card title/label
- * @param value - Metric value (string or number)
- * @param icon - Optional lucide-react icon component
- * @param trend - Optional trend indicator { value: number, isPositive: boolean }
- * @param isLoading - Show skeleton loading state
- * @param formatter - Optional formatter function for numeric values
- *
- * @example
- * ```typescript
- * // Basic usage
- * <SummaryCard title="Total Assets" value="42" />
- * ```
- *
- * @example
- * ```typescript
- * // Advanced usage with icon, trend, and formatter
- * import { DollarSign } from "lucide-react"
- * import { formatCurrency } from "@/utils/formatters"
- *
- * <SummaryCard
- *   title="Total Liabilities"
- *   value={totalLiabilities}
- *   icon={DollarSign}
- *   trend={{ value: 5.2, isPositive: false }}
- *   formatter={formatCurrency}
- * />
- * ```
- */
 export function SummaryCard({
     title,
     value,

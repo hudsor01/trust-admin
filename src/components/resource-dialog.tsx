@@ -20,34 +20,7 @@ export interface ResourceDialogProps<_T> {
     isLoading?: boolean
 }
 
-/**
- * Generic dialog wrapper for resource create/edit forms
- *
- * @example
- * ```typescript
- * type Liability = {
- *   creditor: string
- *   amount: number
- * }
- *
- * const { isOpen, open, close, form, setForm, handleEdit, handleAdd, handleSave } =
- *   useResourceForm<Liability>({ creditor: "", amount: 0 })
- *
- * <ResourceDialog
- *   open={isOpen}
- *   onOpenChange={close}
- *   title="Add Liability"
- *   onSubmit={handleSave}
- * >
- *   <div className="space-y-4">
- *     <Input
- *       value={form.creditor}
- *       onChange={(e) => setForm({ ...form, creditor: e.target.value })}
- *     />
- *   </div>
- * </ResourceDialog>
- * ```
- */
+/** Generic dialog wrapper for resource create/edit forms. */
 export function ResourceDialog<T>({
     open,
     onOpenChange,

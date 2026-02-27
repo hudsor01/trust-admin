@@ -88,7 +88,6 @@ export default function PropertiesPage() {
     const entityId = 1
     const [activeTab, setActiveTab] = useState('homestead')
 
-    // Homestead queries and mutations
     const { data: homesteads = [], isLoading: homesteadsLoading } =
         useNeonList<Homestead>('homestead', { entity_id: entityId })
     const {
@@ -97,7 +96,6 @@ export default function PropertiesPage() {
         delete: deleteHomesteadMutation,
     } = useNeonMutations<Homestead>('homestead')
 
-    // Rental property queries and mutations
     const { data: rentals = [], isLoading: rentalsLoading } =
         useNeonList<RentalProperty>('rental_property', { entity_id: entityId })
     const {
@@ -106,7 +104,6 @@ export default function PropertiesPage() {
         delete: deleteRentalMutation,
     } = useNeonMutations<RentalProperty>('rental_property')
 
-    // Wrapper for inline edits in the rental table
     const updateRental = async (id: number, data: Partial<RentalProperty>) => {
         await updateRentalMutation.mutateAsync({
             id,
@@ -115,13 +112,11 @@ export default function PropertiesPage() {
         })
     }
 
-    // Track editing IDs
     const [editingHomesteadId, setEditingHomesteadId] = useState<number | null>(
         null,
     )
     const [editingRentalId, setEditingRentalId] = useState<number | null>(null)
 
-    // Homestead form
     const homesteadForm = useResourceForm<HomesteadFormData>({
         initialData: defaultHomesteadForm,
         onSubmit: async (data) => {
@@ -170,7 +165,6 @@ export default function PropertiesPage() {
 
     const { formInstance: homesteadFormInstance } = homesteadForm
 
-    // Custom edit handler for homestead
     const handleEditHomestead = (h: Homestead) => {
         setEditingHomesteadId(h.id)
         homesteadForm.handleEdit({
@@ -201,7 +195,6 @@ export default function PropertiesPage() {
         })
     }
 
-    // Rental form
     const rentalForm = useResourceForm<RentalFormData>({
         initialData: defaultRentalForm,
         onSubmit: async (data) => {
@@ -255,7 +248,6 @@ export default function PropertiesPage() {
 
     const { formInstance: rentalFormInstance } = rentalForm
 
-    // Custom edit handler for rental
     const handleEditRental = (r: RentalProperty) => {
         setEditingRentalId(r.id)
         rentalForm.handleEdit({
@@ -366,11 +358,10 @@ export default function PropertiesPage() {
         )
     }
 
-    const homestead = homesteads[0] // Only one homestead per trust
+    const homestead = homesteads[0] // Texas trust allows one homestead
 
     return (
         <div className="space-y-6">
-            {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-2xl font-semibold tracking-tight text-balance">

@@ -14,7 +14,7 @@ import {
 } from '@/lib/type-utils'
 import { adminProcedure, createTRPCRouter } from '../init'
 
-// Schema for bulk entry rows (simplified subset for rapid entry)
+// Simplified subset for rapid bulk entry
 const bulkLiabilityRowSchema = z.object({
     liabilityType: z.enum(LIABILITY_TYPE_VALUES),
     creditor: z.string().min(1),
@@ -30,7 +30,7 @@ const recordPaymentSchema = z.object({
     liabilityId: z.coerce.number(),
     paymentDate: z.string(),
     amount: z.string(),
-    bankAccountId: z.coerce.number(), // Required: which account the payment came from
+    bankAccountId: z.coerce.number(),
     principalPortion: z.string().optional(),
     interestPortion: z.string().optional(),
     escrowPortion: z.string().optional(),
@@ -38,7 +38,6 @@ const recordPaymentSchema = z.object({
     checkNumber: z.string().optional(),
     confirmationNumber: z.string().optional(),
     notes: z.string().optional(),
-    // Allocation class for trust accounting (Principal vs Income)
     allocationClass: z.enum(ALLOCATION_CLASS_VALUES).optional(),
 })
 
@@ -126,7 +125,6 @@ export const liabilityRouter = createTRPCRouter({
             return deleted
         }),
 
-    // Special: Bulk create multiple liabilities at once
     bulkCreate: adminProcedure
         .input(
             z.object({
@@ -149,7 +147,6 @@ export const liabilityRouter = createTRPCRouter({
                 async () => {
                     const results = await Promise.all(
                         input.liabilities.map((row) => {
-                            // Clean numeric strings (remove commas)
                             const cleanBalance = row.currentBalance.replace(
                                 /,/g,
                                 '',
@@ -170,7 +167,7 @@ export const liabilityRouter = createTRPCRouter({
                                     entityId: input.entityId,
                                     liabilityType: row.liabilityType,
                                     creditor: row.creditor,
-                                    originalAmount: cleanBalance, // Use current balance as original for new entries
+                                    originalAmount: cleanBalance,
                                     currentBalance: cleanBalance,
                                     interestRate: cleanRate,
                                     monthlyPayment: cleanPayment,
@@ -198,11 +195,10 @@ export const liabilityRouter = createTRPCRouter({
             )
         }),
 
-    // Special: Record payment with auto-accounting entry
+    /** Record payment, auto-subtract from balance, and create trust accounting EXPENSE entry. */
     recordPayment: adminProcedure
         .input(recordPaymentSchema)
         .mutation(async ({ input }) => {
-            // Validate liability belongs to this entity
             const liabilityRecord = await db.query.liability.findFirst({
                 where: and(
                     eq(liability.id, input.liabilityId),
@@ -216,7 +212,6 @@ export const liabilityRouter = createTRPCRouter({
                 })
             }
 
-            // Validate bank account belongs to same entity
             const account = await db.query.bankAccount.findFirst({
                 where: and(
                     eq(bankAccount.id, input.bankAccountId),
@@ -249,7 +244,6 @@ export const liabilityRouter = createTRPCRouter({
             )
         }),
 
-    // Special: Get payments for a liability
     getPayments: adminProcedure
         .input(
             z.object({
@@ -258,7 +252,6 @@ export const liabilityRouter = createTRPCRouter({
             }),
         )
         .query(async ({ input }) => {
-            // Validate liability belongs to entity
             const liabilityRecord = await db.query.liability.findFirst({
                 where: and(
                     eq(liability.id, input.liabilityId),
@@ -274,7 +267,6 @@ export const liabilityRouter = createTRPCRouter({
             return getLiabilityPayments(input.liabilityId)
         }),
 
-    // Special: Get payoff projection for a liability
     getPayoffProjection: adminProcedure
         .input(z.object({ id: z.coerce.number(), entityId: z.coerce.number() }))
         .query(async ({ input }) => {

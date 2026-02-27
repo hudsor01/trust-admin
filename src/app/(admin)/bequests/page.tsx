@@ -142,7 +142,6 @@ export default function BequestsPage() {
 
     return (
         <div className="space-y-6">
-            {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-2xl font-semibold tracking-tight text-balance">
@@ -159,7 +158,6 @@ export default function BequestsPage() {
                 </Button>
             </div>
 
-            {/* Pending and Distributed Tables */}
             <BequestTable
                 pendingBequests={pendingBequests}
                 distributedBequests={distributedBequests}
@@ -171,7 +169,6 @@ export default function BequestsPage() {
                 onUpdate={handleUpdate}
             />
 
-            {/* Bequest Form Dialog */}
             <BequestDialog
                 isOpen={bequestForm.isOpen}
                 isEditing={bequestForm.isEditing}

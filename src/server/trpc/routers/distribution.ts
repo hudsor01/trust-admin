@@ -110,7 +110,6 @@ export const distributionRouter = createTRPCRouter({
             return deleted
         }),
 
-    // Portal: Beneficiary views their distributions (database-level filtering)
     myDistributions: beneficiaryProcedure.query(async ({ ctx }) => {
         if (!ctx.user.beneficiaryId) {
             return []

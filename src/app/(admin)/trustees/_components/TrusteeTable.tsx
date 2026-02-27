@@ -30,10 +30,9 @@ import {
 } from '@/lib/type-utils'
 import { formatDate } from '@/utils/formatters'
 
-// Derive options from schema enums (single source of truth)
 export const STATUS_OPTIONS = enumToOptions(TRUSTEE_STATUS_VALUES)
 
-// Primary trustee cannot be edited for security
+/** Rows matching this email are read-only to prevent accidental self-lockout. */
 const PRIMARY_TRUSTEE_EMAIL = 'rhudsontspr@gmail.com'
 
 export type TrusteeRow = {

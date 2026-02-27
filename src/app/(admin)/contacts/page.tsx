@@ -120,7 +120,6 @@ export default function ContactsPage() {
 
     return (
         <div className="space-y-6">
-            {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-2xl font-semibold tracking-tight text-balance">
@@ -154,7 +153,6 @@ export default function ContactsPage() {
                 </div>
             </div>
 
-            {/* Filters & Table */}
             <Card>
                 <CardContent className="pt-6">
                     <div className="flex items-center gap-4 mb-4">
@@ -189,7 +187,6 @@ export default function ContactsPage() {
                 </CardContent>
             </Card>
 
-            {/* Contact Detail Dialog */}
             <ContactDetail
                 contact={selectedContact}
                 onOpenChange={() => setSelectedContact(null)}
@@ -201,7 +198,6 @@ export default function ContactsPage() {
                 }
             />
 
-            {/* Contact Form Dialog */}
             <ContactDialog
                 isOpen={contactForm.isOpen}
                 isEditing={contactForm.isEditing}

@@ -42,7 +42,6 @@ export function NetWorthChart({
         },
     ].filter((d) => d.value > 0)
 
-    // Show placeholder if no data
     if (chartData.length === 0) {
         return (
             <div className="flex h-[250px] w-full items-center justify-center text-muted-foreground">

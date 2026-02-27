@@ -1,12 +1,4 @@
-/**
- * DataTable Component Tests
- *
- * Tests for the main DataTable component that provides:
- * - Table rendering with TanStack Table
- * - Sorting, filtering, pagination
- * - Column visibility
- * - Loading and empty states
- */
+/** DataTable component tests — sorting, filtering, pagination, column visibility, loading/empty states. */
 
 import '../setup'
 import { afterEach, describe, expect, test } from 'bun:test'

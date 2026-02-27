@@ -1,9 +1,4 @@
-/**
- * VirtualizedTable Tests
- *
- * Tests for the virtualized table component used for large datasets
- * like the activity log.
- */
+/** VirtualizedTable tests — virtualized rendering for large datasets like the activity log. */
 
 import '../setup'
 import { afterEach, describe, expect, test } from 'bun:test'
@@ -85,7 +80,6 @@ describe('VirtualizedTable', () => {
                 />,
             )
 
-            // Should show loading skeleton or spinner
             const table = screen.getByRole('table')
             expect(table).toBeTruthy()
         })
@@ -99,7 +93,6 @@ describe('VirtualizedTable', () => {
                 />,
             )
 
-            // Component should render without error
             expect(screen.getByText('Action')).toBeTruthy()
         })
     })
@@ -126,10 +119,7 @@ describe('VirtualizedTable', () => {
 
             const endTime = performance.now()
 
-            // Should render in under 1 second even with 1000 rows
             expect(endTime - startTime).toBeLessThan(1000)
-
-            // Should render the table
             expect(screen.getByRole('table')).toBeTruthy()
         })
 
@@ -143,7 +133,6 @@ describe('VirtualizedTable', () => {
                 />,
             )
 
-            // Component should render without error
             expect(screen.getByRole('table')).toBeTruthy()
         })
 
@@ -156,7 +145,6 @@ describe('VirtualizedTable', () => {
                 />,
             )
 
-            // Component should render without error
             expect(screen.getByRole('table')).toBeTruthy()
         })
     })
@@ -196,7 +184,6 @@ describe('VirtualizedTable', () => {
                 },
             ]
 
-            // Should render without error
             const { container } = render(
                 <VirtualizedTable
                     columns={customColumns}
@@ -204,7 +191,6 @@ describe('VirtualizedTable', () => {
                 />,
             )
 
-            // Check that table structure is correct
             const table = container.querySelector('table')
             expect(table).toBeTruthy()
             expect(screen.getByText('Action')).toBeTruthy()
@@ -213,7 +199,6 @@ describe('VirtualizedTable', () => {
 
     describe('sorting', () => {
         test('supports sortable columns', () => {
-            // VirtualizedTable should support sorting via column headers
             render(
                 <VirtualizedTable
                     columns={columns}
@@ -221,7 +206,6 @@ describe('VirtualizedTable', () => {
                 />,
             )
 
-            // Headers should be clickable for sorting
             const actionHeader = screen.getByText('Action')
             expect(actionHeader).toBeTruthy()
         })
@@ -248,7 +232,6 @@ describe('VirtualizedTable', () => {
             )
 
             const table = screen.getByRole('table')
-            // Should have header row
             const headerRow = within(table).getAllByRole('row')[0]
             expect(headerRow).toBeTruthy()
         })
@@ -260,7 +243,6 @@ describe('VirtualizedTable with activity log data', () => {
         cleanup()
     })
 
-    // Simulating the activity log page pattern
     interface ActivityLog {
         id: number
         action: 'INSERT' | 'UPDATE' | 'DELETE'
@@ -324,7 +306,6 @@ describe('VirtualizedTable with activity log data', () => {
 
         render(<VirtualizedTable columns={columns} data={activityLogs} />)
 
-        // Verify headers render correctly
         expect(screen.getByText('Action')).toBeTruthy()
         expect(screen.getByText('Table')).toBeTruthy()
         expect(screen.getByText('Record ID')).toBeTruthy()
@@ -343,7 +324,6 @@ describe('VirtualizedTable with activity log data', () => {
             <VirtualizedTable columns={columns} data={activityLogs} />,
         )
 
-        // Verify table structure
         const table = container.querySelector('table')
         expect(table).toBeTruthy()
         expect(screen.getByText('Table Name')).toBeTruthy()

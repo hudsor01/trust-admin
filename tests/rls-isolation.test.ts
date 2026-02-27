@@ -1,12 +1,4 @@
-/**
- * Data Isolation Tests
- *
- * Verify the tRPC context correctly scopes beneficiary data.
- * Tests the application-layer isolation (layer 1 of 2).
- * Postgres RLS (layer 2) is verified by the migration SQL in db/migrations/.
- *
- * Run: bun test tests/rls-isolation.test.ts
- */
+/** Application-layer data isolation — verifies tRPC context scopes beneficiary data (layer 1 of 2; RLS is layer 2). */
 import { describe, expect, it } from 'bun:test'
 import type { AppUser } from '@/server/trpc'
 

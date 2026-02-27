@@ -6,7 +6,6 @@ import {
     type InventoryImage,
 } from '@/lib/inventory-analysis'
 
-// Mock the AI SDK's generateObject function
 const mockGenerateObject = mock(() =>
     Promise.resolve({
         object: {
@@ -33,27 +32,14 @@ mock.module('ai', () => ({
     generateObject: mockGenerateObject,
 }))
 
-/**
- * Unit tests for Inventory Analysis image compression
- *
- * Tests the compressImage function that ensures images fit within
- * the 2MB target for both Anthropic API and Uploadthing storage.
- */
+const TARGET_IMAGE_SIZE_BYTES = 2 * 1024 * 1024
+const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024
 
-// Constants matching the source (updated to 2MB target)
-const TARGET_IMAGE_SIZE_BYTES = 2 * 1024 * 1024 // 2MB target
-const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024 // 5MB Anthropic limit (still valid ceiling)
-
-/**
- * Helper to create a large test image (>5MB) using high dimensions and PNG
- */
 async function createLargeTestImage(): Promise<{
     base64: string
     mimeType: string
     actualSize: number
 }> {
-    // Create a large uncompressed PNG to exceed 5MB
-    // 3000x3000 RGB = ~27MB uncompressed, PNG will compress but still large
     const buffer = await sharp({
         create: {
             width: 3000,
@@ -75,9 +61,6 @@ async function createLargeTestImage(): Promise<{
     }
 }
 
-/**
- * Helper to create a small test image (<1MB)
- */
 async function createSmallTestImage(): Promise<{
     base64: string
     mimeType: string
@@ -109,12 +92,10 @@ describe('Image Compression for Inventory Analysis', () => {
             const { base64, mimeType, actualSize } =
                 await createSmallTestImage()
 
-            // Verify our test image is actually small
             expect(actualSize).toBeLessThan(TARGET_IMAGE_SIZE_BYTES)
 
             const result = await compressImage(base64, mimeType)
 
-            // Should return the original data unchanged
             expect(result.base64).toBe(base64)
             expect(result.mimeType).toBe(mimeType)
         })
@@ -138,7 +119,6 @@ describe('Image Compression for Inventory Analysis', () => {
 
             const result = await compressImage(base64, mimeType)
 
-            // Small images pass through unchanged
             expect(result.base64).toBe(base64)
             expect(result.mimeType).toBe(mimeType)
         })
@@ -167,7 +147,6 @@ describe('Image Compression for Inventory Analysis', () => {
             const { base64, mimeType, actualSize } =
                 await createLargeTestImage()
 
-            // Verify our test image is actually large
             expect(actualSize).toBeGreaterThan(TARGET_IMAGE_SIZE_BYTES)
             console.log(
                 `Test image size: ${(actualSize / 1024 / 1024).toFixed(2)}MB`,
@@ -175,7 +154,6 @@ describe('Image Compression for Inventory Analysis', () => {
 
             const result = await compressImage(base64, mimeType)
 
-            // Verify compression happened
             const resultBuffer = Buffer.from(result.base64, 'base64')
             const resultSize = resultBuffer.length
 
@@ -183,18 +161,12 @@ describe('Image Compression for Inventory Analysis', () => {
                 `Compressed size: ${(resultSize / 1024 / 1024).toFixed(2)}MB`,
             )
 
-            // Result should be under target
             expect(resultSize).toBeLessThanOrEqual(TARGET_IMAGE_SIZE_BYTES)
-
-            // Should be converted to JPEG
             expect(result.mimeType).toBe('image/jpeg')
-
-            // Should be significantly smaller than original
             expect(resultSize).toBeLessThan(actualSize)
         })
 
         test('compresses large JPEG to under target size', async () => {
-            // Create a large JPEG by using high quality and large dimensions
             const buffer = await sharp({
                 create: {
                     width: 4500,
@@ -210,7 +182,6 @@ describe('Image Compression for Inventory Analysis', () => {
             const base64 = buffer.toString('base64')
             const actualSize = buffer.length
 
-            // Only run this test if we successfully created a large enough image
             if (actualSize > TARGET_IMAGE_SIZE_BYTES) {
                 console.log(
                     `Large JPEG size: ${(actualSize / 1024 / 1024).toFixed(2)}MB`,
@@ -236,15 +207,12 @@ describe('Image Compression for Inventory Analysis', () => {
             const result = await compressImage(base64, mimeType)
             const resultBuffer = Buffer.from(result.base64, 'base64')
 
-            // Verify the result is a valid image by checking metadata
             const metadata = await sharp(resultBuffer).metadata()
 
             expect(metadata.format).toBe('jpeg')
             expect(metadata.width).toBeGreaterThan(0)
             expect(metadata.height).toBeGreaterThan(0)
 
-            // Dimensions should be reasonable for 2MB target (not tiny)
-            // With 2MB target, images compress more aggressively
             expect(metadata.width).toBeGreaterThanOrEqual(500)
             expect(metadata.height).toBeGreaterThanOrEqual(400)
         })
@@ -254,16 +222,14 @@ describe('Image Compression for Inventory Analysis', () => {
         test('converts PNG to JPEG when compression needed', async () => {
             const { base64, actualSize } = await createLargeTestImage()
 
-            // Only test if image is large enough
             if (actualSize > TARGET_IMAGE_SIZE_BYTES) {
                 const result = await compressImage(base64, 'image/png')
 
                 expect(result.mimeType).toBe('image/jpeg')
 
-                // Verify it's actually a JPEG by checking magic bytes
                 const resultBuffer = Buffer.from(result.base64, 'base64')
-                expect(resultBuffer[0]).toBe(0xff) // JPEG magic byte 1
-                expect(resultBuffer[1]).toBe(0xd8) // JPEG magic byte 2
+                expect(resultBuffer[0]).toBe(0xff)
+                expect(resultBuffer[1]).toBe(0xd8)
             }
         })
 
@@ -292,14 +258,12 @@ describe('Image Compression for Inventory Analysis', () => {
                 'image/png',
             )
 
-            // Small images keep their original format
             expect(result.mimeType).toBe('image/png')
         })
     })
 
     describe('Dimension handling', () => {
         test('respects max dimension cap of 4096px', async () => {
-            // Create a very wide image
             const buffer = await sharp({
                 create: {
                     width: 6000,
@@ -314,7 +278,6 @@ describe('Image Compression for Inventory Analysis', () => {
 
             const actualSize = buffer.length
 
-            // Only test if large enough to trigger compression
             if (actualSize > TARGET_IMAGE_SIZE_BYTES) {
                 const result = await compressImage(
                     buffer.toString('base64'),
@@ -323,7 +286,6 @@ describe('Image Compression for Inventory Analysis', () => {
                 const resultBuffer = Buffer.from(result.base64, 'base64')
                 const metadata = await sharp(resultBuffer).metadata()
 
-                // Width should be capped at 4096
                 expect(metadata.width).toBeLessThanOrEqual(4096)
             }
         })
@@ -354,7 +316,6 @@ describe('Image Compression for Inventory Analysis', () => {
                 const resultBuffer = Buffer.from(result.base64, 'base64')
                 const metadata = await sharp(resultBuffer).metadata()
 
-                // Check aspect ratio is preserved (within tolerance)
                 const originalRatio = originalWidth / originalHeight
                 const newRatio = (metadata.width ?? 1) / (metadata.height ?? 1)
 
@@ -365,12 +326,9 @@ describe('Image Compression for Inventory Analysis', () => {
 
     describe('Edge cases', () => {
         test('handles image exactly at target size', async () => {
-            // Create an image and check it passes through if under target
             const { base64, mimeType, actualSize } =
                 await createSmallTestImage()
 
-            // This is actually testing that small images pass through
-            // Getting exactly 4MB is difficult, so we test the boundary behavior
             expect(actualSize).toBeLessThan(TARGET_IMAGE_SIZE_BYTES)
 
             const result = await compressImage(base64, mimeType)
@@ -394,7 +352,6 @@ describe('Image Compression for Inventory Analysis', () => {
                 'image/webp',
             )
 
-            // Small WebP should pass through unchanged
             expect(result.mimeType).toBe('image/webp')
         })
 
@@ -415,7 +372,6 @@ describe('Image Compression for Inventory Analysis', () => {
                 'image/png',
             )
 
-            // Should succeed without error
             expect(result.base64).toBeDefined()
             expect(result.mimeType).toBeDefined()
         })
@@ -423,7 +379,6 @@ describe('Image Compression for Inventory Analysis', () => {
 
     describe('Integration scenarios', () => {
         test('simulates typical iPhone photo (large HEIC-like dimensions)', async () => {
-            // iPhone photos are typically 4032x3024 (12MP)
             const buffer = await sharp({
                 create: {
                     width: 4032,
@@ -446,18 +401,15 @@ describe('Image Compression for Inventory Analysis', () => {
             const result = await compressImage(base64, 'image/jpeg')
             const resultBuffer = Buffer.from(result.base64, 'base64')
 
-            // Should be under the limit
             expect(resultBuffer.length).toBeLessThanOrEqual(
                 MAX_IMAGE_SIZE_BYTES,
             )
 
-            // Should be a valid JPEG
             const metadata = await sharp(resultBuffer).metadata()
             expect(metadata.format).toBe('jpeg')
         })
 
         test('simulates DSLR photo (high resolution)', async () => {
-            // DSLR photos can be 6000x4000 (24MP) or larger
             const buffer = await sharp({
                 create: {
                     width: 5000,
@@ -480,7 +432,6 @@ describe('Image Compression for Inventory Analysis', () => {
             const result = await compressImage(base64, 'image/jpeg')
             const resultBuffer = Buffer.from(result.base64, 'base64')
 
-            // Should be under the limit
             expect(resultBuffer.length).toBeLessThanOrEqual(
                 MAX_IMAGE_SIZE_BYTES,
             )
@@ -488,13 +439,6 @@ describe('Image Compression for Inventory Analysis', () => {
     })
 })
 
-/**
- * Tests for analyzeInventoryImageWithCompressed function
- *
- * This function compresses images, sends them to Claude for analysis,
- * and returns both the analysis result and the compressed images
- * (for subsequent upload to storage).
- */
 describe('analyzeInventoryImageWithCompressed', () => {
     beforeEach(() => {
         mockGenerateObject.mockClear()
@@ -506,12 +450,10 @@ describe('analyzeInventoryImageWithCompressed', () => {
 
         const result = await analyzeInventoryImageWithCompressed(images)
 
-        // Should have analysis result
         expect(result.analysis).toBeDefined()
         expect(result.analysis.name).toBe('Test Item')
         expect(result.analysis.dbCategory).toBeDefined()
 
-        // Should have compressed images
         expect(result.compressedImages).toBeDefined()
         expect(result.compressedImages).toHaveLength(1)
         expect(result.compressedImages[0].base64).toBeDefined()
@@ -528,7 +470,6 @@ describe('analyzeInventoryImageWithCompressed', () => {
         const result = await analyzeInventoryImageWithCompressed(images)
 
         expect(result.compressedImages).toHaveLength(3)
-        // Each compressed image should have base64 and mimeType
         for (const img of result.compressedImages) {
             expect(img.base64).toBeTruthy()
             expect(img.mimeType).toBeTruthy()
@@ -546,7 +487,6 @@ describe('analyzeInventoryImageWithCompressed', () => {
 
         const result = await analyzeInventoryImageWithCompressed([image])
 
-        // Should have both raw and db category
         expect(result.analysis.rawCategory).toBe('Electronics')
         expect(result.analysis.dbCategory).toBe('ELECTRONICS')
     })
@@ -554,26 +494,22 @@ describe('analyzeInventoryImageWithCompressed', () => {
     test('handles large images that need compression', async () => {
         const { base64, mimeType, actualSize } = await createLargeTestImage()
 
-        // Only run if we have a large enough image
         if (actualSize > TARGET_IMAGE_SIZE_BYTES) {
             const images: InventoryImage[] = [{ base64, mimeType }]
 
             const result = await analyzeInventoryImageWithCompressed(images)
 
-            // Compressed image should be under target
             const compressedSize = Buffer.from(
                 result.compressedImages[0].base64,
                 'base64',
             ).length
             expect(compressedSize).toBeLessThanOrEqual(TARGET_IMAGE_SIZE_BYTES)
 
-            // Should still have valid analysis
             expect(result.analysis).toBeDefined()
         }
     })
 
     test('preserves image order in compressed output', async () => {
-        // Create images with different sizes to track order
         const images: InventoryImage[] = []
 
         for (const size of [400, 600, 800]) {
@@ -596,7 +532,6 @@ describe('analyzeInventoryImageWithCompressed', () => {
 
         const result = await analyzeInventoryImageWithCompressed(images)
 
-        // Should have same number of compressed images
         expect(result.compressedImages).toHaveLength(3)
     })
 
@@ -605,7 +540,6 @@ describe('analyzeInventoryImageWithCompressed', () => {
 
         const result = await analyzeInventoryImageWithCompressed([image])
 
-        // Verify all expected fields are present
         expect(result.analysis).toMatchObject({
             name: expect.any(String),
             rawCategory: expect.any(String),

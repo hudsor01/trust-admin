@@ -1,13 +1,4 @@
-/**
- * tRPC Router EntityId Validation Tests
- *
- * Tests that all entity-scoped routers properly enforce entityId:
- * - list: requires entityId, returns only records for that entity
- * - byId: requires entityId, returns null for wrong entity
- * - update: requires entityId, rejects wrong entity with NOT_FOUND
- * - delete: requires entityId, rejects wrong entity with NOT_FOUND
- * - recordPayment: validates cross-entity references (liability + bank account)
- */
+/** tRPC entityId validation tests — verifies entity-scoped list/byId/update/delete/recordPayment enforce cross-entity isolation. */
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import { TRPCError } from '@trpc/server'
 import { eq } from 'drizzle-orm'
@@ -39,7 +30,6 @@ function adminCaller() {
     return createCaller(createAdminContext())
 }
 
-// Track test data for cleanup
 const testData = {
     entityId1: null as number | null,
     entityId2: null as number | null,
@@ -61,7 +51,6 @@ describe.skipIf(isProductionDb)('EntityId Validation', () => {
         const now = new Date().toISOString()
         const ts = Date.now().toString().slice(-8)
 
-        // Create two entities for cross-entity isolation testing
         const [e1] = await db
             .insert(entity)
             .values({
@@ -88,7 +77,6 @@ describe.skipIf(isProductionDb)('EntityId Validation', () => {
             .returning()
         testData.entityId2 = e2.id
 
-        // Create bank accounts in each entity
         const [ba1] = await db
             .insert(bankAccount)
             .values({
@@ -117,7 +105,6 @@ describe.skipIf(isProductionDb)('EntityId Validation', () => {
             .returning()
         testData.bankAccountId2 = ba2.id
 
-        // Create liabilities in each entity
         const [l1] = await db
             .insert(liability)
             .values({
@@ -148,7 +135,6 @@ describe.skipIf(isProductionDb)('EntityId Validation', () => {
             .returning()
         testData.liabilityId2 = l2.id
 
-        // Create a beneficiary in entity 1
         const [ben1] = await db
             .insert(beneficiary)
             .values({
@@ -163,7 +149,6 @@ describe.skipIf(isProductionDb)('EntityId Validation', () => {
             .returning()
         testData.beneficiaryId1 = ben1.id
 
-        // Create a distribution in entity 1
         const [dist1] = await db
             .insert(distribution)
             .values({
@@ -178,7 +163,6 @@ describe.skipIf(isProductionDb)('EntityId Validation', () => {
             .returning()
         testData.distributionId1 = dist1.id
 
-        // Create a trust accounting entry in entity 1
         const [ta1] = await db
             .insert(trustAccounting)
             .values({
@@ -197,14 +181,12 @@ describe.skipIf(isProductionDb)('EntityId Validation', () => {
     }, TEST_TIMEOUT)
 
     afterAll(async () => {
-        // Clean up in reverse FK order
-        // Delete liability payments first (created by recordPayment test)
+        // Reverse FK order; liability payments first (created by recordPayment test)
         if (testData.liabilityId1) {
             await db
                 .delete(liabilityPayment)
                 .where(eq(liabilityPayment.liabilityId, testData.liabilityId1))
         }
-        // Delete trust accounting entries (including auto-generated ones from recordPayment)
         if (testData.entityId1) {
             await db
                 .delete(trustAccounting)
@@ -412,7 +394,6 @@ describe.skipIf(isProductionDb)('EntityId Validation', () => {
 
         test('hemsRequest.pending requires entityId', async () => {
             const caller = adminCaller()
-            // Create a test HEMS request
             const created = await caller.hemsRequest.create({
                 entityId: testData.entityId1!,
                 beneficiaryId: testData.beneficiaryId1!,
@@ -422,13 +403,11 @@ describe.skipIf(isProductionDb)('EntityId Validation', () => {
             })
             hemsId = created.id
 
-            // Pending for entity 1 should include it
             const pending1 = await caller.hemsRequest.pending({
                 entityId: testData.entityId1!,
             })
             expect(pending1.some((r) => r.id === hemsId)).toBe(true)
 
-            // Pending for entity 2 should NOT include it
             const pending2 = await caller.hemsRequest.pending({
                 entityId: testData.entityId2!,
             })
@@ -465,7 +444,6 @@ describe.skipIf(isProductionDb)('EntityId Validation', () => {
                 expect((err as TRPCError).code).toBe('NOT_FOUND')
             }
 
-            // Clean up
             await db.delete(hemsRequest).where(eq(hemsRequest.id, hemsId!))
         })
     })

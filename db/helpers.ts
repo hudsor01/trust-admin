@@ -1,52 +1,17 @@
-/**
- * Drizzle ORM Schema Helpers
- *
- * Based on best practices from https://orm.drizzle.team/docs/column-types/pg
- */
+/** Drizzle schema column helpers. */
 import { sql } from 'drizzle-orm'
 import { text, timestamp, uuid } from 'drizzle-orm/pg-core'
 
-/**
- * @deprecated Use BIGINT IDENTITY columns instead.
- * Database now generates IDs via generatedAlwaysAsIdentity().
- *
- * Example of new pattern:
- * id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity()
- */
+/** @deprecated Use `bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity()`. */
 export const generateId = () => crypto.randomUUID()
 
-/**
- * @deprecated Use bigint().primaryKey().generatedAlwaysAsIdentity() instead.
- * Database now uses BIGINT IDENTITY columns for auto-generated IDs.
- *
- * Example of new pattern:
- * id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity()
- */
+/** @deprecated Use `bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity()`. */
 export const textId = () => text().primaryKey().$defaultFn(generateId)
 
-/**
- * Native UUID column with auto-generated default
- * Use for new tables where native UUID type is preferred
- *
- * @example
- * const myTable = pgTable("MyTable", {
- *   id: uuidId(),
- *   // other columns...
- * });
- */
+/** UUID primary key with random default. */
 export const uuidId = () => uuid().primaryKey().defaultRandom()
 
-/**
- * Standard timestamp columns for audit trails
- * Returns createdAt and updatedAt column definitions
- *
- * @example
- * const myTable = pgTable("MyTable", {
- *   id: textId(),
- *   name: text().notNull(),
- *   ...timestamps(),
- * });
- */
+/** Spread into pgTable for createdAt (DB default) + updatedAt (app-set on write). */
 export const timestamps = () => ({
     createdAt: timestamp({ precision: 3, mode: 'string' as const })
         .default(sql`CURRENT_TIMESTAMP`)
@@ -56,12 +21,6 @@ export const timestamps = () => ({
         .$onUpdateFn(() => new Date().toISOString()),
 })
 
-/**
- * Timestamp column with timezone support
- * Recommended for datetime fields where timezone matters
- *
- * @example
- * eventDate: timestampWithTz()
- */
+/** Timestamp with timezone — use for fields where timezone matters. */
 export const timestampWithTz = () =>
     timestamp({ precision: 3, mode: 'string' as const, withTimezone: true })

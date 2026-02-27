@@ -1,9 +1,4 @@
-/**
- * LiabilityTable Component Tests
- *
- * Tests for the LiabilityTable component that displays liabilities in a
- * DataTable with inline editing, bulk mode, payment recording, and CRUD actions.
- */
+/** LiabilityTable component tests — DataTable with inline editing, bulk mode, payment recording, and CRUD. */
 
 import '../../setup'
 import { afterEach, describe, expect, mock, test } from 'bun:test'

@@ -1,9 +1,4 @@
-/**
- * AccountingTable Component Tests
- *
- * Tests for the accounting table that shows income/expense entries
- * with tabs for All, Income, and Expense views.
- */
+/** AccountingTable component tests — income/expense entries with All, Income, and Expense tab views. */
 
 import '../../setup'
 import { afterEach, describe, expect, mock, test } from 'bun:test'

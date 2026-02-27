@@ -1,9 +1,4 @@
-/**
- * Column Definition Helpers
- *
- * Utility functions for creating common column configurations for DataTable.
- * Uses TanStack Table ColumnDef format for consistency across all tables.
- */
+/** TanStack Table column definition helpers for DataTable. */
 
 import type { ColumnDef } from '@tanstack/react-table'
 import { Pencil, Trash2 } from 'lucide-react'
@@ -39,12 +34,7 @@ type IdAccessor<T> = (item: T) => number
 // TEXT COLUMN
 // =============================================================================
 
-/**
- * Creates a simple text display column
- *
- * @example
- * textColumn<Vehicle>('make', 'Make', { sortable: true })
- */
+/** Simple text display column. */
 export function textColumn<T>(
     key: keyof T & string,
     header: string,
@@ -68,12 +58,7 @@ export function textColumn<T>(
 // EDITABLE TEXT COLUMN
 // =============================================================================
 
-/**
- * Creates an editable text column with inline editing
- *
- * @example
- * editableTextColumn<Vehicle>('color', 'Color', (id, val) => handleUpdate(id, { color: val }), { placeholder: 'Add color' })
- */
+/** Editable text column with inline editing. */
 export function editableTextColumn<T>(
     key: keyof T & string,
     header: string,
@@ -102,12 +87,7 @@ export function editableTextColumn<T>(
 // EDITABLE CURRENCY COLUMN
 // =============================================================================
 
-/**
- * Creates an editable currency column with inline editing and currency formatting
- *
- * @example
- * editableCurrencyColumn<Vehicle>('dodValue', 'DOD Value', (id, val) => handleUpdate(id, { dodValue: val }))
- */
+/** Editable currency column with inline editing and currency formatting. */
 export function editableCurrencyColumn<T>(
     key: keyof T & string,
     header: string,
@@ -135,18 +115,7 @@ export function editableCurrencyColumn<T>(
 // EDITABLE SELECT COLUMN
 // =============================================================================
 
-/**
- * Creates an editable select column with dropdown and badge display
- *
- * @example
- * editableSelectColumn<Vehicle>(
- *   'titleStatus',
- *   'Title',
- *   TITLE_STATUS,
- *   (id, val) => handleUpdate(id, { titleStatus: asTitleStatus(val) }),
- *   { variants: STATUS_VARIANTS }
- * )
- */
+/** Editable select column with dropdown and badge display. */
 export function editableSelectColumn<T>(
     key: keyof T & string,
     header: string,
@@ -180,12 +149,7 @@ export function editableSelectColumn<T>(
 // DATE COLUMN
 // =============================================================================
 
-/**
- * Creates a formatted date display column
- *
- * @example
- * dateColumn<Vehicle>('acquisitionDate', 'Acquired', { sortable: true })
- */
+/** Formatted date display column. */
 export function dateColumn<T>(
     key: keyof T & string,
     header: string,
@@ -209,12 +173,7 @@ export function dateColumn<T>(
 // EDITABLE DATE COLUMN
 // =============================================================================
 
-/**
- * Creates an editable date column with inline date picker
- *
- * @example
- * editableDateColumn<Vehicle>('acquisitionDate', 'Acquired', (id, val) => handleUpdate(id, { acquisitionDate: val }))
- */
+/** Editable date column with inline date picker. */
 export function editableDateColumn<T>(
     key: keyof T & string,
     header: string,
@@ -243,12 +202,7 @@ export function editableDateColumn<T>(
 // CURRENCY COLUMN (read-only)
 // =============================================================================
 
-/**
- * Creates a formatted currency display column (read-only)
- *
- * @example
- * currencyColumn<Vehicle>('dodValue', 'DOD Value', { sortable: true })
- */
+/** Read-only formatted currency display column. */
 export function currencyColumn<T>(
     key: keyof T & string,
     header: string,
@@ -276,12 +230,7 @@ export function currencyColumn<T>(
 // BADGE COLUMN
 // =============================================================================
 
-/**
- * Creates a badge display column with optional variant mapping
- *
- * @example
- * badgeColumn<Vehicle>('status', 'Status', { variants: STATUS_VARIANTS, sortable: true })
- */
+/** Badge display column with optional variant mapping. */
 export function badgeColumn<T>(
     key: keyof T & string,
     header: string,
@@ -316,12 +265,7 @@ export function badgeColumn<T>(
 // ACTIONS COLUMN
 // =============================================================================
 
-/**
- * Creates a standard actions column with edit/delete buttons
- *
- * @example
- * actionsColumn<Vehicle>({ onEdit: handleEdit, onDelete: handleDelete })
- */
+/** Standard actions column with edit/delete buttons. */
 export function actionsColumn<T>(opts: {
     onEdit?: (item: T) => void
     onDelete?: (item: T) => void

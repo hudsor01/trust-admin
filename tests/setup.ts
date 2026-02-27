@@ -1,15 +1,9 @@
-/**
- * Test Setup
- *
- * Configures happy-dom for React component testing with Bun
- */
+/** Configures happy-dom for React component testing with Bun. */
 
 import { GlobalRegistrator } from '@happy-dom/global-registrator'
 
-// Register happy-dom globals before tests run
 GlobalRegistrator.register()
 
-// Mock matchMedia for components that use it
 Object.defineProperty(window, 'matchMedia', {
     writable: true,
     value: (query: string) => ({
@@ -24,7 +18,6 @@ Object.defineProperty(window, 'matchMedia', {
     }),
 })
 
-// Mock ResizeObserver
 class ResizeObserverMock {
     observe() {}
     unobserve() {}
@@ -32,7 +25,6 @@ class ResizeObserverMock {
 }
 window.ResizeObserver = ResizeObserverMock
 
-// Mock IntersectionObserver
 class IntersectionObserverMock {
     observe() {}
     unobserve() {}

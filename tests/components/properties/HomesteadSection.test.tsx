@@ -1,9 +1,4 @@
-/**
- * HomesteadSection Component Tests
- *
- * Tests for the HomesteadSection component that renders homestead property
- * details or an empty state with an Add Homestead button.
- */
+/** HomesteadSection component tests — homestead property details or empty state with Add button. */
 
 import '../../setup'
 import { afterEach, describe, expect, mock, test } from 'bun:test'

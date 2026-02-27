@@ -1,9 +1,4 @@
-/**
- * Shared Constants
- *
- * Badge variants and non-enum constants.
- * For enum-based select options, use enumToOptions() from @/lib/type-utils
- */
+/** Badge variants and select options derived from schema enums. */
 
 import {
     enumToOptions,
@@ -12,24 +7,13 @@ import {
     VALUATION_TYPE_VALUES,
 } from './type-utils'
 
-// =============================================================================
-// SELECT OPTIONS (derived from schema enums)
-// =============================================================================
-
 export const TRANSFER_STATUS = enumToOptions(TRANSFER_STATUS_VALUES)
 export const RENTAL_STATUS = enumToOptions(RENTAL_STATUS_VALUES)
 export const DOD_VALUE_TYPES = enumToOptions(VALUATION_TYPE_VALUES)
 
-// =============================================================================
-// BADGE VARIANTS
-// =============================================================================
-
 export type BadgeVariant = 'default' | 'secondary' | 'destructive' | 'outline'
 
-/**
- * Unified status badge variants for all asset/transfer statuses.
- * Includes all possible status values across the application.
- */
+/** Unified badge variants for all status values across the app. */
 export const STATUS_VARIANTS: Record<string, BadgeVariant> = {
     // Transfer status
     PENDING: 'secondary',

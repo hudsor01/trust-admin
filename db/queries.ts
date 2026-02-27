@@ -1,9 +1,4 @@
-/**
- * Database Queries
- *
- * Direct Drizzle queries for all database operations.
- * No generic factory - just straightforward type-safe queries.
- */
+/** Drizzle queries for all trust database operations. */
 import { and, desc, eq, sql } from 'drizzle-orm'
 import type postgres from 'postgres'
 import { calculatePaymentSplit } from '../src/lib/amortization'
@@ -15,11 +10,7 @@ import {
 import { addBreadcrumb, traceBusinessOperation } from '../src/lib/sentry'
 import { db, getClient } from './index'
 
-/**
- * Type for postgres.js transaction SQL parameter.
- * TransactionSql uses Omit<Sql, ...> which strips the call signature in TypeScript.
- * This type re-adds the tagged template literal call signature for use in transactions.
- */
+/** postgres.js TransactionSql strips the call signature via Omit — re-add it for tagged template usage. */
 type TxSql = postgres.TransactionSql &
     (<T extends readonly (object | undefined)[] = postgres.Row[]>(
         template: TemplateStringsArray,
@@ -54,7 +45,6 @@ import {
     withdrawalRecord,
 } from './schema'
 
-// Re-export all Drizzle-inferred types for use in components
 export type * from './schema'
 
 // =============================================================================
@@ -65,10 +55,7 @@ export async function getEntities() {
     return db.select().from(entity)
 }
 
-/**
- * Get entity by ID with all related assets (heavy query)
- * Use getEntityByIdLite() when you only need entity fields
- */
+/** Eager-loads all asset relations — prefer getEntityByIdLite() unless relations are needed. */
 export async function getEntityById(id: number) {
     return db.query.entity.findFirst({
         where: eq(entity.id, id),
@@ -85,10 +72,7 @@ export async function getEntityById(id: number) {
     })
 }
 
-/**
- * PERF: Lite variant - returns only entity fields without relations
- * Use for dashboards, dropdowns, and contexts where relations are not needed
- */
+/** Returns only entity columns (no relation joins). */
 export async function getEntityByIdLite(id: number) {
     return db.query.entity.findFirst({
         where: eq(entity.id, id),
@@ -137,26 +121,20 @@ export async function getBeneficiaries(entityId?: number) {
     return db.select().from(beneficiary)
 }
 
-/**
- * Get beneficiary by ID with recent distributions
- * Use getBeneficiaryByIdLite() when you only need beneficiary fields
- */
+/** Eager-loads recent distributions — prefer getBeneficiaryByIdLite() unless distributions are needed. */
 export async function getBeneficiaryById(id: number) {
     return db.query.beneficiary.findFirst({
         where: eq(beneficiary.id, id),
         with: {
             distributions: {
                 orderBy: (d, { desc }) => [desc(d.distributionDate)],
-                limit: 20, // PERF: Limit to recent distributions
+                limit: 20,
             },
         },
     })
 }
 
-/**
- * PERF: Lite variant - returns only beneficiary fields without relations
- * Use for dropdowns, validation checks, and contexts where relations are not needed
- */
+/** Returns only beneficiary columns (no relation joins). */
 export async function getBeneficiaryByIdLite(id: number) {
     return db.query.beneficiary.findFirst({
         where: eq(beneficiary.id, id),
@@ -166,13 +144,10 @@ export async function getBeneficiaryByIdLite(id: number) {
 interface BeneficiaryDistributionOptions {
     limit?: number
     offset?: number
-    distributionLimit?: number // Limit distributions per beneficiary
+    distributionLimit?: number
 }
 
-/**
- * Get beneficiaries with their distributions (paginated)
- * PERF: Limits both beneficiaries and distributions per beneficiary
- */
+/** Paginated beneficiaries with capped distributions per row to bound query cost. */
 export async function getBeneficiariesWithDistributions(
     entityId?: number,
     options?: BeneficiaryDistributionOptions,
@@ -182,7 +157,7 @@ export async function getBeneficiariesWithDistributions(
         with: {
             distributions: {
                 orderBy: (d, { desc }) => [desc(d.distributionDate)],
-                limit: options?.distributionLimit ?? 20, // Limit distributions per beneficiary
+                limit: options?.distributionLimit ?? 20,
             },
         },
         limit: options?.limit ?? 100,
@@ -920,16 +895,12 @@ export async function deleteTrustAccountingEntry(id: number) {
 }
 
 /**
- * Create a trust accounting entry with auto-classification
- *
- * Automatically determines isPrincipal based on Texas Property Code 116:
- * - Income types (rent, dividends, interest) -> isPrincipal: false
- * - Principal types (capital gains, sale proceeds) -> isPrincipal: true
+ * Auto-classifies isPrincipal per Texas Property Code 116 when not explicitly set:
+ * income types (rent, dividends) → false, capital types (gains, sale proceeds) → true.
  */
 export async function createTrustAccountingEntry(
     data: typeof trustAccounting.$inferInsert,
 ) {
-    // Auto-classify if isPrincipal not explicitly provided
     const isPrincipal =
         data.isPrincipal ??
         isPrincipalTransaction(
@@ -1047,11 +1018,7 @@ export async function deleteHemsRequest(id: number) {
     return deleted
 }
 
-/**
- * Atomically approve a HEMS request: creates a distribution record and links
- * it to the request in a single transaction. Without a transaction, a crash
- * between the two writes would leave an orphaned distribution with no HEMS link.
- */
+/** Transactional: creates distribution + links it to HEMS request atomically to prevent orphaned records. */
 export async function approveHemsRequest(params: {
     id: number
     entityId: number
@@ -1080,9 +1047,7 @@ export async function approveHemsRequest(params: {
     return client.begin(async (_tx) => {
         const tx = _tx as TxSql
 
-        // Lock the row first to prevent concurrent approvals (TOCTOU race).
-        // SELECT FOR UPDATE blocks any concurrent transaction that also tries to
-        // lock the same row, making the status check + approval atomic.
+        // SELECT FOR UPDATE prevents TOCTOU race on concurrent approvals
         const [locked] = await tx`
             SELECT id, status FROM hems_request
             WHERE id = ${id} AND "entityId" = ${entityId}
@@ -1134,10 +1099,7 @@ interface HemsRequestPaginationOptions {
     offset?: number
 }
 
-/**
- * Get HEMS requests with beneficiary info (paginated, default limit: 100)
- * PERF: Always paginated to prevent unbounded growth
- */
+/** HEMS requests joined with beneficiary, paginated (default 100). */
 export async function getHemsRequestsWithBeneficiary(
     filters?: { beneficiaryId?: number; entityId?: number },
     options?: HemsRequestPaginationOptions,
@@ -1159,10 +1121,7 @@ export async function getHemsRequestsWithBeneficiary(
     })
 }
 
-/**
- * Get pending HEMS requests for admin queue (paginated, default limit: 50)
- * PERF: Limited to reasonable queue size
- */
+/** Pending HEMS requests ordered oldest-first for admin review queue. */
 export async function getPendingHemsRequests(
     options?: HemsRequestPaginationOptions,
 ) {
@@ -1361,7 +1320,7 @@ export async function recordLiabilityPayment(data: RecordPaymentData) {
             return client.begin(async (_tx) => {
                 const tx = _tx as TxSql
 
-                // Step 1: Lock the liability row with FOR UPDATE to prevent concurrent modifications
+                // Lock liability row to prevent concurrent balance modifications
                 addBreadcrumb(
                     'db.transaction',
                     'Acquiring lock on liability row',
@@ -1421,7 +1380,6 @@ export async function recordLiabilityPayment(data: RecordPaymentData) {
                               parseFloat(data.principalPortion || '0'),
                       )
 
-                // Step 2: Insert the payment record
                 addBreadcrumb('db.transaction', 'Inserting liability payment', {
                     amount: data.amount,
                 })
@@ -1440,7 +1398,6 @@ export async function recordLiabilityPayment(data: RecordPaymentData) {
                 `
                 if (!payment) throw new Error('Failed to create payment record')
 
-                // Step 3: Update the liability balance
                 addBreadcrumb('db.transaction', 'Updating liability balance', {
                     newBalance: newBalance.toFixed(2),
                 })
@@ -1451,7 +1408,6 @@ export async function recordLiabilityPayment(data: RecordPaymentData) {
                     WHERE id = ${data.liabilityId}
                 `
 
-                // Step 4: Create the accounting entry if requested
                 let accountingEntry: { id: number } | null = null
                 if (data.createExpenseEntry !== false) {
                     const expenseDescription = `${liabilityRecord.liabilityType.replace(/_/g, ' ')} payment to ${liabilityRecord.creditor}`
@@ -1535,10 +1491,7 @@ interface LiabilityPaymentOptions {
     offset?: number
 }
 
-/**
- * Get liability payments with pagination (default limit: 50)
- * PERF: Paginated for liabilities with extensive payment history
- */
+/** Liability payments ordered newest-first, paginated (default 50). */
 export async function getLiabilityPayments(
     liabilityId: number,
     options?: LiabilityPaymentOptions,
@@ -1560,10 +1513,7 @@ interface ActivityLogPaginationOptions {
     offset?: number
 }
 
-/**
- * Get activity logs with pagination (default limit: 100)
- * PERF: Always paginated to prevent OOM on large audit trails
- */
+/** Paginated audit trail (default 100) — always bounded to prevent unbounded result sets. */
 export async function getActivityLogs(options?: ActivityLogPaginationOptions) {
     return db
         .select()
@@ -1578,9 +1528,7 @@ export async function createActivityLog(data: typeof activityLog.$inferInsert) {
     return created
 }
 
-/**
- * PostgreSQL 17 JSON_TABLE - Extract structured data from ActivityLog JSONB columns
- */
+/** Uses PG17 JSON_TABLE to extract old/new field values from JSONB audit columns. */
 export async function getActivityLogWithChanges(recordId: string) {
     return db.execute(sql`
     SELECT
@@ -1684,8 +1632,6 @@ export async function markBeneficiaryDeceased(data: MarkDeceasedData) {
         return { success: true, shareRecalculated: false }
     }
 
-    // Both the deceasedDate update and share redistribution happen inside the
-    // same transaction so they succeed or fail together.
     return recalculateBeneficiaryShares(
         deceased.entityId,
         data.beneficiaryId,
@@ -1707,8 +1653,7 @@ export async function recalculateBeneficiaryShares(
             return client.begin(async (_tx) => {
                 const tx = _tx as TxSql
 
-                // If called from markBeneficiaryDeceased, apply the deceasedDate
-                // inside this transaction so both changes succeed or fail together.
+                // Optionally set deceasedDate within the same transaction as share redistribution
                 if (markDeceasedDate !== undefined) {
                     await tx`
                         UPDATE beneficiary
@@ -1718,7 +1663,7 @@ export async function recalculateBeneficiaryShares(
                     `
                 }
 
-                // Lock all beneficiary rows for this entity to prevent concurrent share modifications
+                // FOR UPDATE lock prevents concurrent share modifications
                 addBreadcrumb(
                     'db.transaction',
                     'Acquiring locks on beneficiary rows',
@@ -1766,7 +1711,7 @@ export async function recalculateBeneficiaryShares(
                 const updates: { id: number; newShare: string }[] = []
                 const now = new Date().toISOString()
 
-                // Calculate new shares for all living beneficiaries
+                // Redistribute deceased share proportionally among living beneficiaries
                 for (const b of living) {
                     const currentShare = parseFloat(b.sharePercent || '0') || 0
                     const proportion = currentShare / totalLivingShares
@@ -1775,7 +1720,6 @@ export async function recalculateBeneficiaryShares(
                     updates.push({ id: b.id, newShare })
                 }
 
-                // Update all living beneficiaries within the transaction
                 addBreadcrumb('db.transaction', 'Updating beneficiary shares', {
                     updateCount: updates.length,
                 })
@@ -1788,7 +1732,6 @@ export async function recalculateBeneficiaryShares(
                     `
                 }
 
-                // Update deceased beneficiary share to 0
                 await tx`
                     UPDATE beneficiary
                     SET "sharePercent" = '0.00',
@@ -1825,7 +1768,7 @@ export async function convertIncomeToPrincipal(
             return client.begin(async (_tx) => {
                 const tx = _tx as TxSql
 
-                // Lock all unconverted income entries for this entity/fiscal year
+                // FOR UPDATE lock on unconverted income prevents concurrent conversion
                 addBreadcrumb(
                     'db.transaction',
                     'Acquiring locks on trust accounting rows',
@@ -1857,7 +1800,7 @@ export async function convertIncomeToPrincipal(
                     }
                 }
 
-                // Use integer cent arithmetic to avoid floating-point precision errors
+                // Integer cents avoid IEEE 754 rounding errors in decimal summation
                 const totalCents = incomeEntries.reduce(
                     (sum, entry) =>
                         sum + Math.round(parseFloat(entry.amount || '0') * 100),
@@ -1869,7 +1812,6 @@ export async function convertIncomeToPrincipal(
                 const description = `FY${fiscalYear} undistributed income added to principal per Trust Section 7.10(c)`
                 const notes = `Converted ${incomeEntries.length} income entries totaling $${totalIncome}`
 
-                // Insert the principal conversion entry
                 addBreadcrumb(
                     'db.transaction',
                     'Inserting principal conversion entry',
@@ -1896,7 +1838,6 @@ export async function convertIncomeToPrincipal(
                 if (!principalEntry)
                     throw new Error('Failed to create principal entry')
 
-                // Mark all income entries as converted using parameterized query (no SQL injection)
                 const convertedIds = incomeEntries.map((entry) => entry.id)
 
                 addBreadcrumb(

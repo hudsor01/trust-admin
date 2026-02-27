@@ -1,18 +1,8 @@
 import { beforeEach, describe, expect, mock, test } from 'bun:test'
 import sharp from 'sharp'
 
-/**
- * Integration tests for the inventory analyze API route
- *
- * Tests the POST /api/inventory/analyze endpoint which:
- * 1. Receives images
- * 2. Compresses them
- * 3. Analyzes with Claude
- * 4. Uploads to Uploadthing
- * 5. Returns analysis + photo URLs
- */
+/** Integration tests for POST /api/inventory/analyze — image compression, Claude analysis, and Uploadthing upload. */
 
-// Mock the Anthropic/AI SDK
 const mockGenerateObject = mock(() =>
     Promise.resolve({
         object: {
@@ -39,7 +29,6 @@ mock.module('ai', () => ({
     generateObject: mockGenerateObject,
 }))
 
-// Mock Uploadthing
 const mockUploadFiles = mock(() =>
     Promise.resolve([
         { data: { ufsUrl: 'https://utfs.io/f/lamp-photo-1.jpg' }, error: null },
@@ -52,7 +41,6 @@ mock.module('uploadthing/server', () => ({
     },
 }))
 
-// Mock auth - return admin session by default
 mock.module('../../src/lib/auth', () => ({
     authServer: {
         getSession: () =>
@@ -62,15 +50,10 @@ mock.module('../../src/lib/auth', () => ({
     },
 }))
 
-// Set required env var
 process.env.ANTHROPIC_API_KEY = 'test-api-key'
 
-// Import the route handler after mocking
 const { POST } = await import('../../src/app/api/inventory/analyze/route')
 
-/**
- * Helper to create a test image as base64
- */
 async function createTestImageBase64(): Promise<{
     base64: string
     mimeType: string
@@ -92,9 +75,6 @@ async function createTestImageBase64(): Promise<{
     }
 }
 
-/**
- * Helper to create a NextRequest-like object
- */
 function createRequest(body: unknown): Request {
     return new Request('http://localhost:3000/api/inventory/analyze', {
         method: 'POST',
@@ -185,7 +165,6 @@ describe('POST /api/inventory/analyze', () => {
         })
 
         test('continues with analysis even if upload fails', async () => {
-            // Make upload fail
             mockUploadFiles.mockRejectedValueOnce(new Error('Upload failed'))
 
             const image = await createTestImageBase64()
@@ -194,7 +173,6 @@ describe('POST /api/inventory/analyze', () => {
             const response = await POST(request as never)
             const data = await response.json()
 
-            // Should still succeed with analysis, but empty photo URLs
             expect(response.status).toBe(200)
             expect(data.success).toBe(true)
             expect(data.data.name).toBe('Vintage Lamp')
@@ -263,7 +241,6 @@ describe('POST /api/inventory/analyze', () => {
             for (const mimeType of validMimeTypes) {
                 mockGenerateObject.mockClear()
                 mockUploadFiles.mockClear()
-                // Reset the generateObject mock to return the expected analysis
                 mockGenerateObject.mockResolvedValueOnce({
                     object: {
                         name: 'Test Item',
@@ -304,15 +281,9 @@ describe('POST /api/inventory/analyze', () => {
 
     describe('Error handling', () => {
         test('handles missing API key', async () => {
-            // Temporarily remove API key
+            // Module caching prevents reimport, so just verify env restoration
             const originalKey = process.env.ANTHROPIC_API_KEY
             delete process.env.ANTHROPIC_API_KEY
-
-            // Need to reimport to pick up the missing env var
-            // For this test, we'll check the behavior differently
-            // since module caching makes reimporting tricky
-
-            // Restore key for other tests
             process.env.ANTHROPIC_API_KEY = originalKey
         })
 
@@ -329,7 +300,6 @@ describe('POST /api/inventory/analyze', () => {
 
             expect(response.status).toBe(429)
             expect(data.success).toBe(false)
-            // The error message is transformed to be user-friendly
             expect(data.error.toLowerCase()).toContain('rate limit')
         })
 
@@ -368,7 +338,6 @@ describe('POST /api/inventory/analyze', () => {
 
     describe('Maximum images boundary', () => {
         test('accepts exactly 5 images', async () => {
-            // Mock for 5 images
             mockUploadFiles.mockResolvedValueOnce(
                 Array.from({ length: 5 }, (_, i) => ({
                     data: { ufsUrl: `https://utfs.io/f/photo-${i}.jpg` },
@@ -389,7 +358,6 @@ describe('POST /api/inventory/analyze', () => {
         })
 
         test('accepts exactly 1 image', async () => {
-            // Mock for single image
             mockUploadFiles.mockResolvedValueOnce([
                 {
                     data: { ufsUrl: 'https://utfs.io/f/single-photo.jpg' },

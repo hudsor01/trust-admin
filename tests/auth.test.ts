@@ -1,15 +1,4 @@
-/**
- * Authentication Integration Tests (Neon Auth)
- *
- * Tests authentication flows including:
- * - User profile management
- * - Role-based access control (admin vs beneficiary)
- * - Session handling
- * - tRPC procedure authorization
- *
- * Note: These tests verify database-level auth behavior.
- * HTTP endpoint tests require a running server.
- */
+/** Auth integration tests — verifies DB-level user profiles, roles, RLS helpers, and Neon Auth infrastructure. */
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import { eq } from 'drizzle-orm'
 import { db, getClient } from '@/db'
@@ -37,7 +26,6 @@ const testData = {
 beforeAll(async () => {
     const now = new Date().toISOString()
 
-    // Create test entity
     const [createdEntity] = await db
         .insert(entity)
         .values({
@@ -51,7 +39,6 @@ beforeAll(async () => {
         .returning()
     testData.entityId = createdEntity.id
 
-    // Create test beneficiary
     const [createdBeneficiary] = await db
         .insert(beneficiary)
         .values({
@@ -66,7 +53,6 @@ beforeAll(async () => {
         .returning()
     testData.beneficiaryId = createdBeneficiary.id
 
-    // Create user profiles
     await db.insert(userProfile).values([
         {
             userId: testData.adminUserId,
@@ -81,13 +67,12 @@ beforeAll(async () => {
         {
             userId: testData.unlinkedBeneficiaryUserId,
             role: 'beneficiary',
-            beneficiaryId: null, // No beneficiary linked
+            beneficiaryId: null,
         },
     ])
 }, TEST_TIMEOUT)
 
 afterAll(async () => {
-    // Cleanup user profiles
     await db
         .delete(userProfile)
         .where(eq(userProfile.userId, testData.adminUserId))
@@ -98,14 +83,12 @@ afterAll(async () => {
         .delete(userProfile)
         .where(eq(userProfile.userId, testData.unlinkedBeneficiaryUserId))
 
-    // Cleanup beneficiary
     if (testData.beneficiaryId) {
         await db
             .delete(beneficiary)
             .where(eq(beneficiary.id, testData.beneficiaryId))
     }
 
-    // Cleanup entity
     if (testData.entityId) {
         await db.delete(entity).where(eq(entity.id, testData.entityId))
     }
@@ -389,12 +372,8 @@ describe.skipIf(isProductionDb)('Foreign Key Constraints', () => {
 // =============================================================================
 
 describe.skipIf(isProductionDb)('Auth Utility Functions', () => {
-    // These tests verify the utility functions that work independently
-    // of the Neon Auth client/server instances.
-    // Note: authServer and authClient require Next.js runtime context.
-
+    // authServer/authClient require Next.js runtime, so utility logic is tested inline
     test('isAdmin returns true for admin role', () => {
-        // Inline implementation test to avoid module import issues
         const isAdmin = (user: { role?: string }) => user.role === 'admin'
 
         expect(isAdmin({ role: 'admin' })).toBe(true)
@@ -403,7 +382,6 @@ describe.skipIf(isProductionDb)('Auth Utility Functions', () => {
     })
 
     test('isBeneficiary returns true for beneficiary with ID', () => {
-        // Inline implementation test
         const isBeneficiary = (user: {
             role?: string
             beneficiaryId?: number | null
@@ -420,7 +398,6 @@ describe.skipIf(isProductionDb)('Auth Utility Functions', () => {
     })
 
     test('IP validation regex patterns work correctly', () => {
-        // Test the regex patterns used for IP validation
         const IPV4_REGEX =
             /^(?:(?:25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)\.){3}(?:25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)$/
 

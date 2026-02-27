@@ -142,7 +142,6 @@ export default function VehiclesPage() {
 
     return (
         <div className="space-y-6">
-            {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-2xl font-semibold tracking-tight">
@@ -156,7 +155,6 @@ export default function VehiclesPage() {
                 </div>
             </div>
 
-            {/* Actions */}
             <div className="flex justify-end">
                 <Button onClick={vehicleForm.handleAdd}>
                     <Plus className="h-4 w-4 mr-2" />
@@ -164,7 +162,6 @@ export default function VehiclesPage() {
                 </Button>
             </div>
 
-            {/* Table */}
             <VehicleTable
                 vehicles={vehicles}
                 isLoading={vehiclesLoading}
@@ -173,7 +170,6 @@ export default function VehiclesPage() {
                 onInlineUpdate={handleInlineUpdate}
             />
 
-            {/* Vehicle Form Dialog */}
             <VehicleDialog
                 isOpen={vehicleForm.isOpen}
                 isEditing={vehicleForm.isEditing}

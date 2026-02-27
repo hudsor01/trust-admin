@@ -1,26 +1,8 @@
 /**
- * Form Factory
- *
- * Creates reusable form utilities:
- * - Default value generators
- * - Form reset functions
- * - Entity-to-form mappers
+ * Form Factory: default value generators, reset functions, and entity-to-form mappers.
  */
 
-/**
- * Creates a function that returns fresh default values for a form
- *
- * @example
- * const vehicleDefaults = createFormDefaults({
- *   make: "",
- *   model: "",
- *   year: () => new Date().getFullYear(), // Dynamic default
- * });
- *
- * // Usage
- * const [form, setForm] = useState(vehicleDefaults());
- * const handleReset = () => setForm(vehicleDefaults());
- */
+/** Returns fresh defaults each call. Function values are invoked for dynamic defaults. */
 export function createFormDefaults<T extends Record<string, unknown>>(
     defaults: { [K in keyof T]: T[K] | (() => T[K]) },
 ): () => T {
@@ -28,8 +10,6 @@ export function createFormDefaults<T extends Record<string, unknown>>(
         const result = {} as T
         for (const key in defaults) {
             const value = defaults[key]
-            // Type assertion needed here because we're dynamically determining if value is a function
-            // The generic type system cannot track this at compile time, but we know it's safe
             result[key] = (
                 typeof value === 'function'
                     ? (value as () => T[typeof key])()
@@ -40,21 +20,7 @@ export function createFormDefaults<T extends Record<string, unknown>>(
     }
 }
 
-/**
- * Creates a function that maps an entity to form values
- *
- * @example
- * const vehicleToForm = createEntityMapper<Vehicle, VehicleFormData>({
- *   year: (v) => v.year,
- *   make: (v) => v.make,
- *   acquisitionDate: (v) => v.acquisitionDate?.split("T")[0] ?? null,
- * });
- *
- * // Usage
- * const handleEdit = (vehicle: Vehicle) => {
- *   setForm(vehicleToForm(vehicle));
- * };
- */
+/** Maps a DB entity to form values using per-field transform functions. */
 export function createEntityMapper<E, F extends Record<string, unknown>>(
     mappers: { [K in keyof F]: (entity: E) => F[K] },
 ): (entity: E) => F {
@@ -67,18 +33,13 @@ export function createEntityMapper<E, F extends Record<string, unknown>>(
     }
 }
 
-/**
- * Utility to parse date strings for form inputs
- * Handles ISO dates by extracting just the date portion
- */
+/** Extract YYYY-MM-DD from an ISO date string for form inputs. */
 export function toDateInput(date: string | null | undefined): string | null {
     if (!date) return null
     return date.split('T')[0] ?? null
 }
 
-/**
- * Utility to parse number strings, returning null for empty
- */
+/** Parse a number string, returning null for empty/NaN. */
 export function toNumberOrNull(
     value: string | null | undefined,
 ): number | null {
@@ -87,9 +48,7 @@ export function toNumberOrNull(
     return Number.isNaN(num) ? null : num
 }
 
-/**
- * Utility to convert empty strings to null
- */
+/** Convert empty/whitespace strings to null. */
 export function emptyToNull(value: string | null | undefined): string | null {
     if (!value || value.trim() === '') return null
     return value

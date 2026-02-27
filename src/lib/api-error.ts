@@ -1,9 +1,4 @@
-/**
- * API Error Handling Utilities
- *
- * Provides consistent error formatting and response generation
- * for all API endpoints.
- */
+/** Consistent error formatting and response generation for API endpoints. */
 
 import { ZodError } from 'zod'
 import { logger } from './logger'
@@ -15,13 +10,13 @@ const log = logger.api
 // =============================================================================
 
 export type ErrorCode =
-    | 'VALIDATION_ERROR' // Zod validation failed
-    | 'NOT_FOUND' // Resource does not exist
-    | 'REFERENCE_ERROR' // FK reference does not exist
-    | 'CONFLICT' // Unique constraint violation
-    | 'UNAUTHORIZED' // Not authenticated
-    | 'FORBIDDEN' // Not authorized
-    | 'INTERNAL_ERROR' // Unexpected server error
+    | 'VALIDATION_ERROR'
+    | 'NOT_FOUND'
+    | 'REFERENCE_ERROR'
+    | 'CONFLICT'
+    | 'UNAUTHORIZED'
+    | 'FORBIDDEN'
+    | 'INTERNAL_ERROR'
 
 // =============================================================================
 // API ERROR CLASS
@@ -89,9 +84,7 @@ export class ApiError extends Error {
 // ZOD ERROR FORMATTING
 // =============================================================================
 
-/**
- * Converts Zod validation errors to field-level error messages
- */
+/** Converts Zod errors to field-level messages. */
 export function formatZodError(error: ZodError): {
     message: string
     fields: Record<string, string>
@@ -101,7 +94,7 @@ export function formatZodError(error: ZodError): {
     for (const issue of error.issues) {
         const path = issue.path.join('.')
         const fieldName = path || 'value'
-        // Use first error for each field
+        // Keep only the first error per field
         if (!fields[fieldName]) {
             fields[fieldName] = issue.message
         }
@@ -128,9 +121,7 @@ interface ErrorResponseBody {
     }
 }
 
-/**
- * Creates a JSON Response from any error type
- */
+/** Creates a JSON Response from any error type. */
 export function errorResponse(error: unknown): Response {
     let body: ErrorResponseBody
     let status: number
@@ -145,7 +136,6 @@ export function errorResponse(error: unknown): Response {
         }
         status = error.status
     } else if (error instanceof ZodError) {
-        // Validation errors are expected, not logged
         const formatted = formatZodError(error)
         body = {
             error: {
@@ -156,7 +146,7 @@ export function errorResponse(error: unknown): Response {
         }
         status = 400
     } else if (error instanceof Error) {
-        // Check for PostgreSQL unique constraint violation
+        // PostgreSQL unique constraint violation
         if (
             error.message.includes('unique constraint') ||
             error.message.includes('duplicate key')
@@ -177,7 +167,6 @@ export function errorResponse(error: unknown): Response {
             }
             status = 400
         } else {
-            // Log unexpected errors
             log.error('Unexpected error', {
                 error: error.message,
                 stack: error.stack,
@@ -199,7 +188,6 @@ export function errorResponse(error: unknown): Response {
             status = 500
         }
     } else {
-        // Unknown error types
         log.error('Unknown error type', { error: String(error) })
 
         body = {
@@ -223,9 +211,7 @@ export function errorResponse(error: unknown): Response {
 
 import type { ZodSchema } from 'zod'
 
-/**
- * Validates data against a Zod schema, throwing ApiError on failure
- */
+/** Validates data against a Zod schema, throwing ApiError on failure. */
 export function validateWithSchema<T>(schema: ZodSchema<T>, data: unknown): T {
     const result = schema.safeParse(data)
     if (!result.success) {
@@ -235,10 +221,7 @@ export function validateWithSchema<T>(schema: ZodSchema<T>, data: unknown): T {
     return result.data
 }
 
-/**
- * Validates that a referenced entity exists
- * Returns unknown because we only care about existence, not the actual type
- */
+/** Validates that a referenced FK entity exists; throws ApiError if not. */
 export async function validateReference(
     field: string,
     id: string | null | undefined,

@@ -66,11 +66,7 @@ type AnalysisResult = {
     confidenceNotes: string
 }
 
-/**
- * Compress an image file on the client side using Canvas API.
- * Resizes to max 2048px on longest side and compresses to JPEG.
- * Keeps each image under ~800KB base64 so total payload stays under Vercel's 4.5MB limit.
- */
+/** Client-side resize (max 2048px) + JPEG compression to stay under Vercel's 4.5MB body limit. */
 async function compressImageClientSide(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
         const img = new globalThis.Image()
@@ -78,7 +74,6 @@ async function compressImageClientSide(file: File): Promise<string> {
             const maxDim = 2048
             let { width, height } = img
 
-            // Scale down if needed
             if (width > maxDim || height > maxDim) {
                 const scale = maxDim / Math.max(width, height)
                 width = Math.round(width * scale)
@@ -95,9 +90,7 @@ async function compressImageClientSide(file: File): Promise<string> {
             }
             ctx.drawImage(img, 0, 0, width, height)
 
-            // JPEG at 80% quality — good balance of size and detail for analysis
             const dataUrl = canvas.toDataURL('image/jpeg', 0.8)
-            // Strip the data:image/jpeg;base64, prefix
             const base64 = dataUrl.split(',')[1] ?? ''
             resolve(base64)
         }
@@ -118,7 +111,7 @@ export function InventoryForm() {
     const [analysis, setAnalysis] = useState<AnalysisResult | null>(null)
     const [analysisError, setAnalysisError] = useState<string | null>(null)
 
-    // Controlled form state (updated by AI analysis)
+    // AI analysis pre-fills these; user can override before submit
     const [formValues, setFormValues] = useState({
         name: '',
         category: '',
@@ -137,7 +130,7 @@ export function InventoryForm() {
                 return
             }
             setPhotos((prev) => [...prev, ...files])
-            setAnalysis(null) // Clear previous analysis when photos change
+            setAnalysis(null)
             setAnalysisError(null)
         },
         [photos.length],
@@ -157,8 +150,6 @@ export function InventoryForm() {
         setAnalysisError(null)
 
         try {
-            // Compress and convert photos to base64 on the client side
-            // This keeps the request payload under Vercel's 4.5MB body limit
             const images = await Promise.all(
                 photos.map(async (photo) => {
                     const base64 = await compressImageClientSide(photo)
@@ -192,11 +183,9 @@ export function InventoryForm() {
             const data = await res.json()
             if (data.success) {
                 setAnalysis(data.data)
-                // Store uploaded photo URLs
                 if (data.photoUrls && data.photoUrls.length > 0) {
                     setPhotoUrls(data.photoUrls)
                 }
-                // Update form values with AI analysis
                 setFormValues({
                     name: data.data.name || '',
                     category: data.data.dbCategory || '',
@@ -249,7 +238,6 @@ export function InventoryForm() {
 
     return (
         <form action={formAction} className="max-w-2xl mx-auto space-y-6">
-            {/* Photo Upload Section */}
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -264,7 +252,6 @@ export function InventoryForm() {
                     </p>
 
                     <div className="grid grid-cols-2 gap-4">
-                        {/* Camera capture */}
                         <div className="border-2 border-dashed rounded-lg p-6 text-center">
                             <input
                                 type="file"
@@ -288,7 +275,6 @@ export function InventoryForm() {
                             </label>
                         </div>
 
-                        {/* File upload */}
                         <div className="border-2 border-dashed rounded-lg p-6 text-center">
                             <input
                                 type="file"
@@ -367,7 +353,6 @@ export function InventoryForm() {
                 </CardContent>
             </Card>
 
-            {/* AI Analysis Results */}
             {analysis && (
                 <Card className="border-primary/50 bg-primary/5">
                     <CardHeader>
@@ -390,7 +375,6 @@ export function InventoryForm() {
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        {/* Item Identification */}
                         <div>
                             <h3 className="font-semibold text-lg">
                                 {analysis.name}
@@ -400,7 +384,6 @@ export function InventoryForm() {
                             </p>
                         </div>
 
-                        {/* Details Grid */}
                         <div className="grid grid-cols-2 gap-4 text-sm">
                             {analysis.brand && (
                                 <div>
@@ -442,7 +425,6 @@ export function InventoryForm() {
                             </div>
                         </div>
 
-                        {/* Valuation */}
                         <div className="bg-background rounded-lg p-4 border">
                             <div className="flex items-center gap-2 mb-2">
                                 <DollarSign className="h-5 w-5 text-green-600" />
@@ -471,7 +453,6 @@ export function InventoryForm() {
                             </p>
                         </div>
 
-                        {/* Condition */}
                         <div>
                             <div className="flex items-center gap-2 mb-1">
                                 <span className="font-medium">Condition:</span>
@@ -492,7 +473,6 @@ export function InventoryForm() {
                             </p>
                         </div>
 
-                        {/* Confidence Notes */}
                         {analysis.confidence !== 'high' && (
                             <Alert>
                                 <AlertCircle className="h-4 w-4" />
@@ -510,7 +490,6 @@ export function InventoryForm() {
                 </Card>
             )}
 
-            {/* Item Details Form */}
             <Card>
                 <CardHeader>
                     <CardTitle>Item Details</CardTitle>
@@ -668,7 +647,7 @@ export function InventoryForm() {
                         />
                     </div>
 
-                    {/* Hidden AI metadata */}
+                    {/* AI metadata passed to server action via hidden fields */}
                     {analysis && (
                         <>
                             <input
@@ -714,7 +693,7 @@ export function InventoryForm() {
                         </>
                     )}
 
-                    {/* Hidden photo URLs from Uploadthing */}
+                    {/* Uploadthing URLs from analysis step, forwarded to server action */}
                     {photoUrls.map((url, index) => (
                         <input
                             key={`photo-${index}`}

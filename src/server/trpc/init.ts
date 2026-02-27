@@ -1,16 +1,8 @@
 /**
- * tRPC Server Initialization
+ * tRPC initialization, context, and base procedures.
  *
- * Sets up tRPC with context, base procedures, and error handling.
- * Used by all routers in server/trpc/routers/
- *
- * Role source of truth: userProfile.role (app-managed)
- * - "admin" = full admin access
- * - "beneficiary" = beneficiary portal access
- * - "user" = fallback for users without a userProfile record
- *
- * Note: Neon Auth native role (session.user.role) is only used by
- * layout guards for routing. tRPC authorization uses userProfile.role.
+ * Role source of truth: userProfile.role (not Neon Auth session.user.role, which
+ * is only used by layout guards for routing).
  */
 import * as Sentry from '@sentry/nextjs'
 import { initTRPC, TRPCError } from '@trpc/server'
@@ -23,9 +15,6 @@ import { clearSentryUser, setSentryUser } from '@/lib/sentry'
 
 const OWNER_EMAIL = process.env.ADMIN_EMAIL ?? ''
 
-/**
- * App user type - uses userProfile.role as source of truth for authorization
- */
 export type AppUser = {
     id: string
     name: string
@@ -34,29 +23,19 @@ export type AppUser = {
     image?: string | null
     createdAt: Date
     updatedAt: Date
-    // Role from userProfile table: "admin", "beneficiary", or "user" (fallback)
     role: 'admin' | 'beneficiary' | 'user'
-    // App-specific: links user to beneficiary record (from userProfile table)
     beneficiaryId: number | null
-    // Flag set when admin provisions/resets password — forces change on first login
     forcePasswordChange: boolean
 }
 
 /**
- * Module-level JWT cache for Neon Authorize tokens.
- *
- * authServer.token() makes a network call to Neon Auth on every tRPC request.
- * Caching reduces calls to the Neon Auth service and makes the system more
- * resilient to transient failures (rate limits, network blips, etc.).
- *
- * Key: Better Auth session token (opaque). TTL: 4 minutes (< 5-minute session cache TTL).
+ * JWT cache — avoids calling authServer.token() (network hop to Neon Auth) per request.
+ * TTL 4 min (under Neon's 5 min session cache). .unref() on the pruning interval prevents
+ * the timer from keeping serverless functions alive.
  */
 const jwtCache = new Map<string, { token: string; expiresAt: number }>()
-const JWT_CACHE_TTL_MS = 4 * 60 * 1000 // 4 minutes
+const JWT_CACHE_TTL_MS = 4 * 60 * 1000
 
-// Prune expired entries every 5 minutes to prevent memory leaks.
-// .unref() lets the serverless function terminate normally — the interval
-// should not keep the event loop alive on its own.
 setInterval(
     () => {
         const now = Date.now()
@@ -67,11 +46,7 @@ setInterval(
     5 * 60 * 1000,
 ).unref()
 
-/**
- * Fetch a Neon Authorize JWT for the given session token.
- * Uses a module-level cache to avoid calling authServer.token() on every request.
- * Retries once on failure to handle transient Neon Auth service issues.
- */
+/** Cached JWT fetch with single retry for transient Neon Auth failures. */
 async function fetchJwt(sessionToken: string): Promise<string | null> {
     const now = Date.now()
     const cached = jwtCache.get(sessionToken)
@@ -81,7 +56,7 @@ async function fetchJwt(sessionToken: string): Promise<string | null> {
     let token = result.data?.token ?? null
 
     if (!token) {
-        // Retry once after brief delay to handle transient Neon Auth issues
+        // Single retry for rate limits / transient network errors
         await new Promise<void>((r) => setTimeout(r, 200))
         result = await authServer.token()
         token = result.data?.token ?? null
@@ -101,23 +76,13 @@ async function fetchJwt(sessionToken: string): Promise<string | null> {
     return token
 }
 
-/**
- * Context creation for each request
- * Uses userProfile.role as source of truth for tRPC authorization.
- *
- * IMPORTANT: This fetches a JWT from Neon Auth's /token endpoint and passes
- * it to setRequestAuthToken() so that auth.user_id() returns the correct
- * user ID in RLS policies.
- */
+/** Per-request context: fetches JWT for RLS + resolves userProfile role. */
 export async function createContext(_opts: { headers: Headers }) {
     const { data: session } = await authServer.getSession()
 
-    // If we have a session, initialize JWT for RLS and fetch beneficiary link
     let appUser: AppUser | null = null
     if (session?.user && session?.session?.token) {
-        // Fetch JWT and userProfile in parallel — both can start as soon as we
-        // have a session. The JWT is needed for RLS (setRequestAuthToken);
-        // userProfile uses getPublicDb() (BYPASSRLS) so it does not need the JWT.
+        // Parallel: JWT (for RLS) + userProfile (via BYPASSRLS, no JWT needed)
         const publicDb = getPublicDb()
         let jwtToken: string | null
         let profileRows: {
@@ -162,14 +127,11 @@ export async function createContext(_opts: { headers: Headers }) {
             })
         }
 
-        // Set JWT for RLS enforcement via Neon Authorize.
-        // Binds the JWT to the current async context so all neon() HTTP queries
-        // in this request run as the `authenticated` role — making RLS apply.
         setRequestAuthToken(jwtToken)
 
         const [profile] = profileRows
 
-        // Determine role — owner email always gets admin regardless of DB state
+        // ADMIN_EMAIL override: owner is always admin regardless of DB state
         let role: 'admin' | 'beneficiary' | 'user' = 'user'
         if (session.user.email === OWNER_EMAIL) {
             role = 'admin'
@@ -177,7 +139,6 @@ export async function createContext(_opts: { headers: Headers }) {
             role = profile.role
         }
 
-        // Build app user with userProfile role
         appUser = {
             id: session.user.id,
             name: session.user.name,
@@ -191,7 +152,6 @@ export async function createContext(_opts: { headers: Headers }) {
             forcePasswordChange: profile?.forcePasswordChange ?? false,
         }
 
-        // Set Sentry user context for error tracking and performance monitoring
         setSentryUser({
             id: session.user.id,
             email: session.user.email,
@@ -199,7 +159,6 @@ export async function createContext(_opts: { headers: Headers }) {
             beneficiaryId: profile?.beneficiaryId ?? null,
         })
     } else {
-        // Clear Sentry user context when no session
         clearSentryUser()
     }
 
@@ -211,9 +170,6 @@ export async function createContext(_opts: { headers: Headers }) {
 
 export type Context = Awaited<ReturnType<typeof createContext>>
 
-/**
- * Initialize tRPC with context and error formatting
- */
 const t = initTRPC.context<Context>().create({
     errorFormatter({ shape, error }) {
         return {
@@ -229,22 +185,13 @@ const t = initTRPC.context<Context>().create({
     },
 })
 
-/**
- * Router and procedure exports
- */
 export const createTRPCRouter = t.router
 export const createCallerFactory = t.createCallerFactory
 
-/**
- * Public procedure - no auth required
- * Use for health checks, public data
- */
+/** No auth required. */
 export const publicProcedure = t.procedure
 
-/**
- * Protected procedure - requires authenticated user
- * Use for most operations (admin or beneficiary)
- */
+/** Requires authenticated session. */
 export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
     if (!ctx.session || !ctx.user) {
         throw new TRPCError({
@@ -261,10 +208,7 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
     })
 })
 
-/**
- * Admin procedure - requires admin role
- * Use for administrative operations
- */
+/** Requires admin role. */
 export const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
     if (ctx.user.role !== 'admin') {
         throw new TRPCError({
@@ -276,10 +220,7 @@ export const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
     return next({ ctx })
 })
 
-/**
- * Owner procedure - requires the trust owner (rhudsontspr@gmail.com)
- * Use for sensitive operations like user management CRUD
- */
+/** Requires ADMIN_EMAIL — for sensitive ops like user management. */
 export const ownerProcedure = adminProcedure.use(async ({ ctx, next }) => {
     if (ctx.user.email !== OWNER_EMAIL) {
         throw new TRPCError({
@@ -291,10 +232,7 @@ export const ownerProcedure = adminProcedure.use(async ({ ctx, next }) => {
     return next({ ctx })
 })
 
-/**
- * Beneficiary procedure - requires beneficiary role
- * Use for beneficiary portal operations
- */
+/** Requires beneficiary role. */
 export const beneficiaryProcedure = protectedProcedure.use(
     async ({ ctx, next }) => {
         if (ctx.user.role !== 'beneficiary') {

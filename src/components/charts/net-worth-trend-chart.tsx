@@ -1,9 +1,4 @@
-/**
- * Net Worth Trend Chart
- *
- * Line chart showing net worth over time.
- * Uses Recharts LineChart for time-series visualization.
- */
+/** Net worth over time line chart. */
 'use client'
 
 import {
@@ -23,22 +18,15 @@ import {
 import { formatCurrency } from '@/utils/formatters'
 
 export interface NetWorthDataPoint {
-    /** Date label (e.g., "Jan 2026") */
     date: string
-    /** Total assets value */
     assets: number
-    /** Total liabilities value */
     liabilities: number
-    /** Net worth (assets - liabilities) */
     netWorth: number
 }
 
 interface NetWorthTrendChartProps {
-    /** Time series data points */
     data: NetWorthDataPoint[]
-    /** Chart height in pixels */
     height?: number
-    /** Show assets and liabilities lines */
     showBreakdown?: boolean
 }
 
@@ -73,7 +61,6 @@ export function NetWorthTrendChart({
         )
     }
 
-    // Find if net worth ever goes negative to show reference line
     const hasNegative = data.some((d) => d.netWorth < 0)
 
     return (

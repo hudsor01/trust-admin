@@ -1,14 +1,5 @@
 'use client'
 
-/**
- * Portal Dashboard
- *
- * Beneficiary portal dashboard showing their trust information,
- * distribution history, and HEMS request form.
- *
- * Uses tRPC for type-safe data fetching.
- */
-
 import {
     CheckCircle,
     Clock,
@@ -80,7 +71,6 @@ export default function PortalDashboardPage() {
         },
     })
 
-    // Fetch beneficiary data via tRPC
     const {
         data: beneficiary,
         isLoading,
@@ -90,7 +80,6 @@ export default function PortalDashboardPage() {
         enabled: !!session?.user,
     })
 
-    // Redirect to login if not authenticated
     useEffect(() => {
         if (!sessionPending && !session?.user) {
             router.push('/auth/sign-in')
@@ -104,11 +93,9 @@ export default function PortalDashboardPage() {
 
     const handleRequestSuccess = () => {
         setShowRequestForm(false)
-        // Refresh beneficiary data to show new request
         refetch()
     }
 
-    // Loading state
     if (sessionPending || isLoading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-background">
@@ -117,12 +104,10 @@ export default function PortalDashboardPage() {
         )
     }
 
-    // Not authenticated
     if (!session?.user) {
         return null
     }
 
-    // Error state
     if (error) {
         return (
             <div className="min-h-screen bg-background">
@@ -164,7 +149,6 @@ export default function PortalDashboardPage() {
     const fullName = `${beneficiary.firstName} ${beneficiary.lastName}`
     const distributions = beneficiary.distributions || []
 
-    // Calculate totals using dinero.js for precision
     const totalDistributed = sumStrings(distributions.map((d) => d.amount))
 
     const pendingDistributions = distributions.filter((d) => !d.approvalDate)
@@ -172,7 +156,6 @@ export default function PortalDashboardPage() {
 
     return (
         <div className="min-h-screen bg-background flex flex-col">
-            {/* Header */}
             <header className="border-b bg-card">
                 <div className="container mx-auto px-4 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -206,10 +189,8 @@ export default function PortalDashboardPage() {
                 </div>
             </header>
 
-            {/* Main Content */}
             <main className="container mx-auto px-4 py-6 flex-1">
                 <div className="space-y-6">
-                    {/* Welcome Header */}
                     <div>
                         <h1 className="text-2xl font-semibold">
                             Welcome, {beneficiary.firstName}
@@ -219,7 +200,6 @@ export default function PortalDashboardPage() {
                         </p>
                     </div>
 
-                    {/* Summary Cards */}
                     <div className="grid gap-4 md:grid-cols-3">
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -276,7 +256,6 @@ export default function PortalDashboardPage() {
                         </Card>
                     </div>
 
-                    {/* Contact Information */}
                     <Card>
                         <CardHeader className="flex flex-row items-start justify-between">
                             <div>
@@ -558,7 +537,6 @@ export default function PortalDashboardPage() {
                         </CardContent>
                     </Card>
 
-                    {/* Distributions History */}
                     <Card>
                         <CardHeader>
                             <CardTitle className="text-lg">
@@ -628,7 +606,6 @@ export default function PortalDashboardPage() {
                         </CardContent>
                     </Card>
 
-                    {/* Request Distribution */}
                     <Card>
                         <CardHeader>
                             <CardTitle className="text-lg">
@@ -651,7 +628,6 @@ export default function PortalDashboardPage() {
                     </Card>
                 </div>
 
-                {/* Request Form Dialog */}
                 {showRequestForm && beneficiary.entityId && (
                     <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                         <HemsRequestForm
@@ -664,7 +640,6 @@ export default function PortalDashboardPage() {
                 )}
             </main>
 
-            {/* Footer */}
             <footer className="border-t mt-auto">
                 <div className="container mx-auto px-4 py-4 text-center text-sm text-muted-foreground">
                     Trust Administration Portal

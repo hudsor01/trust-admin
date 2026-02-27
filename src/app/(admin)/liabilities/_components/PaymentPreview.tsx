@@ -8,14 +8,10 @@ import { formatCurrency } from '@/utils/formatters'
 import type { LiabilityFormData } from './LiabilityConstants'
 import { isRevolvingType } from './LiabilityConstants'
 
-/** Shorthand for the TanStack Form instance returned by useResourceForm */
 type LiabilityFormInstance =
     UseResourceFormReturn<LiabilityFormData>['formInstance']
 
-/**
- * Hook to subscribe to form values from a FormApi instance.
- * Encapsulates the store access since FormApi has 12 generic params.
- */
+/** Avoids repeating FormApi's 12 generic type params at each call site. */
 function useFormValues(formInstance: LiabilityFormInstance) {
     return useStore(formInstance.store, (s) => ({
         originalAmount: s.values.originalAmount,
@@ -25,27 +21,20 @@ function useFormValues(formInstance: LiabilityFormInstance) {
     }))
 }
 
-/**
- * PaymentPreview component - shows estimated monthly payment as user types loan terms.
- * Uses useDeferredValue for smooth typing experience without calculation lag.
- */
+/** Shows estimated monthly payment as loan terms are typed. */
 export function PaymentPreview({
     formInstance,
 }: {
     formInstance: LiabilityFormInstance
 }) {
-    // Subscribe to relevant form values - all hooks must be called unconditionally
     const { originalAmount, interestRate, loanTermMonths, liabilityType } =
         useFormValues(formInstance)
 
-    // Defer inputs for smooth typing - hooks must be called before any early returns
     const deferredPrincipal = useDeferredValue(originalAmount)
     const deferredRate = useDeferredValue(interestRate)
     const deferredTerm = useDeferredValue(loanTermMonths)
 
-    // Calculate payment only when deferred values settle
     const calculated = useMemo(() => {
-        // Skip calculation for revolving credit (no fixed term)
         if (isRevolvingType(liabilityType)) return null
         if (!deferredPrincipal || !deferredRate || !deferredTerm) return null
 
@@ -76,7 +65,6 @@ export function PaymentPreview({
         return { payment, payoffDate }
     }, [deferredPrincipal, deferredRate, deferredTerm, liabilityType])
 
-    // Render null if no valid calculation (revolving, incomplete data, etc.)
     if (!calculated?.payment) return null
 
     return (

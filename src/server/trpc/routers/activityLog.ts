@@ -9,11 +9,10 @@ import {
 import { activityLog } from '@/db/schema'
 import { adminProcedure, createTRPCRouter } from '../init'
 
-// Zod enum for searchable fields - enforces allowlist at API level
+// Allowlist prevents arbitrary column injection in search queries
 const searchableFieldSchema = z.enum(SEARCHABLE_ACTIVITY_LOG_FIELDS)
 
 export const activityLogRouter = createTRPCRouter({
-    // List all activity logs (with optional pagination)
     list: adminProcedure
         .input(
             z
@@ -40,22 +39,18 @@ export const activityLogRouter = createTRPCRouter({
         })
     }),
 
-    // Get activity log with parsed changes (by recordId which is text/polymorphic)
     withChanges: adminProcedure.input(z.string()).query(async ({ input }) => {
         return getActivityLogWithChanges(input)
     }),
 
-    // Search by field - SECURE: uses allowlist for field names, parameterized values
     search: adminProcedure
         .input(
             z.object({
                 fieldName: searchableFieldSchema,
-                fieldValue: z.string().max(500), // Limit value length
+                fieldValue: z.string().max(500),
             }),
         )
         .query(async ({ input }) => {
             return searchActivityLogByField(input.fieldName, input.fieldValue)
         }),
-
-    // Activity logs are read-only - no create/update/delete
 })

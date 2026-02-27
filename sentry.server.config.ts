@@ -1,29 +1,22 @@
-// This file configures the initialization of Sentry on the server.
-// The config you add here will be used whenever the server handles a request.
-// https://docs.sentry.io/platforms/javascript/guides/nextjs/
+// Sentry server-side init — runs on every Node.js request
 
 import * as Sentry from '@sentry/nextjs'
 
 Sentry.init({
     dsn: process.env.SENTRY_DSN,
-
-    // Enable when DSN is configured (production, or dev for testing)
     enabled: !!process.env.SENTRY_DSN,
 
-    // 100% — low-traffic private app, capture everything
+    // Low-traffic private app — capture all traces
     tracesSampleRate: 1.0,
 
-    // Integrations for enhanced monitoring
     integrations: [
-        // PostgreSQL query tracing (auto-instruments pg driver)
         Sentry.postgresIntegration(),
-        // Vercel AI SDK tracing — tracks Claude calls, latency, token usage
-        // Requires experimental_telemetry.isEnabled: true per generateObject/generateText call
+        // Traces AI SDK calls (requires experimental_telemetry.isEnabled per call)
         Sentry.vercelAIIntegration(),
     ],
 
-    // Drop all events from localhost — prevents E2E test runs and local dev
-    // from polluting the production error tracker
+    // Drop localhost events to prevent E2E/dev noise in production tracker.
+    // Events without a request URL (background jobs) pass through intentionally.
     beforeSend(event) {
         const url = event.request?.url ?? event.tags?.url ?? ''
         if (
@@ -35,10 +28,8 @@ Sentry.init({
         return event
     },
 
-    // Capture slow database queries (over 500ms)
-    // This helps identify N+1 queries and missing indexes
+    // Tag slow transactions (>1s) for dashboard filtering
     beforeSendTransaction(event) {
-        // Tag slow transactions for easy filtering
         const duration =
             event.timestamp && event.start_timestamp
                 ? (event.timestamp - event.start_timestamp) * 1000
@@ -51,6 +42,5 @@ Sentry.init({
         return event
     },
 
-    // Setting this option to true will print useful information to the console while you're setting up Sentry.
     debug: false,
 })
