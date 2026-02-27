@@ -141,7 +141,4 @@ export default withSentryConfig(nextConfig, {
     bundleSizeOptimizations: {
         excludeDebugStatements: true,
     },
-
-    // Prevents the build from failing if Sentry CLI is not configured
-    silent: !process.env.SENTRY_AUTH_TOKEN,
 })
