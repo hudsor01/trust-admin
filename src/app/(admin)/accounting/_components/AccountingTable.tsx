@@ -12,12 +12,6 @@ import { Card, CardContent } from '@/components/ui/card'
 import { DataTable } from '@/components/ui/data-table'
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
-} from '@/components/ui/tooltip'
 import type { TrustAccounting } from '@/db/schema'
 import { cn } from '@/lib/utils'
 import { formatDate } from '@/utils/formatters'
@@ -58,27 +52,6 @@ export function AccountingTable({
                 <div className="text-sm">
                     {formatDate(row.original.accountingDate)}
                 </div>
-            ),
-        },
-        {
-            accessorKey: 'entryType',
-            header: ({ column }) => (
-                <DataTableColumnHeader column={column} title="Type" />
-            ),
-            cell: ({ row }) => (
-                <Badge
-                    variant={
-                        row.original.entryType === 'INCOME'
-                            ? 'default'
-                            : 'destructive'
-                    }
-                    className={cn(
-                        row.original.entryType === 'INCOME' &&
-                            'bg-success hover:bg-success/90',
-                    )}
-                >
-                    {row.original.entryType}
-                </Badge>
             ),
         },
         {
@@ -133,46 +106,6 @@ export function AccountingTable({
                             })
                         }
                     />
-                </div>
-            ),
-        },
-        {
-            id: 'flags',
-            header: 'Flags',
-            cell: ({ row }) => (
-                <div className="flex gap-1">
-                    {row.original.isPrincipal && (
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Badge
-                                        variant="outline"
-                                        className="text-xs"
-                                    >
-                                        P
-                                    </Badge>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    Principal (not income)
-                                </TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
-                    )}
-                    {row.original.taxDeductible && (
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Badge
-                                        variant="secondary"
-                                        className="text-xs"
-                                    >
-                                        D
-                                    </Badge>
-                                </TooltipTrigger>
-                                <TooltipContent>Tax Deductible</TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
-                    )}
                 </div>
             ),
         },

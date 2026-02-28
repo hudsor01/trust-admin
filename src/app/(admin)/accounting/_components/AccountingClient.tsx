@@ -5,14 +5,9 @@ import { toast } from 'sonner'
 import { ConfirmDialog, useConfirmDialog } from '@/components/confirm-dialog'
 import type {
     AccountingEntryTypeEnum,
-    BankAccount,
     ExpenseTypeEnum,
-    Homestead,
     IncomeTypeEnum,
-    InvestmentAccount,
-    RentalProperty,
     TrustAccounting,
-    Vehicle,
 } from '@/db/schema'
 import { useResourceForm } from '@/hooks/use-resource-form'
 import { logger } from '@/lib/logger'
@@ -20,7 +15,10 @@ import { subtractMoney, sumStrings } from '@/lib/money'
 import { trpc } from '@/lib/trpc'
 import { AccountingDialog } from './AccountingDialog'
 import { AccountingHeader } from './AccountingHeader'
-import { AccountingSummaryCards } from './AccountingSummaryCards'
+import {
+    AccountingCompliancePanel,
+    AccountingSummaryStats,
+} from './AccountingSummaryCards'
 import { AccountingTable } from './AccountingTable'
 import type { AccountingFormData } from './accounting-constants'
 
@@ -328,18 +326,11 @@ export function AccountingClient() {
                 onAddEntry={handleAddEntry}
             />
 
-            <AccountingSummaryCards
+            <AccountingSummaryStats
                 incomeTotal={incomeTotal}
                 expenseTotal={expenseTotal}
                 netIncome={netIncome}
                 deductibleExpenses={deductibleExpenses}
-                principalReceipts={principalReceipts}
-                incomeReceipts={incomeReceipts}
-                principalDisbursements={principalDisbursements}
-                incomeDisbursements={incomeDisbursements}
-                unconvertedSummary={unconvertedSummary}
-                convertingYear={convertingYear}
-                onConvertYear={handleConvertYear}
             />
 
             <AccountingTable
@@ -353,6 +344,16 @@ export function AccountingClient() {
                 onEditEntry={openEditForm}
                 onDeleteEntry={deleteEntry}
                 onUpdateEntry={updateEntry}
+            />
+
+            <AccountingCompliancePanel
+                principalReceipts={principalReceipts}
+                incomeReceipts={incomeReceipts}
+                principalDisbursements={principalDisbursements}
+                incomeDisbursements={incomeDisbursements}
+                unconvertedSummary={unconvertedSummary}
+                convertingYear={convertingYear}
+                onConvertYear={handleConvertYear}
             />
 
             <AccountingDialog

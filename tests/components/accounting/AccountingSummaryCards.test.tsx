@@ -4,74 +4,68 @@ import '../../setup'
 import { afterEach, describe, expect, mock, test } from 'bun:test'
 import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { AccountingSummaryCards } from '../../../src/app/(admin)/accounting/_components/AccountingSummaryCards'
+import {
+    AccountingCompliancePanel,
+    AccountingSummaryStats,
+} from '../../../src/app/(admin)/accounting/_components/AccountingSummaryCards'
 
-const defaultProps = {
+const statsProps = {
     incomeTotal: '5000.00',
     expenseTotal: '2000.00',
     netIncome: '3000.00',
     deductibleExpenses: '1500.00',
+}
+
+const complianceProps = {
     principalReceipts: '3000.00',
     incomeReceipts: '2000.00',
     principalDisbursements: '1200.00',
     incomeDisbursements: '800.00',
-    unconvertedSummary: [],
-    convertingYear: null,
+    unconvertedSummary: [] as {
+        fiscalYear: number
+        entryCount: number
+        totalAmount: string
+    }[],
+    convertingYear: null as number | null,
     onConvertYear: mock(() => {}),
 }
 
-describe('AccountingSummaryCards', () => {
+describe('AccountingSummaryStats', () => {
     afterEach(() => {
         cleanup()
     })
 
     test('renders income total', () => {
-        render(<AccountingSummaryCards {...defaultProps} />)
+        render(<AccountingSummaryStats {...statsProps} />)
 
-        expect(screen.getByText('Total Receipts')).toBeTruthy()
-        // $5,000.00 appears in both the card and the breakdown totals row
-        const incomeTotals = screen.getAllByText('$5,000.00')
-        expect(incomeTotals.length).toBeGreaterThan(0)
+        expect(screen.getByText('Receipts')).toBeTruthy()
+        expect(screen.getByText('$5,000.00')).toBeTruthy()
     })
 
     test('renders expense total', () => {
-        render(<AccountingSummaryCards {...defaultProps} />)
+        render(<AccountingSummaryStats {...statsProps} />)
 
-        expect(screen.getByText('Total Disbursements')).toBeTruthy()
-        // $2,000.00 appears in both the card and the breakdown totals row
-        const expenseTotals = screen.getAllByText('$2,000.00')
-        expect(expenseTotals.length).toBeGreaterThan(0)
+        expect(screen.getByText('Disbursements')).toBeTruthy()
+        expect(screen.getByText('$2,000.00')).toBeTruthy()
     })
 
     test('renders net income', () => {
-        render(<AccountingSummaryCards {...defaultProps} />)
+        render(<AccountingSummaryStats {...statsProps} />)
 
         expect(screen.getByText('Net Change')).toBeTruthy()
-        // $3,000.00 appears in both Net Change card and Principal Receipts breakdown
-        const netIncomeAmounts = screen.getAllByText('$3,000.00')
-        expect(netIncomeAmounts.length).toBeGreaterThan(0)
+        expect(screen.getByText('$3,000.00')).toBeTruthy()
     })
 
     test('renders deductible expenses', () => {
-        render(<AccountingSummaryCards {...defaultProps} />)
+        render(<AccountingSummaryStats {...statsProps} />)
 
         expect(screen.getByText('Tax Deductible')).toBeTruthy()
         expect(screen.getByText('$1,500.00')).toBeTruthy()
     })
 
-    test('renders principal vs income breakdown section', () => {
-        render(<AccountingSummaryCards {...defaultProps} />)
-
-        expect(screen.getByText(/Principal vs Income Allocation/)).toBeTruthy()
-        // Values appear in breakdown rows
-        const principalAmounts = screen.getAllByText('$3,000.00')
-        expect(principalAmounts.length).toBeGreaterThan(0)
-    })
-
     test('renders zero values correctly', () => {
         render(
-            <AccountingSummaryCards
-                {...defaultProps}
+            <AccountingSummaryStats
                 incomeTotal="0"
                 expenseTotal="0"
                 netIncome="0"
@@ -79,28 +73,44 @@ describe('AccountingSummaryCards', () => {
             />,
         )
 
-        // $0.00 should appear multiple times for different fields
         const zeroCurrencies = screen.getAllByText('$0.00')
         expect(zeroCurrencies.length).toBeGreaterThan(0)
     })
+})
 
-    test('shows "All income has been converted" message when unconvertedSummary is empty', () => {
+describe('AccountingCompliancePanel', () => {
+    afterEach(() => {
+        cleanup()
+    })
+
+    test('renders collapsible trigger', () => {
+        render(<AccountingCompliancePanel {...complianceProps} />)
+
+        expect(screen.getByText(/Principal & Income Details/)).toBeTruthy()
+    })
+
+    test('shows "All income converted to principal" when unconvertedSummary is empty', async () => {
+        const user = userEvent.setup()
         render(
-            <AccountingSummaryCards
-                {...defaultProps}
+            <AccountingCompliancePanel
+                {...complianceProps}
                 unconvertedSummary={[]}
             />,
         )
 
+        // Open the collapsible
+        await user.click(screen.getByText(/Principal & Income Details/))
+
         expect(
-            screen.getByText(/All income has been converted to principal/),
+            screen.getByText(/All income converted to principal/),
         ).toBeTruthy()
     })
 
-    test('renders unconverted year data when unconvertedSummary has entries', () => {
+    test('renders unconverted year data when unconvertedSummary has entries', async () => {
+        const user = userEvent.setup()
         render(
-            <AccountingSummaryCards
-                {...defaultProps}
+            <AccountingCompliancePanel
+                {...complianceProps}
                 unconvertedSummary={[
                     {
                         fiscalYear: 2025,
@@ -111,15 +121,18 @@ describe('AccountingSummaryCards', () => {
             />,
         )
 
-        expect(screen.getByText('Fiscal Year 2025')).toBeTruthy()
+        await user.click(screen.getByText(/Principal & Income Details/))
+
+        expect(screen.getByText('FY 2025')).toBeTruthy()
         expect(screen.getByText(/3 entries/)).toBeTruthy()
-        expect(screen.getByText('Convert to Principal')).toBeTruthy()
+        expect(screen.getByText('Convert')).toBeTruthy()
     })
 
-    test('shows singular "entry" for one entry count', () => {
+    test('shows singular "entry" for one entry count', async () => {
+        const user = userEvent.setup()
         render(
-            <AccountingSummaryCards
-                {...defaultProps}
+            <AccountingCompliancePanel
+                {...complianceProps}
                 unconvertedSummary={[
                     {
                         fiscalYear: 2024,
@@ -130,13 +143,16 @@ describe('AccountingSummaryCards', () => {
             />,
         )
 
+        await user.click(screen.getByText(/Principal & Income Details/))
+
         expect(screen.getByText(/1 entry/)).toBeTruthy()
     })
 
-    test('disables convert button when convertingYear matches', () => {
+    test('disables convert button when convertingYear matches', async () => {
+        const user = userEvent.setup()
         render(
-            <AccountingSummaryCards
-                {...defaultProps}
+            <AccountingCompliancePanel
+                {...complianceProps}
                 unconvertedSummary={[
                     {
                         fiscalYear: 2025,
@@ -148,21 +164,23 @@ describe('AccountingSummaryCards', () => {
             />,
         )
 
-        const convertButton = screen.getByRole('button', {
-            name: /Converting/i,
-        })
+        await user.click(screen.getByText(/Principal & Income Details/))
+
+        // When converting, the button shows a spinner and is disabled
+        const buttons = screen.getAllByRole('button')
+        const convertButton = buttons.find((btn) =>
+            btn.hasAttribute('disabled'),
+        )
         expect(convertButton).toBeTruthy()
-        // Button should be disabled while converting
-        expect(convertButton.hasAttribute('disabled')).toBe(true)
     })
 
-    test('calls onConvertYear when Convert to Principal button clicked', async () => {
+    test('calls onConvertYear when Convert button clicked', async () => {
         const user = userEvent.setup()
         const onConvertYear = mock(() => {})
 
         render(
-            <AccountingSummaryCards
-                {...defaultProps}
+            <AccountingCompliancePanel
+                {...complianceProps}
                 unconvertedSummary={[
                     {
                         fiscalYear: 2025,
@@ -174,8 +192,10 @@ describe('AccountingSummaryCards', () => {
             />,
         )
 
+        await user.click(screen.getByText(/Principal & Income Details/))
+
         const convertButton = screen.getByRole('button', {
-            name: /Convert to Principal/i,
+            name: /Convert/i,
         })
         await user.click(convertButton)
 
