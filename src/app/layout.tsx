@@ -52,6 +52,7 @@ export default function RootLayout({
                             {children}
                             <Toaster
                                 richColors
+                                theme="system"
                                 position="bottom-right"
                                 toastOptions={{
                                     style: { width: 'fit-content' },

@@ -2,7 +2,7 @@ import { TRPCError } from '@trpc/server'
 import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '@/db'
-import { contact } from '@/db/schema'
+import { contact, contactAssociation } from '@/db/schema'
 import { insertContactSchema, updateContactSchema } from '@/db/validation'
 import { adminProcedure, createTRPCRouter } from '../init'
 
@@ -54,6 +54,10 @@ export const contactRouter = createTRPCRouter({
     delete: adminProcedure
         .input(z.coerce.number())
         .mutation(async ({ input }) => {
+            // Delete associated records first (FK has onDelete: 'restrict')
+            await db
+                .delete(contactAssociation)
+                .where(eq(contactAssociation.contactId, input))
             const [deleted] = await db
                 .delete(contact)
                 .where(eq(contact.id, input))

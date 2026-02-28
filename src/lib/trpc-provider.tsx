@@ -1,15 +1,20 @@
 'use client'
 
 import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister'
-import { QueryClient } from '@tanstack/react-query'
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
-import {
-    type Persister,
-    PersistQueryClientProvider,
-} from '@tanstack/react-query-persist-client'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { persistQueryClient } from '@tanstack/react-query-persist-client'
 import { httpBatchLink } from '@trpc/client'
-import { useState } from 'react'
+import dynamic from 'next/dynamic'
+import { useEffect, useState } from 'react'
 import { trpc } from './trpc'
+
+const ReactQueryDevtools = dynamic(
+    () =>
+        import('@tanstack/react-query-devtools').then((m) => ({
+            default: m.ReactQueryDevtools,
+        })),
+    { ssr: false },
+)
 
 function getBaseUrl() {
     if (typeof window !== 'undefined') return ''
@@ -46,36 +51,32 @@ export function TRPCProvider({ children }: { children: React.ReactNode }) {
         }),
     )
 
-    const [persister] = useState<Persister | null>(() => {
-        if (typeof window === 'undefined') return null
-        return createSyncStoragePersister({
+    // Attach localStorage persistence as a side-effect (client-only).
+    // This avoids a hydration mismatch: PersistQueryClientProvider would add
+    // an extra provider layer on the client that doesn't exist during SSR.
+    useEffect(() => {
+        const persister = createSyncStoragePersister({
             storage: window.localStorage,
             key: 'trust-admin-query-cache',
         })
-    })
-
-    const inner = (
-        <trpc.Provider client={trpcClient} queryClient={queryClient}>
-            {children}
-            {process.env.NODE_ENV === 'development' && (
-                <ReactQueryDevtools initialIsOpen={false} />
-            )}
-        </trpc.Provider>
-    )
-
-    if (!persister) return inner
+        const [unsubscribe] = persistQueryClient({
+            queryClient,
+            persister,
+            maxAge: 1000 * 60 * 60 * 24, // 24 hours
+            // Bump on schema/API changes that alter cached data shapes
+            buster: 'v1',
+        })
+        return unsubscribe
+    }, [queryClient])
 
     return (
-        <PersistQueryClientProvider
-            client={queryClient}
-            persistOptions={{
-                persister,
-                maxAge: 1000 * 60 * 60 * 24, // 24 hours
-                // Bump on schema/API changes that alter cached data shapes
-                buster: 'v1',
-            }}
-        >
-            {inner}
-        </PersistQueryClientProvider>
+        <QueryClientProvider client={queryClient}>
+            <trpc.Provider client={trpcClient} queryClient={queryClient}>
+                {children}
+                {process.env.NODE_ENV === 'development' && (
+                    <ReactQueryDevtools initialIsOpen={false} />
+                )}
+            </trpc.Provider>
+        </QueryClientProvider>
     )
 }

@@ -151,30 +151,55 @@ export const userManagementRouter = createTRPCRouter({
                 })
             }
 
-            if (existingUsers?.users && existingUsers.users.length > 0) {
-                throw new TRPCError({
-                    code: 'CONFLICT',
-                    message: 'Email already in use',
-                })
+            let createdUserId: string
+
+            // listUsers searchValue may do partial/contains matching —
+            // filter to exact email match to avoid false positives
+            const exactMatchUser = (existingUsers?.users ?? []).find(
+                (u: { email: string }) => u.email === input.email,
+            )
+
+            if (exactMatchUser) {
+                // Auth user exists — check if they already have a profile for a different beneficiary
+                const existingAuthUser = exactMatchUser
+                const [existingUserProfile] = await db
+                    .select()
+                    .from(userProfile)
+                    .where(eq(userProfile.userId, existingAuthUser.id))
+                    .limit(1)
+
+                if (
+                    existingUserProfile &&
+                    existingUserProfile.beneficiaryId !== null &&
+                    existingUserProfile.beneficiaryId !== input.beneficiaryId
+                ) {
+                    throw new TRPCError({
+                        code: 'CONFLICT',
+                        message: 'Email already in use by another account',
+                    })
+                }
+
+                // Reuse orphaned auth user (created previously but profile insert failed)
+                createdUserId = existingAuthUser.id
+            } else {
+                // Native role is always "user"; app role "beneficiary" is set in userProfile
+                const { data: newUser, error: createError } =
+                    await authServer.admin.createUser({
+                        email: input.email,
+                        password: input.tempPassword,
+                        name: `${ben.firstName} ${ben.lastName}`,
+                        role: 'user',
+                    })
+
+                if (createError || !newUser) {
+                    throw new TRPCError({
+                        code: 'BAD_REQUEST',
+                        message: `Failed to create auth user: ${createError?.message ?? 'Unknown error'}`,
+                    })
+                }
+
+                createdUserId = newUser.user.id
             }
-
-            // Native role is always "user"; app role "beneficiary" is set in userProfile
-            const { data: newUser, error: createError } =
-                await authServer.admin.createUser({
-                    email: input.email,
-                    password: input.tempPassword,
-                    name: `${ben.firstName} ${ben.lastName}`,
-                    role: 'user',
-                })
-
-            if (createError || !newUser) {
-                throw new TRPCError({
-                    code: 'BAD_REQUEST',
-                    message: `Failed to create auth user: ${createError?.message ?? 'Unknown error'}`,
-                })
-            }
-
-            const createdUserId = newUser.user.id
 
             // Required: Better Auth returns 403 on sign-in when emailVerified is false
             await getClient().unsafe(
@@ -182,12 +207,22 @@ export const userManagementRouter = createTRPCRouter({
                 [createdUserId],
             )
 
-            await db.insert(userProfile).values({
-                userId: createdUserId,
-                role: 'beneficiary',
-                beneficiaryId: input.beneficiaryId,
-                forcePasswordChange: true,
-            })
+            await db
+                .insert(userProfile)
+                .values({
+                    userId: createdUserId,
+                    role: 'beneficiary',
+                    beneficiaryId: input.beneficiaryId,
+                    forcePasswordChange: true,
+                })
+                .onConflictDoUpdate({
+                    target: userProfile.userId,
+                    set: {
+                        role: 'beneficiary',
+                        beneficiaryId: input.beneficiaryId,
+                        forcePasswordChange: true,
+                    },
+                })
 
             await createActivityLog({
                 tableName: 'user_profile',
