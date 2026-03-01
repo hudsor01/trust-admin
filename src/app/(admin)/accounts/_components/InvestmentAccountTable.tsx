@@ -7,7 +7,6 @@ import {
     EditableSelectCell,
     EditableTextCell,
 } from '@/components/editable-cells'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/ui/data-table'
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
@@ -41,30 +40,29 @@ export function InvestmentAccountTable({
             header: ({ column }) => (
                 <DataTableColumnHeader column={column} title="Institution" />
             ),
-            cell: ({ row }) => (
-                <EditableTextCell
-                    value={row.original.institution}
-                    onSave={async (val) => {
-                        await onUpdate(row.original.id, {
-                            institution: val as string,
-                        })
-                    }}
-                />
-            ),
-        },
-        {
-            accessorKey: 'accountName',
-            header: ({ column }) => (
-                <DataTableColumnHeader column={column} title="Account Name" />
-            ),
-            cell: ({ row }) => (
-                <EditableTextCell
-                    value={row.original.accountName}
-                    onSave={async (val) => {
-                        await onUpdate(row.original.id, { accountName: val })
-                    }}
-                />
-            ),
+            cell: ({ row }) => {
+                const name = row.original.accountName
+                const inst = row.original.institution
+                const showName =
+                    name && name.toLowerCase() !== inst?.toLowerCase()
+                return (
+                    <div>
+                        <EditableTextCell
+                            value={inst}
+                            onSave={async (val) => {
+                                await onUpdate(row.original.id, {
+                                    institution: val as string,
+                                })
+                            }}
+                        />
+                        {showName && (
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                                {name}
+                            </p>
+                        )}
+                    </div>
+                )
+            },
         },
         {
             accessorKey: 'accountType',
@@ -72,13 +70,11 @@ export function InvestmentAccountTable({
                 <DataTableColumnHeader column={column} title="Type" />
             ),
             cell: ({ row }) => (
-                <Badge variant="secondary" className="font-normal">
-                    {
-                        INVESTMENT_ACCOUNT_TYPES.find(
-                            (t) => t.value === row.original.accountType,
-                        )?.label
-                    }
-                </Badge>
+                <div className="text-sm">
+                    {INVESTMENT_ACCOUNT_TYPES.find(
+                        (t) => t.value === row.original.accountType,
+                    )?.label ?? row.original.accountType}
+                </div>
             ),
         },
         {
