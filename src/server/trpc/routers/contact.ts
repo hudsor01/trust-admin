@@ -1,7 +1,7 @@
 import { TRPCError } from '@trpc/server'
 import { eq } from 'drizzle-orm'
 import { z } from 'zod'
-import { db } from '@/db'
+import { db, getClient } from '@/db'
 import { contact, contactAssociation } from '@/db/schema'
 import { insertContactSchema, updateContactSchema } from '@/db/validation'
 import { adminProcedure, createTRPCRouter } from '../init'
@@ -54,19 +54,20 @@ export const contactRouter = createTRPCRouter({
     delete: adminProcedure
         .input(z.coerce.number())
         .mutation(async ({ input }) => {
-            // Delete associated records first (FK has onDelete: 'restrict')
-            await db
-                .delete(contactAssociation)
-                .where(eq(contactAssociation.contactId, input))
-            const [deleted] = await db
-                .delete(contact)
-                .where(eq(contact.id, input))
-                .returning()
+            const sql = getClient()
+            const [deleted] = await sql.begin(async (tx) => {
+                await tx`DELETE FROM contact_association WHERE "contactId" = ${input}`
+                return tx`DELETE FROM contact WHERE id = ${input} RETURNING *`
+            })
             if (!deleted)
                 throw new TRPCError({
                     code: 'NOT_FOUND',
                     message: 'Contact not found',
                 })
-            return deleted
+            // postgres.js returns bigint as string — coerce to match Drizzle shape
+            return {
+                id: Number(deleted.id),
+                name: deleted.name as string,
+            }
         }),
 })

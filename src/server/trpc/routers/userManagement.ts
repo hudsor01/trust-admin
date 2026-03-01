@@ -161,11 +161,10 @@ export const userManagementRouter = createTRPCRouter({
 
             if (exactMatchUser) {
                 // Auth user exists — check if they already have a profile for a different beneficiary
-                const existingAuthUser = exactMatchUser
                 const [existingUserProfile] = await db
                     .select()
                     .from(userProfile)
-                    .where(eq(userProfile.userId, existingAuthUser.id))
+                    .where(eq(userProfile.userId, exactMatchUser.id))
                     .limit(1)
 
                 if (
@@ -180,7 +179,7 @@ export const userManagementRouter = createTRPCRouter({
                 }
 
                 // Reuse orphaned auth user (created previously but profile insert failed)
-                createdUserId = existingAuthUser.id
+                createdUserId = exactMatchUser.id
             } else {
                 // Native role is always "user"; app role "beneficiary" is set in userProfile
                 const { data: newUser, error: createError } =

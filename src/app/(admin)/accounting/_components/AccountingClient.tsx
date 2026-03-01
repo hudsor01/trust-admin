@@ -40,14 +40,20 @@ export function AccountingClient() {
     const { data: entries = [], isLoading: entriesLoading } =
         trpc.trustAccounting.list.useQuery({ entityId })
 
+    const invalidateAccounting = () => {
+        utils.trustAccounting.list.invalidate()
+        utils.trustAccounting.totals.invalidate()
+        utils.trustAccounting.unconvertedIncomeSummary.invalidate()
+    }
+
     const createEntryMutation = trpc.trustAccounting.create.useMutation({
-        onSuccess: () => utils.trustAccounting.list.invalidate(),
+        onSuccess: invalidateAccounting,
     })
     const updateEntryMutation = trpc.trustAccounting.update.useMutation({
-        onSuccess: () => utils.trustAccounting.list.invalidate(),
+        onSuccess: invalidateAccounting,
     })
     const deleteEntryMutation = trpc.trustAccounting.delete.useMutation({
-        onSuccess: () => utils.trustAccounting.list.invalidate(),
+        onSuccess: invalidateAccounting,
     })
 
     const { data: unconvertedSummary = [] } =
@@ -55,10 +61,7 @@ export function AccountingClient() {
 
     const convertIncomeMutation =
         trpc.trustAccounting.convertIncomeToPrincipal.useMutation({
-            onSuccess: () => {
-                utils.trustAccounting.list.invalidate()
-                utils.trustAccounting.unconvertedIncomeSummary.invalidate()
-            },
+            onSuccess: invalidateAccounting,
         })
 
     const [activeTab, setActiveTab] = useState('all')

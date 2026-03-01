@@ -46,7 +46,6 @@ export default function RootLayout({
                             authClient={authClient}
                             redirectTo="/dashboard"
                             baseURL={env.NEXT_PUBLIC_APP_URL ?? ''}
-                            emailOTP
                             credentials
                         >
                             {children}

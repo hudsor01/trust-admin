@@ -40,6 +40,12 @@ export function BankAccountTable({
             header: ({ column }) => (
                 <DataTableColumnHeader column={column} title="Institution" />
             ),
+            filterFn: (row, _columnId, filterValue: string) => {
+                const search = filterValue.toLowerCase()
+                const inst = row.original.institution?.toLowerCase() ?? ''
+                const name = row.original.accountName?.toLowerCase() ?? ''
+                return inst.includes(search) || name.includes(search)
+            },
             cell: ({ row }) => {
                 const name = row.original.accountName
                 const inst = row.original.institution
