@@ -40,11 +40,11 @@ export function AccountingClient() {
     const { data: entries = [], isLoading: entriesLoading } =
         trpc.trustAccounting.list.useQuery({ entityId })
 
-    const invalidateAccounting = () => {
+    const invalidateAccounting = useCallback(() => {
         utils.trustAccounting.list.invalidate()
         utils.trustAccounting.totals.invalidate()
         utils.trustAccounting.unconvertedIncomeSummary.invalidate()
-    }
+    }, [utils])
 
     const createEntryMutation = trpc.trustAccounting.create.useMutation({
         onSuccess: invalidateAccounting,

@@ -63,7 +63,9 @@ export function TRPCProvider({ children }: { children: React.ReactNode }) {
             queryClient,
             persister,
             maxAge: 1000 * 60 * 60 * 24, // 24 hours
-            // Bump on schema/API changes that alter cached data shapes
+            // IMPORTANT: Bump this string on any breaking change to cached tRPC query
+            // shapes (e.g. renamed fields, removed queries, new required params).
+            // A stale cache with the wrong shape can cause subtle hydration bugs.
             buster: 'v1',
         })
         return unsubscribe

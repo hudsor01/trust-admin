@@ -36,6 +36,8 @@ interface DataTableProps<TData, TValue> {
     enableRowSelection?: boolean
     enableColumnVisibility?: boolean
     enablePagination?: boolean
+    /** Columns hidden by default (user can toggle via column visibility menu) */
+    initialColumnVisibility?: VisibilityState
     /** Rendered before the column visibility toggle */
     toolbar?: React.ReactNode
 }
@@ -50,13 +52,14 @@ export function DataTable<TData, TValue>({
     enableRowSelection = false,
     enableColumnVisibility = true,
     enablePagination = true,
+    initialColumnVisibility,
     toolbar,
 }: DataTableProps<TData, TValue>) {
     const [sorting, setSorting] = React.useState<SortingState>([])
     const [columnFilters, setColumnFilters] =
         React.useState<ColumnFiltersState>([])
     const [columnVisibility, setColumnVisibility] =
-        React.useState<VisibilityState>({})
+        React.useState<VisibilityState>(initialColumnVisibility ?? {})
     const [rowSelection, setRowSelection] = React.useState({})
 
     const table = useReactTable({

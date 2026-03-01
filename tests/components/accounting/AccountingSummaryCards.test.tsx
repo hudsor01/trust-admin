@@ -106,8 +106,8 @@ describe('AccountingCompliancePanel', () => {
         ).toBeTruthy()
     })
 
-    test('renders unconverted year data when unconvertedSummary has entries', async () => {
-        const user = userEvent.setup()
+    test('renders unconverted year data when unconvertedSummary has entries', () => {
+        // Panel opens by default when there are unconverted entries
         render(
             <AccountingCompliancePanel
                 {...complianceProps}
@@ -121,15 +121,30 @@ describe('AccountingCompliancePanel', () => {
             />,
         )
 
-        await user.click(screen.getByText(/Principal & Income Details/))
-
         expect(screen.getByText('FY 2025')).toBeTruthy()
         expect(screen.getByText(/3 entries/)).toBeTruthy()
         expect(screen.getByText('Convert')).toBeTruthy()
     })
 
-    test('shows singular "entry" for one entry count', async () => {
-        const user = userEvent.setup()
+    test('shows badge count for unconverted years', () => {
+        render(
+            <AccountingCompliancePanel
+                {...complianceProps}
+                unconvertedSummary={[
+                    {
+                        fiscalYear: 2025,
+                        entryCount: 3,
+                        totalAmount: '1200.00',
+                    },
+                ]}
+            />,
+        )
+
+        expect(screen.getByText('1 unconverted')).toBeTruthy()
+    })
+
+    test('shows singular "entry" for one entry count', () => {
+        // Panel opens by default when there are unconverted entries
         render(
             <AccountingCompliancePanel
                 {...complianceProps}
@@ -143,13 +158,11 @@ describe('AccountingCompliancePanel', () => {
             />,
         )
 
-        await user.click(screen.getByText(/Principal & Income Details/))
-
         expect(screen.getByText(/1 entry/)).toBeTruthy()
     })
 
-    test('disables convert button when convertingYear matches', async () => {
-        const user = userEvent.setup()
+    test('disables convert button when convertingYear matches', () => {
+        // Panel opens by default when there are unconverted entries
         render(
             <AccountingCompliancePanel
                 {...complianceProps}
@@ -164,8 +177,6 @@ describe('AccountingCompliancePanel', () => {
             />,
         )
 
-        await user.click(screen.getByText(/Principal & Income Details/))
-
         // When converting, the button shows a spinner and is disabled
         const buttons = screen.getAllByRole('button')
         const convertButton = buttons.find((btn) =>
@@ -178,6 +189,7 @@ describe('AccountingCompliancePanel', () => {
         const user = userEvent.setup()
         const onConvertYear = mock(() => {})
 
+        // Panel opens by default when there are unconverted entries
         render(
             <AccountingCompliancePanel
                 {...complianceProps}
@@ -192,10 +204,8 @@ describe('AccountingCompliancePanel', () => {
             />,
         )
 
-        await user.click(screen.getByText(/Principal & Income Details/))
-
         const convertButton = screen.getByRole('button', {
-            name: /Convert/i,
+            name: /^Convert$/i,
         })
         await user.click(convertButton)
 

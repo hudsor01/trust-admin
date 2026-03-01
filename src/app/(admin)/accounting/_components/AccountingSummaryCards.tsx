@@ -99,11 +99,18 @@ export function AccountingCompliancePanel({
     convertingYear: number | null
     onConvertYear: (fiscalYear: number) => void
 }) {
+    const hasUnconverted = unconvertedSummary.length > 0
+
     return (
-        <Collapsible>
+        <Collapsible defaultOpen={hasUnconverted}>
             <CollapsibleTrigger className="group flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
                 <ChevronRight className="h-4 w-4 transition-transform group-data-[state=open]:rotate-90" />
                 Principal &amp; Income Details
+                {hasUnconverted && (
+                    <span className="inline-flex items-center rounded-full bg-amber-500/20 px-2 py-0.5 text-xs font-medium text-amber-700">
+                        {unconvertedSummary.length} unconverted
+                    </span>
+                )}
             </CollapsibleTrigger>
             <CollapsibleContent>
                 <div className="mt-3 grid gap-4 sm:grid-cols-2">

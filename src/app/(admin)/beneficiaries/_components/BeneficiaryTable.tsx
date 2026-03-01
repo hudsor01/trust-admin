@@ -20,6 +20,22 @@ import {
     calculateEligibility,
 } from './types'
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const STATE_RE = /^[A-Za-z]{2}$/
+const ZIP_RE = /^\d{5}(-\d{4})?$/
+
+function validateEmail(v: string): string | null {
+    return EMAIL_RE.test(v) ? null : 'Invalid email format'
+}
+function validateState(v: string): string | null {
+    return STATE_RE.test(v) ? null : 'State must be a 2-letter code (e.g. TX)'
+}
+function validateZip(v: string): string | null {
+    return ZIP_RE.test(v)
+        ? null
+        : 'Zip must be 5 digits (e.g. 75001 or 75001-1234)'
+}
+
 interface BeneficiaryTableProps {
     beneficiaries: BeneficiaryWithDistributions[]
     isLoading: boolean
@@ -136,6 +152,7 @@ export function BeneficiaryTable({
                         })
                     }}
                     placeholder="Add email"
+                    validate={validateEmail}
                 />
             ),
         },
@@ -200,10 +217,11 @@ export function BeneficiaryTable({
                     value={row.original.state}
                     onSave={async (val) => {
                         await onUpdateBeneficiary(row.original.id, {
-                            state: val,
+                            state: val?.toUpperCase() ?? null,
                         })
                     }}
                     placeholder="Add state"
+                    validate={validateState}
                 />
             ),
         },
@@ -221,6 +239,7 @@ export function BeneficiaryTable({
                         })
                     }}
                     placeholder="Add zip"
+                    validate={validateZip}
                 />
             ),
         },
@@ -269,6 +288,12 @@ export function BeneficiaryTable({
                     emptyMessage="No beneficiaries found"
                     enableColumnVisibility={true}
                     enablePagination={true}
+                    initialColumnVisibility={{
+                        streetAddress: false,
+                        city: false,
+                        state: false,
+                        zip: false,
+                    }}
                 />
             </CardContent>
         </Card>

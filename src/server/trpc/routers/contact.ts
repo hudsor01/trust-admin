@@ -5,6 +5,8 @@ import { z } from 'zod'
 import { db, getClient } from '@/db'
 import { contact } from '@/db/schema'
 
+// postgres.js TransactionSql doesn't expose the template-literal call signature
+// directly in its types, so we intersect it to allow tagged-template SQL usage.
 type TxSql = postgres.TransactionSql &
     (<T extends readonly (object | undefined)[] = postgres.Row[]>(
         template: TemplateStringsArray,
