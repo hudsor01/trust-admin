@@ -2,7 +2,7 @@ import { TRPCError } from '@trpc/server'
 import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { db, getClient } from '@/db'
-import { contact, contactAssociation } from '@/db/schema'
+import { contact } from '@/db/schema'
 import { insertContactSchema, updateContactSchema } from '@/db/validation'
 import { adminProcedure, createTRPCRouter } from '../init'
 
