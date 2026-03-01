@@ -1,8 +1,16 @@
 import { TRPCError } from '@trpc/server'
 import { eq } from 'drizzle-orm'
+import type postgres from 'postgres'
 import { z } from 'zod'
 import { db, getClient } from '@/db'
 import { contact } from '@/db/schema'
+
+type TxSql = postgres.TransactionSql &
+    (<T extends readonly (object | undefined)[] = postgres.Row[]>(
+        template: TemplateStringsArray,
+        ...parameters: readonly postgres.ParameterOrFragment<never>[]
+    ) => postgres.PendingQuery<T>)
+
 import { insertContactSchema, updateContactSchema } from '@/db/validation'
 import { adminProcedure, createTRPCRouter } from '../init'
 
@@ -55,7 +63,8 @@ export const contactRouter = createTRPCRouter({
         .input(z.coerce.number())
         .mutation(async ({ input }) => {
             const sql = getClient()
-            const [deleted] = await sql.begin(async (tx) => {
+            const [deleted] = await sql.begin(async (_tx) => {
+                const tx = _tx as TxSql
                 await tx`DELETE FROM contact_association WHERE "contactId" = ${input}`
                 return tx`DELETE FROM contact WHERE id = ${input} RETURNING *`
             })
