@@ -154,19 +154,36 @@ export const userManagementRouter = createTRPCRouter({
             let createdUserId: string
 
             // listUsers searchValue may do partial/contains matching —
-            // filter to exact email match to avoid false positives
+            // filter to exact email match to avoid false positives.
+            // Case-insensitive: auth providers normalize to lowercase.
+            const inputEmailLower = input.email.toLowerCase()
             const exactMatchUser = (existingUsers?.users ?? []).find(
-                (u: { email: string }) => u.email === input.email,
+                (u: { email: string }) =>
+                    u.email.toLowerCase() === inputEmailLower,
             )
 
             if (exactMatchUser) {
-                // Auth user exists — check if they already have a profile for a different beneficiary
+                // Auth user exists — check if they already have a profile
                 const [existingUserProfile] = await db
                     .select()
                     .from(userProfile)
                     .where(eq(userProfile.userId, exactMatchUser.id))
                     .limit(1)
 
+                // Block if the profile belongs to an admin — creating a beneficiary
+                // account would overwrite their role and revoke admin privileges
+                if (
+                    existingUserProfile &&
+                    existingUserProfile.role === 'admin'
+                ) {
+                    throw new TRPCError({
+                        code: 'CONFLICT',
+                        message:
+                            'Email belongs to an admin account — remove admin role first',
+                    })
+                }
+
+                // Block if the profile is already linked to a different beneficiary
                 if (
                     existingUserProfile &&
                     existingUserProfile.beneficiaryId !== null &&

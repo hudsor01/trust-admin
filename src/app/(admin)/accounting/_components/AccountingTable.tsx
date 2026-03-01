@@ -85,6 +85,32 @@ export function AccountingTable({
             ),
         },
         {
+            id: 'flags',
+            header: 'Flags',
+            cell: ({ row }) => {
+                const flags: string[] = []
+                if (row.original.isPrincipal) flags.push('P')
+                if (row.original.taxDeductible) flags.push('D')
+                if (flags.length === 0) return null
+                return (
+                    <div className="flex gap-1">
+                        {flags.map((f) => (
+                            <Badge
+                                key={f}
+                                variant="outline"
+                                className="text-xs px-1.5"
+                                title={
+                                    f === 'P' ? 'Principal' : 'Tax Deductible'
+                                }
+                            >
+                                {f}
+                            </Badge>
+                        ))}
+                    </div>
+                )
+            },
+        },
+        {
             accessorKey: 'amount',
             header: ({ column }) => (
                 <DataTableColumnHeader column={column} title="Amount" />

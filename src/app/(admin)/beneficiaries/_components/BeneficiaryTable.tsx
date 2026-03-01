@@ -21,11 +21,15 @@ import {
 } from './types'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const PHONE_RE = /^[\d()+\-.\s]{7,20}$/
 const STATE_RE = /^[A-Za-z]{2}$/
 const ZIP_RE = /^\d{5}(-\d{4})?$/
 
 function validateEmail(v: string): string | null {
     return EMAIL_RE.test(v) ? null : 'Invalid email format'
+}
+function validatePhone(v: string): string | null {
+    return PHONE_RE.test(v) ? null : 'Invalid phone number'
 }
 function validateState(v: string): string | null {
     return STATE_RE.test(v) ? null : 'State must be a 2-letter code (e.g. TX)'
@@ -170,6 +174,7 @@ export function BeneficiaryTable({
                         })
                     }}
                     placeholder="Add phone"
+                    validate={validatePhone}
                 />
             ),
         },
