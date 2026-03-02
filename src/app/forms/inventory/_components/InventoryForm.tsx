@@ -5,6 +5,7 @@ import {
     Camera,
     CheckCircle2,
     DollarSign,
+    Globe,
     Loader2,
     Sparkles,
     Upload,
@@ -25,6 +26,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import {
     type InventoryFormState,
@@ -112,6 +114,8 @@ export function InventoryForm() {
     const [analysisError, setAnalysisError] = useState<string | null>(null)
 
     // AI analysis pre-fills these; user can override before submit
+    const [useWebSearch, setUseWebSearch] = useState(true)
+
     const [formValues, setFormValues] = useState({
         name: '',
         category: '',
@@ -160,7 +164,7 @@ export function InventoryForm() {
             const res = await fetch('/api/inventory/analyze', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ images }),
+                body: JSON.stringify({ images, useWebSearch }),
             })
 
             if (!res.ok) {
@@ -323,24 +327,53 @@ export function InventoryForm() {
                     )}
 
                     {photos.length > 0 && !analysis && (
-                        <Button
-                            type="button"
-                            onClick={analyzePhotos}
-                            disabled={analyzing}
-                            className="w-full"
-                        >
-                            {analyzing ? (
-                                <>
-                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                    Analyzing with AI...
-                                </>
-                            ) : (
-                                <>
-                                    <Sparkles className="h-4 w-4 mr-2" />
-                                    Analyze & Value Item
-                                </>
-                            )}
-                        </Button>
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between rounded-lg border p-3">
+                                <div className="flex items-center gap-2">
+                                    <Globe className="h-4 w-4 text-muted-foreground" />
+                                    <div>
+                                        <Label
+                                            htmlFor="web-search-toggle"
+                                            className="text-sm font-medium cursor-pointer"
+                                        >
+                                            Research-backed valuation
+                                        </Label>
+                                        <p className="text-xs text-muted-foreground">
+                                            Searches eBay sold listings, auction
+                                            results, and price guides for real
+                                            comparable sales. Takes 30-90s.
+                                        </p>
+                                    </div>
+                                </div>
+                                <Switch
+                                    id="web-search-toggle"
+                                    checked={useWebSearch}
+                                    onCheckedChange={setUseWebSearch}
+                                />
+                            </div>
+                            <Button
+                                type="button"
+                                onClick={analyzePhotos}
+                                disabled={analyzing}
+                                className="w-full"
+                            >
+                                {analyzing ? (
+                                    <>
+                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                        {useWebSearch
+                                            ? 'Researching comparable sales...'
+                                            : 'Analyzing with AI...'}
+                                    </>
+                                ) : (
+                                    <>
+                                        <Sparkles className="h-4 w-4 mr-2" />
+                                        {useWebSearch
+                                            ? 'Research & Value Item'
+                                            : 'Analyze & Value Item'}
+                                    </>
+                                )}
+                            </Button>
+                        </div>
                     )}
 
                     {analysisError && (

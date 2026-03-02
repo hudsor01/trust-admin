@@ -8,9 +8,11 @@ import {
     analyzeInventoryImageWithCompressed,
     type InventoryAnalysisResult,
 } from '@/lib/inventory-analysis'
+import { analyzeWithMarketResearch } from '@/lib/inventory-analysis-enhanced'
 import { uploadInventoryImages } from '@/lib/uploadthing-server'
 
-export const maxDuration = 60
+// Enhanced analysis with web search can take 30-90s per item
+export const maxDuration = 120
 
 const ImageSchema = z.object({
     base64: z.string().min(1, 'Image data is required'),
@@ -27,6 +29,7 @@ const AnalyzeRequestSchema = z.object({
         .array(ImageSchema)
         .min(1, 'At least one image is required')
         .max(5, 'Maximum 5 images per item'),
+    useWebSearch: z.boolean().optional().default(false),
 })
 
 interface AnalyzeSuccessResponse {
@@ -79,10 +82,11 @@ export async function POST(
             )
         }
 
-        const { images } = validationResult.data
+        const { images, useWebSearch } = validationResult.data
 
-        const { analysis, compressedImages } =
-            await analyzeInventoryImageWithCompressed(images)
+        const { analysis, compressedImages } = useWebSearch
+            ? await analyzeWithMarketResearch(images)
+            : await analyzeInventoryImageWithCompressed(images)
 
         let photoUrls: string[] = []
         try {

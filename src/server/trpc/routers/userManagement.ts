@@ -546,8 +546,6 @@ export const userManagementRouter = createTRPCRouter({
                 })
             }
 
-            // Delete profile first: if Neon Auth removal fails, user still can't
-            // access profile-dependent features. Reverse order risks orphan profiles.
             const [deletedProfile] = await db
                 .delete(userProfile)
                 .where(eq(userProfile.userId, input.userId))
@@ -558,6 +556,19 @@ export const userManagementRouter = createTRPCRouter({
             })
 
             if (error) {
+                // Restore profile to avoid orphaned auth user without a profile
+                if (deletedProfile) {
+                    await db
+                        .insert(userProfile)
+                        .values({
+                            userId: deletedProfile.userId,
+                            role: deletedProfile.role,
+                            beneficiaryId: deletedProfile.beneficiaryId,
+                            forcePasswordChange:
+                                deletedProfile.forcePasswordChange,
+                        })
+                        .onConflictDoNothing()
+                }
                 throw new TRPCError({
                     code: 'BAD_REQUEST',
                     message: `Failed to remove user from auth: ${error.message}`,
