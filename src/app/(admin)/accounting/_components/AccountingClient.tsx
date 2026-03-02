@@ -5,14 +5,9 @@ import { toast } from 'sonner'
 import { ConfirmDialog, useConfirmDialog } from '@/components/confirm-dialog'
 import type {
     AccountingEntryTypeEnum,
-    BankAccount,
     ExpenseTypeEnum,
-    Homestead,
     IncomeTypeEnum,
-    InvestmentAccount,
-    RentalProperty,
     TrustAccounting,
-    Vehicle,
 } from '@/db/schema'
 import { useResourceForm } from '@/hooks/use-resource-form'
 import { logger } from '@/lib/logger'
@@ -20,7 +15,10 @@ import { subtractMoney, sumStrings } from '@/lib/money'
 import { trpc } from '@/lib/trpc'
 import { AccountingDialog } from './AccountingDialog'
 import { AccountingHeader } from './AccountingHeader'
-import { AccountingSummaryCards } from './AccountingSummaryCards'
+import {
+    AccountingCompliancePanel,
+    AccountingSummaryStats,
+} from './AccountingSummaryCards'
 import { AccountingTable } from './AccountingTable'
 import type { AccountingFormData } from './accounting-constants'
 
@@ -42,14 +40,20 @@ export function AccountingClient() {
     const { data: entries = [], isLoading: entriesLoading } =
         trpc.trustAccounting.list.useQuery({ entityId })
 
+    const invalidateAccounting = useCallback(() => {
+        utils.trustAccounting.list.invalidate()
+        utils.trustAccounting.totals.invalidate()
+        utils.trustAccounting.unconvertedIncomeSummary.invalidate()
+    }, [utils])
+
     const createEntryMutation = trpc.trustAccounting.create.useMutation({
-        onSuccess: () => utils.trustAccounting.list.invalidate(),
+        onSuccess: invalidateAccounting,
     })
     const updateEntryMutation = trpc.trustAccounting.update.useMutation({
-        onSuccess: () => utils.trustAccounting.list.invalidate(),
+        onSuccess: invalidateAccounting,
     })
     const deleteEntryMutation = trpc.trustAccounting.delete.useMutation({
-        onSuccess: () => utils.trustAccounting.list.invalidate(),
+        onSuccess: invalidateAccounting,
     })
 
     const { data: unconvertedSummary = [] } =
@@ -57,10 +61,7 @@ export function AccountingClient() {
 
     const convertIncomeMutation =
         trpc.trustAccounting.convertIncomeToPrincipal.useMutation({
-            onSuccess: () => {
-                utils.trustAccounting.list.invalidate()
-                utils.trustAccounting.unconvertedIncomeSummary.invalidate()
-            },
+            onSuccess: invalidateAccounting,
         })
 
     const [activeTab, setActiveTab] = useState('all')
@@ -274,31 +275,26 @@ export function AccountingClient() {
                 day: 'numeric',
             })
 
-            // Build report HTML and open in new window
-            const reportWindow = window.open('', '_blank')
-            if (reportWindow) {
-                const doc = reportWindow.document
-                doc.open()
-                // eslint-disable-next-line no-unsanitized/method
-                doc.write(
-                    buildReportHtml({
-                        entityName: entity?.name || 'Trust',
-                        reportDate,
-                        incomeTotal,
-                        expenseTotal,
-                        netIncome,
-                        bankAccountCount: bankAccountsData.length,
-                        investmentAccountCount: investmentAccounts.length,
-                        propertyCount:
-                            homesteads.length + rentalProperties.length,
-                        vehicleCount: vehicles.length,
-                        liabilityCount: liabilities.length,
-                    }),
-                )
-                doc.close()
-            }
+            // Build report HTML and open as Blob URL in new window
+            const html = buildReportHtml({
+                entityName: entity?.name || 'Trust',
+                reportDate,
+                incomeTotal,
+                expenseTotal,
+                netIncome,
+                bankAccountCount: bankAccountsData.length,
+                investmentAccountCount: investmentAccounts.length,
+                propertyCount: homesteads.length + rentalProperties.length,
+                vehicleCount: vehicles.length,
+                liabilityCount: liabilities.length,
+            })
+            const blob = new Blob([html], { type: 'text/html' })
+            const url = URL.createObjectURL(blob)
+            window.open(url, '_blank')
+            setTimeout(() => URL.revokeObjectURL(url), 60_000)
         } catch (error) {
             log.error('Failed to generate report', { error })
+            toast.error('Failed to generate report')
         } finally {
             setGeneratingReport(false)
         }
@@ -328,18 +324,11 @@ export function AccountingClient() {
                 onAddEntry={handleAddEntry}
             />
 
-            <AccountingSummaryCards
+            <AccountingSummaryStats
                 incomeTotal={incomeTotal}
                 expenseTotal={expenseTotal}
                 netIncome={netIncome}
                 deductibleExpenses={deductibleExpenses}
-                principalReceipts={principalReceipts}
-                incomeReceipts={incomeReceipts}
-                principalDisbursements={principalDisbursements}
-                incomeDisbursements={incomeDisbursements}
-                unconvertedSummary={unconvertedSummary}
-                convertingYear={convertingYear}
-                onConvertYear={handleConvertYear}
             />
 
             <AccountingTable
@@ -353,6 +342,16 @@ export function AccountingClient() {
                 onEditEntry={openEditForm}
                 onDeleteEntry={deleteEntry}
                 onUpdateEntry={updateEntry}
+            />
+
+            <AccountingCompliancePanel
+                principalReceipts={principalReceipts}
+                incomeReceipts={incomeReceipts}
+                principalDisbursements={principalDisbursements}
+                incomeDisbursements={incomeDisbursements}
+                unconvertedSummary={unconvertedSummary}
+                convertingYear={convertingYear}
+                onConvertYear={handleConvertYear}
             />
 
             <AccountingDialog

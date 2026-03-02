@@ -151,30 +151,71 @@ export const userManagementRouter = createTRPCRouter({
                 })
             }
 
-            if (existingUsers?.users && existingUsers.users.length > 0) {
-                throw new TRPCError({
-                    code: 'CONFLICT',
-                    message: 'Email already in use',
-                })
+            let createdUserId: string
+
+            // listUsers searchValue may do partial/contains matching —
+            // filter to exact email match to avoid false positives.
+            // Case-insensitive: auth providers normalize to lowercase.
+            const inputEmailLower = input.email.toLowerCase()
+            const exactMatchUser = (existingUsers?.users ?? []).find(
+                (u: { email: string }) =>
+                    u.email.toLowerCase() === inputEmailLower,
+            )
+
+            if (exactMatchUser) {
+                // Auth user exists — check if they already have a profile
+                const [existingUserProfile] = await db
+                    .select()
+                    .from(userProfile)
+                    .where(eq(userProfile.userId, exactMatchUser.id))
+                    .limit(1)
+
+                // Block if the profile belongs to an admin — creating a beneficiary
+                // account would overwrite their role and revoke admin privileges
+                if (
+                    existingUserProfile &&
+                    existingUserProfile.role === 'admin'
+                ) {
+                    throw new TRPCError({
+                        code: 'CONFLICT',
+                        message:
+                            'Email belongs to an admin account — remove admin role first',
+                    })
+                }
+
+                // Block if the profile is already linked to a different beneficiary
+                if (
+                    existingUserProfile &&
+                    existingUserProfile.beneficiaryId !== null &&
+                    existingUserProfile.beneficiaryId !== input.beneficiaryId
+                ) {
+                    throw new TRPCError({
+                        code: 'CONFLICT',
+                        message: 'Email already in use by another account',
+                    })
+                }
+
+                // Reuse orphaned auth user (created previously but profile insert failed)
+                createdUserId = exactMatchUser.id
+            } else {
+                // Native role is always "user"; app role "beneficiary" is set in userProfile
+                const { data: newUser, error: createError } =
+                    await authServer.admin.createUser({
+                        email: input.email,
+                        password: input.tempPassword,
+                        name: `${ben.firstName} ${ben.lastName}`,
+                        role: 'user',
+                    })
+
+                if (createError || !newUser) {
+                    throw new TRPCError({
+                        code: 'BAD_REQUEST',
+                        message: `Failed to create auth user: ${createError?.message ?? 'Unknown error'}`,
+                    })
+                }
+
+                createdUserId = newUser.user.id
             }
-
-            // Native role is always "user"; app role "beneficiary" is set in userProfile
-            const { data: newUser, error: createError } =
-                await authServer.admin.createUser({
-                    email: input.email,
-                    password: input.tempPassword,
-                    name: `${ben.firstName} ${ben.lastName}`,
-                    role: 'user',
-                })
-
-            if (createError || !newUser) {
-                throw new TRPCError({
-                    code: 'BAD_REQUEST',
-                    message: `Failed to create auth user: ${createError?.message ?? 'Unknown error'}`,
-                })
-            }
-
-            const createdUserId = newUser.user.id
 
             // Required: Better Auth returns 403 on sign-in when emailVerified is false
             await getClient().unsafe(
@@ -182,12 +223,22 @@ export const userManagementRouter = createTRPCRouter({
                 [createdUserId],
             )
 
-            await db.insert(userProfile).values({
-                userId: createdUserId,
-                role: 'beneficiary',
-                beneficiaryId: input.beneficiaryId,
-                forcePasswordChange: true,
-            })
+            await db
+                .insert(userProfile)
+                .values({
+                    userId: createdUserId,
+                    role: 'beneficiary',
+                    beneficiaryId: input.beneficiaryId,
+                    forcePasswordChange: true,
+                })
+                .onConflictDoUpdate({
+                    target: userProfile.userId,
+                    set: {
+                        role: 'beneficiary',
+                        beneficiaryId: input.beneficiaryId,
+                        forcePasswordChange: true,
+                    },
+                })
 
             await createActivityLog({
                 tableName: 'user_profile',
@@ -495,8 +546,6 @@ export const userManagementRouter = createTRPCRouter({
                 })
             }
 
-            // Delete profile first: if Neon Auth removal fails, user still can't
-            // access profile-dependent features. Reverse order risks orphan profiles.
             const [deletedProfile] = await db
                 .delete(userProfile)
                 .where(eq(userProfile.userId, input.userId))
@@ -507,6 +556,19 @@ export const userManagementRouter = createTRPCRouter({
             })
 
             if (error) {
+                // Restore profile to avoid orphaned auth user without a profile
+                if (deletedProfile) {
+                    await db
+                        .insert(userProfile)
+                        .values({
+                            userId: deletedProfile.userId,
+                            role: deletedProfile.role,
+                            beneficiaryId: deletedProfile.beneficiaryId,
+                            forcePasswordChange:
+                                deletedProfile.forcePasswordChange,
+                        })
+                        .onConflictDoNothing()
+                }
                 throw new TRPCError({
                     code: 'BAD_REQUEST',
                     message: `Failed to remove user from auth: ${error.message}`,

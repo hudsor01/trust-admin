@@ -379,6 +379,19 @@
   }
 }
 
+/* Sonner toast — map richColors to app design tokens */
+html [data-sonner-toaster][data-sonner-theme] {
+  --error-bg: var(--destructive);
+  --error-border: var(--destructive);
+  --error-text: var(--destructive-foreground);
+  --success-bg: var(--success);
+  --success-border: var(--success);
+  --success-text: var(--success-foreground);
+  --warning-bg: var(--warning);
+  --warning-border: var(--warning);
+  --warning-text: var(--warning-foreground);
+}
+
 /* Neon Auth UI customizations to match app theme */
 @layer components {
   /* Auth form card styling */

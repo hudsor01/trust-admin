@@ -14,6 +14,8 @@ interface UseEditableCellOptions<T> {
     formatForEdit?: (value: T) => string
     /** Convert edited string back to stored type */
     parseFromEdit?: (value: string) => T
+    /** Validate the edited string before saving. Return an error message to block save, or null to allow. */
+    validate?: (editValue: string) => string | null
 }
 
 interface UseEditableCellReturn {
@@ -31,7 +33,7 @@ interface UseEditableCellReturn {
 export function useEditableCell<T>(
     options: UseEditableCellOptions<T>,
 ): UseEditableCellReturn {
-    const { value, onSave, formatForEdit, parseFromEdit } = options
+    const { value, onSave, formatForEdit, parseFromEdit, validate } = options
 
     const [editing, setEditing] = useState(false)
     const [editValue, setEditValue] = useState('')
@@ -65,6 +67,15 @@ export function useEditableCell<T>(
         if (editValue === currentFormatted) {
             setEditing(false)
             return
+        }
+
+        // Run validation before persisting (empty strings bypass — clearing a field is always allowed)
+        if (validate && editValue) {
+            const error = validate(editValue)
+            if (error) {
+                toast.error(error)
+                return
+            }
         }
 
         setSaving(true)

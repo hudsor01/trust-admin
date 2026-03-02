@@ -20,12 +20,15 @@ interface EditableTextCellProps {
     value: string | null
     onSave: (val: string | null) => Promise<unknown>
     placeholder?: string
+    /** Validate before saving. Return error message to block, or null to allow. */
+    validate?: (value: string) => string | null
 }
 
 export const EditableTextCell = memo(function EditableTextCell({
     value,
     onSave,
     placeholder = '—',
+    validate,
 }: EditableTextCellProps) {
     const {
         editing,
@@ -40,6 +43,7 @@ export const EditableTextCell = memo(function EditableTextCell({
         onSave,
         formatForEdit: (v) => v || '',
         parseFromEdit: (v) => v || null,
+        validate,
     })
 
     if (editing) {

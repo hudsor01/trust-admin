@@ -1,10 +1,10 @@
 'use client'
 
 import type { ColumnDef } from '@tanstack/react-table'
-import { Check, Circle, Eye } from 'lucide-react'
+import { Eye } from 'lucide-react'
 import {
     EditablePercentCell,
-    EditableSelectCell,
+    EditableTextCell,
 } from '@/components/editable-cells'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -13,11 +13,6 @@ import { DataTable } from '@/components/ui/data-table'
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import type { Beneficiary } from '@/db/schema'
 import { sumStrings } from '@/lib/money'
-import {
-    asDistributionStandard,
-    DISTRIBUTION_STANDARD_VALUES,
-    enumToOptions,
-} from '@/lib/type-utils'
 import { cn } from '@/lib/utils'
 import { formatCurrency } from '@/utils/formatters'
 import {
@@ -25,7 +20,25 @@ import {
     calculateEligibility,
 } from './types'
 
-const DISTRIBUTION_STANDARDS = enumToOptions(DISTRIBUTION_STANDARD_VALUES)
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const PHONE_RE = /^[\d()+\-.\s]{7,20}$/
+const STATE_RE = /^[A-Za-z]{2}$/
+const ZIP_RE = /^\d{5}(-\d{4})?$/
+
+function validateEmail(v: string): string | null {
+    return EMAIL_RE.test(v) ? null : 'Invalid email format'
+}
+function validatePhone(v: string): string | null {
+    return PHONE_RE.test(v) ? null : 'Invalid phone number'
+}
+function validateState(v: string): string | null {
+    return STATE_RE.test(v) ? null : 'State must be a 2-letter code (e.g. TX)'
+}
+function validateZip(v: string): string | null {
+    return ZIP_RE.test(v)
+        ? null
+        : 'Zip must be 5 digits (e.g. 75001 or 75001-1234)'
+}
 
 interface BeneficiaryTableProps {
     beneficiaries: BeneficiaryWithDistributions[]
@@ -130,72 +143,109 @@ export function BeneficiaryTable({
             },
         },
         {
-            accessorKey: 'distributionStandard',
+            accessorKey: 'email',
             header: ({ column }) => (
-                <DataTableColumnHeader column={column} title="Standard" />
+                <DataTableColumnHeader column={column} title="Email" />
             ),
             cell: ({ row }) => (
-                <EditableSelectCell
-                    value={row.original.distributionStandard || 'HEMS'}
-                    options={DISTRIBUTION_STANDARDS}
+                <EditableTextCell
+                    value={row.original.email}
                     onSave={async (val) => {
                         await onUpdateBeneficiary(row.original.id, {
-                            distributionStandard: asDistributionStandard(val),
+                            email: val,
                         })
                     }}
+                    placeholder="Add email"
+                    validate={validateEmail}
                 />
             ),
         },
         {
-            accessorKey: 'informed',
-            header: 'Notified',
+            accessorKey: 'phone',
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title="Phone" />
+            ),
             cell: ({ row }) => (
-                <Button
-                    variant={row.original.informed ? 'default' : 'outline'}
-                    size="icon"
-                    className={cn(
-                        'h-7 w-7',
-                        row.original.informed &&
-                            'bg-success hover:bg-success/90',
-                    )}
-                    onClick={() =>
-                        onUpdateBeneficiary(row.original.id, {
-                            informed: !row.original.informed,
+                <EditableTextCell
+                    value={row.original.phone}
+                    onSave={async (val) => {
+                        await onUpdateBeneficiary(row.original.id, {
+                            phone: val,
                         })
-                    }
-                >
-                    {row.original.informed ? (
-                        <Check className="h-3.5 w-3.5" />
-                    ) : (
-                        <Circle className="h-3.5 w-3.5" />
-                    )}
-                </Button>
+                    }}
+                    placeholder="Add phone"
+                    validate={validatePhone}
+                />
             ),
         },
         {
-            accessorKey: 'releaseSigned',
-            header: 'Release',
+            accessorKey: 'streetAddress',
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title="Street Address" />
+            ),
             cell: ({ row }) => (
-                <Button
-                    variant={row.original.releaseSigned ? 'default' : 'outline'}
-                    size="icon"
-                    className={cn(
-                        'h-7 w-7',
-                        row.original.releaseSigned &&
-                            'bg-success hover:bg-success/90',
-                    )}
-                    onClick={() =>
-                        onUpdateBeneficiary(row.original.id, {
-                            releaseSigned: !row.original.releaseSigned,
+                <EditableTextCell
+                    value={row.original.streetAddress}
+                    onSave={async (val) => {
+                        await onUpdateBeneficiary(row.original.id, {
+                            streetAddress: val,
                         })
-                    }
-                >
-                    {row.original.releaseSigned ? (
-                        <Check className="h-3.5 w-3.5" />
-                    ) : (
-                        <Circle className="h-3.5 w-3.5" />
-                    )}
-                </Button>
+                    }}
+                    placeholder="Add address"
+                />
+            ),
+        },
+        {
+            accessorKey: 'city',
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title="City" />
+            ),
+            cell: ({ row }) => (
+                <EditableTextCell
+                    value={row.original.city}
+                    onSave={async (val) => {
+                        await onUpdateBeneficiary(row.original.id, {
+                            city: val,
+                        })
+                    }}
+                    placeholder="Add city"
+                />
+            ),
+        },
+        {
+            accessorKey: 'state',
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title="State" />
+            ),
+            cell: ({ row }) => (
+                <EditableTextCell
+                    value={row.original.state}
+                    onSave={async (val) => {
+                        await onUpdateBeneficiary(row.original.id, {
+                            state: val?.toUpperCase() ?? null,
+                        })
+                    }}
+                    placeholder="Add state"
+                    validate={validateState}
+                />
+            ),
+        },
+        {
+            accessorKey: 'zip',
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title="Zip" />
+            ),
+            cell: ({ row }) => (
+                <EditableTextCell
+                    value={row.original.zip}
+                    onSave={async (val) => {
+                        await onUpdateBeneficiary(row.original.id, {
+                            zip: val,
+                        })
+                    }}
+                    placeholder="Add zip"
+                    validate={validateZip}
+                />
             ),
         },
         {
@@ -243,6 +293,12 @@ export function BeneficiaryTable({
                     emptyMessage="No beneficiaries found"
                     enableColumnVisibility={true}
                     enablePagination={true}
+                    initialColumnVisibility={{
+                        streetAddress: false,
+                        city: false,
+                        state: false,
+                        zip: false,
+                    }}
                 />
             </CardContent>
         </Card>

@@ -140,8 +140,11 @@ describe('AccountingTable', () => {
             expect(screen.getByText('Monthly dividend')).toBeTruthy()
         })
 
-        test('renders entry type badge for income entries', () => {
-            const entry = makeEntry({ entryType: 'INCOME' })
+        test('renders category for income entries', () => {
+            const entry = makeEntry({
+                entryType: 'INCOME',
+                incomeType: 'DIVIDEND',
+            })
 
             render(
                 <AccountingTable
@@ -152,10 +155,10 @@ describe('AccountingTable', () => {
                 />,
             )
 
-            expect(screen.getByText('INCOME')).toBeTruthy()
+            expect(screen.getByText('Dividend')).toBeTruthy()
         })
 
-        test('renders entry type badge for expense entries', () => {
+        test('renders category and description for expense entries', () => {
             const entry = makeEntry({
                 id: 2,
                 entryType: 'EXPENSE',
@@ -173,7 +176,6 @@ describe('AccountingTable', () => {
                 />,
             )
 
-            expect(screen.getByText('EXPENSE')).toBeTruthy()
             expect(screen.getByText('Property tax payment')).toBeTruthy()
         })
 

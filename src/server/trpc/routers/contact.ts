@@ -1,8 +1,18 @@
 import { TRPCError } from '@trpc/server'
 import { eq } from 'drizzle-orm'
+import type postgres from 'postgres'
 import { z } from 'zod'
-import { db } from '@/db'
+import { db, getClient } from '@/db'
 import { contact } from '@/db/schema'
+
+// postgres.js TransactionSql doesn't expose the template-literal call signature
+// directly in its types, so we intersect it to allow tagged-template SQL usage.
+type TxSql = postgres.TransactionSql &
+    (<T extends readonly (object | undefined)[] = postgres.Row[]>(
+        template: TemplateStringsArray,
+        ...parameters: readonly postgres.ParameterOrFragment<never>[]
+    ) => postgres.PendingQuery<T>)
+
 import { insertContactSchema, updateContactSchema } from '@/db/validation'
 import { adminProcedure, createTRPCRouter } from '../init'
 
@@ -54,15 +64,21 @@ export const contactRouter = createTRPCRouter({
     delete: adminProcedure
         .input(z.coerce.number())
         .mutation(async ({ input }) => {
-            const [deleted] = await db
-                .delete(contact)
-                .where(eq(contact.id, input))
-                .returning()
+            const sql = getClient()
+            const [deleted] = await sql.begin(async (_tx) => {
+                const tx = _tx as TxSql
+                await tx`DELETE FROM contact_association WHERE "contactId" = ${input}`
+                return tx`DELETE FROM contact WHERE id = ${input} RETURNING *`
+            })
             if (!deleted)
                 throw new TRPCError({
                     code: 'NOT_FOUND',
                     message: 'Contact not found',
                 })
-            return deleted
+            // postgres.js returns bigint as string — coerce to match Drizzle shape
+            return {
+                id: Number(deleted.id),
+                name: deleted.name as string,
+            }
         }),
 })

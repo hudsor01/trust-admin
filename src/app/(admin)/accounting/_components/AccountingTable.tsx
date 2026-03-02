@@ -12,12 +12,6 @@ import { Card, CardContent } from '@/components/ui/card'
 import { DataTable } from '@/components/ui/data-table'
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
-} from '@/components/ui/tooltip'
 import type { TrustAccounting } from '@/db/schema'
 import { cn } from '@/lib/utils'
 import { formatDate } from '@/utils/formatters'
@@ -61,27 +55,6 @@ export function AccountingTable({
             ),
         },
         {
-            accessorKey: 'entryType',
-            header: ({ column }) => (
-                <DataTableColumnHeader column={column} title="Type" />
-            ),
-            cell: ({ row }) => (
-                <Badge
-                    variant={
-                        row.original.entryType === 'INCOME'
-                            ? 'default'
-                            : 'destructive'
-                    }
-                    className={cn(
-                        row.original.entryType === 'INCOME' &&
-                            'bg-success hover:bg-success/90',
-                    )}
-                >
-                    {row.original.entryType}
-                </Badge>
-            ),
-        },
-        {
             id: 'category',
             header: 'Category',
             cell: ({ row }) => (
@@ -112,6 +85,32 @@ export function AccountingTable({
             ),
         },
         {
+            id: 'flags',
+            header: 'Flags',
+            cell: ({ row }) => {
+                const flags: string[] = []
+                if (row.original.isPrincipal) flags.push('P')
+                if (row.original.taxDeductible) flags.push('D')
+                if (flags.length === 0) return null
+                return (
+                    <div className="flex gap-1">
+                        {flags.map((f) => (
+                            <Badge
+                                key={f}
+                                variant="outline"
+                                className="text-xs px-1.5"
+                                title={
+                                    f === 'P' ? 'Principal' : 'Tax Deductible'
+                                }
+                            >
+                                {f}
+                            </Badge>
+                        ))}
+                    </div>
+                )
+            },
+        },
+        {
             accessorKey: 'amount',
             header: ({ column }) => (
                 <DataTableColumnHeader column={column} title="Amount" />
@@ -133,46 +132,6 @@ export function AccountingTable({
                             })
                         }
                     />
-                </div>
-            ),
-        },
-        {
-            id: 'flags',
-            header: 'Flags',
-            cell: ({ row }) => (
-                <div className="flex gap-1">
-                    {row.original.isPrincipal && (
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Badge
-                                        variant="outline"
-                                        className="text-xs"
-                                    >
-                                        P
-                                    </Badge>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    Principal (not income)
-                                </TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
-                    )}
-                    {row.original.taxDeductible && (
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Badge
-                                        variant="secondary"
-                                        className="text-xs"
-                                    >
-                                        D
-                                    </Badge>
-                                </TooltipTrigger>
-                                <TooltipContent>Tax Deductible</TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
-                    )}
                 </div>
             ),
         },

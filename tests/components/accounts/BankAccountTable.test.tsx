@@ -166,7 +166,6 @@ describe('BankAccountTable', () => {
             />,
         )
         expect(screen.getByText('Institution')).toBeTruthy()
-        expect(screen.getByText('Account Name')).toBeTruthy()
         expect(screen.getByText('Account #')).toBeTruthy()
     })
 
