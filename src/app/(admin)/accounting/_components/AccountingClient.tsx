@@ -294,6 +294,7 @@ export function AccountingClient() {
             setTimeout(() => URL.revokeObjectURL(url), 60_000)
         } catch (error) {
             log.error('Failed to generate report', { error })
+            toast.error('Failed to generate report')
         } finally {
             setGeneratingReport(false)
         }

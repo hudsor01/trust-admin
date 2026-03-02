@@ -56,8 +56,10 @@ export function BankAccountTable({
                         <EditableTextCell
                             value={inst}
                             onSave={async (val) => {
+                                const v = (val as string).trim()
+                                if (!v) return
                                 await onUpdate(row.original.id, {
-                                    institution: val as string,
+                                    institution: v,
                                 })
                             }}
                         />
