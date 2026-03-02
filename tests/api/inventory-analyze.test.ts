@@ -50,6 +50,40 @@ mock.module('../../src/lib/auth', () => ({
     },
 }))
 
+const mockAnalysisResult = {
+    name: 'Vintage Lamp',
+    category: 'Furniture',
+    rawCategory: 'Furniture',
+    dbCategory: 'FURNITURE',
+    brand: 'Tiffany Style',
+    model: null,
+    materials: ['glass', 'bronze'],
+    era: '1990s',
+    estimatedValue: '250',
+    valueRangeLow: '150',
+    valueRangeHigh: '350',
+    condition: 'good',
+    conditionNotes: 'Minor patina on base',
+    description: 'Stained glass table lamp in Tiffany style',
+    valuationRationale: 'Based on similar decorative lamps',
+    confidence: 'medium',
+    confidenceNotes: 'Style identified but not authentic Tiffany',
+}
+
+const mockAnalyzeWithMarketResearch = mock(
+    async (images: { base64: string; mimeType: string }[]) => ({
+        analysis: mockAnalysisResult,
+        compressedImages: images.map((img) => ({
+            base64: img.base64,
+            mimeType: img.mimeType,
+        })),
+    }),
+)
+
+mock.module('../../src/lib/inventory-analysis-enhanced', () => ({
+    analyzeWithMarketResearch: mockAnalyzeWithMarketResearch,
+}))
+
 process.env.ANTHROPIC_API_KEY = 'test-api-key'
 
 const { POST } = await import('../../src/app/api/inventory/analyze/route')
@@ -89,6 +123,7 @@ describe('POST /api/inventory/analyze', () => {
     beforeEach(() => {
         mockGenerateObject.mockClear()
         mockUploadFiles.mockClear()
+        mockAnalyzeWithMarketResearch.mockClear()
     })
 
     describe('Successful analysis', () => {
@@ -288,7 +323,7 @@ describe('POST /api/inventory/analyze', () => {
         })
 
         test('handles API rate limiting', async () => {
-            mockGenerateObject.mockRejectedValueOnce(
+            mockAnalyzeWithMarketResearch.mockRejectedValueOnce(
                 new Error('rate limit exceeded'),
             )
 
@@ -304,7 +339,7 @@ describe('POST /api/inventory/analyze', () => {
         })
 
         test('handles authentication errors', async () => {
-            mockGenerateObject.mockRejectedValueOnce(
+            mockAnalyzeWithMarketResearch.mockRejectedValueOnce(
                 new Error('401 authentication failed'),
             )
 
@@ -320,7 +355,7 @@ describe('POST /api/inventory/analyze', () => {
         })
 
         test('handles generic errors', async () => {
-            mockGenerateObject.mockRejectedValueOnce(
+            mockAnalyzeWithMarketResearch.mockRejectedValueOnce(
                 new Error('Something went wrong'),
             )
 

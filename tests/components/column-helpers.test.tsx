@@ -1,7 +1,7 @@
 /** Column helper tests — TanStack Table column definition generators for DataTable components. */
 
 import { describe, expect, test } from 'bun:test'
-import type { ColumnDef } from '@tanstack/react-table'
+import type { CellContext, ColumnDef } from '@tanstack/react-table'
 import {
     actionsColumn,
     badgeColumn,
@@ -21,6 +21,15 @@ interface TestItem {
     amount: string | null
     status: string
     date: string | null
+}
+
+/** Creates a minimal CellContext mock for testing column cell renderers that only access row.original. */
+function mockCellContext<T>(original: T): CellContext<T, unknown> {
+    return {
+        row: { original },
+        getValue: () => undefined,
+        renderValue: () => null,
+    } as CellContext<T, unknown>
 }
 
 describe('column-helpers', () => {
@@ -44,33 +53,27 @@ describe('column-helpers', () => {
 
         test('cell renders value correctly', () => {
             const column = textColumn<TestItem>('name', 'Name')
-            const mockRow = {
-                original: {
-                    id: 1,
-                    name: 'Test Name',
-                    amount: null,
-                    status: 'active',
-                    date: null,
-                },
-            }
-            // @ts-expect-error - simplified mock
-            const result = column.cell?.({ row: mockRow })
+            const ctx = mockCellContext<TestItem>({
+                id: 1,
+                name: 'Test Name',
+                amount: null,
+                status: 'active',
+                date: null,
+            })
+            const result = column.cell?.(ctx)
             expect(result).toBe('Test Name')
         })
 
         test('cell renders em dash for null value', () => {
             const column = textColumn<TestItem>('amount', 'Amount')
-            const mockRow = {
-                original: {
-                    id: 1,
-                    name: 'Test',
-                    amount: null,
-                    status: 'active',
-                    date: null,
-                },
-            }
-            // @ts-expect-error - simplified mock
-            const result = column.cell?.({ row: mockRow })
+            const ctx = mockCellContext<TestItem>({
+                id: 1,
+                name: 'Test',
+                amount: null,
+                status: 'active',
+                date: null,
+            })
+            const result = column.cell?.(ctx)
             expect(result).toBe('—')
         })
     })
@@ -83,33 +86,27 @@ describe('column-helpers', () => {
 
         test('cell renders formatted date', () => {
             const column = dateColumn<TestItem>('date', 'Date')
-            const mockRow = {
-                original: {
-                    id: 1,
-                    name: 'Test',
-                    amount: null,
-                    status: 'active',
-                    date: '2025-01-15T12:00:00',
-                },
-            }
-            // @ts-expect-error - simplified mock
-            const result = column.cell?.({ row: mockRow })
+            const ctx = mockCellContext<TestItem>({
+                id: 1,
+                name: 'Test',
+                amount: null,
+                status: 'active',
+                date: '2025-01-15T12:00:00',
+            })
+            const result = column.cell?.(ctx)
             expect(result).toBe('Jan 15, 2025')
         })
 
         test('cell renders em dash for null date', () => {
             const column = dateColumn<TestItem>('date', 'Date')
-            const mockRow = {
-                original: {
-                    id: 1,
-                    name: 'Test',
-                    amount: null,
-                    status: 'active',
-                    date: null,
-                },
-            }
-            // @ts-expect-error - simplified mock
-            const result = column.cell?.({ row: mockRow })
+            const ctx = mockCellContext<TestItem>({
+                id: 1,
+                name: 'Test',
+                amount: null,
+                status: 'active',
+                date: null,
+            })
+            const result = column.cell?.(ctx)
             expect(result).toBe('—')
         })
     })
@@ -122,17 +119,14 @@ describe('column-helpers', () => {
 
         test('cell renders formatted currency', () => {
             const column = currencyColumn<TestItem>('amount', 'Amount')
-            const mockRow = {
-                original: {
-                    id: 1,
-                    name: 'Test',
-                    amount: '1234.56',
-                    status: 'active',
-                    date: null,
-                },
-            }
-            // @ts-expect-error - simplified mock
-            const result = column.cell?.({ row: mockRow })
+            const ctx = mockCellContext<TestItem>({
+                id: 1,
+                name: 'Test',
+                amount: '1234.56',
+                status: 'active',
+                date: null,
+            })
+            const result = column.cell?.(ctx)
             // Result is a React element, check it exists
             expect(result).toBeTruthy()
         })
@@ -146,17 +140,14 @@ describe('column-helpers', () => {
 
         test('cell renders em dash for null status', () => {
             const column = badgeColumn<TestItem>('amount', 'Amount')
-            const mockRow = {
-                original: {
-                    id: 1,
-                    name: 'Test',
-                    amount: null,
-                    status: 'active',
-                    date: null,
-                },
-            }
-            // @ts-expect-error - simplified mock
-            const result = column.cell?.({ row: mockRow })
+            const ctx = mockCellContext<TestItem>({
+                id: 1,
+                name: 'Test',
+                amount: null,
+                status: 'active',
+                date: null,
+            })
+            const result = column.cell?.(ctx)
             expect(result).toBe('—')
         })
     })

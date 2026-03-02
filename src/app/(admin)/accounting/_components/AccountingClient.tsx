@@ -275,29 +275,23 @@ export function AccountingClient() {
                 day: 'numeric',
             })
 
-            // Build report HTML and open in new window
-            const reportWindow = window.open('', '_blank')
-            if (reportWindow) {
-                const doc = reportWindow.document
-                doc.open()
-                // eslint-disable-next-line no-unsanitized/method
-                doc.write(
-                    buildReportHtml({
-                        entityName: entity?.name || 'Trust',
-                        reportDate,
-                        incomeTotal,
-                        expenseTotal,
-                        netIncome,
-                        bankAccountCount: bankAccountsData.length,
-                        investmentAccountCount: investmentAccounts.length,
-                        propertyCount:
-                            homesteads.length + rentalProperties.length,
-                        vehicleCount: vehicles.length,
-                        liabilityCount: liabilities.length,
-                    }),
-                )
-                doc.close()
-            }
+            // Build report HTML and open as Blob URL in new window
+            const html = buildReportHtml({
+                entityName: entity?.name || 'Trust',
+                reportDate,
+                incomeTotal,
+                expenseTotal,
+                netIncome,
+                bankAccountCount: bankAccountsData.length,
+                investmentAccountCount: investmentAccounts.length,
+                propertyCount: homesteads.length + rentalProperties.length,
+                vehicleCount: vehicles.length,
+                liabilityCount: liabilities.length,
+            })
+            const blob = new Blob([html], { type: 'text/html' })
+            const url = URL.createObjectURL(blob)
+            window.open(url, '_blank')
+            setTimeout(() => URL.revokeObjectURL(url), 60_000)
         } catch (error) {
             log.error('Failed to generate report', { error })
         } finally {

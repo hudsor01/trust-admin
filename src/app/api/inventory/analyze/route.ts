@@ -29,7 +29,7 @@ const AnalyzeRequestSchema = z.object({
         .array(ImageSchema)
         .min(1, 'At least one image is required')
         .max(5, 'Maximum 5 images per item'),
-    useWebSearch: z.boolean().optional().default(false),
+    useWebSearch: z.boolean().optional().default(true),
 })
 
 interface AnalyzeSuccessResponse {

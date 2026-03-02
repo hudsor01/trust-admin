@@ -2,7 +2,7 @@
 
 import '../setup'
 import { afterEach, describe, expect, test } from 'bun:test'
-import type { ColumnDef } from '@tanstack/react-table'
+import type { Column, ColumnDef } from '@tanstack/react-table'
 import { cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { DataTable } from '../../src/components/ui/data-table'
@@ -343,24 +343,26 @@ describe('DataTableColumnHeader', () => {
         cleanup()
     })
 
-    // Create a more complete mock that includes all required TanStack Table column methods
-    const createMockColumn = (overrides = {}) => ({
-        getIsSorted: () => false as const,
-        toggleSorting: () => {},
-        getCanSort: () => true,
-        getCanHide: () => true,
-        getIsVisible: () => true,
-        id: 'test',
-        ...overrides,
-    })
+    /** Creates a mock Column with the methods DataTableColumnHeader actually uses. */
+    function createMockColumn(
+        overrides: Partial<Column<TestPerson, unknown>> = {},
+    ): Column<TestPerson, unknown> {
+        return {
+            getIsSorted: () => false as const,
+            toggleSorting: () => {},
+            getCanSort: () => true,
+            getCanHide: () => true,
+            getIsVisible: () => true,
+            toggleVisibility: () => {},
+            id: 'test',
+            ...overrides,
+        } as Column<TestPerson, unknown>
+    }
 
     test('renders title', () => {
         const mockColumn = createMockColumn()
 
-        render(
-            // @ts-expect-error - simplified mock for unit test
-            <DataTableColumnHeader column={mockColumn} title="Test Title" />,
-        )
+        render(<DataTableColumnHeader column={mockColumn} title="Test Title" />)
 
         expect(screen.getByText('Test Title')).toBeTruthy()
     })
@@ -369,10 +371,9 @@ describe('DataTableColumnHeader', () => {
         const mockColumn = createMockColumn({
             getIsSorted: () => 'asc' as const,
             id: 'sorted',
-        })
+        } as Partial<Column<TestPerson, unknown>>)
 
         render(
-            // @ts-expect-error - simplified mock for unit test
             <DataTableColumnHeader column={mockColumn} title="Sorted Column" />,
         )
 
