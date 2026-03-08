@@ -25,23 +25,23 @@ Secure, auditable trust administration with role-based access control and Texas 
 ## Current State
 
 - 24 tRPC routers for all resources
-- Admin auth + beneficiary portal (magic link)
+- Admin auth + beneficiary portal (email/password)
 - Payment recording with auto-accounting
 - HEMS workflow (request → approve → distribute)
 - RLS policies with JWT session initialization
 - Activity log audit trail
+- Custom forgot/reset password flow via n8n webhook
+- Admin user provisioning with forced password change
 
-## Neon Features Currently Using
+## Current Milestone: v4.0 Production Hardening & Completeness
 
-- Neon Auth with native `session.user.role`
-- RLS via `initJwtSession()` for `auth.user_id()`
-- Drizzle with `entities.roles.provider: 'neon'`
+**Goal:** Systematically address security vulnerabilities, performance bottlenecks, architecture debt, incomplete features, and code quality issues identified in comprehensive critical review.
 
-## Neon Features NOT Using (Opportunity)
+**Target areas:**
+- Security & data integrity fixes (auth, RLS, input validation, session management)
+- Performance optimization (unbounded queries, sequential calls, client-side filtering)
+- Correctness fixes (auto-classification, payment math, deprecated API migration)
+- Feature completeness (missing asset UIs, portal HEMS history, tax compliance fields)
+- Dead code removal & code quality (unused functions, duplicate layers, type safety)
 
-- Serverless driver (`@neondatabase/serverless`)
-- Connection pooling (PgBouncer)
-- Preview branching (Vercel integration)
-- pg_cron scheduled jobs
-- Time travel queries
-- Optimized autoscaling
+**Audit:** `.planning/v4-critical-review.md` (45 findings across 4 severity tiers)

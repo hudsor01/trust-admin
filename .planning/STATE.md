@@ -2,21 +2,12 @@
 
 ## Current Position
 
-Milestone: v3.0 Email/Password Auth Migration — **COMPLETE**
-Phase: 14 of 14 — All phases shipped
-Status: Between milestones — ready for v4.0 planning
+Milestone: v4.0 Production Hardening & Completeness
+Phase: Not started (defining requirements)
+Status: Defining requirements
+Last activity: 2026-03-08 — Milestone v4.0 started
 
-Progress: ██████████ 100% (v3.0)
-
-## What Was Just Completed (Outside GSD — 2026-02-24)
-
-Custom forgot-password / reset-password flow implemented:
-- `password_reset_token` DB table
-- `POST /api/auth/custom/forgot-password` — SQL lookup, token generation, n8n webhook call
-- `POST /api/auth/custom/reset-password` — token validation, password update via authServer
-- Custom UI: `ForgotPasswordForm`, `ResetPasswordForm` in `src/app/auth/[path]/_components/`
-- n8n workflow: Webhook → Code node (builds HTML) → Send Email (Gmail SMTP)
-- Production checklist: verify `NEXT_PUBLIC_APP_URL` on Vercel + n8n attribution toggle
+Progress: ░░░░░░░░░░ 0%
 
 ## Accumulated Context
 
@@ -68,9 +59,10 @@ const rows = await sql`SELECT id, name, email FROM neon_auth."user" WHERE lower(
 - 2026-01-22: v2.0 shipped — Public Inventory Form (phases 7-8)
 - 2026-02-22: v3.0 shipped — Email/Password Auth Migration (phases 9-14)
 - 2026-02-24: Forgot-password flow built outside GSD (unplanned)
+- 2026-03-08: v4.0 started — Production Hardening & Completeness (45 findings from critical review)
 
 ## Session Continuity
 
-Last session: 2026-02-24
-Stopped at: Forgot-password flow complete, ready for v4.0 milestone planning
-Resume file: None
+Last session: 2026-03-08
+Stopped at: Defining v4.0 requirements from critical review findings
+Resume file: .planning/v4-critical-review.md
