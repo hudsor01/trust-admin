@@ -9,8 +9,8 @@ Requirements derived from comprehensive critical review of 45 findings across se
 
 ### Security
 
-- [ ] **SEC-01**: Auth cookie secret is required at startup — app fails fast if NEON_AUTH_COOKIE_SECRET is missing
-- [ ] **SEC-02**: ADMIN_EMAIL is read from validated env module, not raw process.env — prevents empty-string bypass
+- [ ] **SEC-01**: Auth cookie secret is required at startup -- app fails fast if NEON_AUTH_COOKIE_SECRET is missing
+- [ ] **SEC-02**: ADMIN_EMAIL is read from validated env module, not raw process.env -- prevents empty-string bypass
 - [ ] **SEC-03**: All password reset flows revoke existing sessions after password change
 - [ ] **SEC-04**: activity_log RLS policies restrict INSERT to own userId, remove UPDATE/DELETE entirely (immutable audit)
 - [ ] **SEC-05**: reset-password route validates input types, enforces token format (64 hex chars), caps password length at 128
@@ -24,14 +24,14 @@ Requirements derived from comprehensive critical review of 45 findings across se
 - [ ] **PERF-01**: Dashboard summary uses SQL SUM aggregation instead of fetching unbounded accounting entries
 - [ ] **PERF-02**: Accounting page uses server-side paginated query (listPaginated) instead of 500-row client-side filtering
 - [ ] **PERF-03**: listAllUsers fetches profiles and beneficiaries in parallel (Promise.all) instead of sequential
-- [ ] **PERF-04**: Portal page eliminates client-side session waterfall — server-prefetched beneficiary.me with HydrationBoundary
+- [ ] **PERF-04**: Portal page eliminates client-side session waterfall -- server-prefetched beneficiary.me with HydrationBoundary
 - [ ] **PERF-05**: recalculateBeneficiaryShares uses single bulk UPDATE instead of N sequential statements
 
 ### Correctness
 
-- [ ] **CORR-01**: All manual accounting entries go through createEntry (auto-classifies isPrincipal per Texas Property Code) — remove raw .create endpoint
+- [ ] **CORR-01**: All manual accounting entries go through createEntry (auto-classifies isPrincipal per Texas Property Code) -- remove raw .create endpoint
 - [ ] **CORR-02**: recordLiabilityPayment uses ?? 0 instead of || 0, handles null principalPortion explicitly
-- [ ] **CORR-03**: Update schemas require at least one field via .refine() — reject empty updates
+- [ ] **CORR-03**: Update schemas require at least one field via .refine() -- reject empty updates
 - [ ] **CORR-04**: Complete migration from deprecated listProvisionedUsers to listAllUsers
 - [ ] **CORR-05**: password_reset_token table has email index, expired token cleanup, one-unexpired-token-per-email limit
 
@@ -64,7 +64,7 @@ Requirements derived from comprehensive critical review of 45 findings across se
 
 ## Future Requirements
 
-Deferred — acknowledged but not in v4.0 scope.
+Deferred -- acknowledged but not in v4.0 scope.
 
 ### Document Management
 - **DOC-01**: Admin can attach documents to any asset type (document table)
@@ -93,58 +93,58 @@ Deferred — acknowledged but not in v4.0 scope.
 | Multi-entity UI | Single-trust app; entity model exists but multi-entity admin is future work |
 | Beneficiary portal file uploads | HEMS supportingDocPath exists in schema but upload UX needs design work |
 | withdrawalRecord.remainingAmount auto-calc | Withdrawal exercise flow needs broader design review |
-| approvedById on inventory approval | Requires bigint-to-UUID bridge — schema design decision needed |
+| approvedById on inventory approval | Requires bigint-to-UUID bridge -- schema design decision needed |
 
 ## Traceability
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SEC-01 | — | Pending |
-| SEC-02 | — | Pending |
-| SEC-03 | — | Pending |
-| SEC-04 | — | Pending |
-| SEC-05 | — | Pending |
-| SEC-06 | — | Pending |
-| SEC-07 | — | Pending |
-| SEC-08 | — | Pending |
-| SEC-09 | — | Pending |
-| PERF-01 | — | Pending |
-| PERF-02 | — | Pending |
-| PERF-03 | — | Pending |
-| PERF-04 | — | Pending |
-| PERF-05 | — | Pending |
-| CORR-01 | — | Pending |
-| CORR-02 | — | Pending |
-| CORR-03 | — | Pending |
-| CORR-04 | — | Pending |
-| CORR-05 | — | Pending |
-| FEAT-01 | — | Pending |
-| FEAT-02 | — | Pending |
-| FEAT-03 | — | Pending |
-| FEAT-04 | — | Pending |
-| FEAT-05 | — | Pending |
-| FEAT-06 | — | Pending |
-| FEAT-07 | — | Pending |
-| FEAT-08 | — | Pending |
-| FEAT-09 | — | Pending |
-| FEAT-10 | — | Pending |
-| FEAT-11 | — | Pending |
-| CLEAN-01 | — | Pending |
-| CLEAN-02 | — | Pending |
-| CLEAN-03 | — | Pending |
-| CLEAN-04 | — | Pending |
-| CLEAN-05 | — | Pending |
-| CLEAN-06 | — | Pending |
-| CLEAN-07 | — | Pending |
-| CLEAN-08 | — | Pending |
-| CLEAN-09 | — | Pending |
-| CLEAN-10 | — | Pending |
+| SEC-01 | Phase 15 | Pending |
+| SEC-02 | Phase 15 | Pending |
+| SEC-03 | Phase 15 | Pending |
+| SEC-04 | Phase 16 | Pending |
+| SEC-05 | Phase 15 | Pending |
+| SEC-06 | Phase 15 | Pending |
+| SEC-07 | Phase 16 | Pending |
+| SEC-08 | Phase 16 | Pending |
+| SEC-09 | Phase 16 | Pending |
+| PERF-01 | Phase 17 | Pending |
+| PERF-02 | Phase 17 | Pending |
+| PERF-03 | Phase 18 | Pending |
+| PERF-04 | Phase 17 | Pending |
+| PERF-05 | Phase 18 | Pending |
+| CORR-01 | Phase 18 | Pending |
+| CORR-02 | Phase 18 | Pending |
+| CORR-03 | Phase 18 | Pending |
+| CORR-04 | Phase 18 | Pending |
+| CORR-05 | Phase 18 | Pending |
+| FEAT-01 | Phase 19 | Pending |
+| FEAT-02 | Phase 19 | Pending |
+| FEAT-03 | Phase 19 | Pending |
+| FEAT-04 | Phase 19 | Pending |
+| FEAT-05 | Phase 20 | Pending |
+| FEAT-06 | Phase 20 | Pending |
+| FEAT-07 | Phase 20 | Pending |
+| FEAT-08 | Phase 20 | Pending |
+| FEAT-09 | Phase 21 | Pending |
+| FEAT-10 | Phase 21 | Pending |
+| FEAT-11 | Phase 21 | Pending |
+| CLEAN-01 | Phase 22 | Pending |
+| CLEAN-02 | Phase 22 | Pending |
+| CLEAN-03 | Phase 22 | Pending |
+| CLEAN-04 | Phase 22 | Pending |
+| CLEAN-05 | Phase 17 | Pending |
+| CLEAN-06 | Phase 22 | Pending |
+| CLEAN-07 | Phase 22 | Pending |
+| CLEAN-08 | Phase 22 | Pending |
+| CLEAN-09 | Phase 22 | Pending |
+| CLEAN-10 | Phase 17 | Pending |
 
 **Coverage:**
 - v4.0 requirements: 40 total
-- Mapped to phases: 0
-- Unmapped: 40 (pending roadmap creation)
+- Mapped to phases: 40
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-08*
-*Last updated: 2026-03-08 after critical review synthesis*
+*Last updated: 2026-03-08 -- traceability updated with phase mappings*
