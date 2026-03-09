@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Production Hardening & Completeness
 status: completed
-stopped_at: Completed 15-02-PLAN.md (E2E setup security)
-last_updated: "2026-03-09T01:25:20.143Z"
+stopped_at: Completed 15-01-PLAN.md (auth hardening + session revocation)
+last_updated: "2026-03-09T01:29:42.185Z"
 last_activity: 2026-03-09 -- Completed 15-02 E2E setup security (SEC-06)
 progress:
   total_phases: 8
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 2
-  completed_plans: 1
+  completed_plans: 2
   percent: 100
 ---
 
@@ -48,6 +48,10 @@ Progress: [██████████] 100%
 - [v4.0] Phases 16/17/18 can run in parallel after Phase 15 (no cross-dependencies)
 - [v4.0] E2E setup route gated with x-e2e-secret header check against E2E_SETUP_SECRET env var (fail-closed)
 - [v4.0] E2E setup response stripped to email-only -- no userId or beneficiaryId leaked
+- [v4.0] Cookie secret uses z.string().trim().min(32) -- app refuses to start without valid secret
+- [v4.0] ADMIN_EMAIL centralized via validated env module -- no process.env.ADMIN_EMAIL in src/server/
+- [v4.0] Session revocation after password changes is best-effort (Sentry on failure, no user-facing error)
+- [v4.0] Reset-password API returns generic 'Invalid input' on validation failure (no schema detail leaks)
 
 ### Auth API Patterns That Work
 
@@ -89,6 +93,6 @@ const rows = await sql`SELECT id, name, email FROM neon_auth."user" WHERE lower(
 
 ## Session Continuity
 
-Last session: 2026-03-09T01:25:20.141Z
-Stopped at: Completed 15-02-PLAN.md (E2E setup security)
+Last session: 2026-03-09T01:29:42.183Z
+Stopped at: Completed 15-01-PLAN.md (auth hardening + session revocation)
 Resume file: None

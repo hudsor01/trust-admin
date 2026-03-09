@@ -47,7 +47,7 @@ Trust administration application for managing the Hudson Living Trust. Systemati
 
 ### v4.0 Production Hardening & Completeness
 
-- [ ] **Phase 15: auth-session-security** - Harden auth cookie, admin email validation, session revocation, input validation
+- [x] **Phase 15: auth-session-security** - Harden auth cookie, admin email validation, session revocation, input validation (completed 2026-03-09)
 - [ ] **Phase 16: api-infrastructure-security** - Audit log RLS, inventory upload migration, proxy fix, timing-safe access codes
 - [ ] **Phase 17: dashboard-accounting-performance** - SQL aggregation, server-side pagination, portal prefetch, dashboard cleanup
 - [ ] **Phase 18: data-integrity-correctness** - Auto-classification enforcement, payment math, empty update rejection, API migration
@@ -200,7 +200,7 @@ Phases execute in numeric order: 15 -> 16 -> 17 -> 18 -> 19 -> 20 -> 21 -> 22
 | 12. forced-password-change | v3.0 | 1/1 | Complete | 2026-02-22 |
 | 13. beneficiary-data-isolation | v3.0 | 1/1 | Complete | 2026-02-22 |
 | 14. codebase-cleanup | v3.0 | 1/1 | Complete | 2026-02-22 |
-| 15. auth-session-security | 1/2 | In Progress|  | - |
+| 15. auth-session-security | 2/2 | Complete   | 2026-03-09 | - |
 | 16. api-infrastructure-security | v4.0 | 0/1 | Not started | - |
 | 17. dashboard-accounting-performance | v4.0 | 0/1 | Not started | - |
 | 18. data-integrity-correctness | v4.0 | 0/1 | Not started | - |
