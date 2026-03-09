@@ -431,47 +431,6 @@ describe.skipIf(isProductionDb)(
 
         describe('userManagement', () => {
             test(
-                'listProvisionedUsers returns an array',
-                async () => {
-                    const caller = adminCaller()
-                    const results =
-                        await caller.userManagement.listProvisionedUsers()
-
-                    expect(Array.isArray(results)).toBe(true)
-                    const hasTestProfile = results.some(
-                        (r) => r.userId === testIds.userProfileUserId,
-                    )
-                    expect(hasTestProfile).toBe(true)
-                },
-                TEST_TIMEOUT,
-            )
-
-            test(
-                'listProvisionedUsers returns correct shape for provisioned user',
-                async () => {
-                    const caller = adminCaller()
-                    const results =
-                        await caller.userManagement.listProvisionedUsers()
-
-                    const testProfile = results.find(
-                        (r) => r.userId === testIds.userProfileUserId,
-                    )
-                    expect(testProfile).toBeDefined()
-                    expect(testProfile?.role).toBe('beneficiary')
-                    expect(testProfile?.beneficiaryId).toBe(
-                        testIds.beneficiary2Id,
-                    )
-                    expect(testProfile?.firstName).toBe(`BenTwo${TS}`)
-                    expect(testProfile?.lastName).toBe('Test')
-                    expect(testProfile?.beneficiaryEmail).toBe(
-                        `ben2-${TS}@test.com`,
-                    )
-                    expect(testProfile?.createdAt).toBeDefined()
-                },
-                TEST_TIMEOUT,
-            )
-
-            test(
                 'createBeneficiaryUser throws NOT_FOUND for non-existent beneficiaryId',
                 async () => {
                     const caller = ownerCaller()

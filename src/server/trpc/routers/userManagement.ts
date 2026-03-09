@@ -1,6 +1,6 @@
 /** Owner-only user CRUD via Neon Auth Admin API + userProfile linking. */
 import { TRPCError } from '@trpc/server'
-import { desc, eq } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { db, getClient } from '@/db'
 import { createActivityLog } from '@/db/queries'
@@ -26,7 +26,7 @@ export const userManagementRouter = createTRPCRouter({
     }),
 
     /** List all Neon Auth users enriched with userProfile + beneficiary data. */
-    listAllUsers: ownerProcedure.query(async () => {
+    listAllUsers: adminProcedure.query(async () => {
         const { data, error } = await authServer.admin.listUsers({
             query: {
                 limit: 100,
@@ -56,21 +56,22 @@ export const userManagementRouter = createTRPCRouter({
             banExpires?: Date | null
         }>
 
-        const profiles = await db
-            .select({
-                userId: userProfile.userId,
-                role: userProfile.role,
-                beneficiaryId: userProfile.beneficiaryId,
-            })
-            .from(userProfile)
-
-        const beneficiaries = await db
-            .select({
-                id: beneficiary.id,
-                firstName: beneficiary.firstName,
-                lastName: beneficiary.lastName,
-            })
-            .from(beneficiary)
+        const [profiles, beneficiaries] = await Promise.all([
+            db
+                .select({
+                    userId: userProfile.userId,
+                    role: userProfile.role,
+                    beneficiaryId: userProfile.beneficiaryId,
+                })
+                .from(userProfile),
+            db
+                .select({
+                    id: beneficiary.id,
+                    firstName: beneficiary.firstName,
+                    lastName: beneficiary.lastName,
+                })
+                .from(beneficiary),
+        ])
 
         const profileMap = new Map(profiles.map((p) => [p.userId, p]))
         const beneficiaryMap = new Map(beneficiaries.map((b) => [b.id, b]))
@@ -256,28 +257,6 @@ export const userManagementRouter = createTRPCRouter({
 
             return { userId: createdUserId, email: input.email }
         }),
-
-    /** @deprecated Use listAllUsers instead. */
-    listProvisionedUsers: adminProcedure.query(async () => {
-        const results = await db
-            .select({
-                userId: userProfile.userId,
-                role: userProfile.role,
-                beneficiaryId: userProfile.beneficiaryId,
-                createdAt: userProfile.createdAt,
-                firstName: beneficiary.firstName,
-                lastName: beneficiary.lastName,
-                beneficiaryEmail: beneficiary.email,
-            })
-            .from(userProfile)
-            .leftJoin(
-                beneficiary,
-                eq(userProfile.beneficiaryId, beneficiary.id),
-            )
-            .orderBy(desc(userProfile.createdAt))
-
-        return results
-    }),
 
     /** Update user name or email via raw SQL (Neon Auth admin proxy returns 400). */
     updateUser: ownerProcedure
