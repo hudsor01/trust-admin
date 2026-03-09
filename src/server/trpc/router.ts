@@ -1,6 +1,7 @@
 import { createTRPCRouter } from './init'
 
 import { activityLogRouter } from './routers/activityLog'
+import { artworkRouter } from './routers/artwork'
 import { bankAccountRouter } from './routers/bankAccount'
 import { beneficiaryRouter } from './routers/beneficiary'
 import { contactRouter } from './routers/contact'
@@ -9,10 +10,12 @@ import { distributionRouter } from './routers/distribution'
 import { entityRouter } from './routers/entity'
 import { hemsRequestRouter } from './routers/hemsRequest'
 import { homesteadRouter } from './routers/homestead'
+import { insurancePolicyRouter } from './routers/insurancePolicy'
 import { investmentAccountRouter } from './routers/investmentAccount'
 import { liabilityRouter } from './routers/liability'
 import { liabilityPaymentRouter } from './routers/liabilityPayment'
 import { pendingInventoryItemRouter } from './routers/pendingInventoryItem'
+import { personalPropertyRouter } from './routers/personalProperty'
 import { rentalPropertyRouter } from './routers/rentalProperty'
 import { specificBequestRouter } from './routers/specificBequest'
 import { taskRouter } from './routers/task'
@@ -35,6 +38,9 @@ export const appRouter = createTRPCRouter({
     homestead: homesteadRouter,
     rentalProperty: rentalPropertyRouter,
     vehicle: vehicleRouter,
+    artwork: artworkRouter,
+    personalProperty: personalPropertyRouter,
+    insurancePolicy: insurancePolicyRouter,
     trustee: trusteeRouter,
     specificBequest: specificBequestRouter,
     task: taskRouter,

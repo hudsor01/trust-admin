@@ -166,6 +166,52 @@ export const contactFormDefaults = createFormDefaults({
     notes: '',
 })
 
+export const artworkFormDefaults = createFormDefaults({
+    title: '',
+    artist: '',
+    medium: '',
+    dimensions: '',
+    acquisitionDate: null as string | null,
+    acquisitionCost: '',
+    location: '',
+    dodValue: '',
+    dodValueDate: null as string | null,
+    dodValueType: '',
+    status: 'ACTIVE',
+    transferStatus: 'PENDING',
+    notes: '',
+})
+
+export const personalPropertyFormDefaults = createFormDefaults({
+    name: '',
+    description: '',
+    category: 'OTHER',
+    location: '',
+    acquisitionDate: null as string | null,
+    acquisitionCost: '',
+    dodValue: '',
+    dodValueDate: null as string | null,
+    dodValueType: '',
+    status: 'ACTIVE',
+    transferStatus: 'PENDING',
+    notes: '',
+})
+
+export const insurancePolicyFormDefaults = createFormDefaults({
+    policyType: 'LIFE',
+    carrier: '',
+    policyNumber: '',
+    coverageAmount: '',
+    premium: '',
+    premiumFrequency: '' as string,
+    effectiveDate: null as string | null,
+    expirationDate: null as string | null,
+    insuredAsset: '',
+    beneficiaries: '',
+    status: 'ACTIVE',
+    notes: '',
+})
+
 export const beneficiaryFormDefaults = createFormDefaults({
     firstName: '',
     lastName: '',

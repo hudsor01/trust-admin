@@ -9,6 +9,7 @@ import {
     insurancePolicyType,
     liabilityType,
     paymentMethod,
+    personalPropertyCategory,
     premiumFrequency,
     propertyType,
     recordStatus,
@@ -47,6 +48,8 @@ export type EntityType = (typeof entityType.enumValues)[number]
 export type TrustType = (typeof trustType.enumValues)[number]
 export type WithdrawalStatus = (typeof withdrawalStatus.enumValues)[number]
 export type TrusteeFeeStatus = (typeof trusteeFeeStatus.enumValues)[number]
+export type PersonalPropertyCategory =
+    (typeof personalPropertyCategory.enumValues)[number]
 
 export const RECORD_STATUS_VALUES = recordStatus.enumValues
 export const DISTRIBUTION_TYPE_VALUES = distributionType.enumValues
@@ -69,6 +72,8 @@ export const ENTITY_TYPE_VALUES = entityType.enumValues
 export const TRUST_TYPE_VALUES = trustType.enumValues
 export const WITHDRAWAL_STATUS_VALUES = withdrawalStatus.enumValues
 export const TRUSTEE_FEE_STATUS_VALUES = trusteeFeeStatus.enumValues
+export const PERSONAL_PROPERTY_CATEGORY_VALUES =
+    personalPropertyCategory.enumValues
 
 /** Convert enum values to select options (SCREAMING_SNAKE -> Title Case). */
 export function enumToOptions<T extends readonly string[]>(
@@ -132,4 +137,20 @@ export function asAllocationClass(value: string): AllocationClass {
 
 export function asValuationType(value: string | null): ValuationType | null {
     return value as ValuationType | null
+}
+
+export function asInsurancePolicyType(value: string): InsurancePolicyType {
+    return value as InsurancePolicyType
+}
+
+export function asPremiumFrequency(
+    value: string | null,
+): PremiumFrequency | null {
+    return value as PremiumFrequency | null
+}
+
+export function asPersonalPropertyCategory(
+    value: string,
+): PersonalPropertyCategory {
+    return value as PersonalPropertyCategory
 }

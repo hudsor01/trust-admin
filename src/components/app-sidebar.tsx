@@ -42,6 +42,9 @@ export function AppSidebar() {
         '/properties',
         '/accounts',
         '/vehicles',
+        '/artwork',
+        '/personal-property',
+        '/insurance',
         '/inventory-queue',
     ].includes(pathname)
 
@@ -91,6 +94,18 @@ export function AppSidebar() {
         },
         vehicles: () => {
             utils.vehicle.list.prefetch({ entityId })
+            utils.entity.list.prefetch()
+        },
+        artwork: () => {
+            utils.artwork.list.prefetch({ entityId })
+            utils.entity.list.prefetch()
+        },
+        personalProperty: () => {
+            utils.personalProperty.list.prefetch({ entityId })
+            utils.entity.list.prefetch()
+        },
+        insurance: () => {
+            utils.insurancePolicy.list.prefetch({ entityId })
             utils.entity.list.prefetch()
         },
         liabilities: () => {
@@ -381,6 +396,60 @@ export function AppSidebar() {
                                                     }
                                                 >
                                                     <span>Vehicles</span>
+                                                </Link>
+                                            </SidebarMenuSubButton>
+                                        </SidebarMenuSubItem>
+                                        <SidebarMenuSubItem>
+                                            <SidebarMenuSubButton
+                                                asChild
+                                                isActive={
+                                                    pathname === '/artwork'
+                                                }
+                                            >
+                                                <Link
+                                                    href="/artwork"
+                                                    onMouseEnter={
+                                                        prefetch.artwork
+                                                    }
+                                                >
+                                                    <span>Artwork</span>
+                                                </Link>
+                                            </SidebarMenuSubButton>
+                                        </SidebarMenuSubItem>
+                                        <SidebarMenuSubItem>
+                                            <SidebarMenuSubButton
+                                                asChild
+                                                isActive={
+                                                    pathname ===
+                                                    '/personal-property'
+                                                }
+                                            >
+                                                <Link
+                                                    href="/personal-property"
+                                                    onMouseEnter={
+                                                        prefetch.personalProperty
+                                                    }
+                                                >
+                                                    <span>
+                                                        Personal Property
+                                                    </span>
+                                                </Link>
+                                            </SidebarMenuSubButton>
+                                        </SidebarMenuSubItem>
+                                        <SidebarMenuSubItem>
+                                            <SidebarMenuSubButton
+                                                asChild
+                                                isActive={
+                                                    pathname === '/insurance'
+                                                }
+                                            >
+                                                <Link
+                                                    href="/insurance"
+                                                    onMouseEnter={
+                                                        prefetch.insurance
+                                                    }
+                                                >
+                                                    <span>Insurance</span>
                                                 </Link>
                                             </SidebarMenuSubButton>
                                         </SidebarMenuSubItem>
