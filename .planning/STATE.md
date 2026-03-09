@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Production Hardening & Completeness
-status: executing
-stopped_at: Completed 17-02-PLAN.md (accounting server-side pagination)
-last_updated: "2026-03-09T05:13:00.000Z"
-last_activity: 2026-03-09 -- Completed 17-02 accounting server-side pagination (PERF-02)
+status: completed
+stopped_at: Completed 17-01-PLAN.md (dashboard SQL SUM totals + dead code cleanup)
+last_updated: "2026-03-09T05:20:22.625Z"
+last_activity: 2026-03-09 -- Completed 17-01 dashboard SQL SUM totals + dead code cleanup (PERF-01, CLEAN-05, CLEAN-10)
 progress:
   total_phases: 8
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 7
-  completed_plans: 6
-  percent: 85
+  completed_plans: 7
+  percent: 100
 ---
 
 # State: Trust Admin
@@ -20,9 +20,9 @@ progress:
 
 Milestone: v4.0 Production Hardening & Completeness
 Phase: 17 of 22 (dashboard-accounting-performance)
-Plan: 2 of 3 completed in current phase (17-02, 17-03 done)
-Status: Phase 17 in progress (plan 17-01 pending)
-Last activity: 2026-03-09 -- Completed 17-02 accounting server-side pagination (PERF-02)
+Plan: 3 of 3 completed in current phase (all plans done)
+Status: Phase 17 complete
+Last activity: 2026-03-09 -- Completed 17-01 dashboard SQL SUM totals + dead code cleanup (PERF-01, CLEAN-05, CLEAN-10)
 
 Progress: [██████████] 100%
 
@@ -64,6 +64,8 @@ Progress: [██████████] 100%
 - [v4.0] Accounting listPaginated uses entryType filter + offset/limit (page size 50, limit 1-100)
 - [v4.0] Tab badge counts from totals query entryCount, not array lengths -- accurate across all pages
 - [v4.0] DataTable client-side pagination disabled for accounting; custom Previous/Next controls used
+- [v4.0] Dashboard totals via SQL SUM (summaryTotals procedure) -- not client-side sumStrings over all rows
+- [v4.0] Dashboard accounting entries bounded to 10 per type (recentAccountingEntries) -- no unbounded fetches
 
 ### Auth API Patterns That Work
 
@@ -105,6 +107,6 @@ const rows = await sql`SELECT id, name, email FROM neon_auth."user" WHERE lower(
 
 ## Session Continuity
 
-Last session: 2026-03-09T05:13:00.000Z
-Stopped at: Completed 17-02-PLAN.md (accounting server-side pagination)
+Last session: 2026-03-09T05:20:22.623Z
+Stopped at: Completed 17-01-PLAN.md (dashboard SQL SUM totals + dead code cleanup)
 Resume file: None

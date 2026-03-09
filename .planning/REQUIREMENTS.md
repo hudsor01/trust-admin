@@ -21,7 +21,7 @@ Requirements derived from comprehensive critical review of 45 findings across se
 
 ### Performance
 
-- [ ] **PERF-01**: Dashboard summary uses SQL SUM aggregation instead of fetching unbounded accounting entries
+- [x] **PERF-01**: Dashboard summary uses SQL SUM aggregation instead of fetching unbounded accounting entries
 - [x] **PERF-02**: Accounting page uses server-side paginated query (listPaginated) instead of 500-row client-side filtering
 - [ ] **PERF-03**: listAllUsers fetches profiles and beneficiaries in parallel (Promise.all) instead of sequential
 - [x] **PERF-04**: Portal page eliminates client-side session waterfall -- server-prefetched beneficiary.me with HydrationBoundary
@@ -55,12 +55,12 @@ Requirements derived from comprehensive critical review of 45 findings across se
 - [ ] **CLEAN-02**: Delete unused src/lib/date-utils.ts and remove date-fns dependency if unused elsewhere
 - [ ] **CLEAN-03**: Replace hardcoded entityId=1 in 15 client components with entity query cache pattern
 - [ ] **CLEAN-04**: Replace identity cast functions in type-utils.ts with runtime-validating type guards
-- [ ] **CLEAN-05**: Delete unused hooks (use-entity-filter.ts) and unused computed values (_total* in DashboardClient)
+- [x] **CLEAN-05**: Delete unused hooks (use-entity-filter.ts) and unused computed values (_total* in DashboardClient)
 - [ ] **CLEAN-06**: Consolidate duplicate TxSql type into shared export from db/index.ts
 - [ ] **CLEAN-07**: Replace console.error in auth routes with structured logger calls
 - [ ] **CLEAN-08**: Remove error message leaking in inventory analyze route 500 response
 - [ ] **CLEAN-09**: Encapsulate BeneficiariesClient dialog state inside BeneficiaryDialog component
-- [ ] **CLEAN-10**: Memoize DashboardClient filter calls; remove redundant entity.byId and beneficiary.byId fetches
+- [x] **CLEAN-10**: Memoize DashboardClient filter calls; remove redundant entity.byId and beneficiary.byId fetches
 
 ## Future Requirements
 
@@ -108,7 +108,7 @@ Deferred -- acknowledged but not in v4.0 scope.
 | SEC-07 | Phase 16 | Complete |
 | SEC-08 | Phase 16 | Complete |
 | SEC-09 | Phase 16 | Complete |
-| PERF-01 | Phase 17 | Pending |
+| PERF-01 | Phase 17 | Complete |
 | PERF-02 | Phase 17 | Complete |
 | PERF-03 | Phase 18 | Pending |
 | PERF-04 | Phase 17 | Complete |
@@ -133,12 +133,12 @@ Deferred -- acknowledged but not in v4.0 scope.
 | CLEAN-02 | Phase 22 | Pending |
 | CLEAN-03 | Phase 22 | Pending |
 | CLEAN-04 | Phase 22 | Pending |
-| CLEAN-05 | Phase 17 | Pending |
+| CLEAN-05 | Phase 17 | Complete |
 | CLEAN-06 | Phase 22 | Pending |
 | CLEAN-07 | Phase 22 | Pending |
 | CLEAN-08 | Phase 22 | Pending |
 | CLEAN-09 | Phase 22 | Pending |
-| CLEAN-10 | Phase 17 | Pending |
+| CLEAN-10 | Phase 17 | Complete |
 
 **Coverage:**
 - v4.0 requirements: 40 total
