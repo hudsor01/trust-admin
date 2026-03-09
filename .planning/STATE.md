@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Production Hardening & Completeness
-status: completed
-stopped_at: Completed 18-03-PLAN.md (non-empty update validation + password reset hardening)
-last_updated: "2026-03-09T06:20:10.283Z"
-last_activity: 2026-03-09 -- Completed 18-03 non-empty update validation + password reset hardening (CORR-03, CORR-05)
+status: in-progress
+stopped_at: Completed 19-01-PLAN.md (shared infrastructure + artwork page)
+last_updated: "2026-03-09T16:00:57Z"
+last_activity: 2026-03-09 -- Completed 19-01 shared infrastructure + artwork CRUD page (FEAT-01)
 progress:
   total_phases: 8
   completed_phases: 4
-  total_plans: 10
-  completed_plans: 10
-  percent: 100
+  total_plans: 13
+  completed_plans: 11
+  percent: 85
 ---
 
 # State: Trust Admin
@@ -19,12 +19,12 @@ progress:
 ## Current Position
 
 Milestone: v4.0 Production Hardening & Completeness
-Phase: 18 of 22 (data-integrity-correctness)
-Plan: 3 of 3 completed in current phase (all plans done)
-Status: Phase 18 complete
-Last activity: 2026-03-09 -- Completed 18-03 non-empty update validation + password reset hardening (CORR-03, CORR-05)
+Phase: 19 of 22 (missing-asset-uis)
+Plan: 1 of 3 completed in current phase
+Status: In progress
+Last activity: 2026-03-09 -- Completed 19-01 shared infrastructure + artwork CRUD page (FEAT-01)
 
-Progress: [██████████] 100%
+Progress: [████████--] 85%
 
 ## Accumulated Context
 
@@ -71,6 +71,8 @@ Progress: [██████████] 100%
 - [v4.0] Bulk UPDATE with CASE/WHEN via tx.unsafe() for beneficiary share redistribution -- safe because values are DB integers and computed decimals
 - [v4.0] requireAtLeastOneField() Zod .refine() on all 26 update schemas -- prevents silent no-op UPDATEs from empty payloads
 - [v4.0] Password reset token dedup: invalidate existing (set usedAt) before insert, cleanup expired > 24h
+- [v4.0] Asset router pattern: replicate vehicle.ts exactly (adminProcedure, entityId filter, updatedAt on write, NOT_FOUND on missing)
+- [v4.0] Sidebar asset links ordered: Properties, Accounts, Vehicles, Artwork, Personal Property, Insurance, Inventory Queue
 
 ### Auth API Patterns That Work
 
@@ -112,6 +114,6 @@ const rows = await sql`SELECT id, name, email FROM neon_auth."user" WHERE lower(
 
 ## Session Continuity
 
-Last session: 2026-03-09T06:15:41Z
-Stopped at: Completed 18-03-PLAN.md (non-empty update validation + password reset hardening)
+Last session: 2026-03-09T16:00:57Z
+Stopped at: Completed 19-01-PLAN.md (shared infrastructure + artwork page)
 Resume file: None
