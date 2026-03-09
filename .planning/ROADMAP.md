@@ -68,10 +68,11 @@ Trust administration application for managing the Hudson Living Trust. Systemati
   3. After a password reset (both API route and admin-initiated), all prior sessions for that user are invalidated
   4. Reset-password route rejects malformed tokens and passwords exceeding 128 characters
   5. /api/e2e/setup requires a pre-shared secret header and does not return internal IDs or credentials
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 15-01: TBD
+- [ ] 15-01-PLAN.md -- Env validation hardening, ADMIN_EMAIL centralization, reset-password input validation, session revocation
+- [ ] 15-02-PLAN.md -- E2E setup route secret header and response stripping
 
 ### Phase 16: api-infrastructure-security
 **Goal**: API endpoints enforce proper authentication, audit log is tamper-proof, and inventory uploads persist correctly on Vercel
@@ -199,7 +200,7 @@ Phases execute in numeric order: 15 -> 16 -> 17 -> 18 -> 19 -> 20 -> 21 -> 22
 | 12. forced-password-change | v3.0 | 1/1 | Complete | 2026-02-22 |
 | 13. beneficiary-data-isolation | v3.0 | 1/1 | Complete | 2026-02-22 |
 | 14. codebase-cleanup | v3.0 | 1/1 | Complete | 2026-02-22 |
-| 15. auth-session-security | v4.0 | 0/1 | Not started | - |
+| 15. auth-session-security | v4.0 | 2 | Planning | - |
 | 16. api-infrastructure-security | v4.0 | 0/1 | Not started | - |
 | 17. dashboard-accounting-performance | v4.0 | 0/1 | Not started | - |
 | 18. data-integrity-correctness | v4.0 | 0/1 | Not started | - |
