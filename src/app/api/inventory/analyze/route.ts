@@ -15,7 +15,10 @@ import { uploadInventoryImages } from '@/lib/uploadthing-server'
 export const maxDuration = 120
 
 const ImageSchema = z.object({
-    base64: z.string().min(1, 'Image data is required'),
+    base64: z
+        .string()
+        .min(1, 'Image data is required')
+        .max(10_485_760, 'Image data exceeds 10MB limit'),
     mimeType: z
         .string()
         .regex(
