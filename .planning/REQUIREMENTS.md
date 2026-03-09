@@ -14,7 +14,7 @@ Requirements derived from comprehensive critical review of 45 findings across se
 - [ ] **SEC-03**: All password reset flows revoke existing sessions after password change
 - [ ] **SEC-04**: activity_log RLS policies restrict INSERT to own userId, remove UPDATE/DELETE entirely (immutable audit)
 - [ ] **SEC-05**: reset-password route validates input types, enforces token format (64 hex chars), caps password length at 128
-- [ ] **SEC-06**: /api/e2e/setup route requires pre-shared secret header, strips internal IDs from response
+- [x] **SEC-06**: /api/e2e/setup route requires pre-shared secret header, strips internal IDs from response
 - [ ] **SEC-07**: Inventory upload uses UploadThing instead of public/ filesystem (fixes Vercel read-only + unauthenticated serving)
 - [ ] **SEC-08**: /api/inventory removed from proxy publicPaths; analyze route enforces base64 size limit (10MB max)
 - [ ] **SEC-09**: INVENTORY_ACCESS_CODE comparison uses timingSafeEqual with failed-attempt counter
@@ -104,7 +104,7 @@ Deferred -- acknowledged but not in v4.0 scope.
 | SEC-03 | Phase 15 | Pending |
 | SEC-04 | Phase 16 | Pending |
 | SEC-05 | Phase 15 | Pending |
-| SEC-06 | Phase 15 | Pending |
+| SEC-06 | Phase 15 | Complete |
 | SEC-07 | Phase 16 | Pending |
 | SEC-08 | Phase 16 | Pending |
 | SEC-09 | Phase 16 | Pending |

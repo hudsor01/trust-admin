@@ -200,7 +200,7 @@ Phases execute in numeric order: 15 -> 16 -> 17 -> 18 -> 19 -> 20 -> 21 -> 22
 | 12. forced-password-change | v3.0 | 1/1 | Complete | 2026-02-22 |
 | 13. beneficiary-data-isolation | v3.0 | 1/1 | Complete | 2026-02-22 |
 | 14. codebase-cleanup | v3.0 | 1/1 | Complete | 2026-02-22 |
-| 15. auth-session-security | v4.0 | 2 | Planning | - |
+| 15. auth-session-security | 1/2 | In Progress|  | - |
 | 16. api-infrastructure-security | v4.0 | 0/1 | Not started | - |
 | 17. dashboard-accounting-performance | v4.0 | 0/1 | Not started | - |
 | 18. data-integrity-correctness | v4.0 | 0/1 | Not started | - |

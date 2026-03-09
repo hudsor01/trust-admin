@@ -1,14 +1,30 @@
+---
+gsd_state_version: 1.0
+milestone: v4.0
+milestone_name: Production Hardening & Completeness
+status: completed
+stopped_at: Completed 15-02-PLAN.md (E2E setup security)
+last_updated: "2026-03-09T01:25:20.143Z"
+last_activity: 2026-03-09 -- Completed 15-02 E2E setup security (SEC-06)
+progress:
+  total_phases: 8
+  completed_phases: 0
+  total_plans: 2
+  completed_plans: 1
+  percent: 100
+---
+
 # State: Trust Admin
 
 ## Current Position
 
 Milestone: v4.0 Production Hardening & Completeness
 Phase: 15 of 22 (auth-session-security)
-Plan: 0 of 1 in current phase
-Status: Ready to plan
-Last activity: 2026-03-08 -- v4.0 roadmap created (8 phases, 40 requirements)
+Plan: 2 of 2 in current phase
+Status: Phase 15 complete
+Last activity: 2026-03-09 -- Completed 15-02 E2E setup security (SEC-06)
 
-Progress: [██████████████░░░░░░] 70% (14/22 phases complete)
+Progress: [██████████] 100%
 
 ## Accumulated Context
 
@@ -30,6 +46,8 @@ Progress: [██████████████░░░░░░] 70% (14
 - **Forgot password** uses custom flow (n8n webhook) -- Neon Auth email not used
 - [v4.0] Phase structure derived from 45-finding critical review; security-first ordering
 - [v4.0] Phases 16/17/18 can run in parallel after Phase 15 (no cross-dependencies)
+- [v4.0] E2E setup route gated with x-e2e-secret header check against E2E_SETUP_SECRET env var (fail-closed)
+- [v4.0] E2E setup response stripped to email-only -- no userId or beneficiaryId leaked
 
 ### Auth API Patterns That Work
 
@@ -71,6 +89,6 @@ const rows = await sql`SELECT id, name, email FROM neon_auth."user" WHERE lower(
 
 ## Session Continuity
 
-Last session: 2026-03-08
-Stopped at: v4.0 roadmap created, ready to plan Phase 15
+Last session: 2026-03-09T01:25:20.141Z
+Stopped at: Completed 15-02-PLAN.md (E2E setup security)
 Resume file: None

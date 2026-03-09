@@ -76,9 +76,7 @@ export async function POST(request: Request) {
             // Log but don't fail -- password was already changed successfully
             const Sentry = await import('@sentry/nextjs')
             Sentry.captureException(
-                new Error(
-                    `Session revocation failed for user ${user.id}`,
-                ),
+                new Error(`Session revocation failed for user ${user.id}`),
                 { tags: { subsystem: 'session-revocation' } },
             )
         }
