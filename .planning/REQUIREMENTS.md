@@ -31,9 +31,9 @@ Requirements derived from comprehensive critical review of 45 findings across se
 
 - [x] **CORR-01**: All manual accounting entries go through createEntry (auto-classifies isPrincipal per Texas Property Code) -- remove raw .create endpoint
 - [x] **CORR-02**: recordLiabilityPayment uses ?? 0 instead of || 0, handles null principalPortion explicitly
-- [ ] **CORR-03**: Update schemas require at least one field via .refine() -- reject empty updates
+- [x] **CORR-03**: Update schemas require at least one field via .refine() -- reject empty updates
 - [x] **CORR-04**: Complete migration from deprecated listProvisionedUsers to listAllUsers
-- [ ] **CORR-05**: password_reset_token table has email index, expired token cleanup, one-unexpired-token-per-email limit
+- [x] **CORR-05**: password_reset_token table has email index, expired token cleanup, one-unexpired-token-per-email limit
 
 ### Feature Completeness
 
@@ -115,9 +115,9 @@ Deferred -- acknowledged but not in v4.0 scope.
 | PERF-05 | Phase 18 | Complete |
 | CORR-01 | Phase 18 | Complete |
 | CORR-02 | Phase 18 | Complete |
-| CORR-03 | Phase 18 | Pending |
+| CORR-03 | Phase 18 | Complete |
 | CORR-04 | Phase 18 | Complete |
-| CORR-05 | Phase 18 | Pending |
+| CORR-05 | Phase 18 | Complete |
 | FEAT-01 | Phase 19 | Pending |
 | FEAT-02 | Phase 19 | Pending |
 | FEAT-03 | Phase 19 | Pending |
