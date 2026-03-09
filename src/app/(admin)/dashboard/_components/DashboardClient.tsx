@@ -50,6 +50,12 @@ export function DashboardClient() {
     const { data: summary, isLoading: summaryLoading } =
         trpc.dashboard.summary.useQuery({ entityId })
 
+    const { data: summaryTotals } =
+        trpc.dashboard.summaryTotals.useQuery({ entityId })
+
+    const { data: entities } = trpc.entity.list.useQuery()
+    const entity = entities?.[0] ?? null
+
     const bankAccounts = summary?.bankAccounts ?? []
     const investmentAccounts = summary?.investmentAccounts ?? []
     const homesteads = summary?.homesteads ?? []
@@ -58,7 +64,7 @@ export function DashboardClient() {
     const tasks = summary?.tasks ?? []
     const beneficiaries = summary?.beneficiaries ?? []
     const withdrawalRecords = summary?.withdrawalRecords ?? []
-    const accountingEntries = summary?.accountingEntries ?? []
+    const recentAccountingEntries = summary?.recentAccountingEntries ?? []
     const hemsRequests = summary?.hemsRequests ?? []
     const liabilities = summary?.liabilities ?? []
 
@@ -78,9 +84,7 @@ export function DashboardClient() {
         onSuccess: () => utils.dashboard.summary.invalidate({ entityId }),
     })
 
-    const loading = summaryLoading
-
-    const { data: entity = null } = trpc.entity.byId.useQuery(entityId)
+    const loading = summaryLoading || !summaryTotals
 
     const [newTaskTitle, setNewTaskTitle] = useState('')
     const [newTaskCategory, setNewTaskCategory] = useState('OTHER')
@@ -100,7 +104,7 @@ export function DashboardClient() {
                 utils.dashboard.summary.invalidate({ entityId })
             }
         },
-        [setOptimisticTask, updateTask, utils],
+        [setOptimisticTask, updateTask, utils.dashboard.summary],
     )
 
     const addTask = useCallback(async () => {
@@ -173,23 +177,9 @@ export function DashboardClient() {
         [optimisticTasks],
     )
 
-    const { incomeTotal, expenseTotal, netIncome } = useMemo(() => {
-        const income = sumStrings(
-            accountingEntries
-                .filter((e) => e.entryType === 'INCOME')
-                .map((e) => e.amount),
-        )
-        const expense = sumStrings(
-            accountingEntries
-                .filter((e) => e.entryType === 'EXPENSE')
-                .map((e) => e.amount),
-        )
-        return {
-            incomeTotal: income,
-            expenseTotal: expense,
-            netIncome: subtractMoney(income, expense),
-        }
-    }, [accountingEntries])
+    const incomeTotal = summaryTotals?.incomeTotal ?? '0'
+    const expenseTotal = summaryTotals?.expenseTotal ?? '0'
+    const netIncome = subtractMoney(incomeTotal, expenseTotal)
 
     const { totalLiabilities, totalAssets, assetAllocationData } =
         useMemo(() => {
@@ -240,10 +230,6 @@ export function DashboardClient() {
             ].filter((item) => item.value > 0)
 
             return {
-                _totalBankAccounts: bankTotal,
-                _totalInvestments: investTotal,
-                _totalRealEstate: realEstateTotal,
-                _totalVehicles: vehicleTotal,
                 totalLiabilities: liabilityTotal,
                 totalAssets: assetTotal,
                 assetAllocationData: allocationData,
@@ -383,12 +369,8 @@ export function DashboardClient() {
         )
     }
 
-    const incomeEntryCount = accountingEntries.filter(
-        (e) => e.entryType === 'INCOME',
-    ).length
-    const expenseEntryCount = accountingEntries.filter(
-        (e) => e.entryType === 'EXPENSE',
-    ).length
+    const incomeEntryCount = summaryTotals?.incomeCount ?? 0
+    const expenseEntryCount = summaryTotals?.expenseCount ?? 0
 
     return (
         <div className="space-y-8">
@@ -458,7 +440,7 @@ export function DashboardClient() {
 
                 <TabsContent value="accounting" className="space-y-6 pt-4">
                     <AccountingSummary
-                        accountingEntries={accountingEntries}
+                        recentAccountingEntries={recentAccountingEntries}
                         incomeTotal={incomeTotal}
                         expenseTotal={expenseTotal}
                         netIncome={netIncome}

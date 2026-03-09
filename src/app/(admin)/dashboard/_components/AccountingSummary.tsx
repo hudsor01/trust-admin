@@ -18,22 +18,22 @@ interface AccountingEntry {
 }
 
 interface AccountingSummaryProps {
-    accountingEntries: AccountingEntry[]
+    recentAccountingEntries: AccountingEntry[]
     incomeTotal: string
     expenseTotal: string
     netIncome: string
 }
 
 export function AccountingSummary({
-    accountingEntries,
+    recentAccountingEntries,
     incomeTotal,
     expenseTotal,
     netIncome,
 }: AccountingSummaryProps) {
-    const incomeEntries = accountingEntries.filter(
+    const incomeEntries = recentAccountingEntries.filter(
         (e) => e.entryType === 'INCOME',
     )
-    const expenseEntries = accountingEntries.filter(
+    const expenseEntries = recentAccountingEntries.filter(
         (e) => e.entryType === 'EXPENSE',
     )
 

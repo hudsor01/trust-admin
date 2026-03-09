@@ -6,6 +6,7 @@ export default async function DashboardPage() {
     const helpers = await createTRPCHelpers()
     await Promise.all([
         helpers.dashboard.summary.prefetch({ entityId: 1 }),
+        helpers.dashboard.summaryTotals.prefetch({ entityId: 1 }),
         helpers.entity.list.prefetch(),
     ])
     return (

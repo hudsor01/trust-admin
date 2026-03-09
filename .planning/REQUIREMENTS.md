@@ -24,7 +24,7 @@ Requirements derived from comprehensive critical review of 45 findings across se
 - [ ] **PERF-01**: Dashboard summary uses SQL SUM aggregation instead of fetching unbounded accounting entries
 - [ ] **PERF-02**: Accounting page uses server-side paginated query (listPaginated) instead of 500-row client-side filtering
 - [ ] **PERF-03**: listAllUsers fetches profiles and beneficiaries in parallel (Promise.all) instead of sequential
-- [ ] **PERF-04**: Portal page eliminates client-side session waterfall -- server-prefetched beneficiary.me with HydrationBoundary
+- [x] **PERF-04**: Portal page eliminates client-side session waterfall -- server-prefetched beneficiary.me with HydrationBoundary
 - [ ] **PERF-05**: recalculateBeneficiaryShares uses single bulk UPDATE instead of N sequential statements
 
 ### Correctness
@@ -111,7 +111,7 @@ Deferred -- acknowledged but not in v4.0 scope.
 | PERF-01 | Phase 17 | Pending |
 | PERF-02 | Phase 17 | Pending |
 | PERF-03 | Phase 18 | Pending |
-| PERF-04 | Phase 17 | Pending |
+| PERF-04 | Phase 17 | Complete |
 | PERF-05 | Phase 18 | Pending |
 | CORR-01 | Phase 18 | Pending |
 | CORR-02 | Phase 18 | Pending |

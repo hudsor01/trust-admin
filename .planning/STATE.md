@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Production Hardening & Completeness
-status: completed
-stopped_at: Completed 16-01-PLAN.md (audit log immutability + API hardening)
-last_updated: "2026-03-09T04:10:37.728Z"
-last_activity: 2026-03-09 -- Completed 16-01 audit log immutability + API hardening (SEC-04, SEC-08)
+status: executing
+stopped_at: Completed 17-03-PLAN.md (portal server prefetch)
+last_updated: "2026-03-09T05:02:37.274Z"
+last_activity: 2026-03-09 -- Completed 17-03 portal server prefetch (PERF-04)
 progress:
   total_phases: 8
   completed_phases: 2
-  total_plans: 4
-  completed_plans: 4
+  total_plans: 7
+  completed_plans: 5
   percent: 100
 ---
 
@@ -19,10 +19,10 @@ progress:
 ## Current Position
 
 Milestone: v4.0 Production Hardening & Completeness
-Phase: 16 of 22 (api-infrastructure-security)
-Plan: 2 of 2 in current phase
-Status: Phase 16 complete (both plans done)
-Last activity: 2026-03-09 -- Completed 16-01 audit log immutability + API hardening (SEC-04, SEC-08)
+Phase: 17 of 22 (dashboard-accounting-performance)
+Plan: 1 of 3 completed in current phase (17-03 done)
+Status: Phase 17 in progress (plans 17-01 and 17-02 pending)
+Last activity: 2026-03-09 -- Completed 17-03 portal server prefetch (PERF-04)
 
 Progress: [██████████] 100%
 
@@ -59,6 +59,8 @@ Progress: [██████████] 100%
 - [v4.0] RLS migration SQL applied manually (not db:push) due to Drizzle bugs with RLS policies
 - [v4.0] /api/inventory removed from proxy publicPaths -- defense-in-depth with route-level auth
 - [v4.0] 10MB base64 limit per image on analyze route (~7.5MB raw after base64 decoding)
+- [v4.0] Portal prefetch: useSession() kept for display name only, beneficiary.me.useQuery() unconditional (layout validates auth)
+- [v4.0] Portal page.tsx no dynamic export needed -- parent layout already has force-dynamic
 
 ### Auth API Patterns That Work
 
@@ -100,6 +102,6 @@ const rows = await sql`SELECT id, name, email FROM neon_auth."user" WHERE lower(
 
 ## Session Continuity
 
-Last session: 2026-03-09T04:05:05.000Z
-Stopped at: Completed 16-01-PLAN.md (audit log immutability + API hardening)
+Last session: 2026-03-09T05:02:37.266Z
+Stopped at: Completed 17-03-PLAN.md (portal server prefetch)
 Resume file: None

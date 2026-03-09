@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm'
+import { and, count, desc, eq, sql, sum } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '@/db'
 import {
@@ -23,7 +23,8 @@ export const dashboardRouter = createTRPCRouter({
             const [
                 beneficiaries,
                 withdrawalRecords,
-                accountingEntries,
+                recentIncomeEntries,
+                recentExpenseEntries,
                 hemsRequests,
                 bankAccounts,
                 investmentAccounts,
@@ -44,7 +45,25 @@ export const dashboardRouter = createTRPCRouter({
                 db
                     .select()
                     .from(trustAccounting)
-                    .where(eq(trustAccounting.entityId, entityId)),
+                    .where(
+                        and(
+                            eq(trustAccounting.entityId, entityId),
+                            eq(trustAccounting.entryType, 'INCOME'),
+                        ),
+                    )
+                    .orderBy(desc(trustAccounting.accountingDate))
+                    .limit(10),
+                db
+                    .select()
+                    .from(trustAccounting)
+                    .where(
+                        and(
+                            eq(trustAccounting.entityId, entityId),
+                            eq(trustAccounting.entryType, 'EXPENSE'),
+                        ),
+                    )
+                    .orderBy(desc(trustAccounting.accountingDate))
+                    .limit(10),
                 db
                     .select()
                     .from(hemsRequest)
@@ -70,14 +89,17 @@ export const dashboardRouter = createTRPCRouter({
                     .select()
                     .from(liability)
                     .where(eq(liability.entityId, entityId)),
-                // task table is global (no entityId column) — intentional for single-trust app
+                // task table is global (no entityId column) -- intentional for single-trust app
                 db.select().from(task),
             ])
 
             return {
                 beneficiaries,
                 withdrawalRecords,
-                accountingEntries,
+                recentAccountingEntries: [
+                    ...recentIncomeEntries,
+                    ...recentExpenseEntries,
+                ],
                 hemsRequests,
                 bankAccounts,
                 investmentAccounts,
@@ -87,5 +109,36 @@ export const dashboardRouter = createTRPCRouter({
                 liabilities,
                 tasks,
             }
+        }),
+
+    summaryTotals: adminProcedure
+        .input(z.object({ entityId: z.coerce.number() }))
+        .query(async ({ input: { entityId } }) => {
+            const rows = await db
+                .select({
+                    entryType: trustAccounting.entryType,
+                    total: sql<string>`COALESCE(${sum(trustAccounting.amount)}, '0')`,
+                    entryCount: count(),
+                })
+                .from(trustAccounting)
+                .where(eq(trustAccounting.entityId, entityId))
+                .groupBy(trustAccounting.entryType)
+
+            let incomeTotal = '0'
+            let expenseTotal = '0'
+            let incomeCount = 0
+            let expenseCount = 0
+
+            for (const row of rows) {
+                if (row.entryType === 'INCOME') {
+                    incomeTotal = row.total
+                    incomeCount = row.entryCount
+                } else if (row.entryType === 'EXPENSE') {
+                    expenseTotal = row.total
+                    expenseCount = row.entryCount
+                }
+            }
+
+            return { incomeTotal, expenseTotal, incomeCount, expenseCount }
         }),
 })
