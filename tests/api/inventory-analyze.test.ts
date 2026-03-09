@@ -312,6 +312,17 @@ describe('POST /api/inventory/analyze', () => {
                 expect(response.status).toBe(200)
             }
         })
+
+        test('rejects oversized base64 image data', async () => {
+            const oversizedBase64 = 'A'.repeat(10_485_761) // 1 byte over limit
+            const request = createRequest({
+                images: [{ base64: oversizedBase64, mimeType: 'image/jpeg' }],
+            })
+            const response = await POST(request as never)
+            const data = await response.json()
+            expect(response.status).toBe(400)
+            expect(data.success).toBe(false)
+        })
     })
 
     describe('Error handling', () => {
