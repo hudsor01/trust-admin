@@ -38,7 +38,7 @@ Requirements derived from comprehensive critical review of 45 findings across se
 ### Feature Completeness
 
 - [x] **FEAT-01**: Admin can browse, create, edit, and delete artwork assets
-- [ ] **FEAT-02**: Admin can browse, create, edit, and delete personal property assets
+- [x] **FEAT-02**: Admin can browse, create, edit, and delete personal property assets
 - [ ] **FEAT-03**: Admin can browse, create, edit, and delete insurance policies
 - [ ] **FEAT-04**: Dashboard total assets calculation includes all asset types (artwork, personal property, insurance)
 - [ ] **FEAT-05**: Beneficiary portal shows HEMS request history with status tracking
@@ -119,7 +119,7 @@ Deferred -- acknowledged but not in v4.0 scope.
 | CORR-04 | Phase 18 | Complete |
 | CORR-05 | Phase 18 | Complete |
 | FEAT-01 | Phase 19 | Complete |
-| FEAT-02 | Phase 19 | Pending |
+| FEAT-02 | Phase 19 | Complete |
 | FEAT-03 | Phase 19 | Pending |
 | FEAT-04 | Phase 19 | Pending |
 | FEAT-05 | Phase 20 | Pending |
