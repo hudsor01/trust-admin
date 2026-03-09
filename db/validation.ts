@@ -36,6 +36,19 @@ import {
 // Validation Helpers
 // ---------------------------------------------------------------------------
 
+/**
+ * Wraps a partial schema to require at least one field to be defined.
+ * Prevents silent no-op UPDATE statements from empty payloads.
+ */
+function requireAtLeastOneField<T extends z.ZodObject<z.ZodRawShape>>(
+    schema: T,
+) {
+    return schema.refine(
+        (data) => Object.values(data).some((v) => v !== undefined),
+        { message: 'Update requires at least one field to be provided' },
+    )
+}
+
 const emailValidation = z
     .string()
     .email('Invalid email format')
@@ -369,41 +382,87 @@ export const insertWithdrawalRecordSchema = createInsertSchema(
 )
 export const selectWithdrawalRecordSchema = createSelectSchema(withdrawalRecord)
 
-export const updateTrusteeSchema = insertTrusteeSchema.partial()
-export const updateVehicleSchema = insertVehicleSchema.partial()
-export const updateWithdrawalRecordSchema =
-    insertWithdrawalRecordSchema.partial()
-export const updateContactSchema = insertContactSchema.partial()
-export const updateBeneficiarySchema = insertBeneficiarySchema.partial()
-export const updateEntitySchema = insertEntitySchema.partial()
-export const updateHomesteadSchema = insertHomesteadSchema.partial()
-export const updateRentalPropertySchema = insertRentalPropertySchema.partial()
-export const updateBankAccountSchema = insertBankAccountSchema.partial()
-export const updateInvestmentAccountSchema =
-    insertInvestmentAccountSchema.partial()
-export const updateLiabilitySchema = insertLiabilitySchema.partial()
-export const updateSpecificBequestSchema = insertSpecificBequestSchema.partial()
-export const updateDistributionSchema = insertDistributionSchema.partial()
-export const updateTaskSchema = insertTaskSchema.partial()
-export const updateTrustAccountingSchema = insertTrustAccountingSchema.partial()
-export const updateArtworkSchema = insertArtworkSchema.partial()
-export const updateHemsRequestSchema = insertHemsRequestSchema.partial()
-export const updatePersonalPropertySchema =
-    insertPersonalPropertySchema.partial()
-export const updateTrusteeFeeEntrySchema = insertTrusteeFeeEntrySchema.partial()
-export const updateTrusteeFeeScheduleSchema =
-    insertTrusteeFeeScheduleSchema.partial()
-export const updateValuationSchema = insertValuationSchema.partial()
-export const updateDocumentSchema = insertDocumentSchema.partial()
-export const updateLiabilityPaymentSchema =
-    insertLiabilityPaymentSchema.partial()
-export const updateInsurancePolicySchema = insertInsurancePolicySchema.partial()
-export const updatePendingInventoryItemSchema =
-    insertPendingInventoryItemSchema.partial()
+export const updateTrusteeSchema = requireAtLeastOneField(
+    insertTrusteeSchema.partial(),
+)
+export const updateVehicleSchema = requireAtLeastOneField(
+    insertVehicleSchema.partial(),
+)
+export const updateWithdrawalRecordSchema = requireAtLeastOneField(
+    insertWithdrawalRecordSchema.partial(),
+)
+export const updateContactSchema = requireAtLeastOneField(
+    insertContactSchema.partial(),
+)
+export const updateBeneficiarySchema = requireAtLeastOneField(
+    insertBeneficiarySchema.partial(),
+)
+export const updateEntitySchema = requireAtLeastOneField(
+    insertEntitySchema.partial(),
+)
+export const updateHomesteadSchema = requireAtLeastOneField(
+    insertHomesteadSchema.partial(),
+)
+export const updateRentalPropertySchema = requireAtLeastOneField(
+    insertRentalPropertySchema.partial(),
+)
+export const updateBankAccountSchema = requireAtLeastOneField(
+    insertBankAccountSchema.partial(),
+)
+export const updateInvestmentAccountSchema = requireAtLeastOneField(
+    insertInvestmentAccountSchema.partial(),
+)
+export const updateLiabilitySchema = requireAtLeastOneField(
+    insertLiabilitySchema.partial(),
+)
+export const updateSpecificBequestSchema = requireAtLeastOneField(
+    insertSpecificBequestSchema.partial(),
+)
+export const updateDistributionSchema = requireAtLeastOneField(
+    insertDistributionSchema.partial(),
+)
+export const updateTaskSchema = requireAtLeastOneField(
+    insertTaskSchema.partial(),
+)
+export const updateTrustAccountingSchema = requireAtLeastOneField(
+    insertTrustAccountingSchema.partial(),
+)
+export const updateArtworkSchema = requireAtLeastOneField(
+    insertArtworkSchema.partial(),
+)
+export const updateHemsRequestSchema = requireAtLeastOneField(
+    insertHemsRequestSchema.partial(),
+)
+export const updatePersonalPropertySchema = requireAtLeastOneField(
+    insertPersonalPropertySchema.partial(),
+)
+export const updateTrusteeFeeEntrySchema = requireAtLeastOneField(
+    insertTrusteeFeeEntrySchema.partial(),
+)
+export const updateTrusteeFeeScheduleSchema = requireAtLeastOneField(
+    insertTrusteeFeeScheduleSchema.partial(),
+)
+export const updateValuationSchema = requireAtLeastOneField(
+    insertValuationSchema.partial(),
+)
+export const updateDocumentSchema = requireAtLeastOneField(
+    insertDocumentSchema.partial(),
+)
+export const updateLiabilityPaymentSchema = requireAtLeastOneField(
+    insertLiabilityPaymentSchema.partial(),
+)
+export const updateInsurancePolicySchema = requireAtLeastOneField(
+    insertInsurancePolicySchema.partial(),
+)
+export const updatePendingInventoryItemSchema = requireAtLeastOneField(
+    insertPendingInventoryItemSchema.partial(),
+)
 
 export const insertUserProfileSchema = createInsertSchema(userProfile, {
     createdAt: (schema) => schema.optional(),
     updatedAt: (schema) => schema.optional(),
 })
 export const selectUserProfileSchema = createSelectSchema(userProfile)
-export const updateUserProfileSchema = insertUserProfileSchema.partial()
+export const updateUserProfileSchema = requireAtLeastOneField(
+    insertUserProfileSchema.partial(),
+)
