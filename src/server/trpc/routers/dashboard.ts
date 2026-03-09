@@ -2,12 +2,15 @@ import { and, count, desc, eq, sql, sum } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '@/db'
 import {
+    artwork,
     bankAccount,
     beneficiary,
     hemsRequest,
     homestead,
+    insurancePolicy,
     investmentAccount,
     liability,
+    personalProperty,
     rentalProperty,
     task,
     trustAccounting,
@@ -31,6 +34,9 @@ export const dashboardRouter = createTRPCRouter({
                 homesteads,
                 rentalProperties,
                 vehicles,
+                artworks,
+                personalProperties,
+                insurancePolicies,
                 liabilities,
                 tasks,
             ] = await Promise.all([
@@ -85,6 +91,15 @@ export const dashboardRouter = createTRPCRouter({
                     .from(rentalProperty)
                     .where(eq(rentalProperty.entityId, entityId)),
                 db.select().from(vehicle).where(eq(vehicle.entityId, entityId)),
+                db.select().from(artwork).where(eq(artwork.entityId, entityId)),
+                db
+                    .select()
+                    .from(personalProperty)
+                    .where(eq(personalProperty.entityId, entityId)),
+                db
+                    .select()
+                    .from(insurancePolicy)
+                    .where(eq(insurancePolicy.entityId, entityId)),
                 db
                     .select()
                     .from(liability)
@@ -106,6 +121,9 @@ export const dashboardRouter = createTRPCRouter({
                 homesteads,
                 rentalProperties,
                 vehicles,
+                artworks,
+                personalProperties,
+                insurancePolicies,
                 liabilities,
                 tasks,
             }

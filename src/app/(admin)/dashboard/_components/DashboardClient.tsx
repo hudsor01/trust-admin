@@ -62,6 +62,9 @@ export function DashboardClient() {
     const homesteads = summary?.homesteads ?? []
     const rentalProperties = summary?.rentalProperties ?? []
     const vehicles = summary?.vehicles ?? []
+    const artworks = summary?.artworks ?? []
+    const personalProperties = summary?.personalProperties ?? []
+    const insurancePolicies = summary?.insurancePolicies ?? []
     const tasks = summary?.tasks ?? []
     const beneficiaries = summary?.beneficiaries ?? []
     const withdrawalRecords = summary?.withdrawalRecords ?? []
@@ -198,6 +201,15 @@ export function DashboardClient() {
             const vehicleTotal = sumStrings(
                 vehicles.map((v) => v.dodValue ?? '0'),
             )
+            const artworkTotal = sumStrings(
+                artworks.map((a) => a.dodValue ?? '0'),
+            )
+            const personalPropertyTotal = sumStrings(
+                personalProperties.map((p) => p.dodValue ?? '0'),
+            )
+            const insuranceTotal = sumStrings(
+                insurancePolicies.map((p) => p.coverageAmount ?? '0'),
+            )
             const liabilityTotal = sumStrings(
                 liabilities.map((l) => l.currentBalance ?? '0'),
             )
@@ -206,6 +218,9 @@ export function DashboardClient() {
                 investTotal,
                 realEstateTotal,
                 vehicleTotal,
+                artworkTotal,
+                personalPropertyTotal,
+                insuranceTotal,
             ])
             const allocationData = [
                 {
@@ -228,6 +243,21 @@ export function DashboardClient() {
                     value: Number.parseFloat(vehicleTotal) || 0,
                     fill: 'hsl(38, 92%, 50%)',
                 },
+                {
+                    name: 'Artwork',
+                    value: Number.parseFloat(artworkTotal) || 0,
+                    fill: 'hsl(340, 82%, 52%)',
+                },
+                {
+                    name: 'Personal Property',
+                    value: Number.parseFloat(personalPropertyTotal) || 0,
+                    fill: 'hsl(25, 95%, 53%)',
+                },
+                {
+                    name: 'Insurance',
+                    value: Number.parseFloat(insuranceTotal) || 0,
+                    fill: 'hsl(195, 74%, 44%)',
+                },
             ].filter((item) => item.value > 0)
 
             return {
@@ -241,6 +271,9 @@ export function DashboardClient() {
             homesteads,
             rentalProperties,
             vehicles,
+            artworks,
+            personalProperties,
+            insurancePolicies,
             liabilities,
         ])
 
