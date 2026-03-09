@@ -51,7 +51,7 @@ Trust administration application for managing the Hudson Living Trust. Systemati
 - [x] **Phase 16: api-infrastructure-security** - Audit log RLS, inventory upload migration, proxy fix, timing-safe access codes (completed 2026-03-09)
 - [x] **Phase 17: dashboard-accounting-performance** - SQL aggregation, server-side pagination, portal prefetch, dashboard cleanup (completed 2026-03-09)
 - [x] **Phase 18: data-integrity-correctness** - Auto-classification enforcement, payment math, empty update rejection, API migration (completed 2026-03-09)
-- [ ] **Phase 19: missing-asset-uis** - Admin pages for artwork, personal property, insurance; dashboard totals fix
+- [x] **Phase 19: missing-asset-uis** - Admin pages for artwork, personal property, insurance; dashboard totals fix (completed 2026-03-09)
 - [ ] **Phase 20: beneficiary-distribution-features** - Portal HEMS history, beneficiary tax fields, distribution compliance, HEMS cancel
 - [ ] **Phase 21: admin-feature-completeness** - Accounting reconciliation, contact professional fields, trustee editing
 - [ ] **Phase 22: code-quality-cleanup** - Dead code removal, entityId pattern, type guards, structured logging, dialog refactor
@@ -211,7 +211,7 @@ Phases execute in numeric order: 15 -> 16 -> 17 -> 18 -> 19 -> 20 -> 21 -> 22
 | 16. api-infrastructure-security | v4.0 | 2/2 | Complete | 2026-03-09 |
 | 17. dashboard-accounting-performance | v4.0 | 3/3 | Complete | 2026-03-09 |
 | 18. data-integrity-correctness | v4.0 | 3/3 | Complete | 2026-03-09 |
-| 19. missing-asset-uis | 2/3 | In Progress|  | - |
+| 19. missing-asset-uis | 3/3 | Complete   | 2026-03-09 | - |
 | 20. beneficiary-distribution-features | v4.0 | 0/1 | Not started | - |
 | 21. admin-feature-completeness | v4.0 | 0/1 | Not started | - |
 | 22. code-quality-cleanup | v4.0 | 0/1 | Not started | - |

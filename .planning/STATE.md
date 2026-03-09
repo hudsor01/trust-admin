@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Production Hardening & Completeness
-status: executing
-stopped_at: Completed 19-02-PLAN.md
-last_updated: "2026-03-09T16:14:16.752Z"
-last_activity: 2026-03-09 -- Completed 19-02 personal property CRUD page (FEAT-02)
+status: in-progress
+stopped_at: Completed 19-03-PLAN.md (insurance page + dashboard totals)
+last_updated: "2026-03-09T16:16:34.706Z"
+last_activity: 2026-03-09 -- Completed 19-03 insurance policy page + dashboard totals (FEAT-03, FEAT-04)
 progress:
   total_phases: 8
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 13
-  completed_plans: 12
+  completed_plans: 13
   percent: 92
 ---
 
@@ -20,9 +20,9 @@ progress:
 
 Milestone: v4.0 Production Hardening & Completeness
 Phase: 19 of 22 (missing-asset-uis)
-Plan: 2 of 3 completed in current phase
-Status: In progress
-Last activity: 2026-03-09 -- Completed 19-02 personal property CRUD page (FEAT-02)
+Plan: 3 of 3 completed in current phase
+Status: Phase complete
+Last activity: 2026-03-09 -- Completed 19-03 insurance policy page + dashboard totals (FEAT-03, FEAT-04)
 
 Progress: [█████████-] 92%
 
@@ -73,6 +73,8 @@ Progress: [█████████-] 92%
 - [v4.0] Password reset token dedup: invalidate existing (set usedAt) before insert, cleanup expired > 24h
 - [v4.0] Asset router pattern: replicate vehicle.ts exactly (adminProcedure, entityId filter, updatedAt on write, NOT_FOUND on missing)
 - [v4.0] Sidebar asset links ordered: Properties, Accounts, Vehicles, Artwork, Personal Property, Insurance, Inventory Queue
+- [v4.0] Insurance policies use coverageAmount (not dodValue) as primary value metric in dashboard totals
+- [v4.0] Insurance table uses ACTIVE/EXPIRED/CANCELLED status subset (not SOLD/TRANSFERRED/DISPOSED)
 
 ### Auth API Patterns That Work
 
@@ -114,6 +116,6 @@ const rows = await sql`SELECT id, name, email FROM neon_auth."user" WHERE lower(
 
 ## Session Continuity
 
-Last session: 2026-03-09T16:14:16.750Z
-Stopped at: Completed 19-02-PLAN.md
+Last session: 2026-03-09T16:16:34.704Z
+Stopped at: Completed 19-03-PLAN.md (insurance page + dashboard totals)
 Resume file: None

@@ -39,8 +39,8 @@ Requirements derived from comprehensive critical review of 45 findings across se
 
 - [x] **FEAT-01**: Admin can browse, create, edit, and delete artwork assets
 - [x] **FEAT-02**: Admin can browse, create, edit, and delete personal property assets
-- [ ] **FEAT-03**: Admin can browse, create, edit, and delete insurance policies
-- [ ] **FEAT-04**: Dashboard total assets calculation includes all asset types (artwork, personal property, insurance)
+- [x] **FEAT-03**: Admin can browse, create, edit, and delete insurance policies
+- [x] **FEAT-04**: Dashboard total assets calculation includes all asset types (artwork, personal property, insurance)
 - [ ] **FEAT-05**: Beneficiary portal shows HEMS request history with status tracking
 - [ ] **FEAT-06**: Admin can edit beneficiary tax fields (taxId) and per-beneficiary withdrawal ages/percentages
 - [ ] **FEAT-07**: Admin can mark distributions as tax-reported and 1099-issued
@@ -120,8 +120,8 @@ Deferred -- acknowledged but not in v4.0 scope.
 | CORR-05 | Phase 18 | Complete |
 | FEAT-01 | Phase 19 | Complete |
 | FEAT-02 | Phase 19 | Complete |
-| FEAT-03 | Phase 19 | Pending |
-| FEAT-04 | Phase 19 | Pending |
+| FEAT-03 | Phase 19 | Complete |
+| FEAT-04 | Phase 19 | Complete |
 | FEAT-05 | Phase 20 | Pending |
 | FEAT-06 | Phase 20 | Pending |
 | FEAT-07 | Phase 20 | Pending |
