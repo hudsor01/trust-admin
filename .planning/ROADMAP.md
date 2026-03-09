@@ -118,10 +118,12 @@ Plans:
   5. password_reset_token table has an email index, limits one unexpired token per email, and cleans up expired tokens on insert
   6. recalculateBeneficiaryShares uses a single bulk UPDATE instead of N sequential statements
   7. listAllUsers fetches profiles and beneficiaries in parallel via Promise.all
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 18-01: TBD
+- [ ] 18-01-PLAN.md -- Financial calculation fixes: nullish handling, bulk UPDATE, accounting entry centralization
+- [ ] 18-02-PLAN.md -- Deprecated API migration: remove listProvisionedUsers, parallelize listAllUsers
+- [ ] 18-03-PLAN.md -- Validation hardening: non-empty update schemas, password reset token lifecycle
 
 ### Phase 19: missing-asset-uis
 **Goal**: Admin can manage all asset types through dedicated pages; dashboard reflects complete estate value
@@ -205,8 +207,8 @@ Phases execute in numeric order: 15 -> 16 -> 17 -> 18 -> 19 -> 20 -> 21 -> 22
 | 14. codebase-cleanup | v3.0 | 1/1 | Complete | 2026-02-22 |
 | 15. auth-session-security | v4.0 | 2/2 | Complete | 2026-03-09 |
 | 16. api-infrastructure-security | v4.0 | 2/2 | Complete | 2026-03-09 |
-| 17. dashboard-accounting-performance | 3/3 | Complete    | 2026-03-09 | - |
-| 18. data-integrity-correctness | v4.0 | 0/1 | Not started | - |
+| 17. dashboard-accounting-performance | v4.0 | 3/3 | Complete | 2026-03-09 |
+| 18. data-integrity-correctness | v4.0 | 0/3 | Not started | - |
 | 19. missing-asset-uis | v4.0 | 0/1 | Not started | - |
 | 20. beneficiary-distribution-features | v4.0 | 0/1 | Not started | - |
 | 21. admin-feature-completeness | v4.0 | 0/1 | Not started | - |
