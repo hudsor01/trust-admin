@@ -99,10 +99,12 @@ Plans:
   3. Portal beneficiary data is server-prefetched with HydrationBoundary -- no client-side session-then-fetch waterfall
   4. DashboardClient filter calls are memoized; redundant entity.byId and beneficiary.byId fetches are removed
   5. Unused computed totals (_totalBankAccounts etc.) are deleted from DashboardClient
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 17-01: TBD
+- [ ] 17-01-PLAN.md -- Dashboard SQL aggregation, entity.list cache, dead code cleanup
+- [ ] 17-02-PLAN.md -- Accounting server-side pagination with entryType filtering
+- [ ] 17-03-PLAN.md -- Portal server-prefetch with HydrationBoundary
 
 ### Phase 18: data-integrity-correctness
 **Goal**: Financial calculations are correct, data mutations are validated, and deprecated APIs are fully retired
@@ -202,8 +204,8 @@ Phases execute in numeric order: 15 -> 16 -> 17 -> 18 -> 19 -> 20 -> 21 -> 22
 | 13. beneficiary-data-isolation | v3.0 | 1/1 | Complete | 2026-02-22 |
 | 14. codebase-cleanup | v3.0 | 1/1 | Complete | 2026-02-22 |
 | 15. auth-session-security | v4.0 | 2/2 | Complete | 2026-03-09 |
-| 16. api-infrastructure-security | 2/2 | Complete    | 2026-03-09 | - |
-| 17. dashboard-accounting-performance | v4.0 | 0/1 | Not started | - |
+| 16. api-infrastructure-security | v4.0 | 2/2 | Complete | 2026-03-09 |
+| 17. dashboard-accounting-performance | v4.0 | 0/3 | Not started | - |
 | 18. data-integrity-correctness | v4.0 | 0/1 | Not started | - |
 | 19. missing-asset-uis | v4.0 | 0/1 | Not started | - |
 | 20. beneficiary-distribution-features | v4.0 | 0/1 | Not started | - |
