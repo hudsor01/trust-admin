@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto'
 import * as Sentry from '@sentry/nextjs'
+import { and, eq, isNull, lt } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
 import { getPublicDb, getSql } from '@/db'
 import { passwordResetToken } from '@/db/schema'
@@ -31,6 +32,28 @@ export async function POST(request: Request) {
             const expiresAt = new Date(Date.now() + 60 * 60 * 1000) // 1 hour
 
             const db = getPublicDb()
+
+            // Invalidate any existing unexpired tokens for this email
+            await db
+                .update(passwordResetToken)
+                .set({ usedAt: new Date() })
+                .where(
+                    and(
+                        eq(passwordResetToken.email, email.toLowerCase()),
+                        isNull(passwordResetToken.usedAt),
+                    ),
+                )
+
+            // Clean up expired tokens older than 24 hours
+            await db
+                .delete(passwordResetToken)
+                .where(
+                    lt(
+                        passwordResetToken.expiresAt,
+                        new Date(Date.now() - 24 * 60 * 60 * 1000),
+                    ),
+                )
+
             await db.insert(passwordResetToken).values({
                 token,
                 email: email.toLowerCase(),
