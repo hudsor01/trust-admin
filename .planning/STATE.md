@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Production Hardening & Completeness
 status: executing
-stopped_at: Completed 17-03-PLAN.md (portal server prefetch)
-last_updated: "2026-03-09T05:02:37.274Z"
-last_activity: 2026-03-09 -- Completed 17-03 portal server prefetch (PERF-04)
+stopped_at: Completed 17-02-PLAN.md (accounting server-side pagination)
+last_updated: "2026-03-09T05:13:00.000Z"
+last_activity: 2026-03-09 -- Completed 17-02 accounting server-side pagination (PERF-02)
 progress:
   total_phases: 8
   completed_phases: 2
   total_plans: 7
-  completed_plans: 5
-  percent: 100
+  completed_plans: 6
+  percent: 85
 ---
 
 # State: Trust Admin
@@ -20,9 +20,9 @@ progress:
 
 Milestone: v4.0 Production Hardening & Completeness
 Phase: 17 of 22 (dashboard-accounting-performance)
-Plan: 1 of 3 completed in current phase (17-03 done)
-Status: Phase 17 in progress (plans 17-01 and 17-02 pending)
-Last activity: 2026-03-09 -- Completed 17-03 portal server prefetch (PERF-04)
+Plan: 2 of 3 completed in current phase (17-02, 17-03 done)
+Status: Phase 17 in progress (plan 17-01 pending)
+Last activity: 2026-03-09 -- Completed 17-02 accounting server-side pagination (PERF-02)
 
 Progress: [██████████] 100%
 
@@ -61,6 +61,9 @@ Progress: [██████████] 100%
 - [v4.0] 10MB base64 limit per image on analyze route (~7.5MB raw after base64 decoding)
 - [v4.0] Portal prefetch: useSession() kept for display name only, beneficiary.me.useQuery() unconditional (layout validates auth)
 - [v4.0] Portal page.tsx no dynamic export needed -- parent layout already has force-dynamic
+- [v4.0] Accounting listPaginated uses entryType filter + offset/limit (page size 50, limit 1-100)
+- [v4.0] Tab badge counts from totals query entryCount, not array lengths -- accurate across all pages
+- [v4.0] DataTable client-side pagination disabled for accounting; custom Previous/Next controls used
 
 ### Auth API Patterns That Work
 
@@ -102,6 +105,6 @@ const rows = await sql`SELECT id, name, email FROM neon_auth."user" WHERE lower(
 
 ## Session Continuity
 
-Last session: 2026-03-09T05:02:37.266Z
-Stopped at: Completed 17-03-PLAN.md (portal server prefetch)
+Last session: 2026-03-09T05:13:00.000Z
+Stopped at: Completed 17-02-PLAN.md (accounting server-side pagination)
 Resume file: None

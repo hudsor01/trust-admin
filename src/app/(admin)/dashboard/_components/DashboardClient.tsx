@@ -50,8 +50,9 @@ export function DashboardClient() {
     const { data: summary, isLoading: summaryLoading } =
         trpc.dashboard.summary.useQuery({ entityId })
 
-    const { data: summaryTotals } =
-        trpc.dashboard.summaryTotals.useQuery({ entityId })
+    const { data: summaryTotals } = trpc.dashboard.summaryTotals.useQuery({
+        entityId,
+    })
 
     const { data: entities } = trpc.entity.list.useQuery()
     const entity = entities?.[0] ?? null
