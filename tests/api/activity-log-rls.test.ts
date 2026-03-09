@@ -16,7 +16,7 @@ describe('activity_log immutable RLS policies', () => {
 
         // Extract the activityLog table definition section
         const activityLogStart = schemaSource.indexOf(
-            "export const activityLog = pgTable(",
+            'export const activityLog = pgTable(',
         )
         const activityLogEnd = schemaSource.indexOf(
             ').enableRLS()',
