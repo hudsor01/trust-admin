@@ -6,6 +6,7 @@ import { db, getClient } from '@/db'
 import { createActivityLog } from '@/db/queries'
 import { beneficiary, userProfile } from '@/db/schema'
 import { authServer } from '@/lib/auth/server'
+import { env } from '@/lib/env'
 import {
     adminProcedure,
     createTRPCRouter,
@@ -13,7 +14,7 @@ import {
     protectedProcedure,
 } from '../init'
 
-const OWNER_EMAIL = process.env.ADMIN_EMAIL ?? ''
+const OWNER_EMAIL = env.ADMIN_EMAIL
 
 export const userManagementRouter = createTRPCRouter({
     /** Used by frontend to gate user management CRUD controls. */

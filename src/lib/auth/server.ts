@@ -4,6 +4,6 @@ import { env } from '@/lib/env'
 export const authServer = createNeonAuth({
     baseUrl: env.NEON_AUTH_BASE_URL,
     cookies: {
-        secret: env.NEON_AUTH_COOKIE_SECRET!,
+        secret: env.NEON_AUTH_COOKIE_SECRET,
     },
 })

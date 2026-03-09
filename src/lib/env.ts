@@ -45,7 +45,10 @@ export const env = createEnv({
         SENTRY_PROJECT: z.string().optional(),
         SENTRY_AUTH_TOKEN: z.string().optional(),
 
-        NEON_AUTH_COOKIE_SECRET: z.string().optional(),
+        NEON_AUTH_COOKIE_SECRET: z
+            .string()
+            .trim()
+            .min(32, 'NEON_AUTH_COOKIE_SECRET must be >= 32 characters'),
         N8N_PASSWORD_RESET_WEBHOOK_URL: optionalUrl(),
     },
 

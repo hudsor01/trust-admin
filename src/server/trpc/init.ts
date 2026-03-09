@@ -11,9 +11,10 @@ import { ZodError } from 'zod'
 import { getPublicDb, setRequestAuthToken } from '@/db'
 import { userProfile } from '@/db/schema'
 import { authServer } from '@/lib/auth/server'
+import { env } from '@/lib/env'
 import { clearSentryUser, setSentryUser } from '@/lib/sentry'
 
-const OWNER_EMAIL = process.env.ADMIN_EMAIL ?? ''
+const OWNER_EMAIL = env.ADMIN_EMAIL
 
 export type AppUser = {
     id: string
