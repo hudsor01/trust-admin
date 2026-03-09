@@ -299,20 +299,11 @@ export const activityLog = pgTable(
             to: ['authenticated'],
             using: sql`( SELECT app.is_admin() AS is_admin)`,
         }),
-        pgPolicy('crud-authenticated-policy-insert', {
+        pgPolicy('audit-insert-own-user', {
             as: 'permissive',
             for: 'insert',
             to: ['authenticated'],
-        }),
-        pgPolicy('crud-authenticated-policy-update', {
-            as: 'permissive',
-            for: 'update',
-            to: ['authenticated'],
-        }),
-        pgPolicy('crud-authenticated-policy-delete', {
-            as: 'permissive',
-            for: 'delete',
-            to: ['authenticated'],
+            withCheck: sql`changed_by = app.effective_user_id()`,
         }),
     ],
 ).enableRLS()
