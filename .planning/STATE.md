@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Production Hardening & Completeness
 status: executing
-stopped_at: Completed 18-02-PLAN.md (deprecated API migration -- listProvisionedUsers removed)
-last_updated: "2026-03-09T06:05:30.797Z"
-last_activity: 2026-03-09 -- Completed 18-01 financial calculation correctness (CORR-01, CORR-02, PERF-05)
+stopped_at: Completed 18-03-PLAN.md (non-empty update validation + password reset hardening)
+last_updated: "2026-03-09T06:15:41Z"
+last_activity: 2026-03-09 -- Completed 18-03 non-empty update validation + password reset hardening (CORR-03, CORR-05)
 progress:
   total_phases: 8
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 10
-  completed_plans: 9
+  completed_plans: 10
   percent: 100
 ---
 
@@ -20,9 +20,9 @@ progress:
 
 Milestone: v4.0 Production Hardening & Completeness
 Phase: 18 of 22 (data-integrity-correctness)
-Plan: 2 of 3 in current phase
-Status: In progress
-Last activity: 2026-03-09 -- Completed 18-01 financial calculation correctness (CORR-01, CORR-02, PERF-05)
+Plan: 3 of 3 completed in current phase (all plans done)
+Status: Phase 18 complete
+Last activity: 2026-03-09 -- Completed 18-03 non-empty update validation + password reset hardening (CORR-03, CORR-05)
 
 Progress: [██████████] 100%
 
@@ -67,6 +67,10 @@ Progress: [██████████] 100%
 - [v4.0] Dashboard totals via SQL SUM (summaryTotals procedure) -- not client-side sumStrings over all rows
 - [v4.0] Dashboard accounting entries bounded to 10 per type (recentAccountingEntries) -- no unbounded fetches
 - [v4.0] listAllUsers changed from ownerProcedure to adminProcedure -- read-only data safe for all admins; non-owner admins see same data without mutation controls
+- [v4.0] Nullish coalescing (??) for money string fallbacks -- principalPortion="0.00" is a valid value, not falsy
+- [v4.0] Bulk UPDATE with CASE/WHEN via tx.unsafe() for beneficiary share redistribution -- safe because values are DB integers and computed decimals
+- [v4.0] requireAtLeastOneField() Zod .refine() on all 26 update schemas -- prevents silent no-op UPDATEs from empty payloads
+- [v4.0] Password reset token dedup: invalidate existing (set usedAt) before insert, cleanup expired > 24h
 
 ### Auth API Patterns That Work
 
@@ -108,6 +112,6 @@ const rows = await sql`SELECT id, name, email FROM neon_auth."user" WHERE lower(
 
 ## Session Continuity
 
-Last session: 2026-03-09T06:05:30.795Z
-Stopped at: Completed 18-02-PLAN.md (deprecated API migration -- listProvisionedUsers removed)
+Last session: 2026-03-09T06:15:41Z
+Stopped at: Completed 18-03-PLAN.md (non-empty update validation + password reset hardening)
 Resume file: None
