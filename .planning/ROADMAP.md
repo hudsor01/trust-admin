@@ -134,10 +134,12 @@ Plans:
   2. Admin can browse, create, edit, and delete personal property assets from a dedicated /personal-property page
   3. Admin can browse, create, edit, and delete insurance policies from a dedicated /insurance page
   4. Dashboard total assets sum includes artwork, personal property, and insurance policy values
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 19-01: TBD
+- [ ] 19-01-PLAN.md -- Shared infrastructure (routers, form defaults, type casts, sidebar) + artwork page
+- [ ] 19-02-PLAN.md -- Personal property page with category enum support
+- [ ] 19-03-PLAN.md -- Insurance page (no dodValue/transferStatus) + dashboard totals fix
 
 ### Phase 20: beneficiary-distribution-features
 **Goal**: Beneficiaries can track their HEMS requests; admin has full tax compliance and cancellation controls on distributions
@@ -208,8 +210,8 @@ Phases execute in numeric order: 15 -> 16 -> 17 -> 18 -> 19 -> 20 -> 21 -> 22
 | 15. auth-session-security | v4.0 | 2/2 | Complete | 2026-03-09 |
 | 16. api-infrastructure-security | v4.0 | 2/2 | Complete | 2026-03-09 |
 | 17. dashboard-accounting-performance | v4.0 | 3/3 | Complete | 2026-03-09 |
-| 18. data-integrity-correctness | 3/3 | Complete    | 2026-03-09 | - |
-| 19. missing-asset-uis | v4.0 | 0/1 | Not started | - |
+| 18. data-integrity-correctness | v4.0 | 3/3 | Complete | 2026-03-09 |
+| 19. missing-asset-uis | v4.0 | 0/3 | Not started | - |
 | 20. beneficiary-distribution-features | v4.0 | 0/1 | Not started | - |
 | 21. admin-feature-completeness | v4.0 | 0/1 | Not started | - |
 | 22. code-quality-cleanup | v4.0 | 0/1 | Not started | - |
