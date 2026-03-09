@@ -17,7 +17,10 @@ export default async function globalSetup() {
 
     const res = await fetch(`${BASE_URL}/api/e2e/setup`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+            'Content-Type': 'application/json',
+            'x-e2e-secret': process.env.E2E_SETUP_SECRET ?? '',
+        },
     })
 
     if (!res.ok) {
@@ -28,9 +31,9 @@ export default async function globalSetup() {
     }
 
     const data = await res.json()
-    console.log(`[E2E Setup] Admin: ${data.admin.email} (${data.admin.userId})`)
+    console.log(`[E2E Setup] Admin: ${data.admin?.email ?? 'unknown'}`)
     console.log(
-        `[E2E Setup] Beneficiary: ${data.beneficiary.email} (beneficiary #${data.beneficiary.beneficiaryId})`,
+        `[E2E Setup] Beneficiary: ${data.beneficiary?.email ?? 'unknown'}`,
     )
     console.log('[E2E Setup] Done.\n')
 }

@@ -33,8 +33,6 @@ describe('E2E setup auth guard', () => {
     })
 
     test('accepts when header matches env secret', () => {
-        expect(
-            checkE2ESecret(VALID_SECRET, VALID_SECRET).authorized,
-        ).toBe(true)
+        expect(checkE2ESecret(VALID_SECRET, VALID_SECRET).authorized).toBe(true)
     })
 })
