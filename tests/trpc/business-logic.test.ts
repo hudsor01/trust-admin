@@ -544,7 +544,7 @@ describe.skipIf(isProductionDb)('Business Logic', () => {
                 const caller = adminCaller()
                 const today = new Date().toISOString()
 
-                const created = await caller.trustAccounting.create({
+                const created = await caller.trustAccounting.createEntry({
                     entityId: testData.entityId!,
                     bankAccountId: testData.bankAccountId!,
                     entryType: 'INCOME',
@@ -572,7 +572,7 @@ describe.skipIf(isProductionDb)('Business Logic', () => {
                 const caller = adminCaller()
                 const today = new Date().toISOString()
 
-                const created = await caller.trustAccounting.create({
+                const created = await caller.trustAccounting.createEntry({
                     entityId: testData.entityId!,
                     bankAccountId: testData.bankAccountId!,
                     entryType: 'EXPENSE',
@@ -597,7 +597,7 @@ describe.skipIf(isProductionDb)('Business Logic', () => {
                 const caller = adminCaller()
                 const today = new Date().toISOString()
 
-                const created = await caller.trustAccounting.create({
+                const created = await caller.trustAccounting.createEntry({
                     entityId: testData.entityId!,
                     bankAccountId: testData.bankAccountId!,
                     entryType: 'INCOME',
@@ -685,7 +685,7 @@ describe.skipIf(isProductionDb)('Business Logic', () => {
             'delete a trust accounting entry',
             async () => {
                 const caller = adminCaller()
-                const created = await caller.trustAccounting.create({
+                const created = await caller.trustAccounting.createEntry({
                     entityId: testData.entityId!,
                     bankAccountId: testData.bankAccountId!,
                     entryType: 'EXPENSE',

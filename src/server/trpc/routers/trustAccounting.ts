@@ -77,21 +77,6 @@ export const trustAccountingRouter = createTRPCRouter({
             })
         }),
 
-    create: adminProcedure
-        .input(insertTrustAccountingSchema)
-        .mutation(async ({ input }) => {
-            const [created] = await db
-                .insert(trustAccounting)
-                .values({ ...input, updatedAt: new Date().toISOString() })
-                .returning()
-            if (!created)
-                throw new TRPCError({
-                    code: 'INTERNAL_SERVER_ERROR',
-                    message: 'Failed to create trust accounting entry',
-                })
-            return created
-        }),
-
     createEntry: adminProcedure
         .input(insertTrustAccountingSchema)
         .mutation(async ({ input }) => {

@@ -66,7 +66,7 @@ export function AccountingClient() {
         utils.trustAccounting.unconvertedIncomeSummary.invalidate()
     }, [utils])
 
-    const createEntryMutation = trpc.trustAccounting.create.useMutation({
+    const createEntryMutation = trpc.trustAccounting.createEntry.useMutation({
         onSuccess: invalidateAccounting,
     })
     const updateEntryMutation = trpc.trustAccounting.update.useMutation({
