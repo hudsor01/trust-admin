@@ -83,10 +83,11 @@ Plans:
   2. Inventory photo uploads use UploadThing and persist across deployments (no filesystem writes)
   3. /api/inventory routes require authentication (removed from proxy publicPaths) and base64 payloads are capped at 10MB
   4. INVENTORY_ACCESS_CODE comparison uses constant-time equality and locks out after repeated failures
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 16-01: TBD
+- [ ] 16-01-PLAN.md -- Immutable activity_log RLS, proxy publicPaths hardening, base64 size cap
+- [ ] 16-02-PLAN.md -- Timing-safe access code comparison with lockout, UploadThing upload migration
 
 ### Phase 17: dashboard-accounting-performance
 **Goal**: Dashboard and accounting pages load efficiently regardless of data volume; portal eliminates client-side session waterfall
@@ -200,8 +201,8 @@ Phases execute in numeric order: 15 -> 16 -> 17 -> 18 -> 19 -> 20 -> 21 -> 22
 | 12. forced-password-change | v3.0 | 1/1 | Complete | 2026-02-22 |
 | 13. beneficiary-data-isolation | v3.0 | 1/1 | Complete | 2026-02-22 |
 | 14. codebase-cleanup | v3.0 | 1/1 | Complete | 2026-02-22 |
-| 15. auth-session-security | 2/2 | Complete    | 2026-03-09 | - |
-| 16. api-infrastructure-security | v4.0 | 0/1 | Not started | - |
+| 15. auth-session-security | v4.0 | 2/2 | Complete | 2026-03-09 |
+| 16. api-infrastructure-security | v4.0 | 0/2 | Not started | - |
 | 17. dashboard-accounting-performance | v4.0 | 0/1 | Not started | - |
 | 18. data-integrity-correctness | v4.0 | 0/1 | Not started | - |
 | 19. missing-asset-uis | v4.0 | 0/1 | Not started | - |
