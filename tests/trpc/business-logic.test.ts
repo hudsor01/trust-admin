@@ -42,6 +42,7 @@ const testData = {
     entityId: null as number | null,
     bankAccountId: null as number | null,
     liabilityId: null as number | null,
+    nullishLiabilityId: null as number | null,
     beneficiaryId: null as number | null,
     hemsRequestIds: [] as number[],
     distributionIds: [] as number[],
@@ -123,6 +124,16 @@ describe.skipIf(isProductionDb)('Business Logic', () => {
                 .delete(liabilityPayment)
                 .where(eq(liabilityPayment.liabilityId, testData.liabilityId))
         }
+        if (testData.nullishLiabilityId) {
+            await db
+                .delete(liabilityPayment)
+                .where(
+                    eq(
+                        liabilityPayment.liabilityId,
+                        testData.nullishLiabilityId,
+                    ),
+                )
+        }
 
         if (testData.entityId) {
             await db
@@ -161,6 +172,11 @@ describe.skipIf(isProductionDb)('Business Logic', () => {
             await db
                 .delete(liability)
                 .where(eq(liability.id, testData.liabilityId))
+        }
+        if (testData.nullishLiabilityId) {
+            await db
+                .delete(liability)
+                .where(eq(liability.id, testData.nullishLiabilityId))
         }
 
         if (testData.bankAccountId) {
@@ -269,6 +285,76 @@ describe.skipIf(isProductionDb)('Business Logic', () => {
                 expect(
                     parseFloat(updatedLiability!.currentBalance!),
                 ).toBeLessThanOrEqual(8800.0)
+            },
+            TEST_TIMEOUT,
+        )
+
+        test(
+            'recordPayment with principalPortion="0.00" does NOT trigger auto-calculation',
+            async () => {
+                const caller = adminCaller()
+                const today = new Date().toISOString().split('T')[0]!
+
+                // Create a liability with interest rate so auto-calc would trigger if principalPortion were null
+                const [liabWithRate] = await db
+                    .insert(liability)
+                    .values({
+                        entityId: testData.entityId!,
+                        liabilityType: 'MORTGAGE',
+                        creditor: 'Nullish Test Lender',
+                        originalAmount: '50000.00',
+                        currentBalance: '50000.00',
+                        interestRate: '5.00',
+                        allocationClass: 'PRINCIPAL',
+                        status: 'ACTIVE',
+                        updatedAt: new Date().toISOString(),
+                    })
+                    .returning()
+                testData.nullishLiabilityId = liabWithRate.id
+
+                const result = await caller.liability.recordPayment({
+                    entityId: testData.entityId!,
+                    liabilityId: liabWithRate.id,
+                    bankAccountId: testData.bankAccountId!,
+                    amount: '1000.00',
+                    principalPortion: '0.00',
+                    interestPortion: '1000.00',
+                    paymentDate: today,
+                    paymentMethod: 'ACH',
+                })
+
+                // With principalPortion="0.00", auto-calc should NOT trigger
+                // so autoCalculated should be null
+                expect(result.autoCalculated).toBeNull()
+                // And principalPortion should be exactly "0.00"
+                expect(result.payment.principalPortion).toBe('0.00')
+                // Balance should not decrease (principal portion is 0)
+                expect(parseFloat(result.liability.currentBalance)).toBe(50000.0)
+            },
+            TEST_TIMEOUT,
+        )
+
+        test(
+            'recordPayment with principalPortion=null triggers auto-calculation when interest rate exists',
+            async () => {
+                const caller = adminCaller()
+                const today = new Date().toISOString().split('T')[0]!
+
+                // Use the liability with interest rate created above
+                const result = await caller.liability.recordPayment({
+                    entityId: testData.entityId!,
+                    liabilityId: testData.nullishLiabilityId!,
+                    bankAccountId: testData.bankAccountId!,
+                    amount: '1000.00',
+                    // principalPortion not provided (undefined) -> should auto-calculate
+                    paymentDate: today,
+                    paymentMethod: 'ACH',
+                })
+
+                // Auto-calc should have triggered since principalPortion is undefined
+                expect(result.autoCalculated).not.toBeNull()
+                expect(result.autoCalculated!.principal).toBeDefined()
+                expect(result.autoCalculated!.interest).toBeDefined()
             },
             TEST_TIMEOUT,
         )
