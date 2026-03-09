@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Production Hardening & Completeness
 status: completed
-stopped_at: Completed 16-02-PLAN.md
-last_updated: "2026-03-09T03:54:23.608Z"
-last_activity: 2026-03-09 -- Completed 16-02 access code hardening + upload migration (SEC-09, SEC-07)
+stopped_at: Completed 16-01-PLAN.md
+last_updated: "2026-03-09T04:05:05.000Z"
+last_activity: 2026-03-09 -- Completed 16-01 audit log immutability + API hardening (SEC-04, SEC-08)
 progress:
   total_phases: 8
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 4
-  completed_plans: 3
+  completed_plans: 4
   percent: 100
 ---
 
@@ -21,8 +21,8 @@ progress:
 Milestone: v4.0 Production Hardening & Completeness
 Phase: 16 of 22 (api-infrastructure-security)
 Plan: 2 of 2 in current phase
-Status: Phase 16 complete
-Last activity: 2026-03-09 -- Completed 16-02 access code hardening + upload migration (SEC-09, SEC-07)
+Status: Phase 16 complete (both plans done)
+Last activity: 2026-03-09 -- Completed 16-01 audit log immutability + API hardening (SEC-04, SEC-08)
 
 Progress: [██████████] 100%
 
@@ -54,6 +54,11 @@ Progress: [██████████] 100%
 - [v4.0] Reset-password API returns generic 'Invalid input' on validation failure (no schema detail leaks)
 - [v4.0] In-memory Map for IP lockout -- sufficient for single Vercel instance; no Redis needed at current scale
 - [v4.0] Upload route response key changed from 'paths' to 'urls' for UploadThing migration
+- [v4.0] activity_log immutable: no UPDATE/DELETE RLS, INSERT enforces changedBy = own user ID
+- [v4.0] No FORCE ROW LEVEL SECURITY on activity_log -- neondb_owner must bypass for system audit
+- [v4.0] RLS migration SQL applied manually (not db:push) due to Drizzle bugs with RLS policies
+- [v4.0] /api/inventory removed from proxy publicPaths -- defense-in-depth with route-level auth
+- [v4.0] 10MB base64 limit per image on analyze route (~7.5MB raw after base64 decoding)
 
 ### Auth API Patterns That Work
 
@@ -95,6 +100,6 @@ const rows = await sql`SELECT id, name, email FROM neon_auth."user" WHERE lower(
 
 ## Session Continuity
 
-Last session: 2026-03-09T03:54:23.606Z
-Stopped at: Completed 16-02-PLAN.md
+Last session: 2026-03-09T04:05:05.000Z
+Stopped at: Completed 16-01-PLAN.md (audit log immutability + API hardening)
 Resume file: None
