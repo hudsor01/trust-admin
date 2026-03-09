@@ -37,12 +37,17 @@ export const trustAccountingRouter = createTRPCRouter({
         .input(
             z.object({
                 entityId: z.coerce.number(),
-                limit: z.number().optional(),
-                offset: z.number().optional(),
+                limit: z.number().min(1).max(100).optional(),
+                offset: z.number().min(0).optional(),
+                entryType: z.enum(['INCOME', 'EXPENSE']).optional(),
             }),
         )
         .query(async ({ input }) => {
-            const whereClause = eq(trustAccounting.entityId, input.entityId)
+            const conditions = [eq(trustAccounting.entityId, input.entityId)]
+            if (input.entryType) {
+                conditions.push(eq(trustAccounting.entryType, input.entryType))
+            }
+            const whereClause = and(...conditions)
 
             const [data, countResult] = await Promise.all([
                 db
@@ -50,7 +55,7 @@ export const trustAccountingRouter = createTRPCRouter({
                     .from(trustAccounting)
                     .where(whereClause)
                     .orderBy(desc(trustAccounting.accountingDate))
-                    .limit(input.limit ?? 100)
+                    .limit(input.limit ?? 50)
                     .offset(input.offset ?? 0),
                 db
                     .select({ totalCount: count() })
@@ -158,6 +163,7 @@ export const trustAccountingRouter = createTRPCRouter({
                     isPrincipal: trustAccounting.isPrincipal,
                     taxDeductible: trustAccounting.taxDeductible,
                     total: sql<string>`COALESCE(${sum(trustAccounting.amount)}, '0')`,
+                    entryCount: count(),
                 })
                 .from(trustAccounting)
                 .where(eq(trustAccounting.entityId, input.entityId))

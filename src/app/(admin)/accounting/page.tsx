@@ -5,7 +5,12 @@ import { AccountingClient } from './_components/AccountingClient'
 export default async function AccountingPage() {
     const helpers = await createTRPCHelpers()
     await Promise.all([
-        helpers.trustAccounting.list.prefetch({ entityId: 1 }),
+        helpers.trustAccounting.listPaginated.prefetch({
+            entityId: 1,
+            limit: 50,
+            offset: 0,
+        }),
+        helpers.trustAccounting.totals.prefetch({ entityId: 1 }),
         helpers.bankAccount.list.prefetch({ entityId: 1 }),
         helpers.entity.list.prefetch(),
     ])
