@@ -5,9 +5,7 @@ import { describe, expect, test } from 'bun:test'
 const proxySource = await Bun.file('src/proxy.ts').text()
 
 // Extract publicPaths array content from source
-const arrayMatch = proxySource.match(
-    /const publicPaths\s*=\s*\[([\s\S]*?)\]/,
-)
+const arrayMatch = proxySource.match(/const publicPaths\s*=\s*\[([\s\S]*?)\]/)
 const pathsBlock = arrayMatch?.[1] ?? ''
 
 describe('proxy publicPaths', () => {

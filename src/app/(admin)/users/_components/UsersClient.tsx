@@ -46,14 +46,7 @@ export function UsersClient() {
         data: allUsers = [],
         isLoading: usersLoading,
         error: usersError,
-    } = trpc.userManagement.listAllUsers.useQuery(undefined, {
-        enabled: isOwner,
-    })
-
-    const { data: provisionedUsers = [], isLoading: provisionedLoading } =
-        trpc.userManagement.listProvisionedUsers.useQuery(undefined, {
-            enabled: !isOwner,
-        })
+    } = trpc.userManagement.listAllUsers.useQuery()
 
     const { data: allBeneficiaries = [] } = trpc.beneficiary.list.useQuery(
         { entityId },
@@ -94,7 +87,6 @@ export function UsersClient() {
 
     const invalidateUsers = () => {
         utils.userManagement.listAllUsers.invalidate()
-        utils.userManagement.listProvisionedUsers.invalidate()
     }
 
     const createUserMutation =
@@ -414,27 +406,8 @@ export function UsersClient() {
         (c) => c.id !== 'actions',
     )
 
-    const readOnlyData: NeonAuthUser[] = useMemo(
-        () =>
-            provisionedUsers.map((u) => ({
-                id: u.userId,
-                name:
-                    [u.firstName, u.lastName].filter(Boolean).join(' ') || null,
-                email: u.beneficiaryEmail ?? '',
-                emailVerified: true,
-                createdAt: u.createdAt ?? '',
-                neonRole: 'user',
-                banned: false,
-                appRole: u.role,
-                beneficiaryId: u.beneficiaryId,
-                beneficiaryName:
-                    [u.firstName, u.lastName].filter(Boolean).join(' ') || null,
-            })),
-        [provisionedUsers],
-    )
-
-    const loading = isOwner ? usersLoading : provisionedLoading
-    const tableData = isOwner ? (allUsers as NeonAuthUser[]) : readOnlyData
+    const loading = usersLoading
+    const tableData = allUsers as NeonAuthUser[]
     const columns = isOwner ? ownerColumns : readOnlyColumns
 
     return (

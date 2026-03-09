@@ -1342,8 +1342,8 @@ export async function recordLiabilityPayment(data: RecordPaymentData) {
                     liabilityRecord.interestRate &&
                     parseFloat(liabilityRecord.interestRate) > 0 &&
                     !liabilityRecord.isRevolvingCredit &&
-                    !data.principalPortion &&
-                    !data.interestPortion
+                    data.principalPortion == null &&
+                    data.interestPortion == null
 
                 let calculatedSplit: {
                     principal: string
@@ -1354,7 +1354,7 @@ export async function recordLiabilityPayment(data: RecordPaymentData) {
 
                 if (shouldAutoCalculate && liabilityRecord.interestRate) {
                     calculatedSplit = calculatePaymentSplit(
-                        liabilityRecord.currentBalance || '0',
+                        liabilityRecord.currentBalance ?? '0',
                         liabilityRecord.interestRate,
                         data.amount,
                         data.escrowPortion ??
@@ -1371,13 +1371,13 @@ export async function recordLiabilityPayment(data: RecordPaymentData) {
                     data.escrowPortion ?? calculatedSplit?.escrow ?? null
 
                 const currentBalance =
-                    parseFloat(liabilityRecord.currentBalance || '0') || 0
+                    parseFloat(liabilityRecord.currentBalance ?? '0') || 0
                 const newBalance = calculatedSplit
                     ? parseFloat(calculatedSplit.newBalance)
                     : Math.max(
                           0,
                           currentBalance -
-                              parseFloat(data.principalPortion || '0'),
+                              parseFloat(data.principalPortion ?? '0'),
                       )
 
                 addBreadcrumb('db.transaction', 'Inserting liability payment', {
@@ -1723,13 +1723,20 @@ export async function recalculateBeneficiaryShares(
                 addBreadcrumb('db.transaction', 'Updating beneficiary shares', {
                     updateCount: updates.length,
                 })
-                for (const u of updates) {
-                    await tx`
-                        UPDATE beneficiary
-                        SET "sharePercent" = ${u.newShare},
-                            "updatedAt" = ${now}
-                        WHERE id = ${u.id}
-                    `
+                if (updates.length > 0) {
+                    // Bulk UPDATE: single statement instead of N sequential UPDATEs
+                    // IDs are integers from DB, shares are computed decimals -- safe for interpolation
+                    const ids = updates.map((u) => u.id)
+                    const caseFragments = updates
+                        .map((u) => `WHEN id = ${u.id} THEN '${u.newShare}'`)
+                        .join(' ')
+                    await tx.unsafe(
+                        `UPDATE beneficiary
+                         SET "sharePercent" = CASE ${caseFragments} END,
+                             "updatedAt" = $1
+                         WHERE id = ANY($2::int[])`,
+                        [now, ids],
+                    )
                 }
 
                 await tx`

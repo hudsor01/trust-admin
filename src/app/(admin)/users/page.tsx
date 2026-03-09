@@ -7,7 +7,6 @@ export default async function UsersPage() {
     await Promise.all([
         helpers.userManagement.isOwner.prefetch(),
         helpers.userManagement.listAllUsers.prefetch(),
-        helpers.userManagement.listProvisionedUsers.prefetch(),
         helpers.beneficiary.list.prefetch({ entityId: 1 }),
     ])
     return (

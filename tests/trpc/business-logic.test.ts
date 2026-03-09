@@ -329,7 +329,9 @@ describe.skipIf(isProductionDb)('Business Logic', () => {
                 // And principalPortion should be exactly "0.00"
                 expect(result.payment.principalPortion).toBe('0.00')
                 // Balance should not decrease (principal portion is 0)
-                expect(parseFloat(result.liability.currentBalance)).toBe(50000.0)
+                expect(parseFloat(result.liability.currentBalance)).toBe(
+                    50000.0,
+                )
             },
             TEST_TIMEOUT,
         )
