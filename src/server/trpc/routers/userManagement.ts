@@ -447,6 +447,21 @@ export const userManagementRouter = createTRPCRouter({
                 })
             }
 
+            // Revoke sessions after password change
+            const { error: revokeError } =
+                await authServer.admin.revokeUserSessions({
+                    userId: input.userId,
+                })
+            if (revokeError) {
+                const Sentry = await import('@sentry/nextjs')
+                Sentry.captureException(
+                    new Error(
+                        `Session revocation failed for user ${input.userId}`,
+                    ),
+                    { tags: { subsystem: 'session-revocation' } },
+                )
+            }
+
             await db
                 .update(userProfile)
                 .set({ forcePasswordChange: true, updatedAt: new Date() })

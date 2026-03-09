@@ -74,9 +74,16 @@ async function ensureAuthUser(
     return userId
 }
 
-export async function POST(_request: Request) {
+export async function POST(request: Request) {
     if (process.env.NODE_ENV === 'production') {
         return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    }
+
+    // Require pre-shared secret to prevent unauthorized test account creation
+    const secret = request.headers.get('x-e2e-secret')
+    const expected = process.env.E2E_SETUP_SECRET
+    if (!expected || !secret || secret !== expected) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const db = getPublicDb()
@@ -133,15 +140,11 @@ export async function POST(_request: Request) {
 
         return NextResponse.json({
             ok: true,
-            admin: { email: E2E_ADMIN_EMAIL, userId: adminUserId },
-            beneficiary: {
-                email: E2E_BENEFICIARY_EMAIL,
-                userId: benUserId,
-                beneficiaryId: ben.id,
-            },
+            admin: { email: E2E_ADMIN_EMAIL },
+            beneficiary: { email: E2E_BENEFICIARY_EMAIL },
         })
     } catch (err) {
         console.error('[e2e/setup]', err)
-        return NextResponse.json({ error: String(err) }, { status: 500 })
+        return NextResponse.json({ error: 'Setup failed' }, { status: 500 })
     }
 }
