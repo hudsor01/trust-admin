@@ -20,9 +20,7 @@ mock.module('uploadthing/server', () => ({
 }))
 
 // Mock auth middleware (admin by default)
-const mockRequireAdmin = mock(() =>
-    Promise.resolve({ id: '1', role: 'admin' }),
-)
+const mockRequireAdmin = mock(() => Promise.resolve({ id: '1', role: 'admin' }))
 
 mock.module('../../src/lib/middleware', () => ({
     requireAdmin: mockRequireAdmin,
@@ -40,9 +38,7 @@ mock.module('../../src/lib/logger', () => ({
     },
 }))
 
-const { POST } = await import(
-    '../../src/app/api/inventory/upload/route'
-)
+const { POST } = await import('../../src/app/api/inventory/upload/route')
 
 function createUploadRequest(files: File[]): NextRequest {
     const formData = new FormData()
@@ -130,11 +126,7 @@ describe('POST /api/inventory/upload', () => {
     })
 
     test('returns 400 for file exceeding 10MB', async () => {
-        const file = createTestFile(
-            'big.jpg',
-            'image/jpeg',
-            11 * 1024 * 1024,
-        )
+        const file = createTestFile('big.jpg', 'image/jpeg', 11 * 1024 * 1024)
         const request = createUploadRequest([file])
 
         const response = await POST(request)

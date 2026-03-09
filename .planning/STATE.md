@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Production Hardening & Completeness
 status: completed
-stopped_at: Completed 15-01-PLAN.md (auth hardening + session revocation)
-last_updated: "2026-03-09T01:33:20.193Z"
-last_activity: 2026-03-09 -- Completed 15-02 E2E setup security (SEC-06)
+stopped_at: Completed 16-02-PLAN.md
+last_updated: "2026-03-09T03:54:23.608Z"
+last_activity: 2026-03-09 -- Completed 16-02 access code hardening + upload migration (SEC-09, SEC-07)
 progress:
   total_phases: 8
   completed_phases: 1
-  total_plans: 2
-  completed_plans: 2
+  total_plans: 4
+  completed_plans: 3
   percent: 100
 ---
 
@@ -19,10 +19,10 @@ progress:
 ## Current Position
 
 Milestone: v4.0 Production Hardening & Completeness
-Phase: 15 of 22 (auth-session-security)
+Phase: 16 of 22 (api-infrastructure-security)
 Plan: 2 of 2 in current phase
-Status: Phase 15 complete
-Last activity: 2026-03-09 -- Completed 15-02 E2E setup security (SEC-06)
+Status: Phase 16 complete
+Last activity: 2026-03-09 -- Completed 16-02 access code hardening + upload migration (SEC-09, SEC-07)
 
 Progress: [██████████] 100%
 
@@ -52,6 +52,8 @@ Progress: [██████████] 100%
 - [v4.0] ADMIN_EMAIL centralized via validated env module -- no process.env.ADMIN_EMAIL in src/server/
 - [v4.0] Session revocation after password changes is best-effort (Sentry on failure, no user-facing error)
 - [v4.0] Reset-password API returns generic 'Invalid input' on validation failure (no schema detail leaks)
+- [v4.0] In-memory Map for IP lockout -- sufficient for single Vercel instance; no Redis needed at current scale
+- [v4.0] Upload route response key changed from 'paths' to 'urls' for UploadThing migration
 
 ### Auth API Patterns That Work
 
@@ -80,7 +82,7 @@ const rows = await sql`SELECT id, name, email FROM neon_auth."user" WHERE lower(
 
 ### Blockers/Concerns
 
-- SEC-07 (UploadThing migration) requires verifying UploadThing config is still active and token valid
+- ~~SEC-07 (UploadThing migration) requires verifying UploadThing config is still active and token valid~~ DONE in 16-02
 - CORR-04 (deprecated API migration) may affect Users page behavior for non-owner admins
 
 ## Roadmap Evolution
@@ -93,6 +95,6 @@ const rows = await sql`SELECT id, name, email FROM neon_auth."user" WHERE lower(
 
 ## Session Continuity
 
-Last session: 2026-03-09T01:29:42.183Z
-Stopped at: Completed 15-01-PLAN.md (auth hardening + session revocation)
+Last session: 2026-03-09T03:54:23.606Z
+Stopped at: Completed 16-02-PLAN.md
 Resume file: None

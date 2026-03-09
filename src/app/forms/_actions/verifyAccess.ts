@@ -15,7 +15,12 @@ export function constantTimeCompare(input: string, secret: string): boolean {
     if (inputBuf.length !== secretBuf.length) {
         // Pad to same length so timingSafeEqual doesn't throw, but always return false
         const paddedInput = Buffer.alloc(secretBuf.length)
-        inputBuf.copy(paddedInput, 0, 0, Math.min(inputBuf.length, secretBuf.length))
+        inputBuf.copy(
+            paddedInput,
+            0,
+            0,
+            Math.min(inputBuf.length, secretBuf.length),
+        )
         timingSafeEqual(paddedInput, secretBuf)
         return false
     }
