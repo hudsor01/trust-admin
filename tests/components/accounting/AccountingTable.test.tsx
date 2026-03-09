@@ -1,4 +1,4 @@
-/** AccountingTable component tests — income/expense entries with All, Income, and Expense tab views. */
+/** AccountingTable component tests -- income/expense entries with All, Income, and Expense tab views. */
 
 import '../../setup'
 import { afterEach, describe, expect, mock, test } from 'bun:test'
@@ -39,10 +39,13 @@ const makeEntry = (
 })
 
 const defaultProps = {
-    entries: [],
-    incomeEntries: [],
-    expenseEntries: [],
-    filteredEntries: [],
+    data: [],
+    totalCount: 0,
+    incomeCount: 0,
+    expenseCount: 0,
+    currentPage: 1,
+    totalPages: 1,
+    onPageChange: mock(() => {}),
     activeTab: 'all',
     isLoading: false,
     onTabChange: mock(() => {}),
@@ -77,10 +80,10 @@ describe('AccountingTable', () => {
             render(
                 <AccountingTable
                     {...defaultProps}
-                    entries={[income, expense]}
-                    incomeEntries={[income]}
-                    expenseEntries={[expense]}
-                    filteredEntries={[income, expense]}
+                    data={[income, expense]}
+                    totalCount={2}
+                    incomeCount={1}
+                    expenseCount={1}
                 />,
             )
 
@@ -131,9 +134,9 @@ describe('AccountingTable', () => {
             render(
                 <AccountingTable
                     {...defaultProps}
-                    entries={[entry]}
-                    incomeEntries={[entry]}
-                    filteredEntries={[entry]}
+                    data={[entry]}
+                    totalCount={1}
+                    incomeCount={1}
                 />,
             )
 
@@ -149,9 +152,9 @@ describe('AccountingTable', () => {
             render(
                 <AccountingTable
                     {...defaultProps}
-                    entries={[entry]}
-                    incomeEntries={[entry]}
-                    filteredEntries={[entry]}
+                    data={[entry]}
+                    totalCount={1}
+                    incomeCount={1}
                 />,
             )
 
@@ -170,9 +173,9 @@ describe('AccountingTable', () => {
             render(
                 <AccountingTable
                     {...defaultProps}
-                    entries={[entry]}
-                    expenseEntries={[entry]}
-                    filteredEntries={[entry]}
+                    data={[entry]}
+                    totalCount={1}
+                    expenseCount={1}
                 />,
             )
 
@@ -197,10 +200,10 @@ describe('AccountingTable', () => {
             render(
                 <AccountingTable
                     {...defaultProps}
-                    entries={[income, expense]}
-                    incomeEntries={[income]}
-                    expenseEntries={[expense]}
-                    filteredEntries={[income, expense]}
+                    data={[income, expense]}
+                    totalCount={2}
+                    incomeCount={1}
+                    expenseCount={1}
                 />,
             )
 
@@ -212,7 +215,9 @@ describe('AccountingTable', () => {
             render(
                 <AccountingTable
                     {...defaultProps}
-                    filteredEntries={[makeEntry()]}
+                    data={[makeEntry()]}
+                    totalCount={1}
+                    incomeCount={1}
                 />,
             )
 
@@ -239,8 +244,8 @@ describe('AccountingTable', () => {
             render(
                 <AccountingTable
                     {...defaultProps}
-                    entries={[entry]}
-                    filteredEntries={[entry]}
+                    data={[entry]}
+                    totalCount={1}
                     onDeleteEntry={onDeleteEntry}
                 />,
             )
@@ -264,8 +269,8 @@ describe('AccountingTable', () => {
             render(
                 <AccountingTable
                     {...defaultProps}
-                    entries={[entry]}
-                    filteredEntries={[entry]}
+                    data={[entry]}
+                    totalCount={1}
                     onEditEntry={onEditEntry}
                 />,
             )
@@ -278,6 +283,90 @@ describe('AccountingTable', () => {
                 await user.click(editButton)
                 expect(onEditEntry.mock.calls.length).toBeGreaterThan(0)
             }
+        })
+    })
+
+    describe('pagination', () => {
+        test('shows pagination controls when totalPages > 1', () => {
+            render(
+                <AccountingTable
+                    {...defaultProps}
+                    data={[makeEntry()]}
+                    totalCount={100}
+                    incomeCount={60}
+                    expenseCount={40}
+                    currentPage={1}
+                    totalPages={2}
+                />,
+            )
+
+            expect(screen.getByText('Previous')).toBeTruthy()
+            expect(screen.getByText('Next')).toBeTruthy()
+            expect(screen.getByText(/Page 1 of 2/)).toBeTruthy()
+        })
+
+        test('hides pagination controls when totalPages is 1', () => {
+            render(
+                <AccountingTable
+                    {...defaultProps}
+                    data={[makeEntry()]}
+                    totalCount={1}
+                    currentPage={1}
+                    totalPages={1}
+                />,
+            )
+
+            expect(screen.queryByText('Previous')).toBeNull()
+            expect(screen.queryByText('Next')).toBeNull()
+        })
+
+        test('disables Previous button on first page', () => {
+            render(
+                <AccountingTable
+                    {...defaultProps}
+                    data={[makeEntry()]}
+                    totalCount={100}
+                    currentPage={1}
+                    totalPages={2}
+                />,
+            )
+
+            const prevButton = screen.getByText('Previous')
+            expect(prevButton.closest('button')?.disabled).toBe(true)
+        })
+
+        test('disables Next button on last page', () => {
+            render(
+                <AccountingTable
+                    {...defaultProps}
+                    data={[makeEntry()]}
+                    totalCount={100}
+                    currentPage={2}
+                    totalPages={2}
+                />,
+            )
+
+            const nextButton = screen.getByText('Next')
+            expect(nextButton.closest('button')?.disabled).toBe(true)
+        })
+
+        test('calls onPageChange when Next is clicked', async () => {
+            const user = userEvent.setup()
+            const onPageChange = mock(() => {})
+
+            render(
+                <AccountingTable
+                    {...defaultProps}
+                    data={[makeEntry()]}
+                    totalCount={100}
+                    currentPage={1}
+                    totalPages={2}
+                    onPageChange={onPageChange}
+                />,
+            )
+
+            await user.click(screen.getByText('Next'))
+            expect(onPageChange).toHaveBeenCalledWith(2)
         })
     })
 })

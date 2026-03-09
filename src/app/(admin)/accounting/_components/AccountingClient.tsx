@@ -23,6 +23,7 @@ import { AccountingTable } from './AccountingTable'
 import type { AccountingFormData } from './accounting-constants'
 
 const log = logger.create('Accounting')
+const PAGE_SIZE = 50
 
 export function AccountingClient() {
     const utils = trpc.useUtils()
@@ -36,12 +37,31 @@ export function AccountingClient() {
         entityId,
     })
 
-    // Full list query -- DataTable handles client-side pagination (see f343692)
-    const { data: entries = [], isLoading: entriesLoading } =
-        trpc.trustAccounting.list.useQuery({ entityId })
+    // Server-side pagination state
+    const [offset, setOffset] = useState(0)
+    const [activeTab, setActiveTab] = useState('all')
+
+    // Derive entryType filter from active tab
+    const entryTypeFilter =
+        activeTab === 'income'
+            ? ('INCOME' as const)
+            : activeTab === 'expense'
+              ? ('EXPENSE' as const)
+              : undefined
+
+    // Paginated query -- server filters by entryType and paginates
+    const { data: paginatedResult, isLoading: entriesLoading } =
+        trpc.trustAccounting.listPaginated.useQuery({
+            entityId,
+            limit: PAGE_SIZE,
+            offset,
+            entryType: entryTypeFilter,
+        })
+    const entries = paginatedResult?.data ?? []
+    const totalCount = paginatedResult?.totalCount ?? 0
 
     const invalidateAccounting = useCallback(() => {
-        utils.trustAccounting.list.invalidate()
+        utils.trustAccounting.listPaginated.invalidate()
         utils.trustAccounting.totals.invalidate()
         utils.trustAccounting.unconvertedIncomeSummary.invalidate()
     }, [utils])
@@ -64,12 +84,35 @@ export function AccountingClient() {
             onSuccess: invalidateAccounting,
         })
 
-    const [activeTab, setActiveTab] = useState('all')
     const [generatingReport, setGeneratingReport] = useState(false)
     const [editingId, setEditingId] = useState<number | null>(null)
     const [convertingYear, setConvertingYear] = useState<number | null>(null)
     const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null)
     const loading = entriesLoading
+
+    // Tab badge counts from totals query (accurate across all pages)
+    const { incomeCount, expenseCount } = useMemo(() => {
+        let inc = 0
+        let exp = 0
+        for (const row of allTotals) {
+            if (row.entryType === 'INCOME') inc += row.entryCount
+            else if (row.entryType === 'EXPENSE') exp += row.entryCount
+        }
+        return { incomeCount: inc, expenseCount: exp }
+    }, [allTotals])
+
+    // Pagination derived state
+    const totalPages = Math.ceil(totalCount / PAGE_SIZE)
+    const currentPage = Math.floor(offset / PAGE_SIZE) + 1
+
+    const handleTabChange = useCallback((tab: string) => {
+        setActiveTab(tab)
+        setOffset(0)
+    }, [])
+
+    const handlePageChange = useCallback((page: number) => {
+        setOffset((page - 1) * PAGE_SIZE)
+    }, [])
 
     const handleConvertYear = async (fiscalYear: number) => {
         const defaultBankAccount = bankAccounts[0]
@@ -194,13 +237,6 @@ export function AccountingClient() {
         })
     }
 
-    const { incomeEntries, expenseEntries } = useMemo(() => {
-        return {
-            incomeEntries: entries.filter((e) => e.entryType === 'INCOME'),
-            expenseEntries: entries.filter((e) => e.entryType === 'EXPENSE'),
-        }
-    }, [entries])
-
     // Texas Property Code 113.152(2): categorize by principal vs income
     const {
         incomeTotal,
@@ -239,12 +275,6 @@ export function AccountingClient() {
             incomeDisbursements: pick('EXPENSE', false),
         }
     }, [allTotals])
-
-    const filteredEntries = useMemo(() => {
-        if (activeTab === 'income') return incomeEntries
-        if (activeTab === 'expense') return expenseEntries
-        return entries
-    }, [activeTab, entries, incomeEntries, expenseEntries])
 
     const generateReport = useCallback(async () => {
         setGeneratingReport(true)
@@ -332,13 +362,16 @@ export function AccountingClient() {
             />
 
             <AccountingTable
-                entries={entries}
-                incomeEntries={incomeEntries}
-                expenseEntries={expenseEntries}
-                filteredEntries={filteredEntries}
+                data={entries}
+                totalCount={totalCount}
+                incomeCount={incomeCount}
+                expenseCount={expenseCount}
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
                 activeTab={activeTab}
                 isLoading={loading}
-                onTabChange={setActiveTab}
+                onTabChange={handleTabChange}
                 onEditEntry={openEditForm}
                 onDeleteEntry={deleteEntry}
                 onUpdateEntry={updateEntry}

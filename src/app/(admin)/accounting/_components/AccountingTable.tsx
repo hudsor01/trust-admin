@@ -18,10 +18,13 @@ import { formatDate } from '@/utils/formatters'
 import { EXPENSE_TYPES, INCOME_TYPES } from './accounting-constants'
 
 interface AccountingTableProps {
-    entries: TrustAccounting[]
-    incomeEntries: TrustAccounting[]
-    expenseEntries: TrustAccounting[]
-    filteredEntries: TrustAccounting[]
+    data: TrustAccounting[]
+    totalCount: number
+    incomeCount: number
+    expenseCount: number
+    currentPage: number
+    totalPages: number
+    onPageChange: (page: number) => void
     activeTab: string
     isLoading: boolean
     onTabChange: (tab: string) => void
@@ -31,10 +34,13 @@ interface AccountingTableProps {
 }
 
 export function AccountingTable({
-    entries,
-    incomeEntries,
-    expenseEntries,
-    filteredEntries,
+    data,
+    totalCount,
+    incomeCount,
+    expenseCount,
+    currentPage,
+    totalPages,
+    onPageChange,
     activeTab,
     isLoading,
     onTabChange,
@@ -171,13 +177,13 @@ export function AccountingTable({
                         <TabsTrigger value="all">
                             All Entries
                             <Badge variant="secondary" className="ml-2">
-                                {entries.length}
+                                {incomeCount + expenseCount}
                             </Badge>
                         </TabsTrigger>
                         <TabsTrigger value="income" className="text-success">
                             Income
                             <Badge className="ml-2 bg-success">
-                                {incomeEntries.length}
+                                {incomeCount}
                             </Badge>
                         </TabsTrigger>
                         <TabsTrigger
@@ -186,7 +192,7 @@ export function AccountingTable({
                         >
                             Expenses
                             <Badge variant="destructive" className="ml-2">
-                                {expenseEntries.length}
+                                {expenseCount}
                             </Badge>
                         </TabsTrigger>
                     </TabsList>
@@ -196,14 +202,44 @@ export function AccountingTable({
                     <CardContent className="pt-4">
                         <DataTable
                             columns={accountingColumns}
-                            data={filteredEntries}
+                            data={data}
                             searchKey="description"
                             searchPlaceholder="Filter by description..."
                             isLoading={isLoading}
                             emptyMessage="No entries recorded yet. Click 'Add Entry' to start tracking."
                             enableColumnVisibility={true}
-                            enablePagination={true}
+                            enablePagination={false}
                         />
+                        {totalPages > 1 && (
+                            <div className="flex items-center justify-between pt-4">
+                                <p className="text-sm text-muted-foreground">
+                                    Page {currentPage} of {totalPages} (
+                                    {totalCount} entries)
+                                </p>
+                                <div className="flex items-center gap-2">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() =>
+                                            onPageChange(currentPage - 1)
+                                        }
+                                        disabled={currentPage <= 1}
+                                    >
+                                        Previous
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() =>
+                                            onPageChange(currentPage + 1)
+                                        }
+                                        disabled={currentPage >= totalPages}
+                                    >
+                                        Next
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
                     </CardContent>
                 </TabsContent>
             </Tabs>
