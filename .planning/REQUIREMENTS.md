@@ -23,7 +23,7 @@ Requirements derived from comprehensive critical review of 45 findings across se
 
 - [x] **PERF-01**: Dashboard summary uses SQL SUM aggregation instead of fetching unbounded accounting entries
 - [x] **PERF-02**: Accounting page uses server-side paginated query (listPaginated) instead of 500-row client-side filtering
-- [ ] **PERF-03**: listAllUsers fetches profiles and beneficiaries in parallel (Promise.all) instead of sequential
+- [x] **PERF-03**: listAllUsers fetches profiles and beneficiaries in parallel (Promise.all) instead of sequential
 - [x] **PERF-04**: Portal page eliminates client-side session waterfall -- server-prefetched beneficiary.me with HydrationBoundary
 - [ ] **PERF-05**: recalculateBeneficiaryShares uses single bulk UPDATE instead of N sequential statements
 
@@ -32,7 +32,7 @@ Requirements derived from comprehensive critical review of 45 findings across se
 - [ ] **CORR-01**: All manual accounting entries go through createEntry (auto-classifies isPrincipal per Texas Property Code) -- remove raw .create endpoint
 - [ ] **CORR-02**: recordLiabilityPayment uses ?? 0 instead of || 0, handles null principalPortion explicitly
 - [ ] **CORR-03**: Update schemas require at least one field via .refine() -- reject empty updates
-- [ ] **CORR-04**: Complete migration from deprecated listProvisionedUsers to listAllUsers
+- [x] **CORR-04**: Complete migration from deprecated listProvisionedUsers to listAllUsers
 - [ ] **CORR-05**: password_reset_token table has email index, expired token cleanup, one-unexpired-token-per-email limit
 
 ### Feature Completeness
@@ -110,13 +110,13 @@ Deferred -- acknowledged but not in v4.0 scope.
 | SEC-09 | Phase 16 | Complete |
 | PERF-01 | Phase 17 | Complete |
 | PERF-02 | Phase 17 | Complete |
-| PERF-03 | Phase 18 | Pending |
+| PERF-03 | Phase 18 | Complete |
 | PERF-04 | Phase 17 | Complete |
 | PERF-05 | Phase 18 | Pending |
 | CORR-01 | Phase 18 | Pending |
 | CORR-02 | Phase 18 | Pending |
 | CORR-03 | Phase 18 | Pending |
-| CORR-04 | Phase 18 | Pending |
+| CORR-04 | Phase 18 | Complete |
 | CORR-05 | Phase 18 | Pending |
 | FEAT-01 | Phase 19 | Pending |
 | FEAT-02 | Phase 19 | Pending |

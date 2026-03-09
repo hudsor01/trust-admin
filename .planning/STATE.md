@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Production Hardening & Completeness
-status: completed
-stopped_at: Completed 17-01-PLAN.md (dashboard SQL SUM totals + dead code cleanup)
-last_updated: "2026-03-09T05:27:07.204Z"
-last_activity: 2026-03-09 -- Completed 17-01 dashboard SQL SUM totals + dead code cleanup (PERF-01, CLEAN-05, CLEAN-10)
+status: executing
+stopped_at: Completed 18-02-PLAN.md (deprecated API migration -- listProvisionedUsers removed)
+last_updated: "2026-03-09T06:05:30.797Z"
+last_activity: 2026-03-09 -- Completed 18-01 financial calculation correctness (CORR-01, CORR-02, PERF-05)
 progress:
   total_phases: 8
   completed_phases: 3
-  total_plans: 7
-  completed_plans: 7
+  total_plans: 10
+  completed_plans: 9
   percent: 100
 ---
 
@@ -19,10 +19,10 @@ progress:
 ## Current Position
 
 Milestone: v4.0 Production Hardening & Completeness
-Phase: 17 of 22 (dashboard-accounting-performance)
-Plan: 3 of 3 completed in current phase (all plans done)
-Status: Phase 17 complete
-Last activity: 2026-03-09 -- Completed 17-01 dashboard SQL SUM totals + dead code cleanup (PERF-01, CLEAN-05, CLEAN-10)
+Phase: 18 of 22 (data-integrity-correctness)
+Plan: 2 of 3 in current phase
+Status: In progress
+Last activity: 2026-03-09 -- Completed 18-01 financial calculation correctness (CORR-01, CORR-02, PERF-05)
 
 Progress: [██████████] 100%
 
@@ -66,6 +66,7 @@ Progress: [██████████] 100%
 - [v4.0] DataTable client-side pagination disabled for accounting; custom Previous/Next controls used
 - [v4.0] Dashboard totals via SQL SUM (summaryTotals procedure) -- not client-side sumStrings over all rows
 - [v4.0] Dashboard accounting entries bounded to 10 per type (recentAccountingEntries) -- no unbounded fetches
+- [v4.0] listAllUsers changed from ownerProcedure to adminProcedure -- read-only data safe for all admins; non-owner admins see same data without mutation controls
 
 ### Auth API Patterns That Work
 
@@ -95,7 +96,7 @@ const rows = await sql`SELECT id, name, email FROM neon_auth."user" WHERE lower(
 ### Blockers/Concerns
 
 - ~~SEC-07 (UploadThing migration) requires verifying UploadThing config is still active and token valid~~ DONE in 16-02
-- CORR-04 (deprecated API migration) may affect Users page behavior for non-owner admins
+- ~~CORR-04 (deprecated API migration) may affect Users page behavior for non-owner admins~~ DONE in 18-02
 
 ## Roadmap Evolution
 
@@ -107,6 +108,6 @@ const rows = await sql`SELECT id, name, email FROM neon_auth."user" WHERE lower(
 
 ## Session Continuity
 
-Last session: 2026-03-09T05:20:22.623Z
-Stopped at: Completed 17-01-PLAN.md (dashboard SQL SUM totals + dead code cleanup)
+Last session: 2026-03-09T06:05:30.795Z
+Stopped at: Completed 18-02-PLAN.md (deprecated API migration -- listProvisionedUsers removed)
 Resume file: None
