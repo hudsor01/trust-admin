@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Production Hardening & Completeness
-status: completed
-stopped_at: Completed 19-03-PLAN.md (insurance page + dashboard totals)
-last_updated: "2026-03-09T16:20:40.538Z"
-last_activity: 2026-03-09 -- Completed 19-03 insurance policy page + dashboard totals (FEAT-03, FEAT-04)
+status: in-progress
+stopped_at: Completed 20-01-PLAN.md (HEMS history & cancel)
+last_updated: "2026-03-10T20:07:36Z"
+last_activity: 2026-03-10 -- Completed 20-01 HEMS request history + cancel in beneficiary portal (FEAT-05, FEAT-08)
 progress:
   total_phases: 8
   completed_phases: 5
-  total_plans: 13
-  completed_plans: 13
-  percent: 92
+  total_plans: 15
+  completed_plans: 14
+  percent: 93
 ---
 
 # State: Trust Admin
@@ -19,12 +19,12 @@ progress:
 ## Current Position
 
 Milestone: v4.0 Production Hardening & Completeness
-Phase: 19 of 22 (missing-asset-uis)
-Plan: 3 of 3 completed in current phase
-Status: Phase complete
-Last activity: 2026-03-09 -- Completed 19-03 insurance policy page + dashboard totals (FEAT-03, FEAT-04)
+Phase: 20 of 22 (beneficiary-distribution-features)
+Plan: 1 of 2 completed in current phase
+Status: In progress
+Last activity: 2026-03-10 -- Completed 20-01 HEMS request history + cancel in beneficiary portal (FEAT-05, FEAT-08)
 
-Progress: [█████████-] 92%
+Progress: [█████████-] 93%
 
 ## Accumulated Context
 
@@ -75,6 +75,8 @@ Progress: [█████████-] 92%
 - [v4.0] Sidebar asset links ordered: Properties, Accounts, Vehicles, Artwork, Personal Property, Insurance, Inventory Queue
 - [v4.0] Insurance policies use coverageAmount (not dodValue) as primary value metric in dashboard totals
 - [v4.0] Insurance table uses ACTIVE/EXPIRED/CANCELLED status subset (not SOLD/TRANSFERRED/DISPOSED)
+- [v4.0] Beneficiary cancel uses direct async function (not useActionState) -- button click not form submit
+- [v4.0] HEMS status badge mapping defined locally in HemsHistoryCard -- global STATUS_VARIANTS lacks HEMS statuses
 
 ### Auth API Patterns That Work
 
@@ -116,6 +118,6 @@ const rows = await sql`SELECT id, name, email FROM neon_auth."user" WHERE lower(
 
 ## Session Continuity
 
-Last session: 2026-03-09T16:16:34.704Z
-Stopped at: Completed 19-03-PLAN.md (insurance page + dashboard totals)
+Last session: 2026-03-10T20:07:36Z
+Stopped at: Completed 20-01-PLAN.md (HEMS history & cancel)
 Resume file: None

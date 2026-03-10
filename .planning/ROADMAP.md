@@ -213,6 +213,6 @@ Phases execute in numeric order: 15 -> 16 -> 17 -> 18 -> 19 -> 20 -> 21 -> 22
 | 17. dashboard-accounting-performance | v4.0 | 3/3 | Complete | 2026-03-09 |
 | 18. data-integrity-correctness | v4.0 | 3/3 | Complete | 2026-03-09 |
 | 19. missing-asset-uis | v4.0 | 3/3 | Complete | 2026-03-09 |
-| 20. beneficiary-distribution-features | v4.0 | 0/2 | Not started | - |
+| 20. beneficiary-distribution-features | 1/2 | In Progress|  | - |
 | 21. admin-feature-completeness | v4.0 | 0/1 | Not started | - |
 | 22. code-quality-cleanup | v4.0 | 0/1 | Not started | - |
