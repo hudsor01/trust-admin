@@ -150,10 +150,11 @@ Plans:
   2. Admin can edit beneficiary tax fields (taxId) and per-beneficiary withdrawal ages/percentages
   3. Admin can mark distributions as tax-reported and toggle 1099-issued status
   4. HEMS requests can be cancelled by admin (any status) or beneficiary (while PENDING)
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 20-01: TBD
+- [ ] 20-01-PLAN.md -- Portal HEMS history card with status badges, beneficiary cancel server action
+- [ ] 20-02-PLAN.md -- Admin beneficiary tax fields, distribution tax toggles, HEMS cancel procedure
 
 ### Phase 21: admin-feature-completeness
 **Goal**: Remaining admin feature stubs are functional -- accounting reconciliation, professional contact fields, and trustee editing
@@ -211,7 +212,7 @@ Phases execute in numeric order: 15 -> 16 -> 17 -> 18 -> 19 -> 20 -> 21 -> 22
 | 16. api-infrastructure-security | v4.0 | 2/2 | Complete | 2026-03-09 |
 | 17. dashboard-accounting-performance | v4.0 | 3/3 | Complete | 2026-03-09 |
 | 18. data-integrity-correctness | v4.0 | 3/3 | Complete | 2026-03-09 |
-| 19. missing-asset-uis | 3/3 | Complete    | 2026-03-09 | - |
-| 20. beneficiary-distribution-features | v4.0 | 0/1 | Not started | - |
+| 19. missing-asset-uis | v4.0 | 3/3 | Complete | 2026-03-09 |
+| 20. beneficiary-distribution-features | v4.0 | 0/2 | Not started | - |
 | 21. admin-feature-completeness | v4.0 | 0/1 | Not started | - |
 | 22. code-quality-cleanup | v4.0 | 0/1 | Not started | - |
