@@ -164,10 +164,10 @@ Plans:
   1. Admin can mark accounting entries as reconciled with a date; reconciled entries are visually distinct
   2. Contact forms expose licenseNo and barNo fields for attorney and CPA contact types
   3. Admin can edit trustee records including coTrusteeId and contactId fields
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 21-01: TBD
+- [ ] 21-01-PLAN.md -- Accounting reconciliation toggle, contact professional fields, trustee co-trustee/contact editing
 
 ### Phase 22: code-quality-cleanup
 **Goal**: Dead code is removed, patterns are consistent, and error handling follows structured conventions
