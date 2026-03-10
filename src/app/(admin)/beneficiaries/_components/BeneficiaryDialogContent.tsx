@@ -1,8 +1,19 @@
 'use client'
 
-import { AlertTriangle, Check, Mail, MapPin, Phone, Plus } from 'lucide-react'
+import {
+    AlertTriangle,
+    Check,
+    Mail,
+    MapPin,
+    Phone,
+    Plus,
+    ShieldCheck,
+} from 'lucide-react'
 import { CopyButton } from '@/components/copy-button'
-import { EditableTextCell } from '@/components/editable-cells'
+import {
+    EditableNumberCell,
+    EditableTextCell,
+} from '@/components/editable-cells'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -16,6 +27,7 @@ import {
     SelectValue,
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
+import { Switch } from '@/components/ui/switch'
 import {
     Table,
     TableBody,
@@ -25,6 +37,7 @@ import {
     TableRow,
 } from '@/components/ui/table'
 import type { Beneficiary } from '@/db/schema'
+import { trpc } from '@/lib/trpc'
 import { cn } from '@/lib/utils'
 import { formatCurrency, formatDate } from '@/utils/formatters'
 import {
@@ -78,20 +91,31 @@ export function BeneficiaryDialogContent({
     handleMarkDeceased,
     isMarkingDeceased,
 }: BeneficiaryDialogContentProps) {
-    const eligibility = calculateEligibility(beneficiary.dob)
+    const utils = trpc.useUtils()
+    const toggleDistTax = trpc.distribution.update.useMutation({
+        onSuccess: () => {
+            utils.beneficiary.listWithDistributions.invalidate()
+        },
+    })
+
+    const age50 = beneficiary.withdrawalAge1 ?? WITHDRAWAL_AGE_50_PERCENT
+    const age100 = beneficiary.withdrawalAge2 ?? WITHDRAWAL_AGE_100_PERCENT
+    const eligibility = calculateEligibility(
+        beneficiary.dob,
+        beneficiary.withdrawalAge1,
+        beneficiary.withdrawalAge2,
+    )
     const age25Date = beneficiary.dob
         ? new Date(
               new Date(beneficiary.dob).setFullYear(
-                  new Date(beneficiary.dob).getFullYear() +
-                      WITHDRAWAL_AGE_50_PERCENT,
+                  new Date(beneficiary.dob).getFullYear() + age50,
               ),
           )
         : null
     const age30Date = beneficiary.dob
         ? new Date(
               new Date(beneficiary.dob).setFullYear(
-                  new Date(beneficiary.dob).getFullYear() +
-                      WITHDRAWAL_AGE_100_PERCENT,
+                  new Date(beneficiary.dob).getFullYear() + age100,
               ),
           )
         : null
@@ -145,7 +169,7 @@ export function BeneficiaryDialogContent({
                         <CardContent className="p-4">
                             <div className="flex items-center justify-between">
                                 <p className="text-sm text-muted-foreground">
-                                    Age {WITHDRAWAL_AGE_50_PERCENT}
+                                    Age {age50}
                                 </p>
                                 {eligibility.percent >= 50 && (
                                     <Check className="h-4 w-4 text-success" />
@@ -171,6 +195,27 @@ export function BeneficiaryDialogContent({
                                     Set birthday to calculate
                                 </p>
                             )}
+                            <div className="mt-2">
+                                <p className="text-xs text-muted-foreground mb-1">
+                                    Withdrawal age
+                                </p>
+                                <EditableNumberCell
+                                    value={beneficiary.withdrawalAge1}
+                                    min={18}
+                                    max={65}
+                                    placeholder="25 (default)"
+                                    onSave={async (val) => {
+                                        await updateBeneficiary(
+                                            beneficiary.id,
+                                            { withdrawalAge1: val },
+                                        )
+                                        setSelectedBeneficiary({
+                                            ...beneficiary,
+                                            withdrawalAge1: val,
+                                        })
+                                    }}
+                                />
+                            </div>
                         </CardContent>
                     </Card>
                     <Card
@@ -182,7 +227,7 @@ export function BeneficiaryDialogContent({
                         <CardContent className="p-4">
                             <div className="flex items-center justify-between">
                                 <p className="text-sm text-muted-foreground">
-                                    Age {WITHDRAWAL_AGE_100_PERCENT}
+                                    Age {age100}
                                 </p>
                                 {eligibility.percent >= 100 && (
                                     <Check className="h-4 w-4 text-success" />
@@ -208,6 +253,27 @@ export function BeneficiaryDialogContent({
                                     Set birthday to calculate
                                 </p>
                             )}
+                            <div className="mt-2">
+                                <p className="text-xs text-muted-foreground mb-1">
+                                    Withdrawal age
+                                </p>
+                                <EditableNumberCell
+                                    value={beneficiary.withdrawalAge2}
+                                    min={18}
+                                    max={65}
+                                    placeholder="30 (default)"
+                                    onSave={async (val) => {
+                                        await updateBeneficiary(
+                                            beneficiary.id,
+                                            { withdrawalAge2: val },
+                                        )
+                                        setSelectedBeneficiary({
+                                            ...beneficiary,
+                                            withdrawalAge2: val,
+                                        })
+                                    }}
+                                />
+                            </div>
                         </CardContent>
                     </Card>
                 </div>
@@ -314,6 +380,47 @@ export function BeneficiaryDialogContent({
                 </div>
             </div>
 
+            {/* Tax Information */}
+            <Separator />
+            <div>
+                <p className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    Tax Information
+                </p>
+                <div className="flex items-center gap-2">
+                    <ShieldCheck className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <div className="flex-1">
+                        <p className="text-xs text-muted-foreground mb-1">
+                            Tax ID (SSN/TIN)
+                        </p>
+                        <EditableTextCell
+                            value={beneficiary.taxId}
+                            onSave={async (val) => {
+                                await updateBeneficiary(beneficiary.id, {
+                                    taxId: val,
+                                })
+                                setSelectedBeneficiary({
+                                    ...beneficiary,
+                                    taxId: val,
+                                })
+                            }}
+                            placeholder="Add Tax ID"
+                            validate={(v) => {
+                                const digits = v.replace(/\D/g, '')
+                                if (digits.length !== 9)
+                                    return 'Tax ID must be 9 digits'
+                                return null
+                            }}
+                        />
+                    </div>
+                </div>
+                {beneficiary.taxId && (
+                    <p className="text-xs text-muted-foreground mt-1 ml-6">
+                        Stored: ***-**-
+                        {beneficiary.taxId.replace(/\D/g, '').slice(-4)}
+                    </p>
+                )}
+            </div>
+
             {/* Distribution History */}
             <Separator />
             <div>
@@ -333,6 +440,8 @@ export function BeneficiaryDialogContent({
                                     <TableHead>Amount</TableHead>
                                     <TableHead>Type</TableHead>
                                     <TableHead>Method</TableHead>
+                                    <TableHead>Tax Reported</TableHead>
+                                    <TableHead>1099</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -362,6 +471,44 @@ export function BeneficiaryDialogContent({
                                         </TableCell>
                                         <TableCell className="text-sm">
                                             {d.paymentMethod}
+                                        </TableCell>
+                                        <TableCell>
+                                            <Switch
+                                                checked={d.taxReported}
+                                                onCheckedChange={(checked) =>
+                                                    toggleDistTax.mutate({
+                                                        id: d.id,
+                                                        entityId:
+                                                            beneficiary.entityId,
+                                                        data: {
+                                                            taxReported:
+                                                                checked,
+                                                        },
+                                                    })
+                                                }
+                                                disabled={
+                                                    toggleDistTax.isPending
+                                                }
+                                            />
+                                        </TableCell>
+                                        <TableCell>
+                                            <Switch
+                                                checked={d.tax1099Issued}
+                                                onCheckedChange={(checked) =>
+                                                    toggleDistTax.mutate({
+                                                        id: d.id,
+                                                        entityId:
+                                                            beneficiary.entityId,
+                                                        data: {
+                                                            tax1099Issued:
+                                                                checked,
+                                                        },
+                                                    })
+                                                }
+                                                disabled={
+                                                    toggleDistTax.isPending
+                                                }
+                                            />
                                         </TableCell>
                                     </TableRow>
                                 ))}

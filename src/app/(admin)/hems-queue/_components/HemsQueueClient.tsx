@@ -107,6 +107,16 @@ export function HemsQueueClient() {
         onSuccess: () => utils.hemsRequest.listWithBeneficiary.invalidate(),
     })
 
+    const cancelRequestMutation = trpc.hemsRequest.cancel.useMutation({
+        onSuccess: () => {
+            utils.hemsRequest.listWithBeneficiary.invalidate()
+            toast.success('Request cancelled')
+        },
+        onError: () => {
+            toast.error('Failed to cancel request')
+        },
+    })
+
     const loading = requestsLoading
     const [activeTab, setActiveTab] = useState('pending')
 
@@ -122,6 +132,8 @@ export function HemsQueueClient() {
         | 'OTHER'
     >('INCOME')
     const [submitting, setSubmitting] = useState(false)
+    const [cancelTarget, setCancelTarget] =
+        useState<HemsRequestWithBeneficiary | null>(null)
 
     const pendingRequests = useMemo(
         () => optimisticRequests.filter((r) => r.status === 'PENDING'),
@@ -602,6 +614,19 @@ export function HemsQueueClient() {
                         {reviewingRequest?.status === 'PENDING' ? (
                             <>
                                 <Button
+                                    variant="ghost"
+                                    onClick={() => {
+                                        const target = reviewingRequest
+                                        setReviewingRequest(null)
+                                        setCancelTarget(target)
+                                    }}
+                                    disabled={submitting}
+                                    className="gap-2 text-destructive hover:text-destructive"
+                                >
+                                    <XCircle className="h-4 w-4" />
+                                    Cancel Request
+                                </Button>
+                                <Button
                                     variant="outline"
                                     onClick={handleDeny}
                                     disabled={submitting}
@@ -624,13 +649,74 @@ export function HemsQueueClient() {
                                 </Button>
                             </>
                         ) : (
-                            <Button
-                                variant="outline"
-                                onClick={() => setReviewingRequest(null)}
-                            >
-                                Close
-                            </Button>
+                            <>
+                                {reviewingRequest?.status !== 'CANCELLED' && (
+                                    <Button
+                                        variant="ghost"
+                                        onClick={() => {
+                                            const target = reviewingRequest
+                                            setReviewingRequest(null)
+                                            setCancelTarget(target ?? null)
+                                        }}
+                                        className="gap-2 text-destructive hover:text-destructive"
+                                    >
+                                        <XCircle className="h-4 w-4" />
+                                        Cancel Request
+                                    </Button>
+                                )}
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setReviewingRequest(null)}
+                                >
+                                    Close
+                                </Button>
+                            </>
                         )}
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={!!cancelTarget}
+                onOpenChange={() => setCancelTarget(null)}
+            >
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Cancel HEMS Request?</DialogTitle>
+                        <DialogDescription>
+                            {cancelTarget?.status === 'APPROVED' ||
+                            cancelTarget?.status === 'DISTRIBUTED'
+                                ? 'This request has already been processed. The linked distribution will NOT be affected. Only the HEMS request status will change to Cancelled.'
+                                : 'This will cancel the HEMS request. This action cannot be undone.'}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setCancelTarget(null)}
+                        >
+                            Keep Request
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={async () => {
+                                if (!cancelTarget) return
+                                await cancelRequestMutation.mutateAsync({
+                                    id: cancelTarget.id,
+                                    entityId,
+                                    reviewNotes:
+                                        cancelTarget.status !== 'PENDING'
+                                            ? `Admin cancelled (was ${cancelTarget.status})`
+                                            : undefined,
+                                })
+                                setCancelTarget(null)
+                            }}
+                            disabled={cancelRequestMutation.isPending}
+                        >
+                            {cancelRequestMutation.isPending
+                                ? 'Cancelling...'
+                                : 'Cancel Request'}
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
