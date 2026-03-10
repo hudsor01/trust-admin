@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Production Hardening & Completeness
-status: in-progress
-stopped_at: Completed 20-01-PLAN.md (HEMS history & cancel)
-last_updated: "2026-03-10T20:07:36Z"
-last_activity: 2026-03-10 -- Completed 20-01 HEMS request history + cancel in beneficiary portal (FEAT-05, FEAT-08)
+status: completed
+stopped_at: Completed 20-02-PLAN.md (admin HEMS cancel, tax fields, distribution toggles)
+last_updated: "2026-03-10T20:11:21.253Z"
+last_activity: 2026-03-10 -- Completed 20-02 admin HEMS cancel, beneficiary tax fields, distribution tax toggles (FEAT-06, FEAT-07, FEAT-08)
 progress:
   total_phases: 8
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 15
-  completed_plans: 14
-  percent: 93
+  completed_plans: 15
+  percent: 100
 ---
 
 # State: Trust Admin
@@ -20,11 +20,11 @@ progress:
 
 Milestone: v4.0 Production Hardening & Completeness
 Phase: 20 of 22 (beneficiary-distribution-features)
-Plan: 1 of 2 completed in current phase
-Status: In progress
-Last activity: 2026-03-10 -- Completed 20-01 HEMS request history + cancel in beneficiary portal (FEAT-05, FEAT-08)
+Plan: 2 of 2 completed in current phase
+Status: Phase complete
+Last activity: 2026-03-10 -- Completed 20-02 admin HEMS cancel, beneficiary tax fields, distribution tax toggles (FEAT-06, FEAT-07, FEAT-08)
 
-Progress: [█████████-] 93%
+Progress: [██████████] 100%
 
 ## Accumulated Context
 
@@ -77,6 +77,9 @@ Progress: [█████████-] 93%
 - [v4.0] Insurance table uses ACTIVE/EXPIRED/CANCELLED status subset (not SOLD/TRANSFERRED/DISPOSED)
 - [v4.0] Beneficiary cancel uses direct async function (not useActionState) -- button click not form submit
 - [v4.0] HEMS status badge mapping defined locally in HemsHistoryCard -- global STATUS_VARIANTS lacks HEMS statuses
+- [v4.0] Tax ID masking via helper text below field -- EditableTextCell has no displayValue prop; full value visible only in admin edit mode
+- [v4.0] HEMS cancel button on all non-CANCELLED statuses with contextual warning for processed (APPROVED/DISTRIBUTED) requests
+- [v4.0] Distribution tax toggles use Switch component with inline tRPC mutation to distribution.update
 
 ### Auth API Patterns That Work
 
@@ -118,6 +121,6 @@ const rows = await sql`SELECT id, name, email FROM neon_auth."user" WHERE lower(
 
 ## Session Continuity
 
-Last session: 2026-03-10T20:07:36Z
-Stopped at: Completed 20-01-PLAN.md (HEMS history & cancel)
+Last session: 2026-03-10T20:11:21.251Z
+Stopped at: Completed 20-02-PLAN.md (admin HEMS cancel, tax fields, distribution toggles)
 Resume file: None

@@ -42,8 +42,8 @@ Requirements derived from comprehensive critical review of 45 findings across se
 - [x] **FEAT-03**: Admin can browse, create, edit, and delete insurance policies
 - [x] **FEAT-04**: Dashboard total assets calculation includes all asset types (artwork, personal property, insurance)
 - [x] **FEAT-05**: Beneficiary portal shows HEMS request history with status tracking
-- [ ] **FEAT-06**: Admin can edit beneficiary tax fields (taxId) and per-beneficiary withdrawal ages/percentages
-- [ ] **FEAT-07**: Admin can mark distributions as tax-reported and 1099-issued
+- [x] **FEAT-06**: Admin can edit beneficiary tax fields (taxId) and per-beneficiary withdrawal ages/percentages
+- [x] **FEAT-07**: Admin can mark distributions as tax-reported and 1099-issued
 - [x] **FEAT-08**: HEMS requests can be cancelled (admin or beneficiary)
 - [ ] **FEAT-09**: Trust accounting entries support reconciliation workflow (reconciled flag + date)
 - [ ] **FEAT-10**: Contact fields include licenseNo and barNo for attorneys/CPAs
@@ -123,8 +123,8 @@ Deferred -- acknowledged but not in v4.0 scope.
 | FEAT-03 | Phase 19 | Complete |
 | FEAT-04 | Phase 19 | Complete |
 | FEAT-05 | Phase 20 | Complete |
-| FEAT-06 | Phase 20 | Pending |
-| FEAT-07 | Phase 20 | Pending |
+| FEAT-06 | Phase 20 | Complete |
+| FEAT-07 | Phase 20 | Complete |
 | FEAT-08 | Phase 20 | Complete |
 | FEAT-09 | Phase 21 | Pending |
 | FEAT-10 | Phase 21 | Pending |
