@@ -41,6 +41,7 @@ import { authClient } from '@/lib/auth/client'
 import { sumStrings } from '@/lib/money'
 import { trpc } from '@/lib/trpc'
 import { formatCurrency, formatDate } from '@/utils/formatters'
+import { HemsHistoryCard } from './HemsHistoryCard'
 import { HemsRequestForm } from './HemsRequestForm'
 
 export function PortalClient() {
@@ -75,6 +76,9 @@ export function PortalClient() {
         refetch,
     } = trpc.beneficiary.me.useQuery()
 
+    const { data: hemsRequests = [], refetch: refetchHems } =
+        trpc.hemsRequest.myRequests.useQuery()
+
     const handleSignOut = async () => {
         await authClient.signOut()
         router.push('/auth/sign-in')
@@ -83,6 +87,7 @@ export function PortalClient() {
     const handleRequestSuccess = () => {
         setShowRequestForm(false)
         refetch()
+        refetchHems()
     }
 
     if (isLoading) {
@@ -593,6 +598,11 @@ export function PortalClient() {
                             )}
                         </CardContent>
                     </Card>
+
+                    <HemsHistoryCard
+                        requests={hemsRequests}
+                        onCancelSuccess={() => refetchHems()}
+                    />
 
                     <Card>
                         <CardHeader>
