@@ -267,6 +267,62 @@ export const hemsRequestRouter = createTRPCRouter({
             )
         }),
 
+    cancel: adminProcedure
+        .input(
+            z.object({
+                id: z.coerce.number(),
+                entityId: z.coerce.number(),
+                reviewNotes: z.string().optional(),
+            }),
+        )
+        .mutation(async ({ input }) => {
+            addBreadcrumb('hems', `Cancelling HEMS request ${input.id}`)
+
+            return traceBusinessOperation(
+                'hems.cancel',
+                { requestId: input.id },
+                async () => {
+                    const existing = await db.query.hemsRequest.findFirst({
+                        where: and(
+                            eq(hemsRequest.id, input.id),
+                            eq(hemsRequest.entityId, input.entityId),
+                        ),
+                    })
+                    if (!existing)
+                        throw new TRPCError({
+                            code: 'NOT_FOUND',
+                            message: 'Request not found in this entity',
+                        })
+
+                    // Allow cancel of ANY status -- do NOT check existing.status
+                    // If request was APPROVED with a linked distribution, the distribution remains untouched
+                    const [updated] = await db
+                        .update(hemsRequest)
+                        .set({
+                            status: 'CANCELLED',
+                            reviewNotes:
+                                input.reviewNotes ??
+                                `Cancelled by admin${existing.status !== 'PENDING' ? ` (was ${existing.status})` : ''}`,
+                            reviewedAt: new Date().toISOString(),
+                            updatedAt: new Date().toISOString(),
+                        })
+                        .where(
+                            and(
+                                eq(hemsRequest.id, input.id),
+                                eq(hemsRequest.entityId, input.entityId),
+                            ),
+                        )
+                        .returning()
+                    if (!updated)
+                        throw new TRPCError({
+                            code: 'INTERNAL_SERVER_ERROR',
+                            message: 'Failed to cancel request',
+                        })
+                    return updated
+                },
+            )
+        }),
+
     submit: beneficiaryProcedure
         .input(insertHemsRequestSchema)
         .mutation(async ({ input, ctx }) => {
