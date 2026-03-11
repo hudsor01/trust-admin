@@ -11,10 +11,23 @@ import { neon } from '@neondatabase/serverless'
 import * as Sentry from '@sentry/nextjs'
 import type { NeonHttpDatabase } from 'drizzle-orm/neon-http'
 import { drizzle as drizzleHttp } from 'drizzle-orm/neon-http'
+import type {
+    ParameterOrFragment,
+    PendingQuery,
+    Row,
+    TransactionSql,
+} from 'postgres'
 import postgres from 'postgres'
 import { env } from '../src/lib/env'
 import * as relations from './relations'
 import * as schema from './schema'
+
+/** postgres.js TransactionSql strips the call signature via Omit -- re-add it for tagged template usage. */
+export type TxSql = TransactionSql &
+    (<T extends readonly (object | undefined)[] = Row[]>(
+        template: TemplateStringsArray,
+        ...parameters: readonly ParameterOrFragment<never>[]
+    ) => PendingQuery<T>)
 
 // =============================================================================
 // PER-REQUEST AUTH TOKEN (AsyncLocalStorage)

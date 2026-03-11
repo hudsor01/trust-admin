@@ -1,6 +1,5 @@
-/** Drizzle queries for all trust database operations. */
+/** Drizzle queries for trust database operations (active exports only). */
 import { and, desc, eq, sql } from 'drizzle-orm'
-import type postgres from 'postgres'
 import { calculatePaymentSplit } from '../src/lib/amortization'
 import {
     type ExpenseType,
@@ -8,54 +7,26 @@ import {
     isPrincipalTransaction,
 } from '../src/lib/classification-rules'
 import { addBreadcrumb, traceBusinessOperation } from '../src/lib/sentry'
-import { db, getClient } from './index'
-
-/** postgres.js TransactionSql strips the call signature via Omit — re-add it for tagged template usage. */
-type TxSql = postgres.TransactionSql &
-    (<T extends readonly (object | undefined)[] = postgres.Row[]>(
-        template: TemplateStringsArray,
-        ...parameters: readonly postgres.ParameterOrFragment<never>[]
-    ) => postgres.PendingQuery<T>)
+import { db, getClient, type TxSql } from './index'
 
 import {
     activityLog,
-    artwork,
-    bankAccount,
     beneficiary,
-    contact,
     distribution,
     entity,
     hemsRequest,
-    homestead,
-    insurancePolicy,
-    investmentAccount,
-    liability,
     liabilityPayment,
     pendingInventoryItem,
     personalProperty,
-    rentalProperty,
-    specificBequest,
-    task,
     trustAccounting,
-    trustee,
-    trusteeFeeEntry,
-    trusteeFeeSchedule,
     valuation,
-    vehicle,
-    withdrawalRecord,
 } from './schema'
-
-export type * from './schema'
 
 // =============================================================================
 // ENTITY QUERIES
 // =============================================================================
 
-export async function getEntities() {
-    return db.select().from(entity)
-}
-
-/** Eager-loads all asset relations — prefer getEntityByIdLite() unless relations are needed. */
+/** Eager-loads all asset relations -- prefer direct entity query unless relations are needed. */
 export async function getEntityById(id: number) {
     return db.query.entity.findFirst({
         where: eq(entity.id, id),
@@ -72,56 +43,11 @@ export async function getEntityById(id: number) {
     })
 }
 
-/** Returns only entity columns (no relation joins). */
-export async function getEntityByIdLite(id: number) {
-    return db.query.entity.findFirst({
-        where: eq(entity.id, id),
-    })
-}
-
-export async function createEntity(data: typeof entity.$inferInsert) {
-    const [created] = await db
-        .insert(entity)
-        .values({ ...data, updatedAt: new Date().toISOString() })
-        .returning()
-    return created
-}
-
-export async function updateEntity(
-    id: number,
-    data: Partial<typeof entity.$inferInsert>,
-) {
-    const [updated] = await db
-        .update(entity)
-        .set({ ...data, updatedAt: new Date().toISOString() })
-        .where(eq(entity.id, id))
-        .returning()
-    return updated
-}
-
-export async function deleteEntity(id: number) {
-    const [deleted] = await db
-        .delete(entity)
-        .where(eq(entity.id, id))
-        .returning()
-    return deleted
-}
-
 // =============================================================================
 // BENEFICIARY QUERIES
 // =============================================================================
 
-export async function getBeneficiaries(entityId?: number) {
-    if (entityId) {
-        return db
-            .select()
-            .from(beneficiary)
-            .where(eq(beneficiary.entityId, entityId))
-    }
-    return db.select().from(beneficiary)
-}
-
-/** Eager-loads recent distributions — prefer getBeneficiaryByIdLite() unless distributions are needed. */
+/** Eager-loads recent distributions. */
 export async function getBeneficiaryById(id: number) {
     return db.query.beneficiary.findFirst({
         where: eq(beneficiary.id, id),
@@ -131,13 +57,6 @@ export async function getBeneficiaryById(id: number) {
                 limit: 20,
             },
         },
-    })
-}
-
-/** Returns only beneficiary columns (no relation joins). */
-export async function getBeneficiaryByIdLite(id: number) {
-    return db.query.beneficiary.findFirst({
-        where: eq(beneficiary.id, id),
     })
 }
 
@@ -165,34 +84,6 @@ export async function getBeneficiariesWithDistributions(
     })
 }
 
-export async function createBeneficiary(data: typeof beneficiary.$inferInsert) {
-    const [created] = await db
-        .insert(beneficiary)
-        .values({ ...data, updatedAt: new Date().toISOString() })
-        .returning()
-    return created
-}
-
-export async function updateBeneficiary(
-    id: number,
-    data: Partial<typeof beneficiary.$inferInsert>,
-) {
-    const [updated] = await db
-        .update(beneficiary)
-        .set({ ...data, updatedAt: new Date().toISOString() })
-        .where(eq(beneficiary.id, id))
-        .returning()
-    return updated
-}
-
-export async function deleteBeneficiary(id: number) {
-    const [deleted] = await db
-        .delete(beneficiary)
-        .where(eq(beneficiary.id, id))
-        .returning()
-    return deleted
-}
-
 // =============================================================================
 // DISTRIBUTION QUERIES
 // =============================================================================
@@ -213,445 +104,11 @@ export async function getDistributionsByBeneficiary(beneficiaryId: number) {
     })
 }
 
-export async function createDistribution(
-    data: typeof distribution.$inferInsert,
-) {
-    const [created] = await db
-        .insert(distribution)
-        .values({ ...data, updatedAt: new Date().toISOString() })
-        .returning()
-    return created
-}
-
-// =============================================================================
-// VEHICLE QUERIES
-// =============================================================================
-
-export async function getVehicles(entityId?: number) {
-    if (entityId) {
-        return db.select().from(vehicle).where(eq(vehicle.entityId, entityId))
-    }
-    return db.select().from(vehicle)
-}
-
-export async function getVehicleById(id: number) {
-    return db.query.vehicle.findFirst({
-        where: eq(vehicle.id, id),
-        with: {
-            entity: true,
-            valuations: true,
-            documents: true,
-            transactions: true,
-        },
-    })
-}
-
-export async function createVehicle(data: typeof vehicle.$inferInsert) {
-    const [created] = await db
-        .insert(vehicle)
-        .values({ ...data, updatedAt: new Date().toISOString() })
-        .returning()
-    return created
-}
-
-export async function updateVehicle(
-    id: number,
-    data: Partial<typeof vehicle.$inferInsert>,
-) {
-    const [updated] = await db
-        .update(vehicle)
-        .set({ ...data, updatedAt: new Date().toISOString() })
-        .where(eq(vehicle.id, id))
-        .returning()
-    return updated
-}
-
-export async function deleteVehicle(id: number) {
-    const [deleted] = await db
-        .delete(vehicle)
-        .where(eq(vehicle.id, id))
-        .returning()
-    return deleted
-}
-
-// =============================================================================
-// HOMESTEAD QUERIES
-// =============================================================================
-
-export async function getHomesteads(entityId?: number) {
-    if (entityId) {
-        return db
-            .select()
-            .from(homestead)
-            .where(eq(homestead.entityId, entityId))
-    }
-    return db.select().from(homestead)
-}
-
-export async function getHomesteadById(id: number) {
-    return db.query.homestead.findFirst({
-        where: eq(homestead.id, id),
-        with: {
-            entity: true,
-            valuations: true,
-            documents: true,
-            transactions: true,
-        },
-    })
-}
-
-export async function createHomestead(data: typeof homestead.$inferInsert) {
-    const [created] = await db
-        .insert(homestead)
-        .values({ ...data, updatedAt: new Date().toISOString() })
-        .returning()
-    return created
-}
-
-export async function updateHomestead(
-    id: number,
-    data: Partial<typeof homestead.$inferInsert>,
-) {
-    const [updated] = await db
-        .update(homestead)
-        .set({ ...data, updatedAt: new Date().toISOString() })
-        .where(eq(homestead.id, id))
-        .returning()
-    return updated
-}
-
-export async function deleteHomestead(id: number) {
-    const [deleted] = await db
-        .delete(homestead)
-        .where(eq(homestead.id, id))
-        .returning()
-    return deleted
-}
-
-// =============================================================================
-// RENTAL PROPERTY QUERIES
-// =============================================================================
-
-export async function getRentalProperties(entityId?: number) {
-    if (entityId) {
-        return db
-            .select()
-            .from(rentalProperty)
-            .where(eq(rentalProperty.entityId, entityId))
-    }
-    return db.select().from(rentalProperty)
-}
-
-export async function getRentalPropertyById(id: number) {
-    return db.query.rentalProperty.findFirst({
-        where: eq(rentalProperty.id, id),
-        with: {
-            entity: true,
-            valuations: true,
-            documents: true,
-            transactions: true,
-        },
-    })
-}
-
-export async function createRentalProperty(
-    data: typeof rentalProperty.$inferInsert,
-) {
-    const [created] = await db
-        .insert(rentalProperty)
-        .values({ ...data, updatedAt: new Date().toISOString() })
-        .returning()
-    return created
-}
-
-export async function updateRentalProperty(
-    id: number,
-    data: Partial<typeof rentalProperty.$inferInsert>,
-) {
-    const [updated] = await db
-        .update(rentalProperty)
-        .set({ ...data, updatedAt: new Date().toISOString() })
-        .where(eq(rentalProperty.id, id))
-        .returning()
-    return updated
-}
-
-export async function deleteRentalProperty(id: number) {
-    const [deleted] = await db
-        .delete(rentalProperty)
-        .where(eq(rentalProperty.id, id))
-        .returning()
-    return deleted
-}
-
-// =============================================================================
-// BANK ACCOUNT QUERIES
-// =============================================================================
-
-export async function getBankAccounts(entityId?: number) {
-    if (entityId) {
-        return db
-            .select()
-            .from(bankAccount)
-            .where(eq(bankAccount.entityId, entityId))
-    }
-    return db.select().from(bankAccount)
-}
-
-export async function getBankAccountById(id: number) {
-    return db.query.bankAccount.findFirst({
-        where: eq(bankAccount.id, id),
-        with: {
-            entity: true,
-            valuations: true,
-            documents: true,
-            transactions: true,
-        },
-    })
-}
-
-export async function createBankAccount(data: typeof bankAccount.$inferInsert) {
-    const [created] = await db
-        .insert(bankAccount)
-        .values({ ...data, updatedAt: new Date().toISOString() })
-        .returning()
-    return created
-}
-
-export async function updateBankAccount(
-    id: number,
-    data: Partial<typeof bankAccount.$inferInsert>,
-) {
-    const [updated] = await db
-        .update(bankAccount)
-        .set({ ...data, updatedAt: new Date().toISOString() })
-        .where(eq(bankAccount.id, id))
-        .returning()
-    return updated
-}
-
-export async function deleteBankAccount(id: number) {
-    const [deleted] = await db
-        .delete(bankAccount)
-        .where(eq(bankAccount.id, id))
-        .returning()
-    return deleted
-}
-
-// =============================================================================
-// INVESTMENT ACCOUNT QUERIES
-// =============================================================================
-
-export async function getInvestmentAccounts(entityId?: number) {
-    if (entityId) {
-        return db
-            .select()
-            .from(investmentAccount)
-            .where(eq(investmentAccount.entityId, entityId))
-    }
-    return db.select().from(investmentAccount)
-}
-
-export async function getInvestmentAccountById(id: number) {
-    return db.query.investmentAccount.findFirst({
-        where: eq(investmentAccount.id, id),
-        with: {
-            entity: true,
-            valuations: true,
-            documents: true,
-        },
-    })
-}
-
-export async function createInvestmentAccount(
-    data: typeof investmentAccount.$inferInsert,
-) {
-    const [created] = await db
-        .insert(investmentAccount)
-        .values({ ...data, updatedAt: new Date().toISOString() })
-        .returning()
-    return created
-}
-
-export async function updateInvestmentAccount(
-    id: number,
-    data: Partial<typeof investmentAccount.$inferInsert>,
-) {
-    const [updated] = await db
-        .update(investmentAccount)
-        .set({ ...data, updatedAt: new Date().toISOString() })
-        .where(eq(investmentAccount.id, id))
-        .returning()
-    return updated
-}
-
-export async function deleteInvestmentAccount(id: number) {
-    const [deleted] = await db
-        .delete(investmentAccount)
-        .where(eq(investmentAccount.id, id))
-        .returning()
-    return deleted
-}
-
-// =============================================================================
-// INSURANCE POLICY QUERIES
-// =============================================================================
-
-export async function getInsurancePolicies(entityId?: number) {
-    if (entityId) {
-        return db
-            .select()
-            .from(insurancePolicy)
-            .where(eq(insurancePolicy.entityId, entityId))
-    }
-    return db.select().from(insurancePolicy)
-}
-
-export async function getInsurancePolicyById(id: number) {
-    return db.query.insurancePolicy.findFirst({
-        where: eq(insurancePolicy.id, id),
-    })
-}
-
-export async function createInsurancePolicy(
-    data: typeof insurancePolicy.$inferInsert,
-) {
-    const [created] = await db
-        .insert(insurancePolicy)
-        .values({ ...data, updatedAt: new Date().toISOString() })
-        .returning()
-    return created
-}
-
-export async function updateInsurancePolicy(
-    id: number,
-    data: Partial<typeof insurancePolicy.$inferInsert>,
-) {
-    const [updated] = await db
-        .update(insurancePolicy)
-        .set({ ...data, updatedAt: new Date().toISOString() })
-        .where(eq(insurancePolicy.id, id))
-        .returning()
-    return updated
-}
-
-export async function deleteInsurancePolicy(id: number) {
-    const [deleted] = await db
-        .delete(insurancePolicy)
-        .where(eq(insurancePolicy.id, id))
-        .returning()
-    return deleted
-}
-
-// =============================================================================
-// PERSONAL PROPERTY QUERIES
-// =============================================================================
-
-export async function getPersonalProperties(entityId?: number) {
-    if (entityId) {
-        return db
-            .select()
-            .from(personalProperty)
-            .where(eq(personalProperty.entityId, entityId))
-    }
-    return db.select().from(personalProperty)
-}
-
-export async function getPersonalPropertyById(id: number) {
-    return db.query.personalProperty.findFirst({
-        where: eq(personalProperty.id, id),
-        with: {
-            entity: true,
-            valuations: true,
-            documents: true,
-        },
-    })
-}
-
-export async function createPersonalProperty(
-    data: typeof personalProperty.$inferInsert,
-) {
-    const [created] = await db
-        .insert(personalProperty)
-        .values({ ...data, updatedAt: new Date().toISOString() })
-        .returning()
-    return created
-}
-
-export async function updatePersonalProperty(
-    id: number,
-    data: Partial<typeof personalProperty.$inferInsert>,
-) {
-    const [updated] = await db
-        .update(personalProperty)
-        .set({ ...data, updatedAt: new Date().toISOString() })
-        .where(eq(personalProperty.id, id))
-        .returning()
-    return updated
-}
-
-export async function deletePersonalProperty(id: number) {
-    const [deleted] = await db
-        .delete(personalProperty)
-        .where(eq(personalProperty.id, id))
-        .returning()
-    return deleted
-}
-
-// =============================================================================
-// ARTWORK QUERIES
-// =============================================================================
-
-export async function getArtworks(entityId?: number) {
-    if (entityId) {
-        return db.select().from(artwork).where(eq(artwork.entityId, entityId))
-    }
-    return db.select().from(artwork)
-}
-
-export async function getArtworkById(id: number) {
-    return db.query.artwork.findFirst({
-        where: eq(artwork.id, id),
-        with: {
-            entity: true,
-            valuations: true,
-        },
-    })
-}
-
-export async function createArtwork(data: typeof artwork.$inferInsert) {
-    const [created] = await db
-        .insert(artwork)
-        .values({ ...data, updatedAt: new Date().toISOString() })
-        .returning()
-    return created
-}
-
-export async function updateArtwork(
-    id: number,
-    data: Partial<typeof artwork.$inferInsert>,
-) {
-    const [updated] = await db
-        .update(artwork)
-        .set({ ...data, updatedAt: new Date().toISOString() })
-        .where(eq(artwork.id, id))
-        .returning()
-    return updated
-}
-
-export async function deleteArtwork(id: number) {
-    const [deleted] = await db
-        .delete(artwork)
-        .where(eq(artwork.id, id))
-        .returning()
-    return deleted
-}
-
 // =============================================================================
 // VALUATION QUERIES
 // =============================================================================
 
-export async function createValuation(data: typeof valuation.$inferInsert) {
+async function createValuation(data: typeof valuation.$inferInsert) {
     const [created] = await db.insert(valuation).values(data).returning()
     return created
 }
@@ -679,177 +136,45 @@ export async function getValuationsForAsset(
 }
 
 // =============================================================================
-// CONTACT QUERIES
+// PERSONAL PROPERTY QUERIES (used by personalPropertyCrud)
 // =============================================================================
 
-export async function getContacts() {
-    return db.select().from(contact)
-}
-
-export async function getContactById(id: number) {
-    return db.query.contact.findFirst({
-        where: eq(contact.id, id),
-    })
-}
-
-export async function createContact(data: typeof contact.$inferInsert) {
-    const [created] = await db
-        .insert(contact)
-        .values({ ...data, updatedAt: new Date().toISOString() })
-        .returning()
-    return created
-}
-
-export async function updateContact(
-    id: number,
-    data: Partial<typeof contact.$inferInsert>,
-) {
-    const [updated] = await db
-        .update(contact)
-        .set({ ...data, updatedAt: new Date().toISOString() })
-        .where(eq(contact.id, id))
-        .returning()
-    return updated
-}
-
-export async function deleteContact(id: number) {
-    const [deleted] = await db
-        .delete(contact)
-        .where(eq(contact.id, id))
-        .returning()
-    return deleted
-}
-
-// =============================================================================
-// TASK QUERIES
-// =============================================================================
-
-export async function getTasks() {
-    return db.select().from(task)
-}
-
-export async function getTaskById(id: number) {
-    return db.query.task.findFirst({
-        where: eq(task.id, id),
-    })
-}
-
-export async function createTask(data: typeof task.$inferInsert) {
-    const [created] = await db
-        .insert(task)
-        .values({ ...data, updatedAt: new Date().toISOString() })
-        .returning()
-    return created
-}
-
-export async function updateTask(
-    id: number,
-    data: Partial<typeof task.$inferInsert>,
-) {
-    const [updated] = await db
-        .update(task)
-        .set({ ...data, updatedAt: new Date().toISOString() })
-        .where(eq(task.id, id))
-        .returning()
-    return updated
-}
-
-export async function deleteTask(id: number) {
-    const [deleted] = await db.delete(task).where(eq(task.id, id)).returning()
-    return deleted
-}
-
-// =============================================================================
-// TRUSTEE QUERIES
-// =============================================================================
-
-export async function getTrustees(entityId?: number) {
-    if (entityId) {
-        return db.select().from(trustee).where(eq(trustee.entityId, entityId))
-    }
-    return db.select().from(trustee)
-}
-
-export async function getTrusteeById(id: number) {
-    return db.query.trustee.findFirst({
-        where: eq(trustee.id, id),
-    })
-}
-
-export async function createTrustee(data: typeof trustee.$inferInsert) {
-    const [created] = await db
-        .insert(trustee)
-        .values({ ...data, updatedAt: new Date().toISOString() })
-        .returning()
-    return created
-}
-
-export async function updateTrustee(
-    id: number,
-    data: Partial<typeof trustee.$inferInsert>,
-) {
-    const [updated] = await db
-        .update(trustee)
-        .set({ ...data, updatedAt: new Date().toISOString() })
-        .where(eq(trustee.id, id))
-        .returning()
-    return updated
-}
-
-export async function deleteTrustee(id: number) {
-    const [deleted] = await db
-        .delete(trustee)
-        .where(eq(trustee.id, id))
-        .returning()
-    return deleted
-}
-
-// =============================================================================
-// SPECIFIC BEQUEST QUERIES
-// =============================================================================
-
-export async function getSpecificBequests(entityId?: number) {
+async function getPersonalProperties(entityId?: number) {
     if (entityId) {
         return db
             .select()
-            .from(specificBequest)
-            .where(eq(specificBequest.entityId, entityId))
+            .from(personalProperty)
+            .where(eq(personalProperty.entityId, entityId))
     }
-    return db.select().from(specificBequest)
+    return db.select().from(personalProperty)
 }
 
-export async function getSpecificBequestById(id: number) {
-    return db.query.specificBequest.findFirst({
-        where: eq(specificBequest.id, id),
-    })
-}
-
-export async function createSpecificBequest(
-    data: typeof specificBequest.$inferInsert,
+async function createPersonalProperty(
+    data: typeof personalProperty.$inferInsert,
 ) {
     const [created] = await db
-        .insert(specificBequest)
+        .insert(personalProperty)
         .values({ ...data, updatedAt: new Date().toISOString() })
         .returning()
     return created
 }
 
-export async function updateSpecificBequest(
+async function updatePersonalProperty(
     id: number,
-    data: Partial<typeof specificBequest.$inferInsert>,
+    data: Partial<typeof personalProperty.$inferInsert>,
 ) {
     const [updated] = await db
-        .update(specificBequest)
+        .update(personalProperty)
         .set({ ...data, updatedAt: new Date().toISOString() })
-        .where(eq(specificBequest.id, id))
+        .where(eq(personalProperty.id, id))
         .returning()
     return updated
 }
 
-export async function deleteSpecificBequest(id: number) {
+async function deletePersonalProperty(id: number) {
     const [deleted] = await db
-        .delete(specificBequest)
-        .where(eq(specificBequest.id, id))
+        .delete(personalProperty)
+        .where(eq(personalProperty.id, id))
         .returning()
     return deleted
 }
@@ -858,45 +183,9 @@ export async function deleteSpecificBequest(id: number) {
 // TRUST ACCOUNTING QUERIES
 // =============================================================================
 
-export async function getTrustAccountingEntries(entityId?: number) {
-    if (entityId) {
-        return db
-            .select()
-            .from(trustAccounting)
-            .where(eq(trustAccounting.entityId, entityId))
-    }
-    return db.select().from(trustAccounting)
-}
-
-export async function getTrustAccountingEntryById(id: number) {
-    return db.query.trustAccounting.findFirst({
-        where: eq(trustAccounting.id, id),
-    })
-}
-
-export async function updateTrustAccountingEntry(
-    id: number,
-    data: Partial<typeof trustAccounting.$inferInsert>,
-) {
-    const [updated] = await db
-        .update(trustAccounting)
-        .set({ ...data, updatedAt: new Date().toISOString() })
-        .where(eq(trustAccounting.id, id))
-        .returning()
-    return updated
-}
-
-export async function deleteTrustAccountingEntry(id: number) {
-    const [deleted] = await db
-        .delete(trustAccounting)
-        .where(eq(trustAccounting.id, id))
-        .returning()
-    return deleted
-}
-
 /**
  * Auto-classifies isPrincipal per Texas Property Code 116 when not explicitly set:
- * income types (rent, dividends) → false, capital types (gains, sale proceeds) → true.
+ * income types (rent, dividends) -> false, capital types (gains, sale proceeds) -> true.
  */
 export async function createTrustAccountingEntry(
     data: typeof trustAccounting.$inferInsert,
@@ -921,102 +210,8 @@ export async function createTrustAccountingEntry(
 }
 
 // =============================================================================
-// WITHDRAWAL RECORD QUERIES
-// =============================================================================
-
-export async function getWithdrawalRecords(beneficiaryId?: number) {
-    if (beneficiaryId) {
-        return db
-            .select()
-            .from(withdrawalRecord)
-            .where(eq(withdrawalRecord.beneficiaryId, beneficiaryId))
-    }
-    return db.select().from(withdrawalRecord)
-}
-
-export async function getWithdrawalRecordById(id: number) {
-    return db.query.withdrawalRecord.findFirst({
-        where: eq(withdrawalRecord.id, id),
-    })
-}
-
-export async function createWithdrawalRecord(
-    data: typeof withdrawalRecord.$inferInsert,
-) {
-    const [created] = await db
-        .insert(withdrawalRecord)
-        .values({ ...data, updatedAt: new Date().toISOString() })
-        .returning()
-    return created
-}
-
-export async function updateWithdrawalRecord(
-    id: number,
-    data: Partial<typeof withdrawalRecord.$inferInsert>,
-) {
-    const [updated] = await db
-        .update(withdrawalRecord)
-        .set({ ...data, updatedAt: new Date().toISOString() })
-        .where(eq(withdrawalRecord.id, id))
-        .returning()
-    return updated
-}
-
-export async function deleteWithdrawalRecord(id: number) {
-    const [deleted] = await db
-        .delete(withdrawalRecord)
-        .where(eq(withdrawalRecord.id, id))
-        .returning()
-    return deleted
-}
-
-// =============================================================================
 // HEMS REQUEST QUERIES
 // =============================================================================
-
-export async function getHemsRequests(beneficiaryId?: number) {
-    if (beneficiaryId) {
-        return db
-            .select()
-            .from(hemsRequest)
-            .where(eq(hemsRequest.beneficiaryId, beneficiaryId))
-    }
-    return db.select().from(hemsRequest)
-}
-
-export async function getHemsRequestById(id: number) {
-    return db.query.hemsRequest.findFirst({
-        where: eq(hemsRequest.id, id),
-    })
-}
-
-export async function createHemsRequest(data: typeof hemsRequest.$inferInsert) {
-    const [created] = await db
-        .insert(hemsRequest)
-        .values({ ...data, updatedAt: new Date().toISOString() })
-        .returning()
-    return created
-}
-
-export async function updateHemsRequest(
-    id: number,
-    data: Partial<typeof hemsRequest.$inferInsert>,
-) {
-    const [updated] = await db
-        .update(hemsRequest)
-        .set({ ...data, updatedAt: new Date().toISOString() })
-        .where(eq(hemsRequest.id, id))
-        .returning()
-    return updated
-}
-
-export async function deleteHemsRequest(id: number) {
-    const [deleted] = await db
-        .delete(hemsRequest)
-        .where(eq(hemsRequest.id, id))
-        .returning()
-    return deleted
-}
 
 /** Transactional: creates distribution + links it to HEMS request atomically to prevent orphaned records. */
 export async function approveHemsRequest(params: {
@@ -1119,175 +314,6 @@ export async function getHemsRequestsWithBeneficiary(
         limit: options?.limit ?? 100,
         offset: options?.offset ?? 0,
     })
-}
-
-/** Pending HEMS requests ordered oldest-first for admin review queue. */
-export async function getPendingHemsRequests(
-    options?: HemsRequestPaginationOptions,
-) {
-    return db.query.hemsRequest.findMany({
-        where: eq(hemsRequest.status, 'PENDING'),
-        with: { beneficiary: true },
-        orderBy: (r, { asc }) => [asc(r.createdAt)],
-        limit: options?.limit ?? 50,
-        offset: options?.offset ?? 0,
-    })
-}
-
-// =============================================================================
-// TRUSTEE FEE SCHEDULE QUERIES
-// =============================================================================
-
-export async function getTrusteeFeeSchedules(entityId?: number) {
-    if (entityId) {
-        return db
-            .select()
-            .from(trusteeFeeSchedule)
-            .where(eq(trusteeFeeSchedule.entityId, entityId))
-    }
-    return db.select().from(trusteeFeeSchedule)
-}
-
-export async function getTrusteeFeeScheduleById(id: number) {
-    return db.query.trusteeFeeSchedule.findFirst({
-        where: eq(trusteeFeeSchedule.id, id),
-    })
-}
-
-export async function createTrusteeFeeSchedule(
-    data: typeof trusteeFeeSchedule.$inferInsert,
-) {
-    const [created] = await db
-        .insert(trusteeFeeSchedule)
-        .values(data)
-        .returning()
-    return created
-}
-
-export async function updateTrusteeFeeSchedule(
-    id: number,
-    data: Partial<typeof trusteeFeeSchedule.$inferInsert>,
-) {
-    const [updated] = await db
-        .update(trusteeFeeSchedule)
-        .set(data)
-        .where(eq(trusteeFeeSchedule.id, id))
-        .returning()
-    return updated
-}
-
-export async function deleteTrusteeFeeSchedule(id: number) {
-    const [deleted] = await db
-        .delete(trusteeFeeSchedule)
-        .where(eq(trusteeFeeSchedule.id, id))
-        .returning()
-    return deleted
-}
-
-// =============================================================================
-// TRUSTEE FEE ENTRY QUERIES
-// =============================================================================
-
-export async function getTrusteeFeeEntries(entityId?: number) {
-    if (entityId) {
-        return db
-            .select()
-            .from(trusteeFeeEntry)
-            .where(eq(trusteeFeeEntry.entityId, entityId))
-    }
-    return db.select().from(trusteeFeeEntry)
-}
-
-export async function getTrusteeFeeEntryById(id: number) {
-    return db.query.trusteeFeeEntry.findFirst({
-        where: eq(trusteeFeeEntry.id, id),
-    })
-}
-
-export async function createTrusteeFeeEntry(
-    data: typeof trusteeFeeEntry.$inferInsert,
-) {
-    const [created] = await db
-        .insert(trusteeFeeEntry)
-        .values({ ...data, updatedAt: new Date().toISOString() })
-        .returning()
-    return created
-}
-
-export async function updateTrusteeFeeEntry(
-    id: number,
-    data: Partial<typeof trusteeFeeEntry.$inferInsert>,
-) {
-    const [updated] = await db
-        .update(trusteeFeeEntry)
-        .set({ ...data, updatedAt: new Date().toISOString() })
-        .where(eq(trusteeFeeEntry.id, id))
-        .returning()
-    return updated
-}
-
-export async function deleteTrusteeFeeEntry(id: number) {
-    const [deleted] = await db
-        .delete(trusteeFeeEntry)
-        .where(eq(trusteeFeeEntry.id, id))
-        .returning()
-    return deleted
-}
-
-export async function getTrusteeFeeEntriesWithSchedule(entityId?: number) {
-    return db.query.trusteeFeeEntry.findMany({
-        where: entityId ? eq(trusteeFeeEntry.entityId, entityId) : undefined,
-        with: { schedule: true, trustee: true },
-        orderBy: (e, { desc }) => [desc(e.periodEnd)],
-    })
-}
-
-// =============================================================================
-// LIABILITY QUERIES
-// =============================================================================
-
-export async function getLiabilities(entityId?: number) {
-    if (entityId) {
-        return db
-            .select()
-            .from(liability)
-            .where(eq(liability.entityId, entityId))
-    }
-    return db.select().from(liability)
-}
-
-export async function getLiabilityById(id: number) {
-    return db.query.liability.findFirst({
-        where: eq(liability.id, id),
-    })
-}
-
-export async function createLiability(data: typeof liability.$inferInsert) {
-    const [created] = await db
-        .insert(liability)
-        .values({ ...data, updatedAt: new Date().toISOString() })
-        .returning()
-    return created
-}
-
-export async function updateLiability(
-    id: number,
-    data: Partial<typeof liability.$inferInsert>,
-) {
-    const [updated] = await db
-        .update(liability)
-        .set({ ...data, updatedAt: new Date().toISOString() })
-        .where(eq(liability.id, id))
-        .returning()
-    return updated
-}
-
-export async function deleteLiability(id: number) {
-    const [deleted] = await db
-        .delete(liability)
-        .where(eq(liability.id, id))
-        .returning()
-    return deleted
 }
 
 // =============================================================================
@@ -1508,21 +534,6 @@ export async function getLiabilityPayments(
 // ACTIVITY LOG QUERIES
 // =============================================================================
 
-interface ActivityLogPaginationOptions {
-    limit?: number
-    offset?: number
-}
-
-/** Paginated audit trail (default 100) — always bounded to prevent unbounded result sets. */
-export async function getActivityLogs(options?: ActivityLogPaginationOptions) {
-    return db
-        .select()
-        .from(activityLog)
-        .orderBy(desc(activityLog.createdAt))
-        .limit(options?.limit ?? 100)
-        .offset(options?.offset ?? 0)
-}
-
 export async function createActivityLog(data: typeof activityLog.$inferInsert) {
     const [created] = await db.insert(activityLog).values(data).returning()
     return created
@@ -1563,10 +574,66 @@ export async function getActivityLogWithChanges(recordId: string) {
 }
 
 // =============================================================================
-// PENDING INVENTORY ITEM QUERIES
+// ACTIVITY LOG SEARCH
 // =============================================================================
 
-export async function getPendingInventoryItems(
+export const SEARCHABLE_ACTIVITY_LOG_FIELDS = [
+    'status',
+    'amount',
+    'currentBalance',
+    'name',
+    'firstName',
+    'lastName',
+    'email',
+    'action',
+    'category',
+    'distributionType',
+    'liabilityType',
+    'paymentMethod',
+] as const
+
+export type SearchableActivityLogField =
+    (typeof SEARCHABLE_ACTIVITY_LOG_FIELDS)[number]
+
+export function isSearchableActivityLogField(
+    field: string,
+): field is SearchableActivityLogField {
+    return SEARCHABLE_ACTIVITY_LOG_FIELDS.includes(
+        field as SearchableActivityLogField,
+    )
+}
+
+export async function searchActivityLogByField(
+    fieldName: SearchableActivityLogField,
+    fieldValue: string,
+) {
+    if (!isSearchableActivityLogField(fieldName)) {
+        throw new Error(
+            `Invalid field name: ${fieldName}. Allowed fields: ${SEARCHABLE_ACTIVITY_LOG_FIELDS.join(', ')}`,
+        )
+    }
+
+    return db
+        .select({
+            id: activityLog.id,
+            tableName: activityLog.tableName,
+            recordId: activityLog.recordId,
+            action: activityLog.action,
+            changedBy: activityLog.changedBy,
+            createdAt: activityLog.createdAt,
+            fieldValue: sql<string>`${activityLog.newValues}->>${fieldName}`,
+        })
+        .from(activityLog)
+        .where(sql`${activityLog.newValues}->>${fieldName} = ${fieldValue}`)
+        .orderBy(desc(activityLog.createdAt))
+        .limit(100)
+}
+
+// =============================================================================
+// PENDING INVENTORY ITEM QUERIES (used by pendingInventoryItemCrud)
+// =============================================================================
+
+async function getPendingInventoryItems(
     status?: 'PENDING' | 'APPROVED' | 'REJECTED',
 ) {
     if (status) {
@@ -1578,13 +645,13 @@ export async function getPendingInventoryItems(
     return db.select().from(pendingInventoryItem)
 }
 
-export async function getPendingInventoryItemById(id: number) {
+async function getPendingInventoryItemById(id: number) {
     return db.query.pendingInventoryItem.findFirst({
         where: eq(pendingInventoryItem.id, id),
     })
 }
 
-export async function createPendingInventoryItem(
+async function createPendingInventoryItem(
     data: typeof pendingInventoryItem.$inferInsert,
 ) {
     const [created] = await db
@@ -1594,7 +661,7 @@ export async function createPendingInventoryItem(
     return created
 }
 
-export async function updatePendingInventoryItem(
+async function updatePendingInventoryItem(
     id: number,
     data: Partial<typeof pendingInventoryItem.$inferInsert>,
 ) {
@@ -1606,7 +673,7 @@ export async function updatePendingInventoryItem(
     return updated
 }
 
-export async function deletePendingInventoryItem(id: number) {
+async function deletePendingInventoryItem(id: number) {
     const [deleted] = await db
         .delete(pendingInventoryItem)
         .where(eq(pendingInventoryItem.id, id))
@@ -1906,60 +973,8 @@ export async function getUnconvertedIncomeSummary(entityId: number) {
 }
 
 // =============================================================================
-// ACTIVITY LOG SEARCH
+// CRUD OBJECTS (aggregated for router consumption)
 // =============================================================================
-
-export const SEARCHABLE_ACTIVITY_LOG_FIELDS = [
-    'status',
-    'amount',
-    'currentBalance',
-    'name',
-    'firstName',
-    'lastName',
-    'email',
-    'action',
-    'category',
-    'distributionType',
-    'liabilityType',
-    'paymentMethod',
-] as const
-
-export type SearchableActivityLogField =
-    (typeof SEARCHABLE_ACTIVITY_LOG_FIELDS)[number]
-
-export function isSearchableActivityLogField(
-    field: string,
-): field is SearchableActivityLogField {
-    return SEARCHABLE_ACTIVITY_LOG_FIELDS.includes(
-        field as SearchableActivityLogField,
-    )
-}
-
-export async function searchActivityLogByField(
-    fieldName: SearchableActivityLogField,
-    fieldValue: string,
-) {
-    if (!isSearchableActivityLogField(fieldName)) {
-        throw new Error(
-            `Invalid field name: ${fieldName}. Allowed fields: ${SEARCHABLE_ACTIVITY_LOG_FIELDS.join(', ')}`,
-        )
-    }
-
-    return db
-        .select({
-            id: activityLog.id,
-            tableName: activityLog.tableName,
-            recordId: activityLog.recordId,
-            action: activityLog.action,
-            changedBy: activityLog.changedBy,
-            createdAt: activityLog.createdAt,
-            fieldValue: sql<string>`${activityLog.newValues}->>${fieldName}`,
-        })
-        .from(activityLog)
-        .where(sql`${activityLog.newValues}->>${fieldName} = ${fieldValue}`)
-        .orderBy(desc(activityLog.createdAt))
-        .limit(100)
-}
 
 export const personalPropertyCrud = {
     getAllArray: getPersonalProperties,

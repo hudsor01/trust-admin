@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Production Hardening & Completeness
-status: in-progress
-stopped_at: Completed 22-03-PLAN.md
-last_updated: "2026-03-11T14:24:00.000Z"
-last_activity: "2026-03-11 -- Completed 22-03 type guards and dialog encapsulation: validateEnum pattern, BeneficiaryDialog state encapsulation (CLEAN-04, CLEAN-09)"
+status: executing
+stopped_at: Completed 22-02-PLAN.md
+last_updated: "2026-03-11T14:40:53.000Z"
+last_activity: "2026-03-11 -- Completed 22-02 entity cache + structured logging: replaced entityId=1 in 17 admin clients, structured logger in auth routes, generic 500 in analyze (CLEAN-03, CLEAN-07, CLEAN-08)"
 progress:
   total_phases: 8
   completed_phases: 7
   total_plans: 19
-  completed_plans: 17
+  completed_plans: 18
   percent: 89
 ---
 
@@ -20,11 +20,11 @@ progress:
 
 Milestone: v4.0 Production Hardening & Completeness
 Phase: 22 of 22 (code-quality-cleanup)
-Plan: 3 of 3 in current phase (1 completed)
+Plan: 3 of 3 in current phase (2 completed)
 Status: In progress
-Last activity: 2026-03-11 -- Completed 22-03 type guards and dialog encapsulation: validateEnum pattern, BeneficiaryDialog state encapsulation (CLEAN-04, CLEAN-09)
+Last activity: 2026-03-11 -- Completed 22-02 entity cache + structured logging: replaced entityId=1 in 17 admin clients, structured logger in auth routes, generic 500 in analyze (CLEAN-03, CLEAN-07, CLEAN-08)
 
-Progress: [████████░░] 89%
+Progress: [██████████] 100%
 
 ## Accumulated Context
 
@@ -86,6 +86,9 @@ Progress: [████████░░] 89%
 - [v4.0] Trustee edit reuses create dialog via shared editingId state pattern
 - [v4.0] validateEnum<T> generic for runtime enum validation -- throws descriptive Error on invalid input
 - [v4.0] Dialog components own internal form state (distribution, deceased) -- parent passes minimal props
+- [v4.0] Entity cache pattern: trpc.entity.list.useQuery() + entities?.[0]?.id replaces hardcoded entityId=1 in all 17 admin clients
+- [v4.0] Query guard { enabled: !!entityId } on all entity-dependent queries; entityId! non-null assertion for mutation payloads
+- [v4.0] Structured logging (logger.auth/logger.api) replaces console.error in API routes; generic 500 errors prevent message leaks
 
 ### Auth API Patterns That Work
 
@@ -127,6 +130,6 @@ const rows = await sql`SELECT id, name, email FROM neon_auth."user" WHERE lower(
 
 ## Session Continuity
 
-Last session: 2026-03-11T14:24:00.000Z
-Stopped at: Completed 22-03-PLAN.md
+Last session: 2026-03-11T14:40:53.000Z
+Stopped at: Completed 22-02-PLAN.md
 Resume file: None

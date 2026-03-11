@@ -53,12 +53,12 @@ Requirements derived from comprehensive critical review of 45 findings across se
 
 - [ ] **CLEAN-01**: Delete ~50 unused CRUD functions from db/queries.ts
 - [ ] **CLEAN-02**: Delete unused src/lib/date-utils.ts and remove date-fns dependency if unused elsewhere
-- [ ] **CLEAN-03**: Replace hardcoded entityId=1 in 15 client components with entity query cache pattern
+- [x] **CLEAN-03**: Replace hardcoded entityId=1 in 15 client components with entity query cache pattern
 - [x] **CLEAN-04**: Replace identity cast functions in type-utils.ts with runtime-validating type guards
 - [x] **CLEAN-05**: Delete unused hooks (use-entity-filter.ts) and unused computed values (_total* in DashboardClient)
 - [ ] **CLEAN-06**: Consolidate duplicate TxSql type into shared export from db/index.ts
-- [ ] **CLEAN-07**: Replace console.error in auth routes with structured logger calls
-- [ ] **CLEAN-08**: Remove error message leaking in inventory analyze route 500 response
+- [x] **CLEAN-07**: Replace console.error in auth routes with structured logger calls
+- [x] **CLEAN-08**: Remove error message leaking in inventory analyze route 500 response
 - [x] **CLEAN-09**: Encapsulate BeneficiariesClient dialog state inside BeneficiaryDialog component
 - [x] **CLEAN-10**: Memoize DashboardClient filter calls; remove redundant entity.byId and beneficiary.byId fetches
 
@@ -131,12 +131,12 @@ Deferred -- acknowledged but not in v4.0 scope.
 | FEAT-11 | Phase 21 | Complete |
 | CLEAN-01 | Phase 22 | Pending |
 | CLEAN-02 | Phase 22 | Pending |
-| CLEAN-03 | Phase 22 | Pending |
+| CLEAN-03 | Phase 22 | Complete |
 | CLEAN-04 | Phase 22 | Complete |
 | CLEAN-05 | Phase 17 | Complete |
 | CLEAN-06 | Phase 22 | Pending |
-| CLEAN-07 | Phase 22 | Pending |
-| CLEAN-08 | Phase 22 | Pending |
+| CLEAN-07 | Phase 22 | Complete |
+| CLEAN-08 | Phase 22 | Complete |
 | CLEAN-09 | Phase 22 | Complete |
 | CLEAN-10 | Phase 17 | Complete |
 
