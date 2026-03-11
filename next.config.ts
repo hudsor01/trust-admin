@@ -74,7 +74,6 @@ const nextConfig: NextConfig = {
             '@radix-ui/react-tabs',
             '@radix-ui/react-tooltip',
             'recharts',
-            'date-fns',
         ],
     },
 
