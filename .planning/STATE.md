@@ -4,7 +4,7 @@ milestone: v4.0
 milestone_name: Production Hardening & Completeness
 status: completed
 stopped_at: Completed 22-01-PLAN.md
-last_updated: "2026-03-11T14:33:08.000Z"
+last_updated: "2026-03-11T14:38:47.648Z"
 last_activity: "2026-03-11 -- Completed 22-01 dead code removal: 110 dead exports removed from db/queries.ts, date-utils.ts deleted, TxSql consolidated (CLEAN-01, CLEAN-02, CLEAN-06)"
 progress:
   total_phases: 8
