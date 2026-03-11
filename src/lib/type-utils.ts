@@ -91,66 +91,94 @@ export function enumToOptions<T extends readonly string[]>(
         .map((value) => ({ value, label: toLabel(value) }))
 }
 
+/** Validate that a string is a member of an enum's values array. Throws on invalid input. */
+function validateEnum<T extends string>(
+    value: string,
+    values: readonly T[],
+    enumName: string,
+): T {
+    if ((values as readonly string[]).includes(value)) {
+        return value as T
+    }
+    throw new Error(
+        `Invalid ${enumName}: "${value}". Expected one of: ${values.join(', ')}`,
+    )
+}
+
 export function asRecordStatus(value: string): RecordStatus {
-    return value as RecordStatus
+    return validateEnum(value, RECORD_STATUS_VALUES, 'RecordStatus')
 }
 
 export function asDistributionType(value: string): DistributionType {
-    return value as DistributionType
+    return validateEnum(value, DISTRIBUTION_TYPE_VALUES, 'DistributionType')
 }
 
 export function asLiabilityType(value: string): LiabilityType {
-    return value as LiabilityType
+    return validateEnum(value, LIABILITY_TYPE_VALUES, 'LiabilityType')
 }
 
 export function asPaymentMethod(value: string): PaymentMethod {
-    return value as PaymentMethod
+    return validateEnum(value, PAYMENT_METHOD_VALUES, 'PaymentMethod')
 }
 
 export function asPropertyType(value: string): PropertyType {
-    return value as PropertyType
+    return validateEnum(value, PROPERTY_TYPE_VALUES, 'PropertyType')
 }
 
 export function asRentalStatus(value: string): RentalStatus {
-    return value as RentalStatus
+    return validateEnum(value, RENTAL_STATUS_VALUES, 'RentalStatus')
 }
 
 export function asTitleStatus(value: string): TitleStatus {
-    return value as TitleStatus
+    return validateEnum(value, TITLE_STATUS_VALUES, 'TitleStatus')
 }
 
 export function asTransferStatus(value: string): TransferStatus {
-    return value as TransferStatus
+    return validateEnum(value, TRANSFER_STATUS_VALUES, 'TransferStatus')
 }
 
 export function asDistributionStandard(value: string): DistributionStandard {
-    return value as DistributionStandard
+    return validateEnum(
+        value,
+        DISTRIBUTION_STANDARD_VALUES,
+        'DistributionStandard',
+    )
 }
 
 export function asTrusteeStatus(value: string): TrusteeStatus {
-    return value as TrusteeStatus
+    return validateEnum(value, TRUSTEE_STATUS_VALUES, 'TrusteeStatus')
 }
 
 export function asAllocationClass(value: string): AllocationClass {
-    return value as AllocationClass
+    return validateEnum(value, ALLOCATION_CLASS_VALUES, 'AllocationClass')
 }
 
 export function asValuationType(value: string | null): ValuationType | null {
-    return value as ValuationType | null
+    if (value === null) return null
+    return validateEnum(value, VALUATION_TYPE_VALUES, 'ValuationType')
 }
 
 export function asInsurancePolicyType(value: string): InsurancePolicyType {
-    return value as InsurancePolicyType
+    return validateEnum(
+        value,
+        INSURANCE_POLICY_TYPE_VALUES,
+        'InsurancePolicyType',
+    )
 }
 
 export function asPremiumFrequency(
     value: string | null,
 ): PremiumFrequency | null {
-    return value as PremiumFrequency | null
+    if (value === null) return null
+    return validateEnum(value, PREMIUM_FREQUENCY_VALUES, 'PremiumFrequency')
 }
 
 export function asPersonalPropertyCategory(
     value: string,
 ): PersonalPropertyCategory {
-    return value as PersonalPropertyCategory
+    return validateEnum(
+        value,
+        PERSONAL_PROPERTY_CATEGORY_VALUES,
+        'PersonalPropertyCategory',
+    )
 }
