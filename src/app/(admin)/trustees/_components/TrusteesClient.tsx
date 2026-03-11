@@ -23,6 +23,8 @@ export function TrusteesClient() {
     const { data: trustees = [], isLoading: trusteesLoading } =
         trpc.trustee.list.useQuery({ entityId })
 
+    const { data: contacts } = trpc.contact.list.useQuery()
+
     const createTrusteeMutation = trpc.trustee.create.useMutation({
         onSuccess: () => utils.trustee.list.invalidate(),
     })
@@ -33,21 +35,52 @@ export function TrusteesClient() {
         onSuccess: () => utils.trustee.list.invalidate(),
     })
 
+    const [editingId, setEditingId] = useState<number | null>(null)
+
     const trusteeForm = useResourceForm({
         initialData: trusteeFormDefaults(),
         onSubmit: async (data) => {
             const payload = {
-                entityId,
                 name: data.name,
                 status: asTrusteeStatus(data.status ?? ''),
                 order: data.order,
                 startDate: data.startDate || null,
                 endDate: data.endDate || null,
+                contactId: data.contactId ? Number(data.contactId) : null,
+                coTrusteeId: data.coTrusteeId ? Number(data.coTrusteeId) : null,
             }
-            await createTrusteeMutation.mutateAsync(payload)
-            toast.success('Trustee created')
+
+            if (editingId) {
+                await updateTrusteeMutation.mutateAsync({
+                    id: editingId,
+                    entityId,
+                    data: payload,
+                })
+                toast.success('Trustee updated')
+                setEditingId(null)
+            } else {
+                await createTrusteeMutation.mutateAsync({
+                    entityId,
+                    ...payload,
+                })
+                toast.success('Trustee created')
+            }
         },
     })
+
+    const handleEditTrustee = (t: TrusteeRow) => {
+        setEditingId(t.id)
+        trusteeForm.handleEdit({
+            name: t.name,
+            status: t.status ?? 'ACTIVE',
+            order: t.order,
+            isCo: t.isCo ?? false,
+            coTrusteeId: t.coTrusteeId?.toString() ?? null,
+            contactId: t.contactId?.toString() ?? null,
+            startDate: t.startDate?.split('T')[0] ?? null,
+            endDate: t.endDate?.split('T')[0] ?? null,
+        })
+    }
 
     const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null)
 
@@ -107,7 +140,12 @@ export function TrusteesClient() {
                 <h2 className="text-2xl font-semibold tracking-tight text-balance">
                     Trustees
                 </h2>
-                <Button onClick={() => trusteeForm.open()}>
+                <Button
+                    onClick={() => {
+                        setEditingId(null)
+                        trusteeForm.open()
+                    }}
+                >
                     <Plus className="h-4 w-4 mr-2" />
                     Add Trustee
                 </Button>
@@ -131,6 +169,7 @@ export function TrusteesClient() {
                             trustees={currentTrustees}
                             allowPrimaryLock={true}
                             onDelete={handleDelete}
+                            onEdit={handleEditTrustee}
                             onUpdateField={handleUpdateField}
                         />
                     )}
@@ -141,7 +180,12 @@ export function TrusteesClient() {
                 <h3 className="text-lg font-semibold tracking-tight">
                     Arbiters
                 </h3>
-                <Button onClick={() => trusteeForm.open({ status: 'ARBITER' })}>
+                <Button
+                    onClick={() => {
+                        setEditingId(null)
+                        trusteeForm.open({ status: 'ARBITER' })
+                    }}
+                >
                     <Plus className="h-4 w-4 mr-2" />
                     Add Arbiter
                 </Button>
@@ -160,6 +204,7 @@ export function TrusteesClient() {
                             )}
                             allowPrimaryLock={false}
                             onDelete={handleDelete}
+                            onEdit={handleEditTrustee}
                             onUpdateField={handleUpdateField}
                         />
                     )}
@@ -168,11 +213,24 @@ export function TrusteesClient() {
 
             <TrusteeDialog
                 isOpen={trusteeForm.isOpen}
-                isEditing={trusteeForm.isEditing}
+                isEditing={trusteeForm.isEditing || editingId !== null}
                 isSubmitting={trusteeForm.isSubmitting}
-                onOpenChange={trusteeForm.close}
+                onOpenChange={() => {
+                    setEditingId(null)
+                    trusteeForm.close()
+                }}
                 onSubmit={trusteeForm.handleSave}
                 formInstance={trusteeForm.formInstance}
+                trustees={trustees.map((t) => ({
+                    id: t.id,
+                    name: t.name,
+                }))}
+                contacts={(contacts ?? []).map((c) => ({
+                    id: c.id,
+                    name: c.name,
+                    role: c.role,
+                }))}
+                currentTrusteeId={editingId ?? undefined}
             />
 
             <ConfirmDialog {...deleteDialogProps} />

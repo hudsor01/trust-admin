@@ -149,6 +149,7 @@ export const trusteeFormDefaults = createFormDefaults({
     order: 1,
     isCo: false,
     coTrusteeId: null as string | null,
+    contactId: null as string | null,
     startDate: null as string | null,
     endDate: null as string | null,
 })
