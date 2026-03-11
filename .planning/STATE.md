@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Production Hardening & Completeness
-status: completed
-stopped_at: Completed 21-01-PLAN.md
-last_updated: "2026-03-11T01:57:01.122Z"
-last_activity: "2026-03-11 -- Completed 21-01 admin feature completeness: accounting reconciliation, contact credentials, trustee relationships (FEAT-09, FEAT-10, FEAT-11)"
+status: in-progress
+stopped_at: Completed 22-03-PLAN.md
+last_updated: "2026-03-11T14:24:00.000Z"
+last_activity: "2026-03-11 -- Completed 22-03 type guards and dialog encapsulation: validateEnum pattern, BeneficiaryDialog state encapsulation (CLEAN-04, CLEAN-09)"
 progress:
   total_phases: 8
   completed_phases: 7
-  total_plans: 16
-  completed_plans: 16
-  percent: 100
+  total_plans: 19
+  completed_plans: 17
+  percent: 89
 ---
 
 # State: Trust Admin
@@ -19,12 +19,12 @@ progress:
 ## Current Position
 
 Milestone: v4.0 Production Hardening & Completeness
-Phase: 21 of 22 (admin-feature-completeness)
-Plan: 1 of 1 completed in current phase
-Status: Phase complete
-Last activity: 2026-03-11 -- Completed 21-01 admin feature completeness: accounting reconciliation, contact credentials, trustee relationships (FEAT-09, FEAT-10, FEAT-11)
+Phase: 22 of 22 (code-quality-cleanup)
+Plan: 3 of 3 in current phase (1 completed)
+Status: In progress
+Last activity: 2026-03-11 -- Completed 22-03 type guards and dialog encapsulation: validateEnum pattern, BeneficiaryDialog state encapsulation (CLEAN-04, CLEAN-09)
 
-Progress: [██████████] 100%
+Progress: [████████░░] 89%
 
 ## Accumulated Context
 
@@ -84,6 +84,8 @@ Progress: [██████████] 100%
 - [v4.0] Conditional form fields via formInstance.Subscribe selector pattern for role-dependent professional fields
 - [v4.0] Nullable FK Select dropdowns use "none" sentinel value mapped to null in onValueChange
 - [v4.0] Trustee edit reuses create dialog via shared editingId state pattern
+- [v4.0] validateEnum<T> generic for runtime enum validation -- throws descriptive Error on invalid input
+- [v4.0] Dialog components own internal form state (distribution, deceased) -- parent passes minimal props
 
 ### Auth API Patterns That Work
 
@@ -125,6 +127,6 @@ const rows = await sql`SELECT id, name, email FROM neon_auth."user" WHERE lower(
 
 ## Session Continuity
 
-Last session: 2026-03-11T01:54:05.475Z
-Stopped at: Completed 21-01-PLAN.md
+Last session: 2026-03-11T14:24:00.000Z
+Stopped at: Completed 22-03-PLAN.md
 Resume file: None
