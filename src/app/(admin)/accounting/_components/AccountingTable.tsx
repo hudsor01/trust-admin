@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { DataTable } from '@/components/ui/data-table'
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
+import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { TrustAccounting } from '@/db/schema'
 import { cn } from '@/lib/utils'
@@ -64,7 +65,12 @@ export function AccountingTable({
             id: 'category',
             header: 'Category',
             cell: ({ row }) => (
-                <div className="text-sm">
+                <div
+                    className={cn(
+                        'text-sm',
+                        row.original.reconciled && 'opacity-60',
+                    )}
+                >
                     {row.original.entryType === 'INCOME'
                         ? INCOME_TYPES.find(
                               (t) => t.value === row.original.incomeType,
@@ -79,15 +85,17 @@ export function AccountingTable({
             accessorKey: 'description',
             header: 'Description',
             cell: ({ row }) => (
-                <EditableTextCell
-                    value={row.original.description}
-                    onSave={async (v) =>
-                        onUpdateEntry(row.original.id, {
-                            description: v || undefined,
-                        })
-                    }
-                    placeholder="Add description"
-                />
+                <div className={cn(row.original.reconciled && 'opacity-60')}>
+                    <EditableTextCell
+                        value={row.original.description}
+                        onSave={async (v) =>
+                            onUpdateEntry(row.original.id, {
+                                description: v || undefined,
+                            })
+                        }
+                        placeholder="Add description"
+                    />
+                </div>
             ),
         },
         {
@@ -99,7 +107,12 @@ export function AccountingTable({
                 if (row.original.taxDeductible) flags.push('D')
                 if (flags.length === 0) return null
                 return (
-                    <div className="flex gap-1">
+                    <div
+                        className={cn(
+                            'flex gap-1',
+                            row.original.reconciled && 'opacity-60',
+                        )}
+                    >
                         {flags.map((f) => (
                             <Badge
                                 key={f}
@@ -138,6 +151,30 @@ export function AccountingTable({
                             })
                         }
                     />
+                </div>
+            ),
+        },
+        {
+            id: 'reconciled',
+            header: 'Reconciled',
+            cell: ({ row }) => (
+                <div className="flex items-center gap-2">
+                    <Switch
+                        checked={row.original.reconciled ?? false}
+                        onCheckedChange={(checked) =>
+                            onUpdateEntry(row.original.id, {
+                                reconciled: checked,
+                                reconciledDate: checked
+                                    ? new Date().toISOString()
+                                    : null,
+                            })
+                        }
+                    />
+                    {row.original.reconciledDate && (
+                        <span className="text-xs text-muted-foreground">
+                            {formatDate(row.original.reconciledDate)}
+                        </span>
+                    )}
                 </div>
             ),
         },
