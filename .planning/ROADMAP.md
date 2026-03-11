@@ -181,10 +181,12 @@ Plans:
   5. TxSql type has a single shared definition exported from db/index.ts (duplicate in contact.ts removed)
   6. Auth route error handling uses structured logger instead of console.error; inventory analyze route returns generic 500 without leaking exception details
   7. BeneficiariesClient dialog state is encapsulated inside BeneficiaryDialog component
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 22-01: TBD
+- [ ] 22-01-PLAN.md -- Dead code removal from db/queries.ts, date-utils.ts deletion, TxSql consolidation
+- [ ] 22-02-PLAN.md -- entityId cache pattern in admin client components, structured logging in auth routes, analyze route error fix
+- [ ] 22-03-PLAN.md -- Runtime-validating type guards, BeneficiaryDialog state encapsulation
 
 ## Progress
 
@@ -213,6 +215,6 @@ Phases execute in numeric order: 15 -> 16 -> 17 -> 18 -> 19 -> 20 -> 21 -> 22
 | 17. dashboard-accounting-performance | v4.0 | 3/3 | Complete | 2026-03-09 |
 | 18. data-integrity-correctness | v4.0 | 3/3 | Complete | 2026-03-09 |
 | 19. missing-asset-uis | v4.0 | 3/3 | Complete | 2026-03-09 |
-| 20. beneficiary-distribution-features | 2/2 | Complete    | 2026-03-10 | - |
-| 21. admin-feature-completeness | 1/1 | Complete    | 2026-03-11 | - |
-| 22. code-quality-cleanup | v4.0 | 0/1 | Not started | - |
+| 20. beneficiary-distribution-features | v4.0 | 2/2 | Complete | 2026-03-10 |
+| 21. admin-feature-completeness | v4.0 | 1/1 | Complete | 2026-03-11 |
+| 22. code-quality-cleanup | v4.0 | 0/3 | Not started | - |
