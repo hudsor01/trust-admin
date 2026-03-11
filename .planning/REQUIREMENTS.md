@@ -45,9 +45,9 @@ Requirements derived from comprehensive critical review of 45 findings across se
 - [x] **FEAT-06**: Admin can edit beneficiary tax fields (taxId) and per-beneficiary withdrawal ages/percentages
 - [x] **FEAT-07**: Admin can mark distributions as tax-reported and 1099-issued
 - [x] **FEAT-08**: HEMS requests can be cancelled (admin or beneficiary)
-- [ ] **FEAT-09**: Trust accounting entries support reconciliation workflow (reconciled flag + date)
-- [ ] **FEAT-10**: Contact fields include licenseNo and barNo for attorneys/CPAs
-- [ ] **FEAT-11**: Trustee records support coTrusteeId and contactId editing
+- [x] **FEAT-09**: Trust accounting entries support reconciliation workflow (reconciled flag + date)
+- [x] **FEAT-10**: Contact fields include licenseNo and barNo for attorneys/CPAs
+- [x] **FEAT-11**: Trustee records support coTrusteeId and contactId editing
 
 ### Dead Code & Cleanup
 
@@ -126,9 +126,9 @@ Deferred -- acknowledged but not in v4.0 scope.
 | FEAT-06 | Phase 20 | Complete |
 | FEAT-07 | Phase 20 | Complete |
 | FEAT-08 | Phase 20 | Complete |
-| FEAT-09 | Phase 21 | Pending |
-| FEAT-10 | Phase 21 | Pending |
-| FEAT-11 | Phase 21 | Pending |
+| FEAT-09 | Phase 21 | Complete |
+| FEAT-10 | Phase 21 | Complete |
+| FEAT-11 | Phase 21 | Complete |
 | CLEAN-01 | Phase 22 | Pending |
 | CLEAN-02 | Phase 22 | Pending |
 | CLEAN-03 | Phase 22 | Pending |

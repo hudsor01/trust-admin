@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Production Hardening & Completeness
 status: completed
-stopped_at: Completed 20-02-PLAN.md (admin HEMS cancel, tax fields, distribution toggles)
-last_updated: "2026-03-10T20:15:34.923Z"
-last_activity: 2026-03-10 -- Completed 20-02 admin HEMS cancel, beneficiary tax fields, distribution tax toggles (FEAT-06, FEAT-07, FEAT-08)
+stopped_at: Completed 21-01-PLAN.md
+last_updated: "2026-03-11T01:54:05.478Z"
+last_activity: "2026-03-11 -- Completed 21-01 admin feature completeness: accounting reconciliation, contact credentials, trustee relationships (FEAT-09, FEAT-10, FEAT-11)"
 progress:
   total_phases: 8
-  completed_phases: 6
-  total_plans: 15
-  completed_plans: 15
+  completed_phases: 7
+  total_plans: 16
+  completed_plans: 16
   percent: 100
 ---
 
@@ -19,10 +19,10 @@ progress:
 ## Current Position
 
 Milestone: v4.0 Production Hardening & Completeness
-Phase: 20 of 22 (beneficiary-distribution-features)
-Plan: 2 of 2 completed in current phase
+Phase: 21 of 22 (admin-feature-completeness)
+Plan: 1 of 1 completed in current phase
 Status: Phase complete
-Last activity: 2026-03-10 -- Completed 20-02 admin HEMS cancel, beneficiary tax fields, distribution tax toggles (FEAT-06, FEAT-07, FEAT-08)
+Last activity: 2026-03-11 -- Completed 21-01 admin feature completeness: accounting reconciliation, contact credentials, trustee relationships (FEAT-09, FEAT-10, FEAT-11)
 
 Progress: [██████████] 100%
 
@@ -80,6 +80,10 @@ Progress: [██████████] 100%
 - [v4.0] Tax ID masking via helper text below field -- EditableTextCell has no displayValue prop; full value visible only in admin edit mode
 - [v4.0] HEMS cancel button on all non-CANCELLED statuses with contextual warning for processed (APPROVED/DISTRIBUTED) requests
 - [v4.0] Distribution tax toggles use Switch component with inline tRPC mutation to distribution.update
+- [v4.0] Accounting reconciliation uses opacity-60 on description/category/flags cells (DataTable lacks rowClassName)
+- [v4.0] Conditional form fields via formInstance.Subscribe selector pattern for role-dependent professional fields
+- [v4.0] Nullable FK Select dropdowns use "none" sentinel value mapped to null in onValueChange
+- [v4.0] Trustee edit reuses create dialog via shared editingId state pattern
 
 ### Auth API Patterns That Work
 
@@ -121,6 +125,6 @@ const rows = await sql`SELECT id, name, email FROM neon_auth."user" WHERE lower(
 
 ## Session Continuity
 
-Last session: 2026-03-10T20:11:21.251Z
-Stopped at: Completed 20-02-PLAN.md (admin HEMS cancel, tax fields, distribution toggles)
+Last session: 2026-03-11T01:54:05.475Z
+Stopped at: Completed 21-01-PLAN.md
 Resume file: None
