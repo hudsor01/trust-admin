@@ -122,6 +122,34 @@ export function ContactDetail({
                             )}
                         </div>
 
+                        {(contact.role === 'ATTORNEY' ||
+                            contact.role === 'ACCOUNTANT') &&
+                            (contact.licenseNo || contact.barNo) && (
+                                <>
+                                    <Separator />
+                                    <div>
+                                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+                                            Professional Credentials
+                                        </p>
+                                        {contact.licenseNo && (
+                                            <p className="text-sm text-muted-foreground">
+                                                {contact.role === 'ATTORNEY'
+                                                    ? 'Bar Number'
+                                                    : 'CPA License No.'}
+                                                : {contact.licenseNo}
+                                            </p>
+                                        )}
+                                        {contact.barNo &&
+                                            contact.role === 'ATTORNEY' && (
+                                                <p className="text-sm text-muted-foreground mt-1">
+                                                    State Bar Number:{' '}
+                                                    {contact.barNo}
+                                                </p>
+                                            )}
+                                    </div>
+                                </>
+                            )}
+
                         {contact.notes && (
                             <>
                                 <Separator />

@@ -164,6 +164,8 @@ export const contactFormDefaults = createFormDefaults({
     state: '',
     zip: '',
     notes: '',
+    licenseNo: '',
+    barNo: '',
 })
 
 export const artworkFormDefaults = createFormDefaults({

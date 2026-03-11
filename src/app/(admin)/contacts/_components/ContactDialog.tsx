@@ -116,6 +116,68 @@ export function ContactDialog({
                     )}
                 </formInstance.Field>
 
+                {/* Professional Fields (conditional on role) */}
+                <formInstance.Subscribe selector={(state) => state.values.role}>
+                    {(role) => {
+                        if (role !== 'ATTORNEY' && role !== 'ACCOUNTANT')
+                            return null
+                        return (
+                            <>
+                                <formInstance.Field name="licenseNo">
+                                    {(field) => (
+                                        <div className="space-y-2">
+                                            <Label htmlFor="licenseNo">
+                                                {role === 'ATTORNEY'
+                                                    ? 'Bar Number'
+                                                    : 'CPA License No.'}
+                                            </Label>
+                                            <Input
+                                                id="licenseNo"
+                                                placeholder={
+                                                    role === 'ATTORNEY'
+                                                        ? 'TX Bar #'
+                                                        : 'CPA License #'
+                                                }
+                                                value={field.state.value || ''}
+                                                onChange={(e) =>
+                                                    field.handleChange(
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                onBlur={field.handleBlur}
+                                            />
+                                        </div>
+                                    )}
+                                </formInstance.Field>
+                                {role === 'ATTORNEY' && (
+                                    <formInstance.Field name="barNo">
+                                        {(field) => (
+                                            <div className="space-y-2">
+                                                <Label htmlFor="barNo">
+                                                    State Bar Number
+                                                </Label>
+                                                <Input
+                                                    id="barNo"
+                                                    placeholder="e.g., 24012345"
+                                                    value={
+                                                        field.state.value || ''
+                                                    }
+                                                    onChange={(e) =>
+                                                        field.handleChange(
+                                                            e.target.value,
+                                                        )
+                                                    }
+                                                    onBlur={field.handleBlur}
+                                                />
+                                            </div>
+                                        )}
+                                    </formInstance.Field>
+                                )}
+                            </>
+                        )
+                    }}
+                </formInstance.Subscribe>
+
                 {/* Email */}
                 <formInstance.Field name="email">
                     {(field) => (

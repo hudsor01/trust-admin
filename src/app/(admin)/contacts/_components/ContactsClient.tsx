@@ -61,6 +61,8 @@ export function ContactsClient() {
                 state: data.state || null,
                 zip: data.zip || null,
                 notes: data.notes || null,
+                licenseNo: data.licenseNo || null,
+                barNo: data.barNo || null,
             }
 
             if (contactForm.isEditing && contactForm.editing) {
