@@ -31,8 +31,10 @@ const {
     recordFailure,
     resetFailures,
     failedAttempts,
-    verifyAccessCode,
-} = await import('../../src/app/forms/_actions/verifyAccess')
+} = await import('../../src/app/forms/_actions/access-lockout')
+const { verifyAccessCode } = await import(
+    '../../src/app/forms/_actions/verifyAccess'
+)
 
 describe('constantTimeCompare', () => {
     test('returns true for matching strings', () => {

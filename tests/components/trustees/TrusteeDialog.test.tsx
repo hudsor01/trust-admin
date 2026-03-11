@@ -20,7 +20,27 @@ const makeFormInstance = () => ({
                 handleBlur: mock(() => {}),
             }),
     ),
+    Subscribe: mock(
+        ({
+            children,
+        }: {
+            selector: (state: unknown) => unknown
+            children: (value: unknown) => React.ReactNode
+        }) => children('ACTIVE'),
+    ),
 })
+
+const defaultExtraProps = {
+    trustees: [
+        { id: 1, name: 'Trustee A' },
+        { id: 2, name: 'Trustee B' },
+    ],
+    contacts: [
+        { id: 1, name: 'John Attorney', role: 'ATTORNEY' },
+        { id: 2, name: 'Jane CPA', role: 'ACCOUNTANT' },
+    ],
+    currentTrusteeId: undefined as number | undefined,
+}
 
 describe('TrusteeDialog', () => {
     afterEach(() => {
@@ -36,6 +56,7 @@ describe('TrusteeDialog', () => {
                 onOpenChange={mock(() => {})}
                 onSubmit={mock(() => {})}
                 formInstance={makeFormInstance()}
+                {...defaultExtraProps}
             />,
         )
         expect(container).toBeTruthy()
@@ -50,6 +71,7 @@ describe('TrusteeDialog', () => {
                 onOpenChange={mock(() => {})}
                 onSubmit={mock(() => {})}
                 formInstance={makeFormInstance()}
+                {...defaultExtraProps}
             />,
         )
 
@@ -65,6 +87,7 @@ describe('TrusteeDialog', () => {
                 onOpenChange={mock(() => {})}
                 onSubmit={mock(() => {})}
                 formInstance={makeFormInstance()}
+                {...defaultExtraProps}
             />,
         )
 
@@ -83,6 +106,7 @@ describe('TrusteeDialog', () => {
                 onOpenChange={mock(() => {})}
                 onSubmit={onSubmit}
                 formInstance={makeFormInstance()}
+                {...defaultExtraProps}
             />,
         )
 
@@ -104,6 +128,7 @@ describe('TrusteeDialog', () => {
                 onOpenChange={onOpenChange}
                 onSubmit={mock(() => {})}
                 formInstance={makeFormInstance()}
+                {...defaultExtraProps}
             />,
         )
 
@@ -122,6 +147,7 @@ describe('TrusteeDialog', () => {
                 onOpenChange={mock(() => {})}
                 onSubmit={mock(() => {})}
                 formInstance={makeFormInstance()}
+                {...defaultExtraProps}
             />,
         )
 
@@ -137,6 +163,7 @@ describe('TrusteeDialog', () => {
                 onOpenChange={mock(() => {})}
                 onSubmit={mock(() => {})}
                 formInstance={makeFormInstance()}
+                {...defaultExtraProps}
             />,
         )
 

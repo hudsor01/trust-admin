@@ -378,7 +378,7 @@ describe('POST /api/inventory/analyze', () => {
 
             expect(response.status).toBe(500)
             expect(data.success).toBe(false)
-            expect(data.error).toBe('Something went wrong')
+            expect(data.error).toBe('Internal server error')
         })
     })
 

@@ -16,8 +16,15 @@ mock.module('@anthropic-ai/sdk', () => ({
     },
 }))
 
-// Ensure ANTHROPIC_API_KEY is set before module loads
+// Mock env module so ANTHROPIC_API_KEY is always present (env.ts may already
+// be cached without it when running the full suite).
 process.env.ANTHROPIC_API_KEY = 'test-key-for-enhanced'
+mock.module('../../src/lib/env', () => ({
+    env: {
+        ...process.env,
+        ANTHROPIC_API_KEY: 'test-key-for-enhanced',
+    },
+}))
 
 const { analyzeWithMarketResearch, valueItemByDescription } = await import(
     '../../src/lib/inventory-analysis-enhanced'
