@@ -16,13 +16,20 @@ const log = logger.create('Bequests')
 
 export function BequestsClient() {
     const utils = trpc.useUtils()
-    const entityId = 1
+    const { data: entities } = trpc.entity.list.useQuery()
+    const entityId = entities?.[0]?.id
 
-    const { data: beneficiaries = [] } = trpc.beneficiary.list.useQuery({
-        entityId,
-    })
+    const { data: beneficiaries = [] } = trpc.beneficiary.list.useQuery(
+        {
+            entityId: entityId!,
+        },
+        { enabled: !!entityId },
+    )
     const { data: bequests = [], isLoading: bequestsLoading } =
-        trpc.specificBequest.list.useQuery({ entityId })
+        trpc.specificBequest.list.useQuery(
+            { entityId: entityId! },
+            { enabled: !!entityId },
+        )
 
     const createBequestMutation = trpc.specificBequest.create.useMutation({
         onSuccess: () => utils.specificBequest.list.invalidate(),
@@ -52,7 +59,7 @@ export function BequestsClient() {
         },
         onSubmit: async (data) => {
             const payload = {
-                entityId,
+                entityId: entityId!,
                 description: data.description,
                 category: data.category || 'OTHER',
                 beneficiaryId: data.beneficiaryId
@@ -65,7 +72,7 @@ export function BequestsClient() {
             if (bequestForm.isEditing && editingBequestId) {
                 await updateBequestMutation.mutateAsync({
                     id: editingBequestId,
-                    entityId,
+                    entityId: entityId!,
                     data: payload,
                 })
             } else {
@@ -87,7 +94,7 @@ export function BequestsClient() {
                 try {
                     await deleteBequestMutation.mutateAsync({
                         id: pendingDeleteId,
-                        entityId,
+                        entityId: entityId!,
                     })
                 } catch (error) {
                     log.error('Failed to delete bequest', { error })
@@ -108,7 +115,7 @@ export function BequestsClient() {
     ) => {
         await updateBequestMutation.mutateAsync({
             id,
-            entityId,
+            entityId: entityId!,
             data: updates,
         })
     }
@@ -117,7 +124,7 @@ export function BequestsClient() {
         try {
             await updateBequestMutation.mutateAsync({
                 id: bequest.id,
-                entityId,
+                entityId: entityId!,
                 data: { dateDistributed: new Date().toISOString() },
             })
         } catch (error) {

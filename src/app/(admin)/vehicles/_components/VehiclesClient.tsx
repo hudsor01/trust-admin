@@ -23,11 +23,15 @@ import { VehicleTable } from './VehicleTable'
 const log = logger.create('Vehicles')
 
 export function VehiclesClient() {
-    const entityId = 1
     const utils = trpc.useUtils()
+    const { data: entities } = trpc.entity.list.useQuery()
+    const entityId = entities?.[0]?.id
 
     const { data: vehicles = [], isLoading: vehiclesLoading } =
-        trpc.vehicle.list.useQuery({ entityId })
+        trpc.vehicle.list.useQuery(
+            { entityId: entityId! },
+            { enabled: !!entityId },
+        )
 
     const createVehicleMutation = trpc.vehicle.create.useMutation({
         onSuccess: () => utils.vehicle.list.invalidate(),
@@ -53,7 +57,7 @@ export function VehiclesClient() {
                 try {
                     await deleteVehicleMutation.mutateAsync({
                         id: pendingDelete.id,
-                        entityId,
+                        entityId: entityId!,
                     })
                 } catch (err) {
                     log.error('Failed to delete vehicle', { error: err })
@@ -67,7 +71,7 @@ export function VehiclesClient() {
         initialData: vehicleFormDefaults(),
         onSubmit: async (data) => {
             const payload = {
-                entityId,
+                entityId: entityId!,
                 year: data.year,
                 make: data.make,
                 model: data.model,
@@ -94,7 +98,7 @@ export function VehiclesClient() {
                 const editingId = (vehicleForm.editing as Vehicle).id
                 await updateVehicleMutation.mutateAsync({
                     id: editingId,
-                    entityId,
+                    entityId: entityId!,
                     data: payload,
                 })
             } else {
@@ -133,14 +137,14 @@ export function VehiclesClient() {
             try {
                 await updateVehicleMutation.mutateAsync({
                     id,
-                    entityId,
+                    entityId: entityId!,
                     data: updates,
                 })
             } catch (err) {
                 log.error('Failed to update vehicle', { error: err })
             }
         },
-        [updateVehicleMutation],
+        [updateVehicleMutation, entityId],
     )
 
     const totalValue = sumStrings(vehicles.map((v) => v.dodValue))

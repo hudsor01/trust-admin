@@ -29,10 +29,14 @@ const log = logger.create('Liabilities')
 
 export function LiabilitiesClient() {
     const utils = trpc.useUtils()
-    const entityId = 1
+    const { data: entities } = trpc.entity.list.useQuery()
+    const entityId = entities?.[0]?.id
 
     const { data: liabilities = [], isLoading: liabilitiesLoading } =
-        trpc.liability.list.useQuery({ entityId })
+        trpc.liability.list.useQuery(
+            { entityId: entityId! },
+            { enabled: !!entityId },
+        )
 
     const [optimisticLiabilities, setOptimisticLiability] = useOptimistic(
         liabilities,
@@ -44,9 +48,12 @@ export function LiabilitiesClient() {
             ),
     )
 
-    const { data: bankAccounts = [] } = trpc.bankAccount.list.useQuery({
-        entityId,
-    })
+    const { data: bankAccounts = [] } = trpc.bankAccount.list.useQuery(
+        {
+            entityId: entityId!,
+        },
+        { enabled: !!entityId },
+    )
 
     const createLiabilityMutation = trpc.liability.create.useMutation({
         onSuccess: () => {
@@ -91,7 +98,7 @@ export function LiabilitiesClient() {
     const updateLiability = async (id: number, data: Partial<Liability>) => {
         await updateLiabilityMutation.mutateAsync({
             id,
-            entityId,
+            entityId: entityId!,
             data,
         })
     }
@@ -107,7 +114,7 @@ export function LiabilitiesClient() {
         onSubmit: async (data) => {
             const liabilityType = asLiabilityType(data.liabilityType)
             const payload = {
-                entityId,
+                entityId: entityId!,
                 liabilityType,
                 creditor: data.creditor,
                 description: data.description || null,
@@ -139,7 +146,7 @@ export function LiabilitiesClient() {
             if (liabilityForm.isEditing && editingLiabilityId) {
                 await updateLiabilityMutation.mutateAsync({
                     id: editingLiabilityId,
-                    entityId,
+                    entityId: entityId!,
                     data: payload,
                 })
             } else {
@@ -187,7 +194,7 @@ export function LiabilitiesClient() {
                           | 'OTHER')
 
             await recordPaymentMutation.mutateAsync({
-                entityId,
+                entityId: entityId!,
                 liabilityId: payingLiabilityId,
                 paymentDate: data.paymentDate,
                 amount: data.amount,
@@ -238,7 +245,7 @@ export function LiabilitiesClient() {
                 try {
                     await deleteLiabilityMutation.mutateAsync({
                         id: pendingDeleteId,
-                        entityId,
+                        entityId: entityId!,
                     })
                 } catch (err) {
                     log.error('Failed to delete liability', { error: err })
@@ -270,7 +277,7 @@ export function LiabilitiesClient() {
 
     const handleBulkSave = async (rows: BulkLiabilityRow[]) => {
         await bulkCreateMutation.mutateAsync({
-            entityId,
+            entityId: entityId!,
             liabilities: rows,
         })
     }

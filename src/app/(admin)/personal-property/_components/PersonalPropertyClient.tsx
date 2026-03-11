@@ -23,11 +23,15 @@ import { PersonalPropertyTable } from './PersonalPropertyTable'
 const log = logger.create('PersonalProperty')
 
 export function PersonalPropertyClient() {
-    const entityId = 1
     const utils = trpc.useUtils()
+    const { data: entities } = trpc.entity.list.useQuery()
+    const entityId = entities?.[0]?.id
 
     const { data: items = [], isLoading: itemsLoading } =
-        trpc.personalProperty.list.useQuery({ entityId })
+        trpc.personalProperty.list.useQuery(
+            { entityId: entityId! },
+            { enabled: !!entityId },
+        )
 
     const createMutation = trpc.personalProperty.create.useMutation({
         onSuccess: () => utils.personalProperty.list.invalidate(),
@@ -55,7 +59,7 @@ export function PersonalPropertyClient() {
                 try {
                     await deleteMutation.mutateAsync({
                         id: pendingDelete.id,
-                        entityId,
+                        entityId: entityId!,
                     })
                 } catch (err) {
                     log.error('Failed to delete personal property', {
@@ -71,7 +75,7 @@ export function PersonalPropertyClient() {
         initialData: personalPropertyFormDefaults(),
         onSubmit: async (data) => {
             const payload = {
-                entityId,
+                entityId: entityId!,
                 name: data.name,
                 description: data.description || null,
                 category: asPersonalPropertyCategory(data.category),
@@ -94,7 +98,7 @@ export function PersonalPropertyClient() {
                 const editingId = (itemForm.editing as PersonalProperty).id
                 await updateMutation.mutateAsync({
                     id: editingId,
-                    entityId,
+                    entityId: entityId!,
                     data: payload,
                 })
             } else {
@@ -133,14 +137,14 @@ export function PersonalPropertyClient() {
             try {
                 await updateMutation.mutateAsync({
                     id,
-                    entityId,
+                    entityId: entityId!,
                     data: updates,
                 })
             } catch (err) {
                 log.error('Failed to update personal property', { error: err })
             }
         },
-        [updateMutation],
+        [updateMutation, entityId],
     )
 
     const totalValue = sumStrings(items.map((p) => p.dodValue))

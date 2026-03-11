@@ -27,15 +27,22 @@ const PAGE_SIZE = 50
 
 export function AccountingClient() {
     const utils = trpc.useUtils()
-    const entityId = 1
+    const { data: entities } = trpc.entity.list.useQuery()
+    const entityId = entities?.[0]?.id
 
-    const { data: bankAccounts = [] } = trpc.bankAccount.list.useQuery({
-        entityId,
-    })
+    const { data: bankAccounts = [] } = trpc.bankAccount.list.useQuery(
+        {
+            entityId: entityId!,
+        },
+        { enabled: !!entityId },
+    )
 
-    const { data: allTotals = [] } = trpc.trustAccounting.totals.useQuery({
-        entityId,
-    })
+    const { data: allTotals = [] } = trpc.trustAccounting.totals.useQuery(
+        {
+            entityId: entityId!,
+        },
+        { enabled: !!entityId },
+    )
 
     // Server-side pagination state
     const [offset, setOffset] = useState(0)
@@ -51,12 +58,15 @@ export function AccountingClient() {
 
     // Paginated query -- server filters by entryType and paginates
     const { data: paginatedResult, isLoading: entriesLoading } =
-        trpc.trustAccounting.listPaginated.useQuery({
-            entityId,
-            limit: PAGE_SIZE,
-            offset,
-            entryType: entryTypeFilter,
-        })
+        trpc.trustAccounting.listPaginated.useQuery(
+            {
+                entityId: entityId!,
+                limit: PAGE_SIZE,
+                offset,
+                entryType: entryTypeFilter,
+            },
+            { enabled: !!entityId },
+        )
     const entries = paginatedResult?.data ?? []
     const totalCount = paginatedResult?.totalCount ?? 0
 
@@ -77,7 +87,10 @@ export function AccountingClient() {
     })
 
     const { data: unconvertedSummary = [] } =
-        trpc.trustAccounting.unconvertedIncomeSummary.useQuery({ entityId })
+        trpc.trustAccounting.unconvertedIncomeSummary.useQuery(
+            { entityId: entityId! },
+            { enabled: !!entityId },
+        )
 
     const convertIncomeMutation =
         trpc.trustAccounting.convertIncomeToPrincipal.useMutation({
@@ -125,7 +138,7 @@ export function AccountingClient() {
         setConvertingYear(fiscalYear)
         try {
             await convertIncomeMutation.mutateAsync({
-                entityId,
+                entityId: entityId!,
                 fiscalYear,
                 bankAccountId: defaultBankAccount.id,
             })
@@ -165,7 +178,7 @@ export function AccountingClient() {
             if (!data.bankAccountId) return // bankAccountId is required
             const bankAccountIdNum = Number.parseInt(data.bankAccountId, 10)
             const payload = {
-                entityId,
+                entityId: entityId!,
                 accountingDate: data.accountingDate,
                 entryType: data.entryType as AccountingEntryTypeEnum,
                 incomeType:
@@ -189,7 +202,7 @@ export function AccountingClient() {
             if (isEditing && editingId) {
                 await updateEntryMutation.mutateAsync({
                     id: editingId,
-                    entityId,
+                    entityId: entityId!,
                     data: payload,
                 })
             } else {
@@ -211,7 +224,7 @@ export function AccountingClient() {
                 try {
                     await deleteEntryMutation.mutateAsync({
                         id: pendingDeleteId,
-                        entityId,
+                        entityId: entityId!,
                     })
                 } catch (error) {
                     log.error('Failed to delete entry', { error })
@@ -232,7 +245,7 @@ export function AccountingClient() {
     ) => {
         await updateEntryMutation.mutateAsync({
             id,
-            entityId,
+            entityId: entityId!,
             data: updates,
         })
     }
@@ -328,7 +341,7 @@ export function AccountingClient() {
         } finally {
             setGeneratingReport(false)
         }
-    }, [incomeTotal, expenseTotal, netIncome, utils])
+    }, [incomeTotal, expenseTotal, netIncome, utils, entityId])
 
     const openEditForm = (entry: TrustAccounting) => {
         setEditingId(entry.id)

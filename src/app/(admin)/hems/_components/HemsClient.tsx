@@ -22,13 +22,20 @@ import { WithdrawalsTable } from './WithdrawalsTable'
 
 export function HemsClient() {
     const utils = trpc.useUtils()
-    const entityId = 1
+    const { data: entities } = trpc.entity.list.useQuery()
+    const entityId = entities?.[0]?.id
 
     const { data: beneficiaries = [], isLoading: beneficiariesLoading } =
-        trpc.beneficiary.list.useQuery({ entityId })
+        trpc.beneficiary.list.useQuery(
+            { entityId: entityId! },
+            { enabled: !!entityId },
+        )
 
     const { data: distributions = [], isLoading: distributionsLoading } =
-        trpc.distribution.list.useQuery({ entityId })
+        trpc.distribution.list.useQuery(
+            { entityId: entityId! },
+            { enabled: !!entityId },
+        )
 
     const createDistributionMutation = trpc.distribution.create.useMutation({
         onSuccess: () => {
@@ -46,7 +53,10 @@ export function HemsClient() {
     })
 
     const { data: withdrawalRecords = [] } =
-        trpc.withdrawalRecord.list.useQuery({ entityId })
+        trpc.withdrawalRecord.list.useQuery(
+            { entityId: entityId! },
+            { enabled: !!entityId },
+        )
 
     const updateWithdrawalRecordMutation =
         trpc.withdrawalRecord.update.useMutation({
@@ -71,7 +81,7 @@ export function HemsClient() {
             const amount = parseFloat(data.amount.replace(/[,$]/g, ''))
             await createDistributionMutation.mutateAsync({
                 beneficiaryId: Number(data.beneficiaryId),
-                entityId,
+                entityId: entityId!,
                 distributionDate: new Date().toISOString(),
                 amount: amount.toString(),
                 distributionType: 'PRINCIPAL',
@@ -154,7 +164,7 @@ export function HemsClient() {
     ) => {
         await updateDistributionMutation.mutateAsync({
             id,
-            entityId,
+            entityId: entityId!,
             data: updates,
         })
     }

@@ -51,7 +51,8 @@ const STATUS_VARIANTS: Record<
 
 export function InventoryQueueClient() {
     const utils = trpc.useUtils()
-    const entityId = 1
+    const { data: entities } = trpc.entity.list.useQuery()
+    const entityId = entities?.[0]?.id
 
     const { data: items = [], isLoading: itemsLoading } =
         trpc.pendingInventoryItem.list.useQuery()
@@ -215,7 +216,7 @@ export function InventoryQueueClient() {
         if (!reviewingItem) return
         await approveMutation.mutateAsync({
             id: reviewingItem.id,
-            entityId,
+            entityId: entityId!,
             reviewNotes,
         })
     }

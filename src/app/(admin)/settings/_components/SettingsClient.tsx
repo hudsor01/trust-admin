@@ -157,17 +157,24 @@ function ContactRow({
 
 export function SettingsClient() {
     const utils = trpc.useUtils()
-    const entityId = 1
+    const { data: entities } = trpc.entity.list.useQuery()
+    const entityId = entities?.[0]?.id
     const [activeTab, setActiveTab] = useState('beneficiaries')
 
     const { data: beneficiaries = [], isLoading: beneficiariesLoading } =
-        trpc.beneficiary.list.useQuery({ entityId })
+        trpc.beneficiary.list.useQuery(
+            { entityId: entityId! },
+            { enabled: !!entityId },
+        )
     const updateBeneficiaryMutation = trpc.beneficiary.update.useMutation({
         onSuccess: () => utils.beneficiary.list.invalidate(),
     })
 
     const { data: trustees = [], isLoading: trusteesLoading } =
-        trpc.trustee.list.useQuery({ entityId })
+        trpc.trustee.list.useQuery(
+            { entityId: entityId! },
+            { enabled: !!entityId },
+        )
     const updateTrusteeMutation = trpc.trustee.update.useMutation({
         onSuccess: () => utils.trustee.list.invalidate(),
     })
@@ -309,7 +316,7 @@ export function SettingsClient() {
                                                             {
                                                                 id: b.id,
                                                                 entityId:
-                                                                    entityId,
+                                                                    entityId!,
                                                                 data: {
                                                                     dob: val,
                                                                 },
@@ -323,7 +330,7 @@ export function SettingsClient() {
                                                             {
                                                                 id: b.id,
                                                                 entityId:
-                                                                    entityId,
+                                                                    entityId!,
                                                                 data: {
                                                                     email: val,
                                                                 },
@@ -337,7 +344,7 @@ export function SettingsClient() {
                                                             {
                                                                 id: b.id,
                                                                 entityId:
-                                                                    entityId,
+                                                                    entityId!,
                                                                 data: {
                                                                     phone: val,
                                                                 },
@@ -387,7 +394,7 @@ export function SettingsClient() {
                                                             {
                                                                 id: t.id,
                                                                 entityId:
-                                                                    entityId,
+                                                                    entityId!,
                                                                 data: {
                                                                     dob: val,
                                                                 },
@@ -401,7 +408,7 @@ export function SettingsClient() {
                                                             {
                                                                 id: t.id,
                                                                 entityId:
-                                                                    entityId,
+                                                                    entityId!,
                                                                 data: {
                                                                     email: val,
                                                                 },
@@ -415,7 +422,7 @@ export function SettingsClient() {
                                                             {
                                                                 id: t.id,
                                                                 entityId:
-                                                                    entityId,
+                                                                    entityId!,
                                                                 data: {
                                                                     phone: val,
                                                                 },

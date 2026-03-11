@@ -45,17 +45,23 @@ const log = logger.create('Dashboard')
 
 export function DashboardClient() {
     const utils = trpc.useUtils()
-    const entityId = 1
-
-    const { data: summary, isLoading: summaryLoading } =
-        trpc.dashboard.summary.useQuery({ entityId })
-
-    const { data: summaryTotals } = trpc.dashboard.summaryTotals.useQuery({
-        entityId,
-    })
 
     const { data: entities } = trpc.entity.list.useQuery()
     const entity = entities?.[0] ?? null
+    const entityId = entity?.id
+
+    const { data: summary, isLoading: summaryLoading } =
+        trpc.dashboard.summary.useQuery(
+            { entityId: entityId! },
+            { enabled: !!entityId },
+        )
+
+    const { data: summaryTotals } = trpc.dashboard.summaryTotals.useQuery(
+        {
+            entityId: entityId!,
+        },
+        { enabled: !!entityId },
+    )
 
     const bankAccounts = summary?.bankAccounts ?? []
     const investmentAccounts = summary?.investmentAccounts ?? []
@@ -108,7 +114,7 @@ export function DashboardClient() {
                 utils.dashboard.summary.invalidate({ entityId })
             }
         },
-        [setOptimisticTask, updateTask, utils.dashboard.summary],
+        [setOptimisticTask, updateTask, utils.dashboard.summary, entityId],
     )
 
     const addTask = useCallback(async () => {

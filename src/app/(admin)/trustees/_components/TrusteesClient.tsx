@@ -18,10 +18,14 @@ const log = logger.create('Trustees')
 
 export function TrusteesClient() {
     const utils = trpc.useUtils()
-    const entityId = 1
+    const { data: entities } = trpc.entity.list.useQuery()
+    const entityId = entities?.[0]?.id
 
     const { data: trustees = [], isLoading: trusteesLoading } =
-        trpc.trustee.list.useQuery({ entityId })
+        trpc.trustee.list.useQuery(
+            { entityId: entityId! },
+            { enabled: !!entityId },
+        )
 
     const { data: contacts } = trpc.contact.list.useQuery()
 
@@ -53,14 +57,14 @@ export function TrusteesClient() {
             if (editingId) {
                 await updateTrusteeMutation.mutateAsync({
                     id: editingId,
-                    entityId,
+                    entityId: entityId!,
                     data: payload,
                 })
                 toast.success('Trustee updated')
                 setEditingId(null)
             } else {
                 await createTrusteeMutation.mutateAsync({
-                    entityId,
+                    entityId: entityId!,
                     ...payload,
                 })
                 toast.success('Trustee created')
@@ -96,7 +100,7 @@ export function TrusteesClient() {
                 try {
                     await deleteTrusteeMutation.mutateAsync({
                         id: pendingDeleteId,
-                        entityId,
+                        entityId: entityId!,
                     })
                     toast.success('Trustee deleted')
                 } catch (error) {
@@ -117,7 +121,7 @@ export function TrusteesClient() {
         try {
             await updateTrusteeMutation.mutateAsync({
                 id,
-                entityId,
+                entityId: entityId!,
                 data,
             })
             toast.success('Trustee updated')

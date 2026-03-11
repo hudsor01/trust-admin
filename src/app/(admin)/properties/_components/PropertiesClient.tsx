@@ -86,11 +86,15 @@ const defaultRentalForm: RentalFormData = {
 
 export function PropertiesClient() {
     const utils = trpc.useUtils()
-    const entityId = 1
+    const { data: entities } = trpc.entity.list.useQuery()
+    const entityId = entities?.[0]?.id
     const [activeTab, setActiveTab] = useState('homestead')
 
     const { data: homesteads = [], isLoading: homesteadsLoading } =
-        trpc.homestead.list.useQuery({ entityId })
+        trpc.homestead.list.useQuery(
+            { entityId: entityId! },
+            { enabled: !!entityId },
+        )
 
     const createHomesteadMutation = trpc.homestead.create.useMutation({
         onSuccess: () => utils.homestead.list.invalidate(),
@@ -103,7 +107,10 @@ export function PropertiesClient() {
     })
 
     const { data: rentals = [], isLoading: rentalsLoading } =
-        trpc.rentalProperty.list.useQuery({ entityId })
+        trpc.rentalProperty.list.useQuery(
+            { entityId: entityId! },
+            { enabled: !!entityId },
+        )
 
     const createRentalMutation = trpc.rentalProperty.create.useMutation({
         onSuccess: () => utils.rentalProperty.list.invalidate(),
@@ -118,7 +125,7 @@ export function PropertiesClient() {
     const updateRental = async (id: number, data: Partial<RentalProperty>) => {
         await updateRentalMutation.mutateAsync({
             id,
-            entityId,
+            entityId: entityId!,
             data,
         })
     }
@@ -132,7 +139,7 @@ export function PropertiesClient() {
         initialData: defaultHomesteadForm,
         onSubmit: async (data) => {
             const payload = {
-                entityId,
+                entityId: entityId!,
                 streetAddress: data.streetAddress,
                 city: data.city,
                 state: data.state,
@@ -164,7 +171,7 @@ export function PropertiesClient() {
             if (homesteadForm.isEditing && editingHomesteadId) {
                 await updateHomesteadMutation.mutateAsync({
                     id: editingHomesteadId,
-                    entityId,
+                    entityId: entityId!,
                     data: payload,
                 })
             } else {
@@ -210,7 +217,7 @@ export function PropertiesClient() {
         initialData: defaultRentalForm,
         onSubmit: async (data) => {
             const payload = {
-                entityId,
+                entityId: entityId!,
                 name: data.name,
                 streetAddress: data.streetAddress,
                 city: data.city,
@@ -247,7 +254,7 @@ export function PropertiesClient() {
             if (rentalForm.isEditing && editingRentalId) {
                 await updateRentalMutation.mutateAsync({
                     id: editingRentalId,
-                    entityId,
+                    entityId: entityId!,
                     data: payload,
                 })
             } else {
@@ -317,7 +324,7 @@ export function PropertiesClient() {
             try {
                 await deleteHomesteadMutation.mutateAsync({
                     id: pendingDeleteHomesteadId,
-                    entityId,
+                    entityId: entityId!,
                 })
             } catch (err) {
                 log.error('Failed to delete homestead', { error: err })
@@ -341,7 +348,7 @@ export function PropertiesClient() {
             try {
                 await deleteRentalMutation.mutateAsync({
                     id: pendingDeleteRentalId,
-                    entityId,
+                    entityId: entityId!,
                 })
             } catch (err) {
                 log.error('Failed to delete rental', { error: err })

@@ -22,11 +22,15 @@ import { ArtworkTable } from './ArtworkTable'
 const log = logger.create('Artwork')
 
 export function ArtworkClient() {
-    const entityId = 1
     const utils = trpc.useUtils()
+    const { data: entities } = trpc.entity.list.useQuery()
+    const entityId = entities?.[0]?.id
 
     const { data: artworks = [], isLoading: artworksLoading } =
-        trpc.artwork.list.useQuery({ entityId })
+        trpc.artwork.list.useQuery(
+            { entityId: entityId! },
+            { enabled: !!entityId },
+        )
 
     const createArtworkMutation = trpc.artwork.create.useMutation({
         onSuccess: () => utils.artwork.list.invalidate(),
@@ -52,7 +56,7 @@ export function ArtworkClient() {
                 try {
                     await deleteArtworkMutation.mutateAsync({
                         id: pendingDelete.id,
-                        entityId,
+                        entityId: entityId!,
                     })
                 } catch (err) {
                     log.error('Failed to delete artwork', { error: err })
@@ -66,7 +70,7 @@ export function ArtworkClient() {
         initialData: artworkFormDefaults(),
         onSubmit: async (data) => {
             const payload = {
-                entityId,
+                entityId: entityId!,
                 title: data.title,
                 artist: data.artist || null,
                 medium: data.medium || null,
@@ -90,7 +94,7 @@ export function ArtworkClient() {
                 const editingId = (artworkForm.editing as Artwork).id
                 await updateArtworkMutation.mutateAsync({
                     id: editingId,
-                    entityId,
+                    entityId: entityId!,
                     data: payload,
                 })
             } else {
@@ -131,14 +135,14 @@ export function ArtworkClient() {
             try {
                 await updateArtworkMutation.mutateAsync({
                     id,
-                    entityId,
+                    entityId: entityId!,
                     data: updates,
                 })
             } catch (err) {
                 log.error('Failed to update artwork', { error: err })
             }
         },
-        [updateArtworkMutation],
+        [updateArtworkMutation, entityId],
     )
 
     const totalValue = sumStrings(artworks.map((a) => a.dodValue))

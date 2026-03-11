@@ -69,10 +69,14 @@ const STATUS_LABELS: Record<string, string> = {
 
 export function HemsQueueClient() {
     const utils = trpc.useUtils()
-    const entityId = 1
+    const { data: entities } = trpc.entity.list.useQuery()
+    const entityId = entities?.[0]?.id
 
     const { data: requests = [], isLoading: requestsLoading } =
-        trpc.hemsRequest.listWithBeneficiary.useQuery({ entityId })
+        trpc.hemsRequest.listWithBeneficiary.useQuery(
+            { entityId: entityId! },
+            { enabled: !!entityId },
+        )
 
     const requestsWithBeneficiary =
         requests as unknown as HemsRequestWithBeneficiary[]
@@ -255,7 +259,7 @@ export function HemsQueueClient() {
         try {
             await approveRequestMutation.mutateAsync({
                 id: reviewingRequest.id,
-                entityId,
+                entityId: entityId!,
                 approvedAmount,
                 reviewNotes,
                 distributionType,
@@ -274,7 +278,7 @@ export function HemsQueueClient() {
         try {
             await denyRequestMutation.mutateAsync({
                 id: reviewingRequest.id,
-                entityId,
+                entityId: entityId!,
                 reviewNotes,
             })
             setReviewingRequest(null)
@@ -703,7 +707,7 @@ export function HemsQueueClient() {
                                 if (!cancelTarget) return
                                 await cancelRequestMutation.mutateAsync({
                                     id: cancelTarget.id,
-                                    entityId,
+                                    entityId: entityId!,
                                     reviewNotes:
                                         cancelTarget.status !== 'PENDING'
                                             ? `Admin cancelled (was ${cancelTarget.status})`

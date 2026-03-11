@@ -12,12 +12,16 @@ import type { BeneficiaryWithDistributions } from './types'
 
 export function BeneficiariesClient() {
     const utils = trpc.useUtils()
-    const entityId = 1
+    const { data: entities } = trpc.entity.list.useQuery()
+    const entityId = entities?.[0]?.id
 
     const {
         data: beneficiariesWithDist = [],
         isLoading: beneficiariesLoading,
-    } = trpc.beneficiary.listWithDistributions.useQuery({ entityId })
+    } = trpc.beneficiary.listWithDistributions.useQuery(
+        { entityId: entityId! },
+        { enabled: !!entityId },
+    )
 
     const updateBeneficiaryMutation = trpc.beneficiary.update.useMutation({
         onSuccess: () => {
@@ -31,7 +35,7 @@ export function BeneficiariesClient() {
     ) => {
         return await updateBeneficiaryMutation.mutateAsync({
             id,
-            entityId,
+            entityId: entityId!,
             data,
         })
     }
@@ -101,7 +105,7 @@ export function BeneficiariesClient() {
                 onClose={() => setSelectedBeneficiary(null)}
                 updateBeneficiary={updateBeneficiary}
                 setSelectedBeneficiary={setSelectedBeneficiary}
-                entityId={entityId}
+                entityId={entityId!}
             />
         </div>
     )

@@ -40,7 +40,8 @@ export function UsersClient() {
     const { data: ownerCheck } = trpc.userManagement.isOwner.useQuery()
     const isOwner = ownerCheck?.isOwner ?? false
 
-    const entityId = 1
+    const { data: entities } = trpc.entity.list.useQuery()
+    const entityId = entities?.[0]?.id
 
     const {
         data: allUsers = [],
@@ -49,8 +50,8 @@ export function UsersClient() {
     } = trpc.userManagement.listAllUsers.useQuery()
 
     const { data: allBeneficiaries = [] } = trpc.beneficiary.list.useQuery(
-        { entityId },
-        { enabled: isOwner },
+        { entityId: entityId! },
+        { enabled: isOwner && !!entityId },
     )
 
     const [createDialogOpen, setCreateDialogOpen] = useState(false)

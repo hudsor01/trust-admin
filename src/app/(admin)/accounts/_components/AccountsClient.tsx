@@ -26,12 +26,16 @@ const log = logger.create('Accounts')
 
 export function AccountsClient() {
     const utils = trpc.useUtils()
-    const entityId = 1
+    const { data: entities } = trpc.entity.list.useQuery()
+    const entityId = entities?.[0]?.id
     const [activeTab, setActiveTab] = useState('bank')
 
-    const { data: bankAccounts = [] } = trpc.bankAccount.list.useQuery({
-        entityId,
-    })
+    const { data: bankAccounts = [] } = trpc.bankAccount.list.useQuery(
+        {
+            entityId: entityId!,
+        },
+        { enabled: !!entityId },
+    )
 
     const createBankAccountMutation = trpc.bankAccount.create.useMutation({
         onSuccess: () => utils.bankAccount.list.invalidate({ entityId }),
@@ -47,7 +51,10 @@ export function AccountsClient() {
     })
 
     const { data: investmentAccounts = [] } =
-        trpc.investmentAccount.list.useQuery({ entityId })
+        trpc.investmentAccount.list.useQuery(
+            { entityId: entityId! },
+            { enabled: !!entityId },
+        )
 
     const createInvestmentAccountMutation =
         trpc.investmentAccount.create.useMutation({
@@ -74,7 +81,7 @@ export function AccountsClient() {
     ) => {
         await updateBankAccountMutation.mutateAsync({
             id,
-            entityId,
+            entityId: entityId!,
             data,
         })
     }
@@ -85,7 +92,7 @@ export function AccountsClient() {
     ) => {
         await updateInvestmentAccountMutation.mutateAsync({
             id,
-            entityId,
+            entityId: entityId!,
             data,
         })
     }
@@ -96,7 +103,7 @@ export function AccountsClient() {
         initialData: bankAccountFormDefaults(),
         onSubmit: async (data) => {
             const payload = {
-                entityId,
+                entityId: entityId!,
                 institution: data.institution,
                 accountType: data.accountType,
                 accountName: data.accountName,
@@ -111,7 +118,7 @@ export function AccountsClient() {
             if (bankForm.isEditing && editingBankId) {
                 await updateBankAccountMutation.mutateAsync({
                     id: editingBankId,
-                    entityId,
+                    entityId: entityId!,
                     data: payload,
                 })
             } else {
@@ -129,7 +136,7 @@ export function AccountsClient() {
         initialData: investmentAccountFormDefaults(),
         onSubmit: async (data) => {
             const payload = {
-                entityId,
+                entityId: entityId!,
                 institution: data.institution,
                 accountType: data.accountType,
                 accountName: data.accountName,
@@ -148,7 +155,7 @@ export function AccountsClient() {
             if (investmentForm.isEditing && editingInvestmentId) {
                 await updateInvestmentAccountMutation.mutateAsync({
                     id: editingInvestmentId,
-                    entityId,
+                    entityId: entityId!,
                     data: payload,
                 })
             } else {
@@ -212,7 +219,7 @@ export function AccountsClient() {
                 try {
                     await deleteBankAccountMutation.mutateAsync({
                         id: pendingDeleteBankId,
-                        entityId,
+                        entityId: entityId!,
                     })
                 } catch (err) {
                     log.error('Failed to delete bank account', { error: err })
@@ -236,7 +243,7 @@ export function AccountsClient() {
             try {
                 await deleteInvestmentAccountMutation.mutateAsync({
                     id: pendingDeleteInvestmentId,
-                    entityId,
+                    entityId: entityId!,
                 })
             } catch (err) {
                 log.error('Failed to delete investment account', { error: err })

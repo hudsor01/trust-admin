@@ -22,11 +22,15 @@ import { InsuranceTable } from './InsuranceTable'
 const log = logger.create('Insurance')
 
 export function InsuranceClient() {
-    const entityId = 1
     const utils = trpc.useUtils()
+    const { data: entities } = trpc.entity.list.useQuery()
+    const entityId = entities?.[0]?.id
 
     const { data: policies = [], isLoading: policiesLoading } =
-        trpc.insurancePolicy.list.useQuery({ entityId })
+        trpc.insurancePolicy.list.useQuery(
+            { entityId: entityId! },
+            { enabled: !!entityId },
+        )
 
     const createMutation = trpc.insurancePolicy.create.useMutation({
         onSuccess: () => utils.insurancePolicy.list.invalidate(),
@@ -54,7 +58,7 @@ export function InsuranceClient() {
                 try {
                     await deleteMutation.mutateAsync({
                         id: pendingDelete.id,
-                        entityId,
+                        entityId: entityId!,
                     })
                 } catch (err) {
                     log.error('Failed to delete insurance policy', {
@@ -70,7 +74,7 @@ export function InsuranceClient() {
         initialData: insurancePolicyFormDefaults(),
         onSubmit: async (data) => {
             const payload = {
-                entityId,
+                entityId: entityId!,
                 policyType: asInsurancePolicyType(data.policyType),
                 carrier: data.carrier,
                 policyNumber: data.policyNumber,
@@ -95,7 +99,7 @@ export function InsuranceClient() {
                 const editingId = (policyForm.editing as InsurancePolicy).id
                 await updateMutation.mutateAsync({
                     id: editingId,
-                    entityId,
+                    entityId: entityId!,
                     data: payload,
                 })
             } else {
@@ -136,14 +140,14 @@ export function InsuranceClient() {
             try {
                 await updateMutation.mutateAsync({
                     id,
-                    entityId,
+                    entityId: entityId!,
                     data: updates,
                 })
             } catch (err) {
                 log.error('Failed to update insurance policy', { error: err })
             }
         },
-        [updateMutation],
+        [updateMutation, entityId],
     )
 
     const totalCoverage = sumStrings(policies.map((p) => p.coverageAmount))
