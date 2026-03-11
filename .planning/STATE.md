@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Production Hardening & Completeness
-status: executing
-stopped_at: Completed 22-02-PLAN.md
-last_updated: "2026-03-11T14:40:53.000Z"
-last_activity: "2026-03-11 -- Completed 22-02 entity cache + structured logging: replaced entityId=1 in 17 admin clients, structured logger in auth routes, generic 500 in analyze (CLEAN-03, CLEAN-07, CLEAN-08)"
+status: completed
+stopped_at: Completed 22-01-PLAN.md
+last_updated: "2026-03-11T14:33:08.000Z"
+last_activity: "2026-03-11 -- Completed 22-01 dead code removal: 110 dead exports removed from db/queries.ts, date-utils.ts deleted, TxSql consolidated (CLEAN-01, CLEAN-02, CLEAN-06)"
 progress:
   total_phases: 8
-  completed_phases: 7
+  completed_phases: 8
   total_plans: 19
-  completed_plans: 18
-  percent: 89
+  completed_plans: 19
+  percent: 100
 ---
 
 # State: Trust Admin
@@ -20,9 +20,9 @@ progress:
 
 Milestone: v4.0 Production Hardening & Completeness
 Phase: 22 of 22 (code-quality-cleanup)
-Plan: 3 of 3 in current phase (2 completed)
-Status: In progress
-Last activity: 2026-03-11 -- Completed 22-02 entity cache + structured logging: replaced entityId=1 in 17 admin clients, structured logger in auth routes, generic 500 in analyze (CLEAN-03, CLEAN-07, CLEAN-08)
+Plan: 3 of 3 completed in current phase
+Status: Phase complete
+Last activity: 2026-03-11 -- Completed 22-01 dead code removal: 110 dead exports removed from db/queries.ts, date-utils.ts deleted, TxSql consolidated (CLEAN-01, CLEAN-02, CLEAN-06)
 
 Progress: [██████████] 100%
 
@@ -89,6 +89,9 @@ Progress: [██████████] 100%
 - [v4.0] Entity cache pattern: trpc.entity.list.useQuery() + entities?.[0]?.id replaces hardcoded entityId=1 in all 17 admin clients
 - [v4.0] Query guard { enabled: !!entityId } on all entity-dependent queries; entityId! non-null assertion for mutation payloads
 - [v4.0] Structured logging (logger.auth/logger.api) replaces console.error in API routes; generic 500 errors prevent message leaks
+- [v4.0] TxSql type defined once in db/index.ts -- imported by db/queries.ts and contact.ts (no duplicate definitions)
+- [v4.0] Internal CRUD helpers in db/queries.ts made private -- only exported via CRUD object aggregations
+- [v4.0] date-fns removed (unused) -- date-utils.ts had zero imports across codebase
 
 ### Auth API Patterns That Work
 
@@ -130,6 +133,6 @@ const rows = await sql`SELECT id, name, email FROM neon_auth."user" WHERE lower(
 
 ## Session Continuity
 
-Last session: 2026-03-11T14:40:53.000Z
-Stopped at: Completed 22-02-PLAN.md
+Last session: 2026-03-11T14:33:08Z
+Stopped at: Completed 22-01-PLAN.md
 Resume file: None
