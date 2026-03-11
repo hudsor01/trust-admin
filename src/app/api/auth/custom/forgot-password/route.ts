@@ -5,6 +5,7 @@ import { NextResponse } from 'next/server'
 import { getPublicDb, getSql } from '@/db'
 import { passwordResetToken } from '@/db/schema'
 import { env } from '@/lib/env'
+import { logger } from '@/lib/logger'
 
 export const dynamic = 'force-dynamic'
 
@@ -84,17 +85,18 @@ export async function POST(request: Request) {
                     tags: { subsystem: 'forgot-password' },
                     extra: { status: webhookRes.status },
                 })
-                console.error(
-                    '[forgot-password] webhook error:',
-                    webhookRes.status,
+                logger.auth.error('Password reset webhook failed', {
+                    status: webhookRes.status,
                     body,
-                )
+                })
             }
         }
 
         return NextResponse.json({ success: true })
     } catch (err) {
-        console.error('[forgot-password]', err)
+        logger.auth.error('Forgot password request failed', {
+            error: err instanceof Error ? err.message : 'Unknown error',
+        })
         return NextResponse.json({ error: 'Internal error' }, { status: 500 })
     }
 }

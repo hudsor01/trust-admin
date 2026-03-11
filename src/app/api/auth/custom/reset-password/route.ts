@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { getPublicDb, getSql } from '@/db'
 import { passwordResetToken } from '@/db/schema'
 import { authServer } from '@/lib/auth/server'
+import { logger } from '@/lib/logger'
 
 const ResetPasswordSchema = z.object({
     token: z.string().regex(/^[0-9a-f]{64}$/, 'Invalid token format'),
@@ -89,7 +90,9 @@ export async function POST(request: Request) {
 
         return NextResponse.json({ success: true })
     } catch (err) {
-        console.error('[reset-password]', err)
+        logger.auth.error('Password reset failed', {
+            error: err instanceof Error ? err.message : 'Unknown error',
+        })
         return NextResponse.json({ error: 'Internal error' }, { status: 500 })
     }
 }

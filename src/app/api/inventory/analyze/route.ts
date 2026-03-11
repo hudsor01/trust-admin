@@ -9,6 +9,7 @@ import {
     type InventoryAnalysisResult,
 } from '@/lib/inventory-analysis'
 import { analyzeWithMarketResearch } from '@/lib/inventory-analysis-enhanced'
+import { logger } from '@/lib/logger'
 import { uploadInventoryImages } from '@/lib/uploadthing-server'
 
 // Enhanced analysis with web search can take 30-90s per item
@@ -129,13 +130,13 @@ export async function POST(
             }
         }
 
+        logger.api.error('Inventory analysis failed', {
+            error: error instanceof Error ? error.message : 'Unknown error',
+        })
         return NextResponse.json(
             {
                 success: false,
-                error:
-                    error instanceof Error
-                        ? error.message
-                        : 'Unknown error during analysis',
+                error: 'Internal server error',
             },
             { status: 500 },
         )
