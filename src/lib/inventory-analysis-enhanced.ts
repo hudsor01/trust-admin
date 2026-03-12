@@ -369,6 +369,156 @@ export async function analyzeWithMarketResearch(
  * For items described verbally — vehicles, real property, items not physically
  * present, or bulk entry from a written inventory list.
  */
+/**
+ * Run the agentic loop using Sonnet 4.6 as a secondary model for consensus.
+ * Identical to runAgenticLoop except uses claude-sonnet-4-6 and logs with "Secondary" prefix.
+ */
+async function runSecondaryAgenticLoop(
+    client: Anthropic,
+    messages: Anthropic.MessageParam[],
+): Promise<Anthropic.Message> {
+    let response = await client.messages.create(
+        {
+            model: 'claude-sonnet-4-6',
+            max_tokens: 16384,
+            system: ENHANCED_SYSTEM_PROMPT,
+            tools: [
+                {
+                    type: 'web_search_20250305',
+                    name: 'web_search',
+                    max_uses: 20,
+                },
+            ],
+            messages,
+            temperature: 0.1,
+        },
+        {
+            headers: {
+                'anthropic-beta': 'interleaved-thinking-2025-05-14',
+            },
+        },
+    )
+
+    let turns = 0
+
+    while (response.stop_reason !== 'end_turn' && turns < MAX_TURNS) {
+        turns++
+        log.info(
+            `Secondary agentic turn ${turns}, stop_reason: ${response.stop_reason}`,
+        )
+
+        messages = [
+            ...messages,
+            { role: 'assistant', content: response.content },
+        ]
+
+        if (response.stop_reason === 'max_tokens') {
+            messages = [
+                ...messages,
+                {
+                    role: 'user',
+                    content:
+                        'Continue your response. Output the complete JSON object.',
+                },
+            ]
+        }
+
+        response = await client.messages.create(
+            {
+                model: 'claude-sonnet-4-6',
+                max_tokens: 16384,
+                system: ENHANCED_SYSTEM_PROMPT,
+                tools: [
+                    {
+                        type: 'web_search_20250305',
+                        name: 'web_search',
+                        max_uses: 20,
+                    },
+                ],
+                messages,
+                temperature: 0.1,
+            },
+            {
+                headers: {
+                    'anthropic-beta': 'interleaved-thinking-2025-05-14',
+                },
+            },
+        )
+    }
+
+    if (turns >= MAX_TURNS) {
+        log.warn(
+            `Secondary hit MAX_TURNS (${MAX_TURNS}), returning partial response`,
+        )
+    }
+
+    return response
+}
+
+/**
+ * Secondary analysis using Sonnet 4.6 for two-model consensus.
+ *
+ * Accepts pre-compressed images (avoids double-compressing) and runs the
+ * secondary agentic loop with Sonnet 4.6 instead of Opus 4.6.
+ */
+export async function analyzeWithMarketResearchSecondary(
+    images: InventoryImage[],
+    compressedImages: CompressedImage[],
+): Promise<InventoryAnalysisResult> {
+    if (compressedImages.length === 0) {
+        throw new Error('At least one compressed image is required')
+    }
+
+    const client = createClient()
+
+    const imageBlocks: Anthropic.ImageBlockParam[] = compressedImages.map(
+        (img) => ({
+            type: 'image',
+            source: {
+                type: 'base64',
+                media_type: img.mimeType as
+                    | 'image/jpeg'
+                    | 'image/png'
+                    | 'image/gif'
+                    | 'image/webp',
+                data: img.base64,
+            },
+        }),
+    )
+
+    const userPrompt =
+        images.length === 1
+            ? 'Analyze this personal property item for trust inventory purposes. Follow your full workflow: identify the item from the image, search the web for comparable sales data, then provide an accurate fair market valuation with cited evidence.'
+            : `Analyze these ${images.length} images of the SAME personal property item for trust inventory purposes. The images show different angles, labels, or details. Follow your full workflow: identify the item, search for comparable sales, then provide an evidence-backed fair market valuation.`
+
+    const messages: Anthropic.MessageParam[] = [
+        {
+            role: 'user',
+            content: [...imageBlocks, { type: 'text', text: userPrompt }],
+        },
+    ]
+
+    const response = await runSecondaryAgenticLoop(client, messages)
+
+    const textBlocks = response.content.filter(
+        (block): block is Anthropic.TextBlock => block.type === 'text',
+    )
+
+    if (textBlocks.length === 0) {
+        throw new Error('No text response from secondary analysis model')
+    }
+
+    const analysis = extractJson(textBlocks)
+
+    log.info('Secondary analysis complete', {
+        name: analysis.name,
+        fmv: analysis.estimatedValue,
+        confidence: analysis.confidence,
+    })
+
+    return analysis
+}
+
 export async function valueItemByDescription(
     description: string,
     additionalContext?: {
@@ -411,4 +561,50 @@ export async function valueItemByDescription(
     })
 
     return analysis
+}
+
+// ---------------------------------------------------------------------------
+// Post-analysis validation
+// ---------------------------------------------------------------------------
+
+const HIGH_VALUE_CATEGORIES = new Set([
+    'artwork',
+    'jewelry',
+    'watches',
+    'antiques',
+    'collectibles',
+    'furniture',
+])
+
+export interface ValidationResult {
+    valid: boolean
+    warnings: string[]
+}
+
+/** Post-analysis validation to catch lazy defaults and obvious errors. */
+export function validateAnalysis(analysis: {
+    estimatedValue: string
+    valueRangeLow: string
+    valueRangeHigh: string
+    category: string
+    valuationRationale: string
+}): ValidationResult {
+    const warnings: string[] = []
+    const value = parseFloat(analysis.estimatedValue)
+    const low = parseFloat(analysis.valueRangeLow)
+    const high = parseFloat(analysis.valueRangeHigh)
+
+    if (value < low || value > high) {
+        warnings.push('estimatedValue outside range')
+    }
+
+    if (value < 200 && HIGH_VALUE_CATEGORIES.has(analysis.category)) {
+        warnings.push('suspiciously low for category')
+    }
+
+    if (!/\$[\d,]+/.test(analysis.valuationRationale)) {
+        warnings.push('rationale lacks specific prices')
+    }
+
+    return { valid: warnings.length === 0, warnings }
 }
