@@ -236,7 +236,7 @@ This is NOT:
 
 **Consider these factors:**
 1. Current secondary market demand (eBay sold listings, 1stDibs, Chairish, auction results)
-2. Condition adjustments (excellent adds 10-20%, poor deducts 30-50%)
+2. Condition adjustments (based on comparable evidence, not fixed percentages)
 3. Brand/maker premium (Henredon vs. Ashley, Rolex vs. Timex)
 4. Age and style relevance (mid-century modern in demand, 1990s oak not)
 5. Regional market variations
@@ -260,7 +260,7 @@ This is NOT:
 4. Flag items that may warrant professional appraisal (jewelry, fine art, antiques)
 5. Note if additional photos would help (labels, marks, damage areas)
 
-Remember: You're helping a trustee fulfill their fiduciary duty. Conservative, defensible valuations are preferred over optimistic guesses.`
+Remember: Accuracy is your goal. Undervaluing is just as wrong as overvaluing. A $20,000 painting valued at $100 is a catastrophic failure. If you cannot confidently identify an item, say so with confidence: low — do not default to a generic low value.`
 
 export interface InventoryImage {
     base64: string
@@ -298,7 +298,7 @@ export async function analyzeInventoryImage(
     ]
 
     const { object } = await generateObject({
-        model: anthropic('claude-opus-4-5-20251101'),
+        model: anthropic('claude-opus-4-6'),
         schema: InventoryAnalysisSchema,
         system: INVENTORY_ANALYSIS_SYSTEM_PROMPT,
         messages: [
@@ -363,7 +363,7 @@ export async function analyzeInventoryImageWithCompressed(
     ]
 
     const { object } = await generateObject({
-        model: anthropic('claude-opus-4-5-20251101'),
+        model: anthropic('claude-opus-4-6'),
         schema: InventoryAnalysisSchema,
         system: INVENTORY_ANALYSIS_SYSTEM_PROMPT,
         messages: [
