@@ -28,6 +28,7 @@ import {
     trusteeFeeSchedule,
     userProfile,
     valuation,
+    valuationCorrection,
     vehicle,
     withdrawalRecord,
 } from './schema'
@@ -363,6 +364,15 @@ export const insertValuationSchema = createInsertSchema(valuation, {
     createdAt: (schema) => schema.optional(),
 })
 export const selectValuationSchema = createSelectSchema(valuation)
+
+export const insertValuationCorrectionSchema = createInsertSchema(
+    valuationCorrection,
+    {
+        createdAt: (schema) => schema.optional(),
+    },
+).omit({
+    correctionRatio: true,
+})
 
 export const insertVehicleSchema = createInsertSchema(vehicle, {
     createdAt: (schema) => schema.optional(),

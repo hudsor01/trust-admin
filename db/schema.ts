@@ -1230,6 +1230,43 @@ export type Valuation = typeof valuation.$inferSelect
 export type InsertValuation = typeof valuation.$inferInsert
 
 // ============================================
+// Valuation Corrections (AI Feedback Loop)
+// ============================================
+
+export const valuationCorrection = pgTable(
+    'valuation_correction',
+    (t) => ({
+        id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
+        entityId: bigint({ mode: 'number' }).notNull(),
+        itemName: t.text().notNull(),
+        category: t.text().notNull(),
+        aiEstimatedValue: t.text().notNull(),
+        correctedValue: t.text().notNull(),
+        correctionRatio: t.real().notNull(),
+        notes: t.text(),
+        createdAt: t
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
+            .default(sql`CURRENT_TIMESTAMP`)
+            .notNull(),
+    }),
+    (table) => [
+        index('idx_valuation_correction_entity_id').on(table.entityId),
+        index('idx_valuation_correction_category').on(table.category),
+        index('idx_valuation_correction_created_at').on(table.createdAt.desc()),
+        foreignKey({
+            columns: [table.entityId],
+            foreignColumns: [entity.id],
+            name: 'valuation_correction_entity_id_fkey',
+        })
+            .onUpdate('cascade')
+            .onDelete('restrict'),
+    ],
+)
+
+export type ValuationCorrection = typeof valuationCorrection.$inferSelect
+export type InsertValuationCorrection = typeof valuationCorrection.$inferInsert
+
+// ============================================
 // Assets - Personal Property
 // ============================================
 
