@@ -13,7 +13,7 @@ import {
 const log = logger.create('InventoryEnhanced')
 
 /** Maximum agentic turns (each turn may include multiple server-side searches). */
-const MAX_TURNS = 10
+const MAX_TURNS = 15
 
 const ENHANCED_SYSTEM_PROMPT = `You are an expert estate appraiser with decades of experience in trust administration, estate sales, and personal property valuation. You have access to web search to find real comparable sales data.
 
@@ -214,20 +214,27 @@ async function runAgenticLoop(
     client: Anthropic,
     messages: Anthropic.MessageParam[],
 ): Promise<Anthropic.Message> {
-    let response = await client.messages.create({
-        model: 'claude-sonnet-4-5-20250929',
-        max_tokens: 16384,
-        system: ENHANCED_SYSTEM_PROMPT,
-        tools: [
-            {
-                type: 'web_search_20250305',
-                name: 'web_search',
-                max_uses: 10,
+    let response = await client.messages.create(
+        {
+            model: 'claude-opus-4-6',
+            max_tokens: 16384,
+            system: ENHANCED_SYSTEM_PROMPT,
+            tools: [
+                {
+                    type: 'web_search_20250305',
+                    name: 'web_search',
+                    max_uses: 20,
+                },
+            ],
+            messages,
+            temperature: 0.1,
+        },
+        {
+            headers: {
+                'anthropic-beta': 'interleaved-thinking-2025-05-14',
             },
-        ],
-        messages,
-        temperature: 0.1,
-    })
+        },
+    )
 
     let turns = 0
 
@@ -253,20 +260,27 @@ async function runAgenticLoop(
             ]
         }
 
-        response = await client.messages.create({
-            model: 'claude-sonnet-4-5-20250929',
-            max_tokens: 16384,
-            system: ENHANCED_SYSTEM_PROMPT,
-            tools: [
-                {
-                    type: 'web_search_20250305',
-                    name: 'web_search',
-                    max_uses: 10,
+        response = await client.messages.create(
+            {
+                model: 'claude-opus-4-6',
+                max_tokens: 16384,
+                system: ENHANCED_SYSTEM_PROMPT,
+                tools: [
+                    {
+                        type: 'web_search_20250305',
+                        name: 'web_search',
+                        max_uses: 20,
+                    },
+                ],
+                messages,
+                temperature: 0.1,
+            },
+            {
+                headers: {
+                    'anthropic-beta': 'interleaved-thinking-2025-05-14',
                 },
-            ],
-            messages,
-            temperature: 0.1,
-        })
+            },
+        )
     }
 
     if (turns >= MAX_TURNS) {
