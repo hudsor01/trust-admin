@@ -194,6 +194,13 @@ export const InventoryAnalysisSchema = z.object({
         .describe(
             'What factors affect confidence - image quality, item rarity, visible details',
         ),
+    confidenceScore: z
+        .number()
+        .min(0)
+        .max(100)
+        .describe(
+            'Numeric confidence score 0-100 based on: number of comparables found, recency of sales data, image quality, brand identification certainty',
+        ),
 })
 
 export type InventoryAnalysis = z.infer<typeof InventoryAnalysisSchema>
