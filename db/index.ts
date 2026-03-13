@@ -85,7 +85,7 @@ function initializePostgresClient(): ReturnType<typeof postgres> {
     _pgClient = postgres(cleanDatabaseUrl, {
         max: 10,
         idle_timeout: 10,
-        connect_timeout: 5,
+        connect_timeout: 30,
         max_lifetime: 60 * 15,
         prepare: true,
         fetch_types: false,

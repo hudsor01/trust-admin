@@ -213,12 +213,13 @@ function extractJson(
 async function runAgenticLoop(
     client: Anthropic,
     messages: Anthropic.MessageParam[],
+    systemPrompt: string = ENHANCED_SYSTEM_PROMPT,
 ): Promise<Anthropic.Message> {
     let response = await client.messages.create(
         {
             model: 'claude-opus-4-6',
             max_tokens: 16384,
-            system: ENHANCED_SYSTEM_PROMPT,
+            system: systemPrompt,
             tools: [
                 {
                     type: 'web_search_20250305',
@@ -264,7 +265,7 @@ async function runAgenticLoop(
             {
                 model: 'claude-opus-4-6',
                 max_tokens: 16384,
-                system: ENHANCED_SYSTEM_PROMPT,
+                system: systemPrompt,
                 tools: [
                     {
                         type: 'web_search_20250305',
@@ -301,6 +302,7 @@ async function runAgenticLoop(
  */
 export async function analyzeWithMarketResearch(
     images: InventoryImage[],
+    feedbackContext?: string,
 ): Promise<{
     analysis: InventoryAnalysisResult
     compressedImages: CompressedImage[]
@@ -342,7 +344,11 @@ export async function analyzeWithMarketResearch(
         },
     ]
 
-    const response = await runAgenticLoop(client, messages)
+    const systemPrompt = feedbackContext
+        ? ENHANCED_SYSTEM_PROMPT + feedbackContext
+        : ENHANCED_SYSTEM_PROMPT
+
+    const response = await runAgenticLoop(client, messages, systemPrompt)
 
     const textBlocks = response.content.filter(
         (block): block is Anthropic.TextBlock => block.type === 'text',
@@ -376,12 +382,13 @@ export async function analyzeWithMarketResearch(
 async function runSecondaryAgenticLoop(
     client: Anthropic,
     messages: Anthropic.MessageParam[],
+    systemPrompt: string = ENHANCED_SYSTEM_PROMPT,
 ): Promise<Anthropic.Message> {
     let response = await client.messages.create(
         {
             model: 'claude-sonnet-4-6',
             max_tokens: 16384,
-            system: ENHANCED_SYSTEM_PROMPT,
+            system: systemPrompt,
             tools: [
                 {
                     type: 'web_search_20250305',
@@ -427,7 +434,7 @@ async function runSecondaryAgenticLoop(
             {
                 model: 'claude-sonnet-4-6',
                 max_tokens: 16384,
-                system: ENHANCED_SYSTEM_PROMPT,
+                system: systemPrompt,
                 tools: [
                     {
                         type: 'web_search_20250305',
@@ -464,6 +471,7 @@ async function runSecondaryAgenticLoop(
 export async function analyzeWithMarketResearchSecondary(
     images: InventoryImage[],
     compressedImages: CompressedImage[],
+    feedbackContext?: string,
 ): Promise<InventoryAnalysisResult> {
     if (compressedImages.length === 0) {
         throw new Error('At least one compressed image is required')
@@ -498,7 +506,15 @@ export async function analyzeWithMarketResearchSecondary(
         },
     ]
 
-    const response = await runSecondaryAgenticLoop(client, messages)
+    const systemPrompt = feedbackContext
+        ? ENHANCED_SYSTEM_PROMPT + feedbackContext
+        : ENHANCED_SYSTEM_PROMPT
+
+    const response = await runSecondaryAgenticLoop(
+        client,
+        messages,
+        systemPrompt,
+    )
 
     const textBlocks = response.content.filter(
         (block): block is Anthropic.TextBlock => block.type === 'text',
@@ -607,4 +623,31 @@ export function validateAnalysis(analysis: {
     }
 
     return { valid: warnings.length === 0, warnings }
+}
+
+// ---------------------------------------------------------------------------
+// Correction feedback loop
+// ---------------------------------------------------------------------------
+
+export interface CorrectionFeedback {
+    itemName: string
+    category: string
+    aiEstimatedValue: string
+    correctedValue: string
+}
+
+/** Builds a feedback context string from recent admin corrections. */
+export function buildFeedbackContext(
+    corrections: CorrectionFeedback[],
+): string {
+    if (corrections.length === 0) return ''
+
+    const examples = corrections
+        .map(
+            (c) =>
+                `- "${c.itemName}" (${c.category}): AI valued at $${c.aiEstimatedValue}, admin corrected to $${c.correctedValue}`,
+        )
+        .join('\n')
+
+    return `\n\n## PREVIOUS CORRECTION FEEDBACK\nThe admin has corrected these recent valuations. Learn from these corrections:\n${examples}\n\nAdjust your approach to avoid repeating these errors.`
 }

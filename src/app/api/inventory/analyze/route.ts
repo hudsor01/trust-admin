@@ -1,7 +1,10 @@
 export const dynamic = 'force-dynamic'
 
+import { desc } from 'drizzle-orm'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import { db } from '@/db'
+import { valuationCorrection } from '@/db/schema'
 import { authServer } from '@/lib/auth'
 import { env } from '@/lib/env'
 import {
@@ -12,6 +15,7 @@ import {
 import {
     analyzeWithMarketResearch,
     analyzeWithMarketResearchSecondary,
+    buildFeedbackContext,
     validateAnalysis,
 } from '@/lib/inventory-analysis-enhanced'
 import { logger } from '@/lib/logger'
@@ -170,10 +174,28 @@ export async function POST(
             images.map((img) => compressImage(img.base64, img.mimeType)),
         )
 
+        // Fetch recent corrections for feedback loop
+        const recentCorrections = await db
+            .select({
+                itemName: valuationCorrection.itemName,
+                category: valuationCorrection.category,
+                aiEstimatedValue: valuationCorrection.aiEstimatedValue,
+                correctedValue: valuationCorrection.correctedValue,
+            })
+            .from(valuationCorrection)
+            .orderBy(desc(valuationCorrection.createdAt))
+            .limit(10)
+
+        const feedbackContext = buildFeedbackContext(recentCorrections)
+
         // Run both models in parallel
         const [primaryResult, secondaryResult] = await Promise.allSettled([
-            analyzeWithMarketResearch(images),
-            analyzeWithMarketResearchSecondary(images, compressedImages),
+            analyzeWithMarketResearch(images, feedbackContext),
+            analyzeWithMarketResearchSecondary(
+                images,
+                compressedImages,
+                feedbackContext,
+            ),
         ])
 
         // Primary must succeed
