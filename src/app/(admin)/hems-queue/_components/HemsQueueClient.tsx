@@ -1,6 +1,7 @@
 'use client'
 
 import type { ColumnDef } from '@tanstack/react-table'
+import type { inferRouterOutputs } from '@trpc/server'
 import {
     CheckCircle,
     Clock,
@@ -35,20 +36,15 @@ import {
 } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
-import type { HemsRequest } from '@/db/schema'
 import { STATUS_VARIANTS } from '@/lib/constants'
 import { sumStrings } from '@/lib/money'
 import { trpc } from '@/lib/trpc'
+import type { AppRouter } from '@/server/trpc/router'
 import { formatCurrency, formatDate } from '@/utils/formatters'
 
-type HemsRequestWithBeneficiary = HemsRequest & {
-    beneficiary: {
-        firstName: string
-        lastName: string
-        email?: string | null
-        sharePercent?: number | null
-    }
-}
+type RouterOutputs = inferRouterOutputs<AppRouter>
+type HemsRequestWithBeneficiary =
+    RouterOutputs['hemsRequest']['listWithBeneficiary'][number]
 
 const CATEGORY_LABELS: Record<string, string> = {
     HEALTH: 'Health',
@@ -78,8 +74,7 @@ export function HemsQueueClient() {
             { enabled: !!entityId },
         )
 
-    const requestsWithBeneficiary =
-        requests as unknown as HemsRequestWithBeneficiary[]
+    const requestsWithBeneficiary = requests
 
     const [optimisticRequests] = useOptimistic(
         requestsWithBeneficiary,
@@ -87,7 +82,7 @@ export function HemsQueueClient() {
             current,
             update: {
                 id: number
-                status: HemsRequest['status']
+                status: HemsRequestWithBeneficiary['status']
                 approvedAmount?: string
             },
         ) =>

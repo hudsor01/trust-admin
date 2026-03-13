@@ -13,7 +13,7 @@ interface UseEditableCellOptions<T> {
     /** Convert stored value to string for editing */
     formatForEdit?: (value: T) => string
     /** Convert edited string back to stored type */
-    parseFromEdit?: (value: string) => T
+    parseFromEdit: (value: string) => T
     /** Validate the edited string before saving. Return an error message to block save, or null to allow. */
     validate?: (editValue: string) => string | null
 }
@@ -56,9 +56,7 @@ export function useEditableCell<T>(
     }
 
     const handleSave = async () => {
-        const parsed = parseFromEdit
-            ? parseFromEdit(editValue)
-            : (editValue as unknown as T)
+        const parsed = parseFromEdit(editValue)
 
         // Skip save if value hasn't changed
         const currentFormatted = formatForEdit

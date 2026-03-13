@@ -2,7 +2,7 @@ import { randomBytes } from 'node:crypto'
 import * as Sentry from '@sentry/nextjs'
 import { and, eq, isNull, lt } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
-import { getPublicDb, getSql } from '@/db'
+import { getPublicDb, getSql, typedRows } from '@/db'
 import { passwordResetToken } from '@/db/schema'
 import { env } from '@/lib/env'
 import { logger } from '@/lib/logger'
@@ -21,12 +21,13 @@ export async function POST(request: Request) {
 
         // Always return 200 regardless of email existence to prevent enumeration
         const sql = getSql()
-        const rows = (await sql`
+        const [user] = typedRows<{ id: string; name: string; email: string }>(
+            await sql`
             SELECT id, name, email FROM neon_auth."user"
             WHERE lower(email) = lower(${email})
             LIMIT 1
-        `) as unknown as { id: string; name: string; email: string }[]
-        const [user] = rows
+        `,
+        )
 
         if (user && env.N8N_PASSWORD_RESET_WEBHOOK_URL) {
             const token = randomBytes(32).toString('hex')

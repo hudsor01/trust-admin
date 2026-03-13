@@ -123,6 +123,11 @@ export function getSql(): ReturnType<typeof neon> {
     return _sqlPublic
 }
 
+/** Narrows raw SQL results to a typed row array. Use with `getSql()` or `getClient()` queries. */
+export function typedRows<T>(result: unknown): T[] {
+    return result as T[]
+}
+
 /** postgres.js client — supports transactions via client.begin() and template-string SQL. */
 export function getClient(): ReturnType<typeof postgres> {
     return initializePostgresClient()

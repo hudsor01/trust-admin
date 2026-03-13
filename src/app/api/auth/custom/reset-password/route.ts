@@ -1,7 +1,7 @@
 import { and, eq, gt, isNull } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
-import { getPublicDb, getSql } from '@/db'
+import { getPublicDb, getSql, typedRows } from '@/db'
 import { passwordResetToken } from '@/db/schema'
 import { authServer } from '@/lib/auth/server'
 import { logger } from '@/lib/logger'
@@ -50,11 +50,13 @@ export async function POST(request: Request) {
 
         // Direct SQL lookup avoids paginated listUsers scan
         const sql = getSql()
-        const [user] = (await sql`
+        const [user] = typedRows<{ id: string }>(
+            await sql`
             SELECT id FROM neon_auth."user"
             WHERE lower(email) = ${row.email}
             LIMIT 1
-        `) as unknown as { id: string }[]
+        `,
+        )
 
         if (!user) {
             return NextResponse.json(
