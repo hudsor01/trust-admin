@@ -219,6 +219,8 @@ async function runAgenticLoop(
         {
             model: 'claude-opus-4-6',
             max_tokens: 16384,
+            temperature: 1,
+            thinking: { type: 'enabled', budget_tokens: 10000 },
             system: systemPrompt,
             tools: [
                 {
@@ -228,7 +230,6 @@ async function runAgenticLoop(
                 },
             ],
             messages,
-            temperature: 0.1,
         },
         {
             headers: {
@@ -265,6 +266,8 @@ async function runAgenticLoop(
             {
                 model: 'claude-opus-4-6',
                 max_tokens: 16384,
+                temperature: 1,
+                thinking: { type: 'enabled', budget_tokens: 10000 },
                 system: systemPrompt,
                 tools: [
                     {
@@ -274,7 +277,6 @@ async function runAgenticLoop(
                     },
                 ],
                 messages,
-                temperature: 0.1,
             },
             {
                 headers: {
@@ -388,6 +390,8 @@ async function runSecondaryAgenticLoop(
         {
             model: 'claude-sonnet-4-6',
             max_tokens: 16384,
+            temperature: 1,
+            thinking: { type: 'enabled', budget_tokens: 8000 },
             system: systemPrompt,
             tools: [
                 {
@@ -397,7 +401,6 @@ async function runSecondaryAgenticLoop(
                 },
             ],
             messages,
-            temperature: 0.1,
         },
         {
             headers: {
@@ -434,6 +437,8 @@ async function runSecondaryAgenticLoop(
             {
                 model: 'claude-sonnet-4-6',
                 max_tokens: 16384,
+                temperature: 1,
+                thinking: { type: 'enabled', budget_tokens: 8000 },
                 system: systemPrompt,
                 tools: [
                     {
@@ -443,7 +448,6 @@ async function runSecondaryAgenticLoop(
                     },
                 ],
                 messages,
-                temperature: 0.1,
             },
             {
                 headers: {

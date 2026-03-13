@@ -342,19 +342,20 @@ describe('inventory-analysis-enhanced', () => {
         })
 
         test('stops at MAX_TURNS and returns partial response', async () => {
-            // Return tool_use 10 times, then a final response
-            // (loop runs max 10 iterations after the initial call)
-            for (let i = 0; i < 10; i++) {
+            // Return tool_use 15 times to exceed MAX_TURNS (15)
+            // Loop exits when turns >= MAX_TURNS, so 15 tool_use responses
+            // means 1 initial call + 15 loop iterations = 16 calls
+            for (let i = 0; i < 15; i++) {
                 mockMessagesCreate.mockResolvedValueOnce(makeToolUseResponse())
             }
-            // The 11th call is the last iteration — return end_turn so extractJson works
+            // The 16th call happens at turn 15 — return end_turn so extractJson works
             mockMessagesCreate.mockResolvedValueOnce(makeEndTurnResponse())
 
             const image = await createTestImage()
             const result = await analyzeWithMarketResearch([image])
 
-            // 1 initial + 10 loop iterations = 11 calls
-            expect(mockMessagesCreate).toHaveBeenCalledTimes(11)
+            // 1 initial + 15 loop iterations = 16 calls
+            expect(mockMessagesCreate).toHaveBeenCalledTimes(16)
             expect(result.analysis.name).toBeTruthy()
         })
     })

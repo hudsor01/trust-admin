@@ -64,6 +64,7 @@ type AnalysisResult = {
     valuationRationale: string
     confidence: 'high' | 'medium' | 'low'
     confidenceNotes: string
+    confidenceScore: number
 }
 
 type ConsensusInfo = {

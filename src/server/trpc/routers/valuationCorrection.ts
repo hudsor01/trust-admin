@@ -17,9 +17,9 @@ export const valuationCorrectionRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ input }) => {
-            const ratio =
-                parseFloat(input.correctedValue) /
-                parseFloat(input.aiEstimatedValue)
+            const aiVal = parseFloat(input.aiEstimatedValue)
+            const correctedVal = parseFloat(input.correctedValue)
+            const ratio = aiVal > 0 ? correctedVal / aiVal : 1.0
             await db.insert(valuationCorrection).values({
                 ...input,
                 correctionRatio: ratio,

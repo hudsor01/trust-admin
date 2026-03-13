@@ -323,27 +323,8 @@ describe('POST /api/inventory/analyze', () => {
             ]
 
             for (const mimeType of validMimeTypes) {
-                mockGenerateObject.mockClear()
                 mockUploadFiles.mockClear()
-                mockGenerateObject.mockResolvedValueOnce({
-                    object: {
-                        name: 'Test Item',
-                        category: 'Electronics',
-                        brand: null,
-                        model: null,
-                        materials: [],
-                        era: null,
-                        estimatedValue: '100',
-                        valueRangeLow: '50',
-                        valueRangeHigh: '150',
-                        condition: 'good',
-                        conditionNotes: '',
-                        description: 'Test',
-                        valuationRationale: 'Test',
-                        confidence: 'medium',
-                        confidenceNotes: '',
-                    },
-                })
+                mockAnalyzeWithMarketResearch.mockClear()
                 mockUploadFiles.mockResolvedValueOnce([
                     {
                         data: { ufsUrl: 'https://utfs.io/f/test.jpg' },
