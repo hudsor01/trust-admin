@@ -13,7 +13,6 @@ import {
 import type { Homestead } from '@/db/schema'
 import { STATUS_VARIANTS } from '@/lib/constants'
 import { formatCurrency, formatDate } from '@/utils/formatters'
-import { PROPERTY_TYPES } from './constants'
 
 interface HomesteadSectionProps {
     homestead: Homestead | undefined
@@ -108,31 +107,14 @@ export function HomesteadSection({
                     </div>
                     <div>
                         <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                            Property Details
+                            Transfer Status
                         </p>
-                        <p className="mt-1 text-sm">
-                            {
-                                PROPERTY_TYPES.find(
-                                    (t) => t.value === homestead.propertyType,
-                                )?.label
-                            }
-                        </p>
-                        {homestead.bedrooms && homestead.bathrooms && (
-                            <p className="text-sm">
-                                {homestead.bedrooms} bed / {homestead.bathrooms}{' '}
-                                bath
-                            </p>
-                        )}
-                        {homestead.squareFeet && (
-                            <p className="text-sm">
-                                {homestead.squareFeet.toLocaleString()} sq ft
-                            </p>
-                        )}
-                        {homestead.yearBuilt && (
-                            <p className="text-sm">
-                                Built {homestead.yearBuilt}
-                            </p>
-                        )}
+                        <Badge
+                            variant={STATUS_VARIANTS[homestead.status]}
+                            className="mt-1"
+                        >
+                            {homestead.status}
+                        </Badge>
                     </div>
                     <div>
                         <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
@@ -153,38 +135,6 @@ export function HomesteadSection({
                         )}
                     </div>
                 </div>
-
-                {(homestead.parcelNumber || homestead.dodAffidavitFiled) && (
-                    <div className="mt-6 grid grid-cols-2 gap-6">
-                        {homestead.parcelNumber && (
-                            <div>
-                                <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                                    Parcel Number
-                                </p>
-                                <p className="mt-1 text-sm">
-                                    {homestead.parcelNumber}
-                                </p>
-                            </div>
-                        )}
-                        <div>
-                            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                                DOD Affidavit Filed
-                            </p>
-                            <p className="mt-1 text-sm">
-                                {homestead.dodAffidavitFiled ? (
-                                    <>
-                                        Yes -{' '}
-                                        {formatDate(homestead.dodAffidavitDate)}{' '}
-                                        {homestead.clerkFileNo &&
-                                            `(#${homestead.clerkFileNo})`}
-                                    </>
-                                ) : (
-                                    'Not yet filed'
-                                )}
-                            </p>
-                        </div>
-                    </div>
-                )}
 
                 {homestead.notes && (
                     <div className="mt-6">

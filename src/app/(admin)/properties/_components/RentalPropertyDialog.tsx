@@ -1,7 +1,6 @@
 'use client'
 
 import { ResourceDialog } from '@/components/resource-dialog'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -19,7 +18,7 @@ import {
     TRANSFER_STATUS,
 } from '@/lib/constants'
 import type { RentalFormData } from './constants'
-import { ASSET_STATUS, PROPERTY_TYPES } from './constants'
+import { ASSET_STATUS } from './constants'
 
 interface RentalPropertyDialogProps {
     isOpen: boolean
@@ -47,7 +46,6 @@ export function RentalPropertyDialog({
             isLoading={isSubmitting}
         >
             <div className="space-y-6">
-                {/* Property Info */}
                 <div>
                     <h4 className="mb-3 text-sm font-medium">Property Info</h4>
                     <div className="space-y-3">
@@ -159,94 +157,9 @@ export function RentalPropertyDialog({
                     </div>
                 </div>
 
-                {/* Property Details */}
-                <div>
-                    <h4 className="mb-3 text-sm font-medium">
-                        Property Details
-                    </h4>
-                    <div className="grid grid-cols-4 gap-3">
-                        <formInstance.Field name="propertyType">
-                            {(field) => (
-                                <div className="space-y-2">
-                                    <Label>Property Type</Label>
-                                    <Select
-                                        value={field.state.value}
-                                        onValueChange={(v) =>
-                                            field.handleChange(v)
-                                        }
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {PROPERTY_TYPES.map((t) => (
-                                                <SelectItem
-                                                    key={t.value}
-                                                    value={t.value}
-                                                >
-                                                    {t.label}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            )}
-                        </formInstance.Field>
-                        <formInstance.Field name="units">
-                            {(field) => (
-                                <div className="space-y-2">
-                                    <Label htmlFor="r-units">Units</Label>
-                                    <Input
-                                        id="r-units"
-                                        type="number"
-                                        value={field.state.value}
-                                        onBlur={field.handleBlur}
-                                        onChange={(e) =>
-                                            field.handleChange(e.target.value)
-                                        }
-                                    />
-                                </div>
-                            )}
-                        </formInstance.Field>
-                        <formInstance.Field name="yearBuilt">
-                            {(field) => (
-                                <div className="space-y-2">
-                                    <Label htmlFor="r-year">Year Built</Label>
-                                    <Input
-                                        id="r-year"
-                                        type="number"
-                                        value={field.state.value}
-                                        onBlur={field.handleBlur}
-                                        onChange={(e) =>
-                                            field.handleChange(e.target.value)
-                                        }
-                                    />
-                                </div>
-                            )}
-                        </formInstance.Field>
-                        <formInstance.Field name="squareFeet">
-                            {(field) => (
-                                <div className="space-y-2">
-                                    <Label htmlFor="r-sqft">Square Feet</Label>
-                                    <Input
-                                        id="r-sqft"
-                                        type="number"
-                                        value={field.state.value}
-                                        onBlur={field.handleBlur}
-                                        onChange={(e) =>
-                                            field.handleChange(e.target.value)
-                                        }
-                                    />
-                                </div>
-                            )}
-                        </formInstance.Field>
-                    </div>
-                </div>
-
-                {/* Rental Info */}
                 <div>
                     <h4 className="mb-3 text-sm font-medium">Rental Info</h4>
-                    <div className="grid grid-cols-4 gap-3">
+                    <div className="grid grid-cols-2 gap-3">
                         <formInstance.Field name="rentalStatus">
                             {(field) => (
                                 <div className="space-y-2">
@@ -290,6 +203,8 @@ export function RentalPropertyDialog({
                                 </div>
                             )}
                         </formInstance.Field>
+                    </div>
+                    <div className="mt-3 grid grid-cols-3 gap-3">
                         <formInstance.Field name="leaseStart">
                             {(field) => (
                                 <div className="space-y-2">
@@ -326,8 +241,6 @@ export function RentalPropertyDialog({
                                 </div>
                             )}
                         </formInstance.Field>
-                    </div>
-                    <div className="mt-3">
                         <formInstance.Field name="propertyManager">
                             {(field) => (
                                 <div className="space-y-2">
@@ -348,7 +261,6 @@ export function RentalPropertyDialog({
                     </div>
                 </div>
 
-                {/* DOD Valuation */}
                 <div>
                     <h4 className="mb-3 text-sm font-medium">
                         Date of Death Valuation
@@ -418,85 +330,6 @@ export function RentalPropertyDialog({
                     </div>
                 </div>
 
-                {/* DOD Affidavit */}
-                <div>
-                    <h4 className="mb-3 text-sm font-medium">
-                        DOD Affidavit (Texas)
-                    </h4>
-                    <div className="grid grid-cols-3 items-end gap-3">
-                        <formInstance.Field name="dodAffidavitFiled">
-                            {(field) => (
-                                <div className="flex items-center gap-2">
-                                    <Checkbox
-                                        id="r-affidavit"
-                                        checked={field.state.value}
-                                        onCheckedChange={(checked) =>
-                                            field.handleChange(!!checked)
-                                        }
-                                    />
-                                    <Label htmlFor="r-affidavit">
-                                        Affidavit Filed
-                                    </Label>
-                                </div>
-                            )}
-                        </formInstance.Field>
-                        <formInstance.Subscribe<boolean>
-                            selector={(state) => state.values.dodAffidavitFiled}
-                        >
-                            {(dodAffidavitFiled: boolean) => (
-                                <>
-                                    <formInstance.Field name="dodAffidavitDate">
-                                        {(field) => (
-                                            <div className="space-y-2">
-                                                <Label htmlFor="r-filing-date">
-                                                    Filing Date
-                                                </Label>
-                                                <Input
-                                                    id="r-filing-date"
-                                                    type="date"
-                                                    value={field.state.value}
-                                                    onBlur={field.handleBlur}
-                                                    onChange={(e) =>
-                                                        field.handleChange(
-                                                            e.target.value,
-                                                        )
-                                                    }
-                                                    disabled={
-                                                        !dodAffidavitFiled
-                                                    }
-                                                />
-                                            </div>
-                                        )}
-                                    </formInstance.Field>
-                                    <formInstance.Field name="clerkFileNo">
-                                        {(field) => (
-                                            <div className="space-y-2">
-                                                <Label htmlFor="r-clerk">
-                                                    Clerk File Number
-                                                </Label>
-                                                <Input
-                                                    id="r-clerk"
-                                                    value={field.state.value}
-                                                    onBlur={field.handleBlur}
-                                                    onChange={(e) =>
-                                                        field.handleChange(
-                                                            e.target.value,
-                                                        )
-                                                    }
-                                                    disabled={
-                                                        !dodAffidavitFiled
-                                                    }
-                                                />
-                                            </div>
-                                        )}
-                                    </formInstance.Field>
-                                </>
-                            )}
-                        </formInstance.Subscribe>
-                    </div>
-                </div>
-
-                {/* Status */}
                 <div>
                     <h4 className="mb-3 text-sm font-medium">Status</h4>
                     <div className="grid grid-cols-2 gap-3">
@@ -557,7 +390,6 @@ export function RentalPropertyDialog({
                     </div>
                 </div>
 
-                {/* Notes */}
                 <formInstance.Field name="notes">
                     {(field) => (
                         <div className="space-y-2">
