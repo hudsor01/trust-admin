@@ -72,6 +72,7 @@ function calculateDivergence(
 ): number {
     const a = parseFloat(primaryValue)
     const b = parseFloat(secondaryValue)
+    if (Number.isNaN(a) || Number.isNaN(b)) return 0
     if (a === 0 && b === 0) return 0
     const max = Math.max(a, b)
     const min = Math.min(a, b)
