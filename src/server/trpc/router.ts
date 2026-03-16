@@ -23,6 +23,7 @@ import { trustAccountingRouter } from './routers/trustAccounting'
 import { trusteeRouter } from './routers/trustee'
 import { userManagementRouter } from './routers/userManagement'
 import { valuationRouter } from './routers/valuation'
+import { valuationCorrectionRouter } from './routers/valuationCorrection'
 import { vehicleRouter } from './routers/vehicle'
 import { withdrawalRecordRouter } from './routers/withdrawalRecord'
 
@@ -52,6 +53,7 @@ export const appRouter = createTRPCRouter({
     // Accounting (complex ledger logic)
     trustAccounting: trustAccountingRouter,
     valuation: valuationRouter,
+    valuationCorrection: valuationCorrectionRouter,
 
     // Beneficiary workflows
     hemsRequest: hemsRequestRouter,

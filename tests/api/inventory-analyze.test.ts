@@ -21,6 +21,7 @@ const mockGenerateObject = mock(() =>
             valuationRationale: 'Based on similar decorative lamps',
             confidence: 'medium',
             confidenceNotes: 'Style identified but not authentic Tiffany',
+            confidenceScore: 75,
         },
     }),
 )
@@ -50,6 +51,36 @@ mock.module('../../src/lib/auth', () => ({
     },
 }))
 
+// Mock drizzle-orm (desc used in feedback query)
+mock.module('drizzle-orm', () => ({
+    desc: () => 'desc',
+    eq: () => 'eq',
+    and: () => 'and',
+    sql: () => 'sql',
+}))
+
+// Chainable mock for db.select().from().orderBy().limit()
+const mockDbChain = {
+    select: mock(() => mockDbChain),
+    from: mock(() => mockDbChain),
+    orderBy: mock(() => mockDbChain),
+    limit: mock(() => Promise.resolve([])),
+}
+
+mock.module('../../db', () => ({
+    db: mockDbChain,
+}))
+
+mock.module('../../db/schema', () => ({
+    valuationCorrection: {
+        itemName: 'item_name',
+        category: 'category',
+        aiEstimatedValue: 'ai_estimated_value',
+        correctedValue: 'corrected_value',
+        createdAt: 'created_at',
+    },
+}))
+
 const mockAnalysisResult = {
     name: 'Vintage Lamp',
     category: 'Furniture',
@@ -65,9 +96,10 @@ const mockAnalysisResult = {
     condition: 'good',
     conditionNotes: 'Minor patina on base',
     description: 'Stained glass table lamp in Tiffany style',
-    valuationRationale: 'Based on similar decorative lamps',
+    valuationRationale: 'Based on similar decorative lamps at $200-$300',
     confidence: 'medium',
     confidenceNotes: 'Style identified but not authentic Tiffany',
+    confidenceScore: 75,
 }
 
 const mockAnalyzeWithMarketResearch = mock(
@@ -80,8 +112,20 @@ const mockAnalyzeWithMarketResearch = mock(
     }),
 )
 
+const mockAnalyzeSecondary = mock(async () => mockAnalysisResult)
+
+const mockValidateAnalysis = mock(() => ({
+    valid: true,
+    warnings: [],
+}))
+
+const mockBuildFeedbackContext = mock(() => '')
+
 mock.module('../../src/lib/inventory-analysis-enhanced', () => ({
     analyzeWithMarketResearch: mockAnalyzeWithMarketResearch,
+    analyzeWithMarketResearchSecondary: mockAnalyzeSecondary,
+    validateAnalysis: mockValidateAnalysis,
+    buildFeedbackContext: mockBuildFeedbackContext,
 }))
 
 process.env.ANTHROPIC_API_KEY = 'test-api-key'
@@ -124,6 +168,9 @@ describe('POST /api/inventory/analyze', () => {
         mockGenerateObject.mockClear()
         mockUploadFiles.mockClear()
         mockAnalyzeWithMarketResearch.mockClear()
+        mockAnalyzeSecondary.mockClear()
+        mockValidateAnalysis.mockClear()
+        mockBuildFeedbackContext.mockClear()
     })
 
     describe('Successful analysis', () => {
@@ -148,6 +195,8 @@ describe('POST /api/inventory/analyze', () => {
             expect(data.photoUrls).toBeDefined()
             expect(data.photoUrls).toHaveLength(1)
             expect(data.photoUrls[0]).toBe('https://utfs.io/f/lamp-photo-1.jpg')
+            expect(data.validationWarnings).toBeDefined()
+            expect(Array.isArray(data.validationWarnings)).toBe(true)
         })
 
         test('returns analysis and photo URLs for multiple images', async () => {
@@ -274,27 +323,8 @@ describe('POST /api/inventory/analyze', () => {
             ]
 
             for (const mimeType of validMimeTypes) {
-                mockGenerateObject.mockClear()
                 mockUploadFiles.mockClear()
-                mockGenerateObject.mockResolvedValueOnce({
-                    object: {
-                        name: 'Test Item',
-                        category: 'Electronics',
-                        brand: null,
-                        model: null,
-                        materials: [],
-                        era: null,
-                        estimatedValue: '100',
-                        valueRangeLow: '50',
-                        valueRangeHigh: '150',
-                        condition: 'good',
-                        conditionNotes: '',
-                        description: 'Test',
-                        valuationRationale: 'Test',
-                        confidence: 'medium',
-                        confidenceNotes: '',
-                    },
-                })
+                mockAnalyzeWithMarketResearch.mockClear()
                 mockUploadFiles.mockResolvedValueOnce([
                     {
                         data: { ufsUrl: 'https://utfs.io/f/test.jpg' },

@@ -2,7 +2,7 @@
 import { randomBytes, scryptSync } from 'node:crypto'
 import { asc, eq } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
-import { getPublicDb, getSql } from '@/db'
+import { getPublicDb, getSql, typedRows } from '@/db'
 import { beneficiary, userProfile } from '@/db/schema'
 
 export const dynamic = 'force-dynamic'
@@ -34,10 +34,12 @@ async function ensureAuthUser(
 ): Promise<string> {
     const sql = getSql()
 
-    const existing = (await sql`
+    const existing = typedRows<{ id: string }>(
+        await sql`
         SELECT id FROM neon_auth."user"
         WHERE lower(email) = lower(${email}) LIMIT 1
-    `) as unknown as { id: string }[]
+    `,
+    )
 
     if (existing[0]) {
         // Fix emailVerified/role if stale from a prior run
@@ -55,7 +57,7 @@ async function ensureAuthUser(
 
     await sql`
         INSERT INTO neon_auth."user" (id, name, email, "emailVerified", image, role, "createdAt", "updatedAt")
-        VALUES (${userId}, ${name}, ${email}, ${true}, ${null as unknown as string}, ${role ?? null}, ${now}, ${now})
+        VALUES (${userId}, ${name}, ${email}, ${true}, ${null}, ${role ?? null}, ${now}, ${now})
     `
 
     await sql`

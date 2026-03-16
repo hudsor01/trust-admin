@@ -15,8 +15,9 @@ coverage = true
 # Watch for changes during testing
 # watch = true
 
-# Test timeout in milliseconds
-timeout = 5000
+# Test timeout in milliseconds — bunfig.toml timeout not respected by bun 1.3;
+# --timeout 30000 added to package.json test scripts instead.
+# timeout = 5000
 
 # Preload test setup file for happy-dom initialization
 preload = ["./tests/setup.ts"]

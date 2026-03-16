@@ -8,7 +8,7 @@
  *
  * @see https://neon.com/docs/introduction/point-in-time-restore
  */
-import { getClient } from './index'
+import { getClient, typedRows } from './index'
 
 /**
  * Query a table as it existed at a specific point in time
@@ -54,7 +54,7 @@ export async function queryAtTime<T = Record<string, unknown>>(
         ${client.unsafe(whereClause)}
     `
 
-    return result as unknown as T[]
+    return typedRows<T>(result)
 }
 
 /**

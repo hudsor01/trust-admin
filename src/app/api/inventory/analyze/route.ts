@@ -1,19 +1,28 @@
 export const dynamic = 'force-dynamic'
 
+import { desc } from 'drizzle-orm'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import { db } from '@/db'
+import { valuationCorrection } from '@/db/schema'
 import { authServer } from '@/lib/auth'
 import { env } from '@/lib/env'
 import {
-    analyzeInventoryImageWithCompressed,
+    type CompressedImage,
+    compressImage,
     type InventoryAnalysisResult,
 } from '@/lib/inventory-analysis'
-import { analyzeWithMarketResearch } from '@/lib/inventory-analysis-enhanced'
+import {
+    analyzeWithMarketResearch,
+    analyzeWithMarketResearchSecondary,
+    buildFeedbackContext,
+    validateAnalysis,
+} from '@/lib/inventory-analysis-enhanced'
 import { logger } from '@/lib/logger'
 import { uploadInventoryImages } from '@/lib/uploadthing-server'
 
-// Enhanced analysis with web search can take 30-90s per item
-export const maxDuration = 120
+// Two models with extended thinking + web search can take 2-5 minutes
+export const maxDuration = 300
 
 const ImageSchema = z.object({
     base64: z
@@ -33,13 +42,19 @@ const AnalyzeRequestSchema = z.object({
         .array(ImageSchema)
         .min(1, 'At least one image is required')
         .max(5, 'Maximum 5 images per item'),
-    useWebSearch: z.boolean().optional().default(true),
 })
 
 interface AnalyzeSuccessResponse {
     success: true
     data: InventoryAnalysisResult
     photoUrls: string[]
+    consensus?: {
+        status: 'agreed' | 'review' | 'divergent'
+        primary: InventoryAnalysisResult
+        secondary: InventoryAnalysisResult
+        divergencePercent: number
+    }
+    validationWarnings: string[]
 }
 
 interface AnalyzeErrorResponse {
@@ -50,7 +65,73 @@ interface AnalyzeErrorResponse {
 
 type AnalyzeResponse = AnalyzeSuccessResponse | AnalyzeErrorResponse
 
-/** Analyzes inventory images via Claude for item identification and valuation. */
+/** Calculate percentage divergence between two estimated values. */
+function calculateDivergence(
+    primaryValue: string,
+    secondaryValue: string,
+): number {
+    const a = parseFloat(primaryValue)
+    const b = parseFloat(secondaryValue)
+    if (a === 0 && b === 0) return 0
+    const max = Math.max(a, b)
+    const min = Math.min(a, b)
+    return ((max - min) / max) * 100
+}
+
+/** Merge two analysis results based on divergence level. */
+function mergeResults(
+    primary: InventoryAnalysisResult,
+    secondary: InventoryAnalysisResult,
+    divergencePercent: number,
+): {
+    merged: InventoryAnalysisResult
+    status: 'agreed' | 'review' | 'divergent'
+} {
+    if (divergencePercent <= 25) {
+        // Agreed: average values, use higher confidence
+        const avgValue = (
+            (parseFloat(primary.estimatedValue) +
+                parseFloat(secondary.estimatedValue)) /
+            2
+        ).toFixed(2)
+        const avgLow = (
+            (parseFloat(primary.valueRangeLow) +
+                parseFloat(secondary.valueRangeLow)) /
+            2
+        ).toFixed(2)
+        const avgHigh = (
+            (parseFloat(primary.valueRangeHigh) +
+                parseFloat(secondary.valueRangeHigh)) /
+            2
+        ).toFixed(2)
+
+        const primaryScore = primary.confidenceScore ?? 0
+        const secondaryScore = secondary.confidenceScore ?? 0
+        const base = primaryScore >= secondaryScore ? primary : secondary
+
+        return {
+            merged: {
+                ...base,
+                estimatedValue: avgValue,
+                valueRangeLow: avgLow,
+                valueRangeHigh: avgHigh,
+            },
+            status: 'agreed',
+        }
+    }
+
+    // Review or divergent: use higher-confidence model's values
+    const primaryScore = primary.confidenceScore ?? 0
+    const secondaryScore = secondary.confidenceScore ?? 0
+    const selected = primaryScore >= secondaryScore ? primary : secondary
+
+    const status: 'review' | 'divergent' =
+        divergencePercent <= 100 ? 'review' : 'divergent'
+
+    return { merged: selected, status }
+}
+
+/** Analyzes inventory images via two Claude models for consensus valuation. */
 export async function POST(
     request: NextRequest,
 ): Promise<NextResponse<AnalyzeResponse>> {
@@ -86,23 +167,111 @@ export async function POST(
             )
         }
 
-        const { images, useWebSearch } = validationResult.data
+        const { images } = validationResult.data
 
-        const { analysis, compressedImages } = useWebSearch
-            ? await analyzeWithMarketResearch(images)
-            : await analyzeInventoryImageWithCompressed(images)
+        // Compress images upfront for secondary model (primary compresses internally)
+        const compressedImages: CompressedImage[] = await Promise.all(
+            images.map((img) => compressImage(img.base64, img.mimeType)),
+        )
 
+        // Fetch recent corrections for feedback loop
+        const recentCorrections = await db
+            .select({
+                itemName: valuationCorrection.itemName,
+                category: valuationCorrection.category,
+                aiEstimatedValue: valuationCorrection.aiEstimatedValue,
+                correctedValue: valuationCorrection.correctedValue,
+            })
+            .from(valuationCorrection)
+            .orderBy(desc(valuationCorrection.createdAt))
+            .limit(10)
+
+        const feedbackContext = buildFeedbackContext(recentCorrections)
+
+        // Run both models in parallel
+        const [primaryResult, secondaryResult] = await Promise.allSettled([
+            analyzeWithMarketResearch(images, feedbackContext),
+            analyzeWithMarketResearchSecondary(
+                images,
+                compressedImages,
+                feedbackContext,
+            ),
+        ])
+
+        // Primary must succeed
+        if (primaryResult.status === 'rejected') {
+            throw primaryResult.reason
+        }
+
+        const {
+            analysis: primaryAnalysis,
+            compressedImages: primaryCompressed,
+        } = primaryResult.value
+
+        // Upload photos using primary's compressed images (non-fatal)
         let photoUrls: string[] = []
         try {
-            photoUrls = await uploadInventoryImages(compressedImages)
+            photoUrls = await uploadInventoryImages(primaryCompressed)
         } catch {
             // Non-fatal: analysis is still valuable without stored photos
         }
 
+        // If secondary failed, return primary only with validation warnings
+        if (secondaryResult.status === 'rejected') {
+            logger.api.warn('Secondary analysis failed, using primary only', {
+                error:
+                    secondaryResult.reason instanceof Error
+                        ? secondaryResult.reason.message
+                        : 'Unknown error',
+            })
+
+            const { warnings } = validateAnalysis(primaryAnalysis)
+
+            return NextResponse.json({
+                success: true,
+                data: primaryAnalysis,
+                photoUrls,
+                validationWarnings: warnings,
+            })
+        }
+
+        // Both succeeded — calculate divergence and merge
+        const secondaryAnalysis = secondaryResult.value
+        const divergencePercent = calculateDivergence(
+            primaryAnalysis.estimatedValue,
+            secondaryAnalysis.estimatedValue,
+        )
+
+        const { merged, status } = mergeResults(
+            primaryAnalysis,
+            secondaryAnalysis,
+            divergencePercent,
+        )
+
+        const { warnings } = validateAnalysis(merged)
+
+        // Add consensus-specific warnings
+        if (status === 'review') {
+            warnings.push(
+                `Models diverged ${divergencePercent.toFixed(0)}% — flagged for admin review`,
+            )
+        } else if (status === 'divergent') {
+            warnings.push(
+                `Models strongly diverged ${divergencePercent.toFixed(0)}% — recommend professional appraisal`,
+            )
+        }
+
         return NextResponse.json({
             success: true,
-            data: analysis,
+            data: merged,
             photoUrls,
+            consensus: {
+                status,
+                primary: primaryAnalysis,
+                secondary: secondaryAnalysis,
+                divergencePercent,
+            },
+            validationWarnings: warnings,
         })
     } catch (error) {
         if (error instanceof Error) {

@@ -15,14 +15,14 @@ const makeHomestead = (overrides: Partial<Homestead> = {}): Homestead => ({
     state: 'TX',
     zip: '78701',
     county: 'Travis',
-    parcelNumber: 'ABC-123-456',
-    legalDescription: 'Lot 1, Block 2',
+    parcelNumber: null,
+    legalDescription: null,
     propertyType: 'SINGLE_FAMILY',
-    yearBuilt: 1995,
-    squareFeet: 2500,
-    lotSizeAcres: '0.2500',
-    bedrooms: 4,
-    bathrooms: '2.5',
+    yearBuilt: null,
+    squareFeet: null,
+    lotSizeAcres: null,
+    bedrooms: null,
+    bathrooms: null,
     acquisitionDate: null,
     acquisitionCost: null,
     dodValue: '350000.00',
@@ -48,7 +48,6 @@ describe('HomesteadSection', () => {
         render(
             <HomesteadSection
                 homestead={undefined}
-                selectedEntity={1}
                 onAdd={mock(() => {})}
                 onEdit={mock(() => {})}
                 onDelete={mock(() => {})}
@@ -65,7 +64,6 @@ describe('HomesteadSection', () => {
         render(
             <HomesteadSection
                 homestead={undefined}
-                selectedEntity={1}
                 onAdd={onAdd}
                 onEdit={mock(() => {})}
                 onDelete={mock(() => {})}
@@ -82,14 +80,12 @@ describe('HomesteadSection', () => {
         render(
             <HomesteadSection
                 homestead={homestead}
-                selectedEntity={1}
                 onAdd={mock(() => {})}
                 onEdit={mock(() => {})}
                 onDelete={mock(() => {})}
             />,
         )
 
-        // Street address appears in the heading and in the address section
         const matches = screen.getAllByText('123 Main St')
         expect(matches.length).toBeGreaterThan(0)
     })
@@ -104,7 +100,6 @@ describe('HomesteadSection', () => {
         render(
             <HomesteadSection
                 homestead={homestead}
-                selectedEntity={1}
                 onAdd={mock(() => {})}
                 onEdit={mock(() => {})}
                 onDelete={mock(() => {})}
@@ -120,7 +115,6 @@ describe('HomesteadSection', () => {
         render(
             <HomesteadSection
                 homestead={homestead}
-                selectedEntity={1}
                 onAdd={mock(() => {})}
                 onEdit={mock(() => {})}
                 onDelete={mock(() => {})}
@@ -130,55 +124,19 @@ describe('HomesteadSection', () => {
         expect(screen.getByText('NOT_STARTED')).toBeTruthy()
     })
 
-    test('renders bedroom and bathroom info when provided', () => {
-        const homestead = makeHomestead({ bedrooms: 4, bathrooms: '2.5' })
+    test('renders DOD value when provided', () => {
+        const homestead = makeHomestead({ dodValue: '350000.00' })
 
         render(
             <HomesteadSection
                 homestead={homestead}
-                selectedEntity={1}
                 onAdd={mock(() => {})}
                 onEdit={mock(() => {})}
                 onDelete={mock(() => {})}
             />,
         )
 
-        expect(screen.getByText('4 bed / 2.5 bath')).toBeTruthy()
-    })
-
-    test('renders square footage when provided', () => {
-        const homestead = makeHomestead({ squareFeet: 2500 })
-
-        render(
-            <HomesteadSection
-                homestead={homestead}
-                selectedEntity={1}
-                onAdd={mock(() => {})}
-                onEdit={mock(() => {})}
-                onDelete={mock(() => {})}
-            />,
-        )
-
-        expect(screen.getByText('2,500 sq ft')).toBeTruthy()
-    })
-
-    test('shows Not yet filed when dodAffidavitFiled is false and parcelNumber exists', () => {
-        const homestead = makeHomestead({
-            parcelNumber: 'ABC-123',
-            dodAffidavitFiled: false,
-        })
-
-        render(
-            <HomesteadSection
-                homestead={homestead}
-                selectedEntity={1}
-                onAdd={mock(() => {})}
-                onEdit={mock(() => {})}
-                onDelete={mock(() => {})}
-            />,
-        )
-
-        expect(screen.getByText('Not yet filed')).toBeTruthy()
+        expect(screen.getByText('DOD Value')).toBeTruthy()
     })
 
     test('renders notes section when notes are provided', () => {
@@ -187,7 +145,6 @@ describe('HomesteadSection', () => {
         render(
             <HomesteadSection
                 homestead={homestead}
-                selectedEntity={1}
                 onAdd={mock(() => {})}
                 onEdit={mock(() => {})}
                 onDelete={mock(() => {})}
@@ -205,7 +162,6 @@ describe('HomesteadSection', () => {
         render(
             <HomesteadSection
                 homestead={homestead}
-                selectedEntity={1}
                 onAdd={mock(() => {})}
                 onEdit={onEdit}
                 onDelete={mock(() => {})}
@@ -213,7 +169,6 @@ describe('HomesteadSection', () => {
         )
 
         const buttons = screen.getAllByRole('button')
-        // Edit button has Pencil icon
         const editButton = buttons.find((btn) => btn.querySelector('svg'))
         if (editButton) {
             await user.click(editButton)

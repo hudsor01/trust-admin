@@ -85,7 +85,7 @@ function initializePostgresClient(): ReturnType<typeof postgres> {
     _pgClient = postgres(cleanDatabaseUrl, {
         max: 10,
         idle_timeout: 10,
-        connect_timeout: 5,
+        connect_timeout: 30,
         max_lifetime: 60 * 15,
         prepare: true,
         fetch_types: false,
@@ -121,6 +121,11 @@ export function getSql(): ReturnType<typeof neon> {
         _sqlPublic = neon(getDatabaseUrl())
     }
     return _sqlPublic
+}
+
+/** Narrows raw SQL results to a typed row array. Use with `getSql()` or `getClient()` queries. */
+export function typedRows<T>(result: unknown): T[] {
+    return result as T[]
 }
 
 /** postgres.js client — supports transactions via client.begin() and template-string SQL. */

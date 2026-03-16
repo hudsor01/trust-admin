@@ -5,7 +5,6 @@ import {
     Camera,
     CheckCircle2,
     DollarSign,
-    Globe,
     Loader2,
     Sparkles,
     Upload,
@@ -26,7 +25,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
-import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import {
     type InventoryFormState,
@@ -66,6 +64,14 @@ type AnalysisResult = {
     valuationRationale: string
     confidence: 'high' | 'medium' | 'low'
     confidenceNotes: string
+    confidenceScore: number
+}
+
+type ConsensusInfo = {
+    status: 'agreed' | 'review' | 'divergent'
+    primary: AnalysisResult
+    secondary: AnalysisResult
+    divergencePercent: number
 }
 
 /** Client-side resize (max 2048px) + JPEG compression to stay under Vercel's 4.5MB body limit. */
@@ -112,10 +118,10 @@ export function InventoryForm() {
     const [analyzing, setAnalyzing] = useState(false)
     const [analysis, setAnalysis] = useState<AnalysisResult | null>(null)
     const [analysisError, setAnalysisError] = useState<string | null>(null)
+    const [consensus, setConsensus] = useState<ConsensusInfo | null>(null)
+    const [validationWarnings, setValidationWarnings] = useState<string[]>([])
 
     // AI analysis pre-fills these; user can override before submit
-    const [useWebSearch, setUseWebSearch] = useState(true)
-
     const [formValues, setFormValues] = useState({
         name: '',
         category: '',
@@ -136,6 +142,8 @@ export function InventoryForm() {
             setPhotos((prev) => [...prev, ...files])
             setAnalysis(null)
             setAnalysisError(null)
+            setConsensus(null)
+            setValidationWarnings([])
         },
         [photos.length],
     )
@@ -145,6 +153,8 @@ export function InventoryForm() {
         setPhotoUrls([])
         setAnalysis(null)
         setAnalysisError(null)
+        setConsensus(null)
+        setValidationWarnings([])
     }, [])
 
     const analyzePhotos = async () => {
@@ -164,7 +174,7 @@ export function InventoryForm() {
             const res = await fetch('/api/inventory/analyze', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ images, useWebSearch }),
+                body: JSON.stringify({ images }),
             })
 
             if (!res.ok) {
@@ -189,6 +199,12 @@ export function InventoryForm() {
                 setAnalysis(data.data)
                 if (data.photoUrls && data.photoUrls.length > 0) {
                     setPhotoUrls(data.photoUrls)
+                }
+                if (data.consensus) {
+                    setConsensus(data.consensus)
+                }
+                if (data.validationWarnings) {
+                    setValidationWarnings(data.validationWarnings)
                 }
                 setFormValues({
                     name: data.data.name || '',
@@ -327,53 +343,24 @@ export function InventoryForm() {
                     )}
 
                     {photos.length > 0 && !analysis && (
-                        <div className="space-y-3">
-                            <div className="flex items-center justify-between rounded-lg border p-3">
-                                <div className="flex items-center gap-2">
-                                    <Globe className="h-4 w-4 text-muted-foreground" />
-                                    <div>
-                                        <Label
-                                            htmlFor="web-search-toggle"
-                                            className="text-sm font-medium cursor-pointer"
-                                        >
-                                            Research-backed valuation
-                                        </Label>
-                                        <p className="text-xs text-muted-foreground">
-                                            Searches eBay sold listings, auction
-                                            results, and price guides for real
-                                            comparable sales. Takes 30-90s.
-                                        </p>
-                                    </div>
-                                </div>
-                                <Switch
-                                    id="web-search-toggle"
-                                    checked={useWebSearch}
-                                    onCheckedChange={setUseWebSearch}
-                                />
-                            </div>
-                            <Button
-                                type="button"
-                                onClick={analyzePhotos}
-                                disabled={analyzing}
-                                className="w-full"
-                            >
-                                {analyzing ? (
-                                    <>
-                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                        {useWebSearch
-                                            ? 'Researching comparable sales...'
-                                            : 'Analyzing with AI...'}
-                                    </>
-                                ) : (
-                                    <>
-                                        <Sparkles className="h-4 w-4 mr-2" />
-                                        {useWebSearch
-                                            ? 'Research & Value Item'
-                                            : 'Analyze & Value Item'}
-                                    </>
-                                )}
-                            </Button>
-                        </div>
+                        <Button
+                            type="button"
+                            onClick={analyzePhotos}
+                            disabled={analyzing}
+                            className="w-full"
+                        >
+                            {analyzing ? (
+                                <>
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    Analyzing with two AI models (2-4 min)...
+                                </>
+                            ) : (
+                                <>
+                                    <Sparkles className="h-4 w-4 mr-2" />
+                                    Research & Value Item
+                                </>
+                            )}
+                        </Button>
                     )}
 
                     {analysisError && (
@@ -394,17 +381,36 @@ export function InventoryForm() {
                                 <Sparkles className="h-5 w-5 text-primary" />
                                 AI Analysis
                             </span>
-                            <Badge
-                                variant={
-                                    analysis.confidence === 'high'
-                                        ? 'default'
-                                        : analysis.confidence === 'medium'
-                                          ? 'secondary'
-                                          : 'outline'
-                                }
-                            >
-                                {analysis.confidence} confidence
-                            </Badge>
+                            <div className="flex items-center gap-2">
+                                <Badge
+                                    variant={
+                                        analysis.confidence === 'high'
+                                            ? 'default'
+                                            : analysis.confidence === 'medium'
+                                              ? 'secondary'
+                                              : 'outline'
+                                    }
+                                >
+                                    {analysis.confidence} confidence
+                                </Badge>
+                                {consensus && (
+                                    <Badge
+                                        variant={
+                                            consensus.status === 'agreed'
+                                                ? 'default'
+                                                : consensus.status === 'review'
+                                                  ? 'secondary'
+                                                  : 'destructive'
+                                        }
+                                    >
+                                        {consensus.status === 'agreed'
+                                            ? 'Models Agree'
+                                            : consensus.status === 'review'
+                                              ? `Models Differ ${Math.round(consensus.divergencePercent)}%`
+                                              : `Models Diverge ${Math.round(consensus.divergencePercent)}%`}
+                                    </Badge>
+                                )}
+                            </div>
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
@@ -485,6 +491,55 @@ export function InventoryForm() {
                                 {analysis.valuationRationale}
                             </p>
                         </div>
+
+                        {consensus && consensus.status !== 'agreed' && (
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="rounded-lg border p-3">
+                                    <p className="text-xs font-medium text-muted-foreground mb-1">
+                                        Model A (Opus)
+                                    </p>
+                                    <p className="text-lg font-bold">
+                                        $
+                                        {Number(
+                                            consensus.primary.estimatedValue,
+                                        ).toLocaleString()}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground mt-1 line-clamp-3">
+                                        {consensus.primary.valuationRationale}
+                                    </p>
+                                </div>
+                                <div className="rounded-lg border p-3">
+                                    <p className="text-xs font-medium text-muted-foreground mb-1">
+                                        Model B (Sonnet)
+                                    </p>
+                                    <p className="text-lg font-bold">
+                                        $
+                                        {Number(
+                                            consensus.secondary.estimatedValue,
+                                        ).toLocaleString()}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground mt-1 line-clamp-3">
+                                        {consensus.secondary.valuationRationale}
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
+                        {validationWarnings.length > 0 && (
+                            <Alert variant="destructive">
+                                <AlertCircle className="h-4 w-4" />
+                                <AlertTitle>Validation Warnings</AlertTitle>
+                                <AlertDescription>
+                                    <ul className="list-disc pl-4 mt-1">
+                                        {validationWarnings.map((w, i) => (
+                                            <li key={i} className="text-sm">
+                                                {w}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </AlertDescription>
+                            </Alert>
+                        )}
 
                         <div>
                             <div className="flex items-center gap-2 mb-1">

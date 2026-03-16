@@ -26,9 +26,8 @@ mock.module('../../src/lib/env', () => ({
     },
 }))
 
-const { analyzeWithMarketResearch, valueItemByDescription } = await import(
-    '../../src/lib/inventory-analysis-enhanced'
-)
+const { analyzeWithMarketResearch, valueItemByDescription, validateAnalysis } =
+    await import('../../src/lib/inventory-analysis-enhanced')
 
 // ---------------------------------------------------------------------------
 // Test helpers
@@ -55,6 +54,7 @@ function validAnalysisJson(overrides: Record<string, unknown> = {}): string {
         confidence: 'high',
         confidenceNotes:
             'Brand clearly marked, multiple comparable sales found',
+        confidenceScore: 85,
         ...overrides,
     })
 }
@@ -266,7 +266,7 @@ describe('inventory-analysis-enhanced', () => {
                 {
                     type: 'web_search_20250305',
                     name: 'web_search',
-                    max_uses: 10,
+                    max_uses: 20,
                 },
             ])
         })
@@ -342,19 +342,20 @@ describe('inventory-analysis-enhanced', () => {
         })
 
         test('stops at MAX_TURNS and returns partial response', async () => {
-            // Return tool_use 10 times, then a final response
-            // (loop runs max 10 iterations after the initial call)
-            for (let i = 0; i < 10; i++) {
+            // Return tool_use 15 times to exceed MAX_TURNS (15)
+            // Loop exits when turns >= MAX_TURNS, so 15 tool_use responses
+            // means 1 initial call + 15 loop iterations = 16 calls
+            for (let i = 0; i < 15; i++) {
                 mockMessagesCreate.mockResolvedValueOnce(makeToolUseResponse())
             }
-            // The 11th call is the last iteration — return end_turn so extractJson works
+            // The 16th call happens at turn 15 — return end_turn so extractJson works
             mockMessagesCreate.mockResolvedValueOnce(makeEndTurnResponse())
 
             const image = await createTestImage()
             const result = await analyzeWithMarketResearch([image])
 
-            // 1 initial + 10 loop iterations = 11 calls
-            expect(mockMessagesCreate).toHaveBeenCalledTimes(11)
+            // 1 initial + 15 loop iterations = 16 calls
+            expect(mockMessagesCreate).toHaveBeenCalledTimes(16)
             expect(result.analysis.name).toBeTruthy()
         })
     })
@@ -599,5 +600,70 @@ This concludes the analysis.`
                 '401 authentication failed',
             )
         })
+    })
+})
+
+// ---------------------------------------------------------------------------
+// validateAnalysis — post-analysis validation
+// ---------------------------------------------------------------------------
+
+describe('validateAnalysis', () => {
+    test('passes for valid analysis', () => {
+        const analysis = JSON.parse(validAnalysisJson())
+        const result = validateAnalysis(analysis)
+        expect(result.valid).toBe(true)
+        expect(result.warnings).toHaveLength(0)
+    })
+
+    test('warns when estimatedValue is outside range', () => {
+        const analysis = JSON.parse(
+            validAnalysisJson({
+                estimatedValue: '5000.00',
+                valueRangeLow: '1800.00',
+                valueRangeHigh: '3200.00',
+            }),
+        )
+        const result = validateAnalysis(analysis)
+        expect(result.warnings).toContain('estimatedValue outside range')
+    })
+
+    test('warns on lazy default for artwork under $200', () => {
+        const analysis = JSON.parse(
+            validAnalysisJson({
+                category: 'artwork',
+                estimatedValue: '100.00',
+                valueRangeLow: '50.00',
+                valueRangeHigh: '150.00',
+            }),
+        )
+        const result = validateAnalysis(analysis)
+        expect(result.warnings).toContain('suspiciously low for category')
+    })
+
+    test('warns when rationale lacks dollar amounts', () => {
+        const analysis = JSON.parse(
+            validAnalysisJson({
+                valuationRationale:
+                    'Based on general market knowledge of similar items.',
+            }),
+        )
+        const result = validateAnalysis(analysis)
+        expect(result.warnings).toContain('rationale lacks specific prices')
+    })
+
+    test('does not warn for low-value mass-produced items', () => {
+        const analysis = JSON.parse(
+            validAnalysisJson({
+                category: 'electronics',
+                estimatedValue: '50.00',
+                valueRangeLow: '30.00',
+                valueRangeHigh: '75.00',
+            }),
+        )
+        const result = validateAnalysis(analysis)
+        const lazyWarning = result.warnings.find((w) =>
+            w.includes('suspiciously low'),
+        )
+        expect(lazyWarning).toBeUndefined()
     })
 })
