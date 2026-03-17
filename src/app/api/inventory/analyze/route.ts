@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic'
 
-import { desc } from 'drizzle-orm'
+import { desc, eq } from 'drizzle-orm'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { db } from '@/db'
@@ -24,6 +24,10 @@ import { uploadInventoryImages } from '@/lib/uploadthing-server'
 // Two models with extended thinking + web search can take 2-5 minutes
 export const maxDuration = 300
 
+/** Divergence thresholds for two-model consensus. */
+const DIVERGENCE_AGREED_THRESHOLD = 25
+const DIVERGENCE_REVIEW_THRESHOLD = 100
+
 const ImageSchema = z.object({
     base64: z
         .string()
@@ -42,6 +46,7 @@ const AnalyzeRequestSchema = z.object({
         .array(ImageSchema)
         .min(1, 'At least one image is required')
         .max(5, 'Maximum 5 images per item'),
+    entityId: z.coerce.number().optional(),
 })
 
 interface AnalyzeSuccessResponse {
@@ -88,7 +93,7 @@ function mergeResults(
     merged: InventoryAnalysisResult
     status: 'agreed' | 'review' | 'divergent'
 } {
-    if (divergencePercent <= 25) {
+    if (divergencePercent <= DIVERGENCE_AGREED_THRESHOLD) {
         // Agreed: average values, use higher confidence
         const avgValue = (
             (parseFloat(primary.estimatedValue) +
@@ -127,7 +132,9 @@ function mergeResults(
     const selected = primaryScore >= secondaryScore ? primary : secondary
 
     const status: 'review' | 'divergent' =
-        divergencePercent <= 100 ? 'review' : 'divergent'
+        divergencePercent <= DIVERGENCE_REVIEW_THRESHOLD
+            ? 'review'
+            : 'divergent'
 
     return { merged: selected, status }
 }
@@ -168,7 +175,7 @@ export async function POST(
             )
         }
 
-        const { images } = validationResult.data
+        const { images, entityId } = validationResult.data
 
         // Compress images upfront for secondary model (primary compresses internally)
         const compressedImages: CompressedImage[] = await Promise.all(
@@ -176,7 +183,7 @@ export async function POST(
         )
 
         // Fetch recent corrections for feedback loop
-        const recentCorrections = await db
+        const correctionQuery = db
             .select({
                 itemName: valuationCorrection.itemName,
                 category: valuationCorrection.category,
@@ -184,6 +191,12 @@ export async function POST(
                 correctedValue: valuationCorrection.correctedValue,
             })
             .from(valuationCorrection)
+
+        if (entityId) {
+            correctionQuery.where(eq(valuationCorrection.entityId, entityId))
+        }
+
+        const recentCorrections = await correctionQuery
             .orderBy(desc(valuationCorrection.createdAt))
             .limit(10)
 
