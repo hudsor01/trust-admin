@@ -77,7 +77,7 @@ function calculateDivergence(
 ): number {
     const a = parseFloat(primaryValue)
     const b = parseFloat(secondaryValue)
-    if (Number.isNaN(a) || Number.isNaN(b)) return 0
+    if (Number.isNaN(a) || Number.isNaN(b)) return 200 // Unparseable values → flag for review
     if (a === 0 && b === 0) return 0
     const max = Math.max(a, b)
     const min = Math.min(a, b)
@@ -183,7 +183,7 @@ export async function POST(
         )
 
         // Fetch recent corrections for feedback loop
-        const correctionQuery = db
+        const recentCorrections = await db
             .select({
                 itemName: valuationCorrection.itemName,
                 category: valuationCorrection.category,
@@ -191,12 +191,11 @@ export async function POST(
                 correctedValue: valuationCorrection.correctedValue,
             })
             .from(valuationCorrection)
-
-        if (entityId) {
-            correctionQuery.where(eq(valuationCorrection.entityId, entityId))
-        }
-
-        const recentCorrections = await correctionQuery
+            .where(
+                entityId
+                    ? eq(valuationCorrection.entityId, entityId)
+                    : undefined,
+            )
             .orderBy(desc(valuationCorrection.createdAt))
             .limit(10)
 

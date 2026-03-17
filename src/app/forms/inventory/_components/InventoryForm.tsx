@@ -11,7 +11,7 @@ import {
     X,
 } from 'lucide-react'
 import Image from 'next/image'
-import { useActionState, useCallback, useEffect, useState } from 'react'
+import { useActionState, useCallback, useEffect, useRef, useState } from 'react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -117,16 +117,17 @@ export function InventoryForm() {
 
     const [photos, setPhotos] = useState<File[]>([])
     const [previewUrls, setPreviewUrls] = useState<string[]>([])
+    const previewUrlsRef = useRef<string[]>([])
     const [photoUrls, setPhotoUrls] = useState<string[]>([])
 
-    // Revoke preview object URLs on unmount or when photos change
+    // Revoke all remaining preview object URLs on unmount only
     useEffect(() => {
         return () => {
-            for (const url of previewUrls) {
+            for (const url of previewUrlsRef.current) {
                 URL.revokeObjectURL(url)
             }
         }
-    }, [previewUrls])
+    }, [])
     const [analyzing, setAnalyzing] = useState(false)
     const [analysis, setAnalysis] = useState<AnalysisResult | null>(null)
     const [analysisError, setAnalysisError] = useState<string | null>(null)
@@ -153,7 +154,11 @@ export function InventoryForm() {
             }
             const newUrls = files.map((f) => URL.createObjectURL(f))
             setPhotos((prev) => [...prev, ...files])
-            setPreviewUrls((prev) => [...prev, ...newUrls])
+            setPreviewUrls((prev) => {
+                const updated = [...prev, ...newUrls]
+                previewUrlsRef.current = updated
+                return updated
+            })
             setAnalysis(null)
             setAnalysisError(null)
             setConsensus(null)
@@ -167,7 +172,11 @@ export function InventoryForm() {
             const urlToRevoke = previewUrls[index]
             if (urlToRevoke) URL.revokeObjectURL(urlToRevoke)
             setPhotos((prev) => prev.filter((_, i) => i !== index))
-            setPreviewUrls((prev) => prev.filter((_, i) => i !== index))
+            setPreviewUrls((prev) => {
+                const updated = prev.filter((_, i) => i !== index)
+                previewUrlsRef.current = updated
+                return updated
+            })
             setPhotoUrls([])
             setAnalysis(null)
             setAnalysisError(null)

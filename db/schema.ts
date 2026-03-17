@@ -1261,7 +1261,7 @@ export const valuationCorrection = pgTable(
             .onUpdate('cascade')
             .onDelete('restrict'),
     ],
-)
+).enableRLS()
 
 export type ValuationCorrection = typeof valuationCorrection.$inferSelect
 export type InsertValuationCorrection = typeof valuationCorrection.$inferInsert
