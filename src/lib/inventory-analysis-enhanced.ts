@@ -149,6 +149,23 @@ Output ONLY a single JSON object (no markdown fences, no preamble) matching this
 </example>
 </examples>`
 
+/** Build the user prompt and system prompt for image-based analysis. */
+function buildAnalysisPrompts(
+    imageCount: number,
+    feedbackContext?: string,
+): { userPrompt: string; systemPrompt: string } {
+    const userPrompt =
+        imageCount === 1
+            ? 'Analyze this personal property item for trust inventory purposes. Follow your full workflow: identify the item from the image, search the web for comparable sales data, then provide an accurate fair market valuation with cited evidence.'
+            : `Analyze these ${imageCount} images of the SAME personal property item for trust inventory purposes. The images show different angles, labels, or details. Follow your full workflow: identify the item, search for comparable sales, then provide an evidence-backed fair market valuation.`
+
+    const systemPrompt = feedbackContext
+        ? ENHANCED_SYSTEM_PROMPT + feedbackContext
+        : ENHANCED_SYSTEM_PROMPT
+
+    return { userPrompt, systemPrompt }
+}
+
 function createClient(): Anthropic {
     if (!env.ANTHROPIC_API_KEY) {
         throw new Error('ANTHROPIC_API_KEY is not configured')
@@ -203,6 +220,12 @@ function extractJson(
     }
 }
 
+interface AgenticLoopOptions {
+    model?: string
+    thinkingBudget?: number
+    logPrefix?: string
+}
+
 /**
  * Run the agentic message loop until the model finishes or hits MAX_TURNS.
  *
@@ -214,35 +237,47 @@ async function runAgenticLoop(
     client: Anthropic,
     messages: Anthropic.MessageParam[],
     systemPrompt: string = ENHANCED_SYSTEM_PROMPT,
+    options: AgenticLoopOptions = {},
 ): Promise<Anthropic.Message> {
-    let response = await client.messages.create(
-        {
-            model: 'claude-opus-4-6',
-            max_tokens: 16384,
-            temperature: 1,
-            thinking: { type: 'enabled', budget_tokens: 10000 },
-            system: systemPrompt,
-            tools: [
-                {
-                    type: 'web_search_20250305',
-                    name: 'web_search',
-                    max_uses: 20,
-                },
-            ],
-            messages,
-        },
-        {
-            headers: {
-                'anthropic-beta': 'interleaved-thinking-2025-05-14',
+    const {
+        model = 'claude-opus-4-6',
+        thinkingBudget = 10000,
+        logPrefix = 'Agentic',
+    } = options
+
+    const createParams = {
+        model,
+        max_tokens: 16384,
+        temperature: 1 as const,
+        thinking: { type: 'enabled' as const, budget_tokens: thinkingBudget },
+        system: systemPrompt,
+        tools: [
+            {
+                type: 'web_search_20250305' as const,
+                name: 'web_search' as const,
+                max_uses: 20,
             },
+        ],
+    }
+
+    const requestOptions = {
+        headers: {
+            'anthropic-beta': 'interleaved-thinking-2025-05-14',
         },
+    }
+
+    let response = await client.messages.create(
+        { ...createParams, messages },
+        requestOptions,
     )
 
     let turns = 0
 
     while (response.stop_reason !== 'end_turn' && turns < MAX_TURNS) {
         turns++
-        log.info(`Agentic turn ${turns}, stop_reason: ${response.stop_reason}`)
+        log.info(
+            `${logPrefix} turn ${turns}, stop_reason: ${response.stop_reason}`,
+        )
 
         // Append the assistant's partial response to continue the conversation
         messages = [
@@ -263,31 +298,15 @@ async function runAgenticLoop(
         }
 
         response = await client.messages.create(
-            {
-                model: 'claude-opus-4-6',
-                max_tokens: 16384,
-                temperature: 1,
-                thinking: { type: 'enabled', budget_tokens: 10000 },
-                system: systemPrompt,
-                tools: [
-                    {
-                        type: 'web_search_20250305',
-                        name: 'web_search',
-                        max_uses: 20,
-                    },
-                ],
-                messages,
-            },
-            {
-                headers: {
-                    'anthropic-beta': 'interleaved-thinking-2025-05-14',
-                },
-            },
+            { ...createParams, messages },
+            requestOptions,
         )
     }
 
     if (turns >= MAX_TURNS) {
-        log.warn(`Hit MAX_TURNS (${MAX_TURNS}), returning partial response`)
+        log.warn(
+            `${logPrefix} hit MAX_TURNS (${MAX_TURNS}), returning partial response`,
+        )
     }
 
     return response
@@ -334,10 +353,10 @@ export async function analyzeWithMarketResearch(
         }),
     )
 
-    const userPrompt =
-        images.length === 1
-            ? 'Analyze this personal property item for trust inventory purposes. Follow your full workflow: identify the item from the image, search the web for comparable sales data, then provide an accurate fair market valuation with cited evidence.'
-            : `Analyze these ${images.length} images of the SAME personal property item for trust inventory purposes. The images show different angles, labels, or details. Follow your full workflow: identify the item, search for comparable sales, then provide an evidence-backed fair market valuation.`
+    const { userPrompt, systemPrompt } = buildAnalysisPrompts(
+        images.length,
+        feedbackContext,
+    )
 
     const messages: Anthropic.MessageParam[] = [
         {
@@ -345,10 +364,6 @@ export async function analyzeWithMarketResearch(
             content: [...imageBlocks, { type: 'text', text: userPrompt }],
         },
     ]
-
-    const systemPrompt = feedbackContext
-        ? ENHANCED_SYSTEM_PROMPT + feedbackContext
-        : ENHANCED_SYSTEM_PROMPT
 
     const response = await runAgenticLoop(client, messages, systemPrompt)
 
@@ -372,105 +387,10 @@ export async function analyzeWithMarketResearch(
 }
 
 /**
- * Text-only valuation with web search (no images).
- *
- * For items described verbally — vehicles, real property, items not physically
- * present, or bulk entry from a written inventory list.
- */
-/**
- * Run the agentic loop using Sonnet 4.6 as a secondary model for consensus.
- * Identical to runAgenticLoop except uses claude-sonnet-4-6 and logs with "Secondary" prefix.
- */
-async function runSecondaryAgenticLoop(
-    client: Anthropic,
-    messages: Anthropic.MessageParam[],
-    systemPrompt: string = ENHANCED_SYSTEM_PROMPT,
-): Promise<Anthropic.Message> {
-    let response = await client.messages.create(
-        {
-            model: 'claude-sonnet-4-6',
-            max_tokens: 16384,
-            temperature: 1,
-            thinking: { type: 'enabled', budget_tokens: 8000 },
-            system: systemPrompt,
-            tools: [
-                {
-                    type: 'web_search_20250305',
-                    name: 'web_search',
-                    max_uses: 20,
-                },
-            ],
-            messages,
-        },
-        {
-            headers: {
-                'anthropic-beta': 'interleaved-thinking-2025-05-14',
-            },
-        },
-    )
-
-    let turns = 0
-
-    while (response.stop_reason !== 'end_turn' && turns < MAX_TURNS) {
-        turns++
-        log.info(
-            `Secondary agentic turn ${turns}, stop_reason: ${response.stop_reason}`,
-        )
-
-        messages = [
-            ...messages,
-            { role: 'assistant', content: response.content },
-        ]
-
-        if (response.stop_reason === 'max_tokens') {
-            messages = [
-                ...messages,
-                {
-                    role: 'user',
-                    content:
-                        'Continue your response. Output the complete JSON object.',
-                },
-            ]
-        }
-
-        response = await client.messages.create(
-            {
-                model: 'claude-sonnet-4-6',
-                max_tokens: 16384,
-                temperature: 1,
-                thinking: { type: 'enabled', budget_tokens: 8000 },
-                system: systemPrompt,
-                tools: [
-                    {
-                        type: 'web_search_20250305',
-                        name: 'web_search',
-                        max_uses: 20,
-                    },
-                ],
-                messages,
-            },
-            {
-                headers: {
-                    'anthropic-beta': 'interleaved-thinking-2025-05-14',
-                },
-            },
-        )
-    }
-
-    if (turns >= MAX_TURNS) {
-        log.warn(
-            `Secondary hit MAX_TURNS (${MAX_TURNS}), returning partial response`,
-        )
-    }
-
-    return response
-}
-
-/**
  * Secondary analysis using Sonnet 4.6 for two-model consensus.
  *
  * Accepts pre-compressed images (avoids double-compressing) and runs the
- * secondary agentic loop with Sonnet 4.6 instead of Opus 4.6.
+ * agentic loop with Sonnet 4.6 instead of Opus 4.6.
  */
 export async function analyzeWithMarketResearchSecondary(
     images: InventoryImage[],
@@ -498,10 +418,10 @@ export async function analyzeWithMarketResearchSecondary(
         }),
     )
 
-    const userPrompt =
-        images.length === 1
-            ? 'Analyze this personal property item for trust inventory purposes. Follow your full workflow: identify the item from the image, search the web for comparable sales data, then provide an accurate fair market valuation with cited evidence.'
-            : `Analyze these ${images.length} images of the SAME personal property item for trust inventory purposes. The images show different angles, labels, or details. Follow your full workflow: identify the item, search for comparable sales, then provide an evidence-backed fair market valuation.`
+    const { userPrompt, systemPrompt } = buildAnalysisPrompts(
+        images.length,
+        feedbackContext,
+    )
 
     const messages: Anthropic.MessageParam[] = [
         {
@@ -510,15 +430,11 @@ export async function analyzeWithMarketResearchSecondary(
         },
     ]
 
-    const systemPrompt = feedbackContext
-        ? ENHANCED_SYSTEM_PROMPT + feedbackContext
-        : ENHANCED_SYSTEM_PROMPT
-
-    const response = await runSecondaryAgenticLoop(
-        client,
-        messages,
-        systemPrompt,
-    )
+    const response = await runAgenticLoop(client, messages, systemPrompt, {
+        model: 'claude-sonnet-4-6',
+        thinkingBudget: 8000,
+        logPrefix: 'Secondary',
+    })
 
     const textBlocks = response.content.filter(
         (block): block is Anthropic.TextBlock => block.type === 'text',

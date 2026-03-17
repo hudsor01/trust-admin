@@ -11,7 +11,7 @@ import {
     X,
 } from 'lucide-react'
 import Image from 'next/image'
-import { useActionState, useCallback, useState } from 'react'
+import { useActionState, useCallback, useEffect, useRef, useState } from 'react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -79,6 +79,7 @@ async function compressImageClientSide(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
         const img = new globalThis.Image()
         img.onload = () => {
+            URL.revokeObjectURL(objectUrl)
             const maxDim = 2048
             let { width, height } = img
 
@@ -103,7 +104,8 @@ async function compressImageClientSide(file: File): Promise<string> {
             resolve(base64)
         }
         img.onerror = () => reject(new Error('Failed to load image'))
-        img.src = URL.createObjectURL(file)
+        const objectUrl = URL.createObjectURL(file)
+        img.src = objectUrl
     })
 }
 
@@ -114,7 +116,18 @@ export function InventoryForm() {
     >(submitInventoryItem, { success: false })
 
     const [photos, setPhotos] = useState<File[]>([])
+    const [previewUrls, setPreviewUrls] = useState<string[]>([])
+    const previewUrlsRef = useRef<string[]>([])
     const [photoUrls, setPhotoUrls] = useState<string[]>([])
+
+    // Revoke all remaining preview object URLs on unmount only
+    useEffect(() => {
+        return () => {
+            for (const url of previewUrlsRef.current) {
+                URL.revokeObjectURL(url)
+            }
+        }
+    }, [])
     const [analyzing, setAnalyzing] = useState(false)
     const [analysis, setAnalysis] = useState<AnalysisResult | null>(null)
     const [analysisError, setAnalysisError] = useState<string | null>(null)
@@ -139,7 +152,13 @@ export function InventoryForm() {
                 alert('Maximum 5 photos allowed')
                 return
             }
+            const newUrls = files.map((f) => URL.createObjectURL(f))
             setPhotos((prev) => [...prev, ...files])
+            setPreviewUrls((prev) => {
+                const updated = [...prev, ...newUrls]
+                previewUrlsRef.current = updated
+                return updated
+            })
             setAnalysis(null)
             setAnalysisError(null)
             setConsensus(null)
@@ -148,14 +167,24 @@ export function InventoryForm() {
         [photos.length],
     )
 
-    const removePhoto = useCallback((index: number) => {
-        setPhotos((prev) => prev.filter((_, i) => i !== index))
-        setPhotoUrls([])
-        setAnalysis(null)
-        setAnalysisError(null)
-        setConsensus(null)
-        setValidationWarnings([])
-    }, [])
+    const removePhoto = useCallback(
+        (index: number) => {
+            const urlToRevoke = previewUrls[index]
+            if (urlToRevoke) URL.revokeObjectURL(urlToRevoke)
+            setPhotos((prev) => prev.filter((_, i) => i !== index))
+            setPreviewUrls((prev) => {
+                const updated = prev.filter((_, i) => i !== index)
+                previewUrlsRef.current = updated
+                return updated
+            })
+            setPhotoUrls([])
+            setAnalysis(null)
+            setAnalysisError(null)
+            setConsensus(null)
+            setValidationWarnings([])
+        },
+        [previewUrls],
+    )
 
     const analyzePhotos = async () => {
         if (photos.length === 0) return
@@ -321,10 +350,10 @@ export function InventoryForm() {
 
                     {photos.length > 0 && (
                         <div className="grid grid-cols-5 gap-2">
-                            {photos.map((photo, i) => (
+                            {photos.map((_, i) => (
                                 <div key={i} className="relative aspect-square">
                                     <Image
-                                        src={URL.createObjectURL(photo)}
+                                        src={previewUrls[i] ?? ''}
                                         alt={`Uploaded item ${i + 1}`}
                                         fill
                                         unoptimized

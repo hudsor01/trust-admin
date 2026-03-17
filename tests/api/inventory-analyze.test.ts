@@ -59,10 +59,11 @@ mock.module('drizzle-orm', () => ({
     sql: () => 'sql',
 }))
 
-// Chainable mock for db.select().from().orderBy().limit()
+// Chainable mock for db.select().from().where().orderBy().limit()
 const mockDbChain = {
     select: mock(() => mockDbChain),
     from: mock(() => mockDbChain),
+    where: mock(() => mockDbChain),
     orderBy: mock(() => mockDbChain),
     limit: mock(() => Promise.resolve([])),
 }
@@ -77,6 +78,7 @@ mock.module('../../db/schema', () => ({
         category: 'category',
         aiEstimatedValue: 'ai_estimated_value',
         correctedValue: 'corrected_value',
+        entityId: 'entity_id',
         createdAt: 'created_at',
     },
 }))
