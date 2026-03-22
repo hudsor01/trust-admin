@@ -431,54 +431,13 @@ describe.skipIf(isProductionDb)(
 
         describe('userManagement', () => {
             test(
-                'createBeneficiaryUser throws NOT_FOUND for non-existent beneficiaryId',
+                'createPortalAccount validates tempPassword minimum length',
                 async () => {
                     const caller = ownerCaller()
                     try {
-                        await caller.userManagement.createBeneficiaryUser({
-                            beneficiaryId: 999999999,
-                            email: `nonexistent-${TS}@test.com`,
-                            tempPassword: 'Password123!',
-                        })
-                        expect(true).toBe(false)
-                    } catch (error: unknown) {
-                        const trpcError = error as TRPCError
-                        expect(trpcError.code).toBe('NOT_FOUND')
-                        expect(trpcError.message).toBe('Beneficiary not found')
-                    }
-                },
-                TEST_TIMEOUT,
-            )
-
-            test(
-                'createBeneficiaryUser throws CONFLICT when beneficiary already has a userProfile',
-                async () => {
-                    const caller = ownerCaller()
-                    try {
-                        await caller.userManagement.createBeneficiaryUser({
-                            beneficiaryId: testIds.beneficiary2Id!,
-                            email: `conflict-${TS}@test.com`,
-                            tempPassword: 'Password123!',
-                        })
-                        expect(true).toBe(false)
-                    } catch (error: unknown) {
-                        const trpcError = error as TRPCError
-                        expect(trpcError.code).toBe('CONFLICT')
-                        expect(trpcError.message).toBe(
-                            'Beneficiary already has a portal account',
-                        )
-                    }
-                },
-                TEST_TIMEOUT,
-            )
-
-            test(
-                'createBeneficiaryUser validates tempPassword minimum length',
-                async () => {
-                    const caller = ownerCaller()
-                    try {
-                        await caller.userManagement.createBeneficiaryUser({
-                            beneficiaryId: testIds.beneficiary1Id!,
+                        await caller.userManagement.createPortalAccount({
+                            firstName: 'Test',
+                            lastName: 'User',
                             email: `short-pw-${TS}@test.com`,
                             tempPassword: 'short', // Less than 8 characters
                         })
@@ -491,12 +450,13 @@ describe.skipIf(isProductionDb)(
             )
 
             test(
-                'createBeneficiaryUser validates email format',
+                'createPortalAccount validates email format',
                 async () => {
                     const caller = ownerCaller()
                     try {
-                        await caller.userManagement.createBeneficiaryUser({
-                            beneficiaryId: testIds.beneficiary1Id!,
+                        await caller.userManagement.createPortalAccount({
+                            firstName: 'Test',
+                            lastName: 'User',
                             email: 'not-an-email',
                             tempPassword: 'Password123!',
                         })

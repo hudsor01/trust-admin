@@ -11,31 +11,18 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select'
-
-type UnlinkedBeneficiary = {
-    id: number
-    firstName: string | null
-    lastName: string | null
-    email: string | null
-}
 
 type CreatePortalAccountDialogProps = {
     open: boolean
     onOpenChange: (open: boolean) => void
-    unlinkedBeneficiaries: UnlinkedBeneficiary[]
-    selectedBeneficiaryId: string | null
+    firstName: string
+    lastName: string
     email: string
     tempPassword: string
     showPassword: boolean
     isPending: boolean
-    onBeneficiarySelect: (id: string) => void
+    onFirstNameChange: (value: string) => void
+    onLastNameChange: (value: string) => void
     onEmailChange: (value: string) => void
     onTempPasswordChange: (value: string) => void
     onShowPasswordToggle: () => void
@@ -45,13 +32,14 @@ type CreatePortalAccountDialogProps = {
 export function CreatePortalAccountDialog({
     open,
     onOpenChange,
-    unlinkedBeneficiaries,
-    selectedBeneficiaryId,
+    firstName,
+    lastName,
     email,
     tempPassword,
     showPassword,
     isPending,
-    onBeneficiarySelect,
+    onFirstNameChange,
+    onLastNameChange,
     onEmailChange,
     onTempPasswordChange,
     onShowPasswordToggle,
@@ -66,33 +54,33 @@ export function CreatePortalAccountDialog({
                         Create Portal Account
                     </DialogTitle>
                     <DialogDescription>
-                        Provision a portal login for a beneficiary.
+                        Create a new user account with portal access.
                     </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="beneficiary">Beneficiary</Label>
-                        <Select
-                            value={selectedBeneficiaryId ?? ''}
-                            onValueChange={onBeneficiarySelect}
-                        >
-                            <SelectTrigger id="beneficiary">
-                                <SelectValue placeholder="Select a beneficiary..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {unlinkedBeneficiaries.map((b) => (
-                                    <SelectItem key={b.id} value={String(b.id)}>
-                                        {b.firstName} {b.lastName}
-                                        {b.email ? ` (${b.email})` : ''}
-                                    </SelectItem>
-                                ))}
-                                {unlinkedBeneficiaries.length === 0 && (
-                                    <SelectItem value="none" disabled>
-                                        All beneficiaries have accounts
-                                    </SelectItem>
-                                )}
-                            </SelectContent>
-                        </Select>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="firstName">First Name</Label>
+                            <Input
+                                id="firstName"
+                                value={firstName}
+                                onChange={(e) =>
+                                    onFirstNameChange(e.target.value)
+                                }
+                                placeholder="First name"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="lastName">Last Name</Label>
+                            <Input
+                                id="lastName"
+                                value={lastName}
+                                onChange={(e) =>
+                                    onLastNameChange(e.target.value)
+                                }
+                                placeholder="Last name"
+                            />
+                        </div>
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="email">Email</Label>
@@ -101,7 +89,7 @@ export function CreatePortalAccountDialog({
                             type="email"
                             value={email}
                             onChange={(e) => onEmailChange(e.target.value)}
-                            placeholder="beneficiary@example.com"
+                            placeholder="user@example.com"
                         />
                     </div>
                     <div className="space-y-2">
@@ -147,7 +135,8 @@ export function CreatePortalAccountDialog({
                         <Button
                             onClick={onSubmit}
                             disabled={
-                                !selectedBeneficiaryId ||
+                                !firstName.trim() ||
+                                !lastName.trim() ||
                                 !email ||
                                 tempPassword.length < 8 ||
                                 isPending

@@ -10,7 +10,7 @@ import {
     Shield,
     Trash2,
 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { Badge } from '@/components/ui/badge'
@@ -40,19 +40,11 @@ export function UsersClient() {
     const { data: ownerCheck } = trpc.userManagement.isOwner.useQuery()
     const isOwner = ownerCheck?.isOwner ?? false
 
-    const { data: entities } = trpc.entity.list.useQuery()
-    const entityId = entities?.[0]?.id
-
     const {
         data: allUsers = [],
         isLoading: usersLoading,
         error: usersError,
     } = trpc.userManagement.listAllUsers.useQuery()
-
-    const { data: allBeneficiaries = [] } = trpc.beneficiary.list.useQuery(
-        { entityId: entityId! },
-        { enabled: isOwner && !!entityId },
-    )
 
     const [createDialogOpen, setCreateDialogOpen] = useState(false)
     const [editDialogOpen, setEditDialogOpen] = useState(false)
@@ -64,9 +56,8 @@ export function UsersClient() {
 
     const [selectedUser, setSelectedUser] = useState<NeonAuthUser | null>(null)
 
-    const [selectedBeneficiaryId, setSelectedBeneficiaryId] = useState<
-        string | null
-    >(null)
+    const [firstName, setFirstName] = useState('')
+    const [lastName, setLastName] = useState('')
     const [email, setEmail] = useState('')
     const [tempPassword, setTempPassword] = useState('')
     const [showPassword, setShowPassword] = useState(false)
@@ -91,7 +82,7 @@ export function UsersClient() {
     }
 
     const createUserMutation =
-        trpc.userManagement.createBeneficiaryUser.useMutation({
+        trpc.userManagement.createPortalAccount.useMutation({
             onSuccess: (_data, variables) => {
                 invalidateUsers()
                 setCreateDialogOpen(false)
@@ -99,7 +90,8 @@ export function UsersClient() {
                     email: variables.email,
                     tempPassword: variables.tempPassword,
                 })
-                setSelectedBeneficiaryId(null)
+                setFirstName('')
+                setLastName('')
                 setEmail('')
                 setTempPassword('')
                 setShowPassword(false)
@@ -180,25 +172,17 @@ export function UsersClient() {
             onError: (err) => toast.error(err.message),
         })
 
-    const unlinkedBeneficiaries = useMemo(() => {
-        const linkedIds = new Set(
-            allUsers
-                .map((u) => u.beneficiaryId)
-                .filter((id): id is number => id !== null),
-        )
-        return allBeneficiaries.filter((b) => !linkedIds.has(b.id))
-    }, [allUsers, allBeneficiaries])
-
-    const handleBeneficiarySelect = (beneficiaryId: string) => {
-        setSelectedBeneficiaryId(beneficiaryId)
-        const ben = allBeneficiaries.find((b) => b.id === Number(beneficiaryId))
-        setEmail(ben?.email ?? '')
-    }
-
     const handleCreateSubmit = () => {
-        if (!selectedBeneficiaryId || !email || tempPassword.length < 8) return
+        if (
+            !firstName.trim() ||
+            !lastName.trim() ||
+            !email ||
+            tempPassword.length < 8
+        )
+            return
         createUserMutation.mutate({
-            beneficiaryId: Number(selectedBeneficiaryId),
+            firstName: firstName.trim(),
+            lastName: lastName.trim(),
             email,
             tempPassword,
         })
@@ -427,19 +411,21 @@ export function UsersClient() {
                 onOpenChange={(open) => {
                     setCreateDialogOpen(open)
                     if (!open) {
-                        setSelectedBeneficiaryId(null)
+                        setFirstName('')
+                        setLastName('')
                         setEmail('')
                         setTempPassword('')
                         setShowPassword(false)
                     }
                 }}
-                unlinkedBeneficiaries={unlinkedBeneficiaries}
-                selectedBeneficiaryId={selectedBeneficiaryId}
+                firstName={firstName}
+                lastName={lastName}
                 email={email}
                 tempPassword={tempPassword}
                 showPassword={showPassword}
                 isPending={createUserMutation.isPending}
-                onBeneficiarySelect={handleBeneficiarySelect}
+                onFirstNameChange={setFirstName}
+                onLastNameChange={setLastName}
                 onEmailChange={setEmail}
                 onTempPasswordChange={setTempPassword}
                 onShowPasswordToggle={() => setShowPassword((p) => !p)}

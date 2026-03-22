@@ -102,41 +102,18 @@ export const userManagementRouter = createTRPCRouter({
         })
     }),
 
-    /** Create a beneficiary portal account (Neon Auth user + userProfile link). */
-    createBeneficiaryUser: ownerProcedure
+    /** Create a portal account (Neon Auth user + userProfile). */
+    createPortalAccount: ownerProcedure
         .input(
             z.object({
-                beneficiaryId: z.number(),
+                firstName: z.string().min(1),
+                lastName: z.string().min(1),
                 email: z.string().email(),
                 tempPassword: z.string().min(8),
             }),
         )
         .mutation(async ({ input, ctx }) => {
-            const [ben] = await db
-                .select()
-                .from(beneficiary)
-                .where(eq(beneficiary.id, input.beneficiaryId))
-                .limit(1)
-
-            if (!ben) {
-                throw new TRPCError({
-                    code: 'NOT_FOUND',
-                    message: 'Beneficiary not found',
-                })
-            }
-
-            const [existingProfile] = await db
-                .select()
-                .from(userProfile)
-                .where(eq(userProfile.beneficiaryId, input.beneficiaryId))
-                .limit(1)
-
-            if (existingProfile) {
-                throw new TRPCError({
-                    code: 'CONFLICT',
-                    message: 'Beneficiary already has a portal account',
-                })
-            }
+            const fullName = `${input.firstName} ${input.lastName}`
 
             const { data: existingUsers, error: listError } =
                 await authServer.admin.listUsers({
@@ -155,9 +132,6 @@ export const userManagementRouter = createTRPCRouter({
 
             let createdUserId: string
 
-            // listUsers searchValue may do partial/contains matching —
-            // filter to exact email match to avoid false positives.
-            // Case-insensitive: auth providers normalize to lowercase.
             const inputEmailLower = input.email.toLowerCase()
             const exactMatchUser = (existingUsers?.users ?? []).find(
                 (u: { email: string }) =>
@@ -165,47 +139,26 @@ export const userManagementRouter = createTRPCRouter({
             )
 
             if (exactMatchUser) {
-                // Auth user exists — check if they already have a profile
                 const [existingUserProfile] = await db
                     .select()
                     .from(userProfile)
                     .where(eq(userProfile.userId, exactMatchUser.id))
                     .limit(1)
 
-                // Block if the profile belongs to an admin — creating a beneficiary
-                // account would overwrite their role and revoke admin privileges
-                if (
-                    existingUserProfile &&
-                    existingUserProfile.role === 'admin'
-                ) {
+                if (existingUserProfile) {
                     throw new TRPCError({
                         code: 'CONFLICT',
-                        message:
-                            'Email belongs to an admin account — remove admin role first',
+                        message: 'Email already in use by an existing account',
                     })
                 }
 
-                // Block if the profile is already linked to a different beneficiary
-                if (
-                    existingUserProfile &&
-                    existingUserProfile.beneficiaryId !== null &&
-                    existingUserProfile.beneficiaryId !== input.beneficiaryId
-                ) {
-                    throw new TRPCError({
-                        code: 'CONFLICT',
-                        message: 'Email already in use by another account',
-                    })
-                }
-
-                // Reuse orphaned auth user (created previously but profile insert failed)
                 createdUserId = exactMatchUser.id
             } else {
-                // Native role is always "user"; app role "beneficiary" is set in userProfile
                 const { data: newUser, error: createError } =
                     await authServer.admin.createUser({
                         email: input.email,
                         password: input.tempPassword,
-                        name: `${ben.firstName} ${ben.lastName}`,
+                        name: fullName,
                         role: 'user',
                     })
 
@@ -230,14 +183,12 @@ export const userManagementRouter = createTRPCRouter({
                 .values({
                     userId: createdUserId,
                     role: 'beneficiary',
-                    beneficiaryId: input.beneficiaryId,
                     forcePasswordChange: true,
                 })
                 .onConflictDoUpdate({
                     target: userProfile.userId,
                     set: {
                         role: 'beneficiary',
-                        beneficiaryId: input.beneficiaryId,
                         forcePasswordChange: true,
                     },
                 })
@@ -250,7 +201,7 @@ export const userManagementRouter = createTRPCRouter({
                 newValues: {
                     userId: createdUserId,
                     email: input.email,
-                    beneficiaryId: input.beneficiaryId,
+                    name: fullName,
                     role: 'beneficiary',
                 },
             })
