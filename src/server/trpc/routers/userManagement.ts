@@ -4,7 +4,7 @@ import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { db, getClient } from '@/db'
 import { createActivityLog } from '@/db/queries'
-import { beneficiary, userProfile } from '@/db/schema'
+import { beneficiary, entity, userProfile } from '@/db/schema'
 import { authServer } from '@/lib/auth/server'
 import { env } from '@/lib/env'
 import {
@@ -115,6 +115,20 @@ export const userManagementRouter = createTRPCRouter({
         .mutation(async ({ input, ctx }) => {
             const fullName = `${input.firstName} ${input.lastName}`
 
+            // Get the primary trust entity for the beneficiary record
+            const [primaryEntity] = await db
+                .select({ id: entity.id })
+                .from(entity)
+                .orderBy(entity.id)
+                .limit(1)
+
+            if (!primaryEntity) {
+                throw new TRPCError({
+                    code: 'INTERNAL_SERVER_ERROR',
+                    message: 'No trust entity found',
+                })
+            }
+
             const { data: existingUsers, error: listError } =
                 await authServer.admin.listUsers({
                     query: {
@@ -178,17 +192,32 @@ export const userManagementRouter = createTRPCRouter({
                 [createdUserId],
             )
 
+            // Create beneficiary record
+            const [newBeneficiary] = await db
+                .insert(beneficiary)
+                .values({
+                    entityId: primaryEntity.id,
+                    firstName: input.firstName,
+                    lastName: input.lastName,
+                    relationship: 'Beneficiary',
+                    email: input.email,
+                    updatedAt: new Date().toISOString(),
+                })
+                .returning()
+
             await db
                 .insert(userProfile)
                 .values({
                     userId: createdUserId,
                     role: 'beneficiary',
+                    beneficiaryId: newBeneficiary?.id ?? null,
                     forcePasswordChange: true,
                 })
                 .onConflictDoUpdate({
                     target: userProfile.userId,
                     set: {
                         role: 'beneficiary',
+                        beneficiaryId: newBeneficiary?.id ?? null,
                         forcePasswordChange: true,
                     },
                 })
@@ -202,6 +231,7 @@ export const userManagementRouter = createTRPCRouter({
                     userId: createdUserId,
                     email: input.email,
                     name: fullName,
+                    beneficiaryId: newBeneficiary?.id,
                     role: 'beneficiary',
                 },
             })
