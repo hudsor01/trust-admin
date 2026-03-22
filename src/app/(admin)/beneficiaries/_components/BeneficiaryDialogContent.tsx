@@ -2,6 +2,7 @@
 
 import {
     AlertTriangle,
+    Cake,
     Check,
     Mail,
     MapPin,
@@ -150,6 +151,40 @@ export function BeneficiaryDialogContent({
                     >
                         {eligibility.label}
                     </Badge>
+                </div>
+            </div>
+
+            {/* Date of Birth */}
+            <Separator />
+            <div className="flex items-center gap-2">
+                <Cake className="h-4 w-4 text-muted-foreground shrink-0" />
+                <div className="flex-1">
+                    <p className="text-xs text-muted-foreground mb-1">
+                        Date of Birth
+                    </p>
+                    <Input
+                        type="date"
+                        value={
+                            beneficiary.dob
+                                ? new Date(beneficiary.dob)
+                                      .toISOString()
+                                      .split('T')[0]
+                                : ''
+                        }
+                        onChange={async (e) => {
+                            const val = e.target.value
+                            if (!val) return
+                            const isoDate = `${val}T00:00:00.000Z`
+                            await updateBeneficiary(beneficiary.id, {
+                                dob: isoDate,
+                            })
+                            setSelectedBeneficiary({
+                                ...beneficiary,
+                                dob: isoDate,
+                            })
+                        }}
+                        className="h-8 w-auto"
+                    />
                 </div>
             </div>
 
