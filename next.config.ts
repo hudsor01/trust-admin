@@ -48,10 +48,22 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 const nextConfig: NextConfig = {
+    output: 'standalone',
     reactStrictMode: true,
 
     // sharp uses native binaries — must be excluded from serverless bundling
     serverExternalPackages: ['sharp'],
+
+    // Ensure Next's standalone tracer picks up sharp's platform-conditional
+    // prebuild packages (@img/sharp-linux-x64 + libvips). Automatic tracing
+    // has historically missed these — this keeps /api/inventory working
+    // inside the Docker image.
+    outputFileTracingIncludes: {
+        '/api/inventory/**': [
+            './node_modules/sharp/**/*',
+            './node_modules/@img/**/*',
+        ],
+    },
 
     experimental: {
         // Tree-shake barrel exports — prevents bundling entire libraries

@@ -11,6 +11,7 @@ export async function proxy(request: NextRequest) {
         '/api/auth',
         '/api/trpc',
         '/api/e2e',
+        '/api/health',
         '/api/inventory',
         '/forms',
         '/_next',
