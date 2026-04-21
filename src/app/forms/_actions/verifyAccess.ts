@@ -1,7 +1,14 @@
 'use server'
 
-import { cookies, headers } from 'next/headers'
+import { cookies } from 'next/headers'
 import { env } from '@/lib/env'
+import {
+    ACCESS_COOKIE_MAX_AGE,
+    ACCESS_COOKIE_NAME,
+    ACCESS_COOKIE_VALUE,
+    getClientIP,
+    hasInventoryAccess,
+} from '@/lib/inventory-access'
 import {
     checkLockout,
     constantTimeCompare,
@@ -9,17 +16,9 @@ import {
     resetFailures,
 } from './access-lockout'
 
-const ACCESS_COOKIE_NAME = 'inventory_access'
-const COOKIE_MAX_AGE = 60 * 60 * 24 * 30 // 30 days
-
-// --- IP extraction ---
-
-async function getClientIP(): Promise<string> {
-    const hdrs = await headers()
-    return hdrs.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
-}
-
-// --- Access code verification ---
+// Re-export so existing callers (`from '@/app/forms/_actions/verifyAccess'`)
+// keep working.
+export { hasInventoryAccess }
 
 export async function verifyAccessCode(
     _prevState: { success: boolean; error?: string },
@@ -28,14 +27,15 @@ export async function verifyAccessCode(
     const code = formData.get('accessCode')?.toString().trim().toLowerCase()
     const expectedCode = env.INVENTORY_ACCESS_CODE?.toLowerCase()
 
-    // If no access code configured, allow access
+    // If no access code configured, allow access (dev convenience;
+    // hasInventoryAccess fails closed in production when this is unset).
     if (!expectedCode) {
         const cookieStore = await cookies()
-        cookieStore.set(ACCESS_COOKIE_NAME, 'granted', {
+        cookieStore.set(ACCESS_COOKIE_NAME, ACCESS_COOKIE_VALUE, {
             httpOnly: true,
             secure: env.NODE_ENV === 'production',
             sameSite: 'lax',
-            maxAge: COOKIE_MAX_AGE,
+            maxAge: ACCESS_COOKIE_MAX_AGE,
         })
         return { success: true }
     }
@@ -62,23 +62,12 @@ export async function verifyAccessCode(
     // Success -- clear lockout and set cookie
     resetFailures(ip)
     const cookieStore = await cookies()
-    cookieStore.set(ACCESS_COOKIE_NAME, 'granted', {
+    cookieStore.set(ACCESS_COOKIE_NAME, ACCESS_COOKIE_VALUE, {
         httpOnly: true,
         secure: env.NODE_ENV === 'production',
         sameSite: 'lax',
-        maxAge: COOKIE_MAX_AGE,
+        maxAge: ACCESS_COOKIE_MAX_AGE,
     })
 
     return { success: true }
-}
-
-export async function hasInventoryAccess(): Promise<boolean> {
-    // If no access code configured, allow everyone
-    if (!env.INVENTORY_ACCESS_CODE) {
-        return true
-    }
-
-    const cookieStore = await cookies()
-    const accessCookie = cookieStore.get(ACCESS_COOKIE_NAME)
-    return accessCookie?.value === 'granted'
 }

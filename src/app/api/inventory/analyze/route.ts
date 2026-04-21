@@ -3,10 +3,14 @@ export const dynamic = 'force-dynamic'
 import { desc, eq } from 'drizzle-orm'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { hasInventoryAccess } from '@/app/forms/_actions/verifyAccess'
 import { db } from '@/db'
 import { valuationCorrection } from '@/db/schema'
 import { env } from '@/lib/env'
+import {
+    checkAnalyzeRateLimit,
+    getClientIP,
+    hasInventoryAccess,
+} from '@/lib/inventory-access'
 import {
     type CompressedImage,
     compressImage,
@@ -151,6 +155,26 @@ export async function POST(
             return NextResponse.json(
                 { success: false, error: 'Unauthorized' },
                 { status: 401 },
+            )
+        }
+
+        // Per-IP rate limit — each call invokes two Claude models (Opus +
+        // Sonnet) with extended thinking and web search. Without this, a
+        // captured access cookie is an unbounded spend risk.
+        const ip = await getClientIP()
+        const rate = checkAnalyzeRateLimit(ip)
+        if (!rate.allowed) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    error: 'Too many analysis requests — please try again later.',
+                },
+                {
+                    status: 429,
+                    headers: rate.retryAfterSeconds
+                        ? { 'Retry-After': String(rate.retryAfterSeconds) }
+                        : undefined,
+                },
             )
         }
 

@@ -42,13 +42,10 @@ mock.module('uploadthing/server', () => ({
     },
 }))
 
-mock.module('../../src/lib/auth', () => ({
-    authServer: {
-        getSession: () =>
-            Promise.resolve({
-                data: { user: { id: '1', role: 'admin' }, session: {} },
-            }),
-    },
+mock.module('../../src/lib/inventory-access', () => ({
+    hasInventoryAccess: () => Promise.resolve(true),
+    getClientIP: () => Promise.resolve('test-ip'),
+    checkAnalyzeRateLimit: () => ({ allowed: true }),
 }))
 
 // Mock drizzle-orm (desc used in feedback query)
