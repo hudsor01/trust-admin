@@ -362,6 +362,7 @@ Admin       → marks distribution paid → status: DISTRIBUTED (manual)
 | Admin page routes | Live under `src/app/(admin)/` route group, not `src/app/` directly |
 | `useSession` in layouts | Use `authServer.getSession()` in Server Components instead |
 | `selectedEntity` timing | Use `{ enabled: !!selectedEntity }` to prevent queries before entity loads |
+| TS 6 `types: ["node"]` | Explicit because TS 6 changed the default from `["*"]` to `[]` — without it, Node globals (`process`, `Buffer`) stop resolving |
 
 ---
 
