@@ -304,7 +304,7 @@ export function InventoryForm() {
                         <div className="border-2 border-dashed rounded-lg p-6 text-center">
                             <input
                                 type="file"
-                                accept="image/jpeg,image/png,image/webp"
+                                accept="image/*"
                                 capture="environment"
                                 onChange={handlePhotoSelect}
                                 className="hidden"
@@ -327,7 +327,7 @@ export function InventoryForm() {
                         <div className="border-2 border-dashed rounded-lg p-6 text-center">
                             <input
                                 type="file"
-                                accept="image/jpeg,image/png,image/gif,image/webp"
+                                accept="image/*"
                                 multiple
                                 onChange={handlePhotoSelect}
                                 className="hidden"

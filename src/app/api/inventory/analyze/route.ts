@@ -3,9 +3,9 @@ export const dynamic = 'force-dynamic'
 import { desc, eq } from 'drizzle-orm'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import { hasInventoryAccess } from '@/app/forms/_actions/verifyAccess'
 import { db } from '@/db'
 import { valuationCorrection } from '@/db/schema'
-import { authServer } from '@/lib/auth'
 import { env } from '@/lib/env'
 import {
     type CompressedImage,
@@ -144,8 +144,10 @@ export async function POST(
     request: NextRequest,
 ): Promise<NextResponse<AnalyzeResponse>> {
     try {
-        const { data: session } = await authServer.getSession()
-        if (!session?.user || session.user.role !== 'admin') {
+        // /forms/inventory is a public intake form gated by an access-code
+        // cookie (set by verifyAccessCode). Trust that gate here — the admin
+        // session check was wrong: beneficiaries using the form are not admins.
+        if (!(await hasInventoryAccess())) {
             return NextResponse.json(
                 { success: false, error: 'Unauthorized' },
                 { status: 401 },
