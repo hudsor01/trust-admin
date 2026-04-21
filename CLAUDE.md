@@ -27,22 +27,6 @@ bun run db:seed      # Seed Hudson Trust test data
 
 **Always use `bun`** — not npm/node/npx. Bun auto-loads `.env`.
 
-## Commands
-
-```bash
-bun run dev          # Dev server on :3000 (Turbopack)
-bun run build        # Production build
-bun run typecheck    # TypeScript check
-bun run lint         # Biome lint
-bun test             # Unit + component tests (excludes E2E)
-bun run test:e2e     # Playwright E2E (requires app on :3000)
-bun run db:push      # Sync schema to DB (dev only)
-bun run db:studio    # Drizzle Studio GUI
-bun run db:seed      # Seed Hudson Trust test data
-```
-
-**Always use `bun`** — not npm/node/npx. Bun auto-loads `.env`.
-
 ---
 
 ## Mental Model
