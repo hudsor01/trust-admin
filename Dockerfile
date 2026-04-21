@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.7
+# syntax=docker/dockerfile:1.10
 # Trust Admin — containerized build. Primary deploy target is Vercel;
 # this image is for homelab / alternate hosts. Migrations run OUTSIDE
 # this image (from CI or a dev machine) — drizzle-kit is a devDep and

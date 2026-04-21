@@ -3,10 +3,9 @@ node_modules
 .git
 .github
 
-# env files — block everything except the example; .env would otherwise
-# be copied into the builder via `COPY . .` and leak into image history
+# env files — .env would otherwise be copied into the builder via
+# `COPY . .` and leak into image history
 .env*
-!.env.example
 
 # markdown — exclude repo docs but keep runtime-served files under public/
 *.md
@@ -23,6 +22,10 @@ playwright.config.ts
 test-results
 coverage
 .planning
+
+# local dev bleed (runtime uploads land here during local testing; prod
+# writes go to UploadThing, so this dir should never enter an image)
+public/uploads
 
 # docker itself (prevents context churn when Dockerfile changes)
 Dockerfile
