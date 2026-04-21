@@ -26,7 +26,14 @@ export async function hasInventoryAccess(): Promise<boolean> {
     return accessCookie?.value === ACCESS_COOKIE_VALUE
 }
 
-/** First value of x-forwarded-for; falls back to 'unknown'. */
+/**
+ * First value of x-forwarded-for; falls back to 'unknown'.
+ *
+ * NOTE: This assumes deployment behind a trusted proxy that overwrites
+ * x-forwarded-for (Vercel does). Behind any proxy that preserves the
+ * client-sent value, this header is spoofable and the rate limit below
+ * would be trivially bypassable per "IP".
+ */
 export async function getClientIP(): Promise<string> {
     const hdrs = await headers()
     return hdrs.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
@@ -38,6 +45,12 @@ export async function getClientIP(): Promise<string> {
 // thinking and web search per request — 2–5 minutes, several dollars of
 // inference. Cookie auth alone doesn't bound cost if a cookie leaks; this
 // rate limit does.
+//
+// This is a cost guard, not a hard security bound. The Map lives in one
+// serverless instance, so the effective ceiling is N_instances × 20/hour.
+// Acceptable for a household-scale app. Move to Vercel KV / Upstash if this
+// ever needs to be a true global quota. The Map also grows unbounded (one
+// entry per unique IP, never swept) — negligible at current scale.
 
 const ANALYZE_WINDOW_MS = 60 * 60 * 1000 // 1 hour
 const ANALYZE_MAX_PER_WINDOW = 20

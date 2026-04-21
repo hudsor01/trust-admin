@@ -37,7 +37,10 @@ export const env = createEnv({
         LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
 
         ANTHROPIC_API_KEY: z.string().optional(),
-        INVENTORY_ACCESS_CODE: z.string().optional(),
+        // min(1) so an accidentally-empty value in Vercel doesn't behave
+        // differently from an unset one — both now surface the same fail-
+        // closed-in-prod path in hasInventoryAccess().
+        INVENTORY_ACCESS_CODE: z.string().min(1).optional(),
         UPLOADTHING_TOKEN: z.string().optional(),
 
         SENTRY_DSN: optionalUrl(),

@@ -7,7 +7,6 @@ import {
     ACCESS_COOKIE_NAME,
     ACCESS_COOKIE_VALUE,
     getClientIP,
-    hasInventoryAccess,
 } from '@/lib/inventory-access'
 import {
     checkLockout,
@@ -15,10 +14,6 @@ import {
     recordFailure,
     resetFailures,
 } from './access-lockout'
-
-// Re-export so existing callers (`from '@/app/forms/_actions/verifyAccess'`)
-// keep working.
-export { hasInventoryAccess }
 
 export async function verifyAccessCode(
     _prevState: { success: boolean; error?: string },

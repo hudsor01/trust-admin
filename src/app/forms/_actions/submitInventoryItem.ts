@@ -3,8 +3,8 @@
 import { z } from 'zod'
 import { db } from '@/db'
 import { pendingInventoryItem } from '@/db/schema'
+import { hasInventoryAccess } from '@/lib/inventory-access'
 import { logger } from '@/lib/logger'
-import { hasInventoryAccess } from './verifyAccess'
 
 const log = logger.create('Inventory')
 
