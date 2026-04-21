@@ -1,7 +1,5 @@
 {
     "typescript.tsdk": "node_modules/typescript/lib",
-    "continue.enableConsole": true,
-    "continue.enableQuickActions": true,
     "json.schemaDownload.enable": true,
     "json.schemas": [
         {
