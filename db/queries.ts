@@ -695,7 +695,7 @@ export async function markBeneficiaryDeceased(data: MarkDeceasedData) {
         where: eq(beneficiary.id, data.beneficiaryId),
     })
 
-    if (!deceased || !deceased.entityId) {
+    if (!deceased?.entityId) {
         return { success: true, shareRecalculated: false }
     }
 
@@ -756,7 +756,7 @@ export async function recalculateBeneficiaryShares(
                     (b) => b.id !== excludeBeneficiaryId && !b.deceasedDate,
                 )
 
-                if (!deceased || !deceased.sharePercent) {
+                if (!deceased?.sharePercent) {
                     return { success: true, shareRecalculated: false }
                 }
 

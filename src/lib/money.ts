@@ -68,4 +68,4 @@ export function isNegative(amount: MoneyString): boolean {
 }
 
 // Legacy aliases
-export { toCents as toDinero, fromCents as toMoneyString }
+export { fromCents as toMoneyString, toCents as toDinero }

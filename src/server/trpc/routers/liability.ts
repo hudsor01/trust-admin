@@ -277,8 +277,7 @@ export const liabilityRouter = createTRPCRouter({
                 ),
             })
             if (
-                !liabilityRecord ||
-                !liabilityRecord.interestRate ||
+                !liabilityRecord?.interestRate ||
                 liabilityRecord.isRevolvingCredit
             ) {
                 return null

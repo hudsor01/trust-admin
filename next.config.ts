@@ -48,7 +48,7 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 const nextConfig: NextConfig = {
-    output: "standalone",
+    output: 'standalone',
     reactStrictMode: true,
 
     // sharp uses native binaries — must be excluded from serverless bundling
