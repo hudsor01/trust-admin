@@ -5,8 +5,12 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { db } from '@/db'
 import { valuationCorrection } from '@/db/schema'
-import { authServer } from '@/lib/auth'
 import { env } from '@/lib/env'
+import {
+    checkAnalyzeRateLimit,
+    getClientIP,
+    hasInventoryAccess,
+} from '@/lib/inventory-access'
 import {
     type CompressedImage,
     compressImage,
@@ -144,11 +148,33 @@ export async function POST(
     request: NextRequest,
 ): Promise<NextResponse<AnalyzeResponse>> {
     try {
-        const { data: session } = await authServer.getSession()
-        if (!session?.user || session.user.role !== 'admin') {
+        // /forms/inventory is a public intake form gated by an access-code
+        // cookie (set by verifyAccessCode). Trust that gate here — the admin
+        // session check was wrong: beneficiaries using the form are not admins.
+        if (!(await hasInventoryAccess())) {
             return NextResponse.json(
                 { success: false, error: 'Unauthorized' },
                 { status: 401 },
+            )
+        }
+
+        // Per-IP rate limit — each call invokes two Claude models (Opus +
+        // Sonnet) with extended thinking and web search. Without this, a
+        // captured access cookie is an unbounded spend risk.
+        const ip = await getClientIP()
+        const rate = checkAnalyzeRateLimit(ip)
+        if (!rate.allowed) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    error: 'Too many analysis requests — please try again later.',
+                },
+                {
+                    status: 429,
+                    headers: rate.retryAfterSeconds
+                        ? { 'Retry-After': String(rate.retryAfterSeconds) }
+                        : undefined,
+                },
             )
         }
 

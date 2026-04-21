@@ -247,10 +247,23 @@ export function InventoryForm() {
             } else {
                 setAnalysisError(data.error || 'Analysis failed')
             }
-        } catch {
-            setAnalysisError(
-                'Failed to connect to analysis service. Check your network connection and try again.',
-            )
+        } catch (err) {
+            // compressImageClientSide rejects with "Failed to load image" when
+            // the browser can't decode the file (usually HEIC/HEIF on desktop
+            // Chrome/Firefox). Surface that specifically so users don't think
+            // their network is broken.
+            if (
+                err instanceof Error &&
+                err.message === 'Failed to load image'
+            ) {
+                setAnalysisError(
+                    "One of your photos couldn't be read. If it's a HEIC/HEIF file (common on iPhone), please convert to JPEG or PNG and try again.",
+                )
+            } else {
+                setAnalysisError(
+                    'Failed to connect to analysis service. Check your network connection and try again.',
+                )
+            }
         } finally {
             setAnalyzing(false)
         }
@@ -304,7 +317,7 @@ export function InventoryForm() {
                         <div className="border-2 border-dashed rounded-lg p-6 text-center">
                             <input
                                 type="file"
-                                accept="image/jpeg,image/png,image/webp"
+                                accept="image/*"
                                 capture="environment"
                                 onChange={handlePhotoSelect}
                                 className="hidden"
@@ -327,7 +340,7 @@ export function InventoryForm() {
                         <div className="border-2 border-dashed rounded-lg p-6 text-center">
                             <input
                                 type="file"
-                                accept="image/jpeg,image/png,image/gif,image/webp"
+                                accept="image/*"
                                 multiple
                                 onChange={handlePhotoSelect}
                                 className="hidden"

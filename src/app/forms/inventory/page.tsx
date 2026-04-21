@@ -1,4 +1,4 @@
-import { hasInventoryAccess } from '../_actions/verifyAccess'
+import { hasInventoryAccess } from '@/lib/inventory-access'
 import { AccessGate } from './_components/AccessGate'
 import { InventoryForm } from './_components/InventoryForm'
 
