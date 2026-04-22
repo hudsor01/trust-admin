@@ -1,39 +1,162 @@
+/** Tests for inventory-analysis.ts — compression, tool-use agentic loop, validation, feedback context. */
+
 import { beforeEach, describe, expect, mock, test } from 'bun:test'
 import sharp from 'sharp'
-import {
-    analyzeInventoryImageWithCompressed,
-    compressImage,
-    type InventoryImage,
-} from '@/lib/inventory-analysis'
 
-const mockGenerateObject = mock(() =>
-    Promise.resolve({
-        object: {
-            name: 'Test Item',
-            category: 'Electronics',
-            brand: 'TestBrand',
-            model: 'Model123',
-            materials: ['plastic', 'metal'],
-            era: '2020s',
-            estimatedValue: '150',
-            valueRangeLow: '100',
-            valueRangeHigh: '200',
-            condition: 'good',
-            conditionNotes: 'Minor wear',
-            description: 'A test electronic item',
-            valuationRationale: 'Based on market comparables',
-            confidence: 'high',
-            confidenceNotes: 'Clear image, identifiable brand',
-        },
-    }),
+// ---------------------------------------------------------------------------
+// SDK mock — intercepts `new Anthropic()` and `client.messages.create()`.
+// The agentic loop, tool-use extraction, and schema validation run for real.
+// ---------------------------------------------------------------------------
+
+const mockMessagesCreate = mock(() =>
+    Promise.resolve(makeRecordValuationResponse()),
 )
 
-mock.module('ai', () => ({
-    generateObject: mockGenerateObject,
+mock.module('@anthropic-ai/sdk', () => ({
+    default: class MockAnthropic {
+        messages = { create: mockMessagesCreate }
+    },
 }))
+
+process.env.ANTHROPIC_API_KEY = 'test-key-for-analysis'
+mock.module('../../src/lib/env', () => ({
+    env: {
+        ...process.env,
+        ANTHROPIC_API_KEY: 'test-key-for-analysis',
+    },
+}))
+
+const {
+    analyzeWithMarketResearch,
+    buildFeedbackContext,
+    compressImage,
+    validateAnalysis,
+} = await import('../../src/lib/inventory-analysis')
+
+// ---------------------------------------------------------------------------
+// Test helpers
+// ---------------------------------------------------------------------------
 
 const TARGET_IMAGE_SIZE_BYTES = 2 * 1024 * 1024
 const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024
+
+/** A valid record_valuation tool input. */
+function validValuationInput(overrides: Record<string, unknown> = {}) {
+    return {
+        name: 'Henredon Aston Court Mahogany Dining Table',
+        category: 'furniture',
+        brand: 'Henredon',
+        model: 'Aston Court',
+        materials: ['mahogany', 'brass hardware'],
+        era: '1990s',
+        estimatedValue: '2500.00',
+        valueRangeLow: '1800.00',
+        valueRangeHigh: '3200.00',
+        condition: 'good',
+        conditionNotes: 'Minor surface scratches, structurally sound',
+        description:
+            'Traditional mahogany dining table with two leaves. Seats 8-10.',
+        valuationRationale:
+            'LiveAuctioneers realized $2,200 on 2025-11-15 (https://example.com/a). 1stDibs listed comparable at $3,500 (asking, discounted to $2,100 FMV). Date-of-death-weighted midpoint: $2,500.',
+        confidence: 'high',
+        confidenceNotes:
+            'Brand clearly marked, multiple realized auction comps within 60 days of DOD',
+        confidenceScore: 85,
+        ...overrides,
+    }
+}
+
+/** Anthropic-style response: model calls record_valuation and stops. */
+function makeRecordValuationResponse(
+    input = validValuationInput(),
+    extraBlocks: unknown[] = [],
+) {
+    return {
+        id: 'msg_test',
+        type: 'message' as const,
+        role: 'assistant' as const,
+        content: [
+            ...extraBlocks,
+            {
+                type: 'tool_use' as const,
+                id: 'toolu_record_1',
+                name: 'record_valuation',
+                input,
+            },
+        ],
+        model: 'claude-opus-4-7',
+        stop_reason: 'tool_use' as const,
+        usage: { input_tokens: 100, output_tokens: 200 },
+    }
+}
+
+/** Server-side tool loop hit the iteration limit — client must resume. */
+function makePauseTurnResponse() {
+    return {
+        id: 'msg_pause',
+        type: 'message' as const,
+        role: 'assistant' as const,
+        content: [
+            {
+                type: 'server_tool_use' as const,
+                id: 'srvtoolu_1',
+                name: 'web_search',
+                input: { query: 'Henredon Aston Court dining table sold' },
+            },
+        ],
+        model: 'claude-opus-4-7',
+        stop_reason: 'pause_turn' as const,
+        usage: { input_tokens: 100, output_tokens: 150 },
+    }
+}
+
+/** Output hit max_tokens cap mid-response. */
+function makeMaxTokensResponse(partialText = 'Partial research notes...') {
+    return {
+        id: 'msg_partial',
+        type: 'message' as const,
+        role: 'assistant' as const,
+        content: [{ type: 'text' as const, text: partialText }],
+        model: 'claude-opus-4-7',
+        stop_reason: 'max_tokens' as const,
+        usage: { input_tokens: 100, output_tokens: 64000 },
+    }
+}
+
+/** Model ended the turn without calling record_valuation — a failure we must catch. */
+function makeEndTurnWithoutRecordResponse() {
+    return {
+        id: 'msg_unrecorded',
+        type: 'message' as const,
+        role: 'assistant' as const,
+        content: [
+            {
+                type: 'text' as const,
+                text: "I'm not confident enough to produce a valuation.",
+            },
+        ],
+        model: 'claude-opus-4-7',
+        stop_reason: 'end_turn' as const,
+        usage: { input_tokens: 100, output_tokens: 50 },
+    }
+}
+
+async function createTestImage(): Promise<{
+    base64: string
+    mimeType: string
+}> {
+    const buffer = await sharp({
+        create: {
+            width: 100,
+            height: 100,
+            channels: 3,
+            background: { r: 100, g: 150, b: 200 },
+        },
+    })
+        .jpeg({ quality: 50 })
+        .toBuffer()
+    return { base64: buffer.toString('base64'), mimeType: 'image/jpeg' }
+}
 
 async function createLargeTestImage(): Promise<{
     base64: string
@@ -49,13 +172,10 @@ async function createLargeTestImage(): Promise<{
             noise: { type: 'gaussian', mean: 128, sigma: 80 },
         },
     })
-        .png({ compressionLevel: 0 }) // Minimal compression
+        .png({ compressionLevel: 0 })
         .toBuffer()
-
-    const base64 = buffer.toString('base64')
-
     return {
-        base64,
+        base64: buffer.toString('base64'),
         mimeType: 'image/png',
         actualSize: buffer.length,
     }
@@ -76,26 +196,24 @@ async function createSmallTestImage(): Promise<{
     })
         .jpeg({ quality: 80 })
         .toBuffer()
-
-    const base64 = buffer.toString('base64')
-
     return {
-        base64,
+        base64: buffer.toString('base64'),
         mimeType: 'image/jpeg',
         actualSize: buffer.length,
     }
 }
 
-describe('Image Compression for Inventory Analysis', () => {
+// ---------------------------------------------------------------------------
+// compressImage
+// ---------------------------------------------------------------------------
+
+describe('compressImage', () => {
     describe('Small images (under target size)', () => {
         test('passes through small JPEG unchanged', async () => {
             const { base64, mimeType, actualSize } =
                 await createSmallTestImage()
-
             expect(actualSize).toBeLessThan(TARGET_IMAGE_SIZE_BYTES)
-
             const result = await compressImage(base64, mimeType)
-
             expect(result.base64).toBe(base64)
             expect(result.mimeType).toBe(mimeType)
         })
@@ -111,16 +229,11 @@ describe('Image Compression for Inventory Analysis', () => {
             })
                 .png()
                 .toBuffer()
-
             const base64 = buffer.toString('base64')
-            const mimeType = 'image/png'
-
             expect(buffer.length).toBeLessThan(TARGET_IMAGE_SIZE_BYTES)
-
-            const result = await compressImage(base64, mimeType)
-
+            const result = await compressImage(base64, 'image/png')
             expect(result.base64).toBe(base64)
-            expect(result.mimeType).toBe(mimeType)
+            expect(result.mimeType).toBe('image/png')
         })
 
         test('handles 1x1 pixel image', async () => {
@@ -134,10 +247,8 @@ describe('Image Compression for Inventory Analysis', () => {
             })
                 .jpeg()
                 .toBuffer()
-
             const base64 = buffer.toString('base64')
             const result = await compressImage(base64, 'image/jpeg')
-
             expect(result.base64).toBe(base64)
         })
     })
@@ -146,73 +257,24 @@ describe('Image Compression for Inventory Analysis', () => {
         test('compresses large PNG to under target size', async () => {
             const { base64, mimeType, actualSize } =
                 await createLargeTestImage()
-
             expect(actualSize).toBeGreaterThan(TARGET_IMAGE_SIZE_BYTES)
-            console.log(
-                `Test image size: ${(actualSize / 1024 / 1024).toFixed(2)}MB`,
-            )
-
             const result = await compressImage(base64, mimeType)
-
             const resultBuffer = Buffer.from(result.base64, 'base64')
-            const resultSize = resultBuffer.length
-
-            console.log(
-                `Compressed size: ${(resultSize / 1024 / 1024).toFixed(2)}MB`,
+            expect(resultBuffer.length).toBeLessThanOrEqual(
+                TARGET_IMAGE_SIZE_BYTES,
             )
-
-            expect(resultSize).toBeLessThanOrEqual(TARGET_IMAGE_SIZE_BYTES)
             expect(result.mimeType).toBe('image/jpeg')
-            expect(resultSize).toBeLessThan(actualSize)
-        })
-
-        test('compresses large JPEG to under target size', async () => {
-            const buffer = await sharp({
-                create: {
-                    width: 4500,
-                    height: 3500,
-                    channels: 3,
-                    background: { r: 120, g: 80, b: 200 },
-                    noise: { type: 'gaussian', mean: 128, sigma: 60 },
-                },
-            })
-                .jpeg({ quality: 100 })
-                .toBuffer()
-
-            const base64 = buffer.toString('base64')
-            const actualSize = buffer.length
-
-            if (actualSize > TARGET_IMAGE_SIZE_BYTES) {
-                console.log(
-                    `Large JPEG size: ${(actualSize / 1024 / 1024).toFixed(2)}MB`,
-                )
-
-                const result = await compressImage(base64, 'image/jpeg')
-                const resultBuffer = Buffer.from(result.base64, 'base64')
-
-                expect(resultBuffer.length).toBeLessThanOrEqual(
-                    TARGET_IMAGE_SIZE_BYTES,
-                )
-                expect(result.mimeType).toBe('image/jpeg')
-            } else {
-                console.log(
-                    `Skipping large JPEG test - could only create ${(actualSize / 1024 / 1024).toFixed(2)}MB image`,
-                )
-            }
+            expect(resultBuffer.length).toBeLessThan(actualSize)
         })
 
         test('maintains reasonable quality after compression', async () => {
             const { base64, mimeType } = await createLargeTestImage()
-
             const result = await compressImage(base64, mimeType)
             const resultBuffer = Buffer.from(result.base64, 'base64')
-
             const metadata = await sharp(resultBuffer).metadata()
-
             expect(metadata.format).toBe('jpeg')
             expect(metadata.width).toBeGreaterThan(0)
             expect(metadata.height).toBeGreaterThan(0)
-
             expect(metadata.width).toBeGreaterThanOrEqual(500)
             expect(metadata.height).toBeGreaterThanOrEqual(400)
         })
@@ -221,27 +283,22 @@ describe('Image Compression for Inventory Analysis', () => {
     describe('Output format', () => {
         test('converts PNG to JPEG when compression needed', async () => {
             const { base64, actualSize } = await createLargeTestImage()
-
             if (actualSize > TARGET_IMAGE_SIZE_BYTES) {
                 const result = await compressImage(base64, 'image/png')
-
                 expect(result.mimeType).toBe('image/jpeg')
-
                 const resultBuffer = Buffer.from(result.base64, 'base64')
                 expect(resultBuffer[0]).toBe(0xff)
                 expect(resultBuffer[1]).toBe(0xd8)
             }
         })
 
-        test('preserves JPEG format for small images', async () => {
+        test('preserves JPEG mime for small pass-through', async () => {
             const { base64 } = await createSmallTestImage()
-
             const result = await compressImage(base64, 'image/jpeg')
-
             expect(result.mimeType).toBe('image/jpeg')
         })
 
-        test('preserves PNG format for small images', async () => {
+        test('preserves PNG mime for small pass-through', async () => {
             const buffer = await sharp({
                 create: {
                     width: 200,
@@ -252,18 +309,16 @@ describe('Image Compression for Inventory Analysis', () => {
             })
                 .png()
                 .toBuffer()
-
             const result = await compressImage(
                 buffer.toString('base64'),
                 'image/png',
             )
-
             expect(result.mimeType).toBe('image/png')
         })
     })
 
     describe('Dimension handling', () => {
-        test('respects max dimension cap of 4096px', async () => {
+        test('respects 2576px max-dimension cap for large inputs', async () => {
             const buffer = await sharp({
                 create: {
                     width: 6000,
@@ -275,29 +330,22 @@ describe('Image Compression for Inventory Analysis', () => {
             })
                 .png({ compressionLevel: 0 })
                 .toBuffer()
-
-            const actualSize = buffer.length
-
-            if (actualSize > TARGET_IMAGE_SIZE_BYTES) {
+            if (buffer.length > TARGET_IMAGE_SIZE_BYTES) {
                 const result = await compressImage(
                     buffer.toString('base64'),
                     'image/png',
                 )
                 const resultBuffer = Buffer.from(result.base64, 'base64')
                 const metadata = await sharp(resultBuffer).metadata()
-
-                expect(metadata.width).toBeLessThanOrEqual(4096)
+                expect(metadata.width).toBeLessThanOrEqual(2576)
             }
         })
 
         test('maintains aspect ratio during resize', async () => {
-            const originalWidth = 4000
-            const originalHeight = 2000 // 2:1 aspect ratio
-
             const buffer = await sharp({
                 create: {
-                    width: originalWidth,
-                    height: originalHeight,
+                    width: 4000,
+                    height: 2000,
                     channels: 3,
                     background: { r: 80, g: 120, b: 160 },
                     noise: { type: 'gaussian', mean: 128, sigma: 50 },
@@ -305,21 +353,15 @@ describe('Image Compression for Inventory Analysis', () => {
             })
                 .png({ compressionLevel: 0 })
                 .toBuffer()
-
-            const actualSize = buffer.length
-
-            if (actualSize > TARGET_IMAGE_SIZE_BYTES) {
+            if (buffer.length > TARGET_IMAGE_SIZE_BYTES) {
                 const result = await compressImage(
                     buffer.toString('base64'),
                     'image/png',
                 )
                 const resultBuffer = Buffer.from(result.base64, 'base64')
                 const metadata = await sharp(resultBuffer).metadata()
-
-                const originalRatio = originalWidth / originalHeight
                 const newRatio = (metadata.width ?? 1) / (metadata.height ?? 1)
-
-                expect(newRatio).toBeCloseTo(originalRatio, 1)
+                expect(newRatio).toBeCloseTo(4000 / 2000, 1)
             }
         })
     })
@@ -328,9 +370,7 @@ describe('Image Compression for Inventory Analysis', () => {
         test('handles image exactly at target size', async () => {
             const { base64, mimeType, actualSize } =
                 await createSmallTestImage()
-
             expect(actualSize).toBeLessThan(TARGET_IMAGE_SIZE_BYTES)
-
             const result = await compressImage(base64, mimeType)
             expect(result.base64).toBe(base64)
         })
@@ -346,12 +386,10 @@ describe('Image Compression for Inventory Analysis', () => {
             })
                 .webp()
                 .toBuffer()
-
             const result = await compressImage(
                 buffer.toString('base64'),
                 'image/webp',
             )
-
             expect(result.mimeType).toBe('image/webp')
         })
 
@@ -360,25 +398,23 @@ describe('Image Compression for Inventory Analysis', () => {
                 create: {
                     width: 400,
                     height: 400,
-                    channels: 4, // RGBA
+                    channels: 4,
                     background: { r: 100, g: 100, b: 100, alpha: 0.5 },
                 },
             })
                 .png()
                 .toBuffer()
-
             const result = await compressImage(
                 buffer.toString('base64'),
                 'image/png',
             )
-
             expect(result.base64).toBeDefined()
             expect(result.mimeType).toBeDefined()
         })
     })
 
     describe('Integration scenarios', () => {
-        test('simulates typical iPhone photo (large HEIC-like dimensions)', async () => {
+        test('iPhone-style photo fits under final size cap', async () => {
             const buffer = await sharp({
                 create: {
                     width: 4032,
@@ -390,26 +426,19 @@ describe('Image Compression for Inventory Analysis', () => {
             })
                 .jpeg({ quality: 95 })
                 .toBuffer()
-
-            const base64 = buffer.toString('base64')
-            const actualSize = buffer.length
-
-            console.log(
-                `iPhone-like image size: ${(actualSize / 1024 / 1024).toFixed(2)}MB`,
+            const result = await compressImage(
+                buffer.toString('base64'),
+                'image/jpeg',
             )
-
-            const result = await compressImage(base64, 'image/jpeg')
             const resultBuffer = Buffer.from(result.base64, 'base64')
-
             expect(resultBuffer.length).toBeLessThanOrEqual(
                 MAX_IMAGE_SIZE_BYTES,
             )
-
             const metadata = await sharp(resultBuffer).metadata()
             expect(metadata.format).toBe('jpeg')
         })
 
-        test('simulates DSLR photo (high resolution)', async () => {
+        test('DSLR-style photo fits under final size cap', async () => {
             const buffer = await sharp({
                 create: {
                     width: 5000,
@@ -421,17 +450,11 @@ describe('Image Compression for Inventory Analysis', () => {
             })
                 .jpeg({ quality: 98 })
                 .toBuffer()
-
-            const base64 = buffer.toString('base64')
-            const actualSize = buffer.length
-
-            console.log(
-                `DSLR-like image size: ${(actualSize / 1024 / 1024).toFixed(2)}MB`,
+            const result = await compressImage(
+                buffer.toString('base64'),
+                'image/jpeg',
             )
-
-            const result = await compressImage(base64, 'image/jpeg')
             const resultBuffer = Buffer.from(result.base64, 'base64')
-
             expect(resultBuffer.length).toBeLessThanOrEqual(
                 MAX_IMAGE_SIZE_BYTES,
             )
@@ -439,117 +462,358 @@ describe('Image Compression for Inventory Analysis', () => {
     })
 })
 
-describe('analyzeInventoryImageWithCompressed', () => {
+// ---------------------------------------------------------------------------
+// analyzeWithMarketResearch (tool-use agentic loop)
+// ---------------------------------------------------------------------------
+
+describe('analyzeWithMarketResearch', () => {
     beforeEach(() => {
-        mockGenerateObject.mockClear()
+        mockMessagesCreate.mockClear()
+        mockMessagesCreate.mockResolvedValue(makeRecordValuationResponse())
     })
 
-    test('returns both analysis and compressed images', async () => {
-        const image = await createSmallTestImage()
-        const images: InventoryImage[] = [image]
+    test('single image produces valid analysis with mapped dbCategory', async () => {
+        const image = await createTestImage()
+        const result = await analyzeWithMarketResearch([image])
 
-        const result = await analyzeInventoryImageWithCompressed(images)
-
-        expect(result.analysis).toBeDefined()
-        expect(result.analysis.name).toBe('Test Item')
-        expect(result.analysis.dbCategory).toBeDefined()
-
-        expect(result.compressedImages).toBeDefined()
+        expect(result.analysis.name).toBe(
+            'Henredon Aston Court Mahogany Dining Table',
+        )
+        expect(result.analysis.estimatedValue).toBe('2500.00')
+        expect(result.analysis.rawCategory).toBe('furniture')
+        expect(result.analysis.dbCategory).toBe('FURNITURE')
+        expect(result.analysis.condition).toBe('good')
+        expect(result.analysis.confidence).toBe('high')
         expect(result.compressedImages).toHaveLength(1)
-        expect(result.compressedImages[0].base64).toBeDefined()
-        expect(result.compressedImages[0].mimeType).toBeDefined()
     })
 
-    test('compresses multiple images and returns all', async () => {
-        const images: InventoryImage[] = await Promise.all([
-            createSmallTestImage(),
-            createSmallTestImage(),
-            createSmallTestImage(),
+    test('multiple images are sent as image blocks in the first message', async () => {
+        const images = await Promise.all([
+            createTestImage(),
+            createTestImage(),
+            createTestImage(),
         ])
+        await analyzeWithMarketResearch(images)
 
-        const result = await analyzeInventoryImageWithCompressed(images)
-
-        expect(result.compressedImages).toHaveLength(3)
-        for (const img of result.compressedImages) {
-            expect(img.base64).toBeTruthy()
-            expect(img.mimeType).toBeTruthy()
+        const callArgs = mockMessagesCreate.mock.calls[0]?.[0] as {
+            messages: { content: unknown[] }[]
         }
+        const userContent = callArgs.messages[0]?.content as unknown[]
+        expect(userContent).toHaveLength(4) // 3 images + 1 text
+        const imageBlocks = userContent.filter(
+            (b: unknown) => (b as { type: string }).type === 'image',
+        )
+        expect(imageBlocks).toHaveLength(3)
     })
 
-    test('throws error for empty images array', async () => {
-        await expect(analyzeInventoryImageWithCompressed([])).rejects.toThrow(
+    test('single image uses singular user prompt', async () => {
+        const image = await createTestImage()
+        await analyzeWithMarketResearch([image])
+        const callArgs = mockMessagesCreate.mock.calls[0]?.[0] as {
+            messages: { content: unknown[] }[]
+        }
+        const textBlock = (
+            callArgs.messages[0]?.content as {
+                type: string
+                text?: string
+            }[]
+        ).find((b) => b.type === 'text')
+        expect(textBlock?.text).toContain('Analyze this personal property item')
+    })
+
+    test('multiple images use plural user prompt', async () => {
+        const images = await Promise.all([createTestImage(), createTestImage()])
+        await analyzeWithMarketResearch(images)
+        const callArgs = mockMessagesCreate.mock.calls[0]?.[0] as {
+            messages: { content: unknown[] }[]
+        }
+        const textBlock = (
+            callArgs.messages[0]?.content as {
+                type: string
+                text?: string
+            }[]
+        ).find((b) => b.type === 'text')
+        expect(textBlock?.text).toContain('Analyze these 2 images')
+    })
+
+    test('empty images array throws', async () => {
+        await expect(analyzeWithMarketResearch([])).rejects.toThrow(
             'At least one image is required',
+        )
+        expect(mockMessagesCreate).not.toHaveBeenCalled()
+    })
+
+    test('request uses Opus 4.7 with xhigh effort + adaptive thinking + 64k max_tokens', async () => {
+        const image = await createTestImage()
+        await analyzeWithMarketResearch([image])
+        const params = mockMessagesCreate.mock.calls[0]?.[0] as {
+            model: string
+            max_tokens: number
+            thinking: { type: string }
+            output_config: { effort: string }
+        }
+        expect(params.model).toBe('claude-opus-4-7')
+        expect(params.max_tokens).toBe(64000)
+        expect(params.thinking).toEqual({ type: 'adaptive' })
+        expect(params.output_config).toEqual({ effort: 'xhigh' })
+    })
+
+    test('tools array includes web_search_20260209, code_execution, record_valuation', async () => {
+        const image = await createTestImage()
+        await analyzeWithMarketResearch([image])
+        const params = mockMessagesCreate.mock.calls[0]?.[0] as {
+            tools: Array<{ type?: string; name: string }>
+        }
+        const webSearch = params.tools.find((t) => t.name === 'web_search')
+        const codeExec = params.tools.find((t) => t.name === 'code_execution')
+        const record = params.tools.find((t) => t.name === 'record_valuation')
+        expect(webSearch?.type).toBe('web_search_20260209')
+        expect(codeExec?.type).toBe('code_execution_20260120')
+        expect(record).toBeDefined()
+    })
+
+    test('returns compressed images alongside analysis', async () => {
+        const image = await createTestImage()
+        const result = await analyzeWithMarketResearch([image])
+        expect(result.compressedImages).toHaveLength(1)
+        expect(result.compressedImages[0]?.mimeType).toBe('image/jpeg')
+        expect(result.compressedImages[0]?.base64).toBeTruthy()
+    })
+
+    test('maps jewelry category to JEWELRY dbCategory', async () => {
+        mockMessagesCreate.mockResolvedValue(
+            makeRecordValuationResponse(
+                validValuationInput({ category: 'jewelry' }),
+            ),
+        )
+        const image = await createTestImage()
+        const result = await analyzeWithMarketResearch([image])
+        expect(result.analysis.rawCategory).toBe('jewelry')
+        expect(result.analysis.dbCategory).toBe('JEWELRY')
+    })
+
+    test('maps artwork category to ART dbCategory', async () => {
+        mockMessagesCreate.mockResolvedValue(
+            makeRecordValuationResponse(
+                validValuationInput({ category: 'artwork' }),
+            ),
+        )
+        const image = await createTestImage()
+        const result = await analyzeWithMarketResearch([image])
+        expect(result.analysis.dbCategory).toBe('ART')
+    })
+
+    test('throws on end_turn without record_valuation call', async () => {
+        mockMessagesCreate.mockResolvedValue(makeEndTurnWithoutRecordResponse())
+        const image = await createTestImage()
+        await expect(analyzeWithMarketResearch([image])).rejects.toThrow(
+            /model ended turn without calling record_valuation/i,
         )
     })
 
-    test('maps category to database category', async () => {
-        const image = await createSmallTestImage()
+    test('throws on tool_use with invalid schema (Zod catches strict-mode violation)', async () => {
+        mockMessagesCreate.mockResolvedValue(
+            makeRecordValuationResponse(
+                validValuationInput({
+                    category: 'not_a_real_category',
+                }),
+            ),
+        )
+        const image = await createTestImage()
+        await expect(analyzeWithMarketResearch([image])).rejects.toThrow()
+    })
+})
 
-        const result = await analyzeInventoryImageWithCompressed([image])
+// ---------------------------------------------------------------------------
+// Agentic loop — multi-turn behavior (pause_turn, max_tokens, MAX_TURNS)
+// ---------------------------------------------------------------------------
 
-        expect(result.analysis.rawCategory).toBe('Electronics')
-        expect(result.analysis.dbCategory).toBe('ELECTRONICS')
+describe('agentic loop', () => {
+    beforeEach(() => {
+        mockMessagesCreate.mockClear()
     })
 
-    test('handles large images that need compression', async () => {
-        const { base64, mimeType, actualSize } = await createLargeTestImage()
+    test('pause_turn turn continues with another API call (server-side web_search loop resume)', async () => {
+        mockMessagesCreate
+            .mockResolvedValueOnce(makePauseTurnResponse())
+            .mockResolvedValueOnce(makeRecordValuationResponse())
+        const image = await createTestImage()
+        const result = await analyzeWithMarketResearch([image])
+        expect(mockMessagesCreate).toHaveBeenCalledTimes(2)
+        expect(result.analysis.name).toBe(
+            'Henredon Aston Court Mahogany Dining Table',
+        )
+    })
 
-        if (actualSize > TARGET_IMAGE_SIZE_BYTES) {
-            const images: InventoryImage[] = [{ base64, mimeType }]
+    test('max_tokens turn sends continuation prompt', async () => {
+        mockMessagesCreate
+            .mockResolvedValueOnce(makeMaxTokensResponse())
+            .mockResolvedValueOnce(makeRecordValuationResponse())
+        const image = await createTestImage()
+        await analyzeWithMarketResearch([image])
 
-            const result = await analyzeInventoryImageWithCompressed(images)
-
-            const compressedSize = Buffer.from(
-                result.compressedImages[0].base64,
-                'base64',
-            ).length
-            expect(compressedSize).toBeLessThanOrEqual(TARGET_IMAGE_SIZE_BYTES)
-
-            expect(result.analysis).toBeDefined()
+        expect(mockMessagesCreate).toHaveBeenCalledTimes(2)
+        const secondCallArgs = mockMessagesCreate.mock.calls[1]?.[0] as {
+            messages: { role: string; content: string | unknown[] }[]
         }
+        const lastMessage =
+            secondCallArgs.messages[secondCallArgs.messages.length - 1]
+        expect(lastMessage?.role).toBe('user')
+        expect(lastMessage?.content).toContain('Continue your analysis')
     })
 
-    test('preserves image order in compressed output', async () => {
-        const images: InventoryImage[] = []
+    test('multiple pause_turn rounds before final record_valuation', async () => {
+        mockMessagesCreate
+            .mockResolvedValueOnce(makePauseTurnResponse())
+            .mockResolvedValueOnce(makePauseTurnResponse())
+            .mockResolvedValueOnce(makePauseTurnResponse())
+            .mockResolvedValueOnce(makeRecordValuationResponse())
+        const image = await createTestImage()
+        const result = await analyzeWithMarketResearch([image])
+        expect(mockMessagesCreate).toHaveBeenCalledTimes(4)
+        expect(result.analysis.estimatedValue).toBe('2500.00')
+    })
 
-        for (const size of [400, 600, 800]) {
-            const buffer = await sharp({
-                create: {
-                    width: size,
-                    height: size,
-                    channels: 3,
-                    background: { r: size / 4, g: size / 4, b: size / 4 },
-                },
-            })
-                .jpeg({ quality: 80 })
-                .toBuffer()
-
-            images.push({
-                base64: buffer.toString('base64'),
-                mimeType: 'image/jpeg',
-            })
+    test('hits MAX_TURNS and throws rather than returning a partial result', async () => {
+        // 16 pause_turn responses (initial + 15 loop iterations) — never records.
+        for (let i = 0; i < 16; i++) {
+            mockMessagesCreate.mockResolvedValueOnce(makePauseTurnResponse())
         }
+        const image = await createTestImage()
+        await expect(analyzeWithMarketResearch([image])).rejects.toThrow(
+            /hit MAX_TURNS/i,
+        )
+    })
+})
 
-        const result = await analyzeInventoryImageWithCompressed(images)
+// ---------------------------------------------------------------------------
+// Error propagation
+// ---------------------------------------------------------------------------
 
-        expect(result.compressedImages).toHaveLength(3)
+describe('error handling', () => {
+    beforeEach(() => {
+        mockMessagesCreate.mockClear()
     })
 
-    test('includes all required analysis fields', async () => {
-        const image = await createSmallTestImage()
+    test('API error propagates through agentic loop', async () => {
+        mockMessagesCreate.mockRejectedValue(new Error('rate limit exceeded'))
+        const image = await createTestImage()
+        await expect(analyzeWithMarketResearch([image])).rejects.toThrow(
+            'rate limit exceeded',
+        )
+    })
 
-        const result = await analyzeInventoryImageWithCompressed([image])
+    test('API error on second turn propagates', async () => {
+        mockMessagesCreate
+            .mockResolvedValueOnce(makePauseTurnResponse())
+            .mockRejectedValueOnce(new Error('503 service unavailable'))
+        const image = await createTestImage()
+        await expect(analyzeWithMarketResearch([image])).rejects.toThrow(
+            '503 service unavailable',
+        )
+    })
 
-        expect(result.analysis).toMatchObject({
-            name: expect.any(String),
-            rawCategory: expect.any(String),
-            dbCategory: expect.any(String),
-            estimatedValue: expect.any(String),
-            valueRangeLow: expect.any(String),
-            valueRangeHigh: expect.any(String),
-            condition: expect.any(String),
-            description: expect.any(String),
-            confidence: expect.any(String),
-        })
+    test('authentication failure from API propagates', async () => {
+        mockMessagesCreate.mockRejectedValue(
+            new Error('401 authentication failed'),
+        )
+        const image = await createTestImage()
+        await expect(analyzeWithMarketResearch([image])).rejects.toThrow(
+            '401 authentication failed',
+        )
+    })
+})
+
+// ---------------------------------------------------------------------------
+// validateAnalysis
+// ---------------------------------------------------------------------------
+
+describe('validateAnalysis', () => {
+    test('passes for valid analysis', () => {
+        const result = validateAnalysis(validValuationInput())
+        expect(result.valid).toBe(true)
+        expect(result.warnings).toHaveLength(0)
+    })
+
+    test('warns when estimatedValue is outside the range', () => {
+        const result = validateAnalysis(
+            validValuationInput({
+                estimatedValue: '5000.00',
+                valueRangeLow: '1800.00',
+                valueRangeHigh: '3200.00',
+            }),
+        )
+        expect(result.warnings).toContain('estimatedValue outside range')
+    })
+
+    test('warns on lazy default for artwork under $200', () => {
+        const result = validateAnalysis(
+            validValuationInput({
+                category: 'artwork',
+                estimatedValue: '100.00',
+                valueRangeLow: '50.00',
+                valueRangeHigh: '150.00',
+            }),
+        )
+        expect(result.warnings).toContain('suspiciously low for category')
+    })
+
+    test('warns when rationale lacks dollar amounts', () => {
+        const result = validateAnalysis(
+            validValuationInput({
+                valuationRationale:
+                    'Based on general market knowledge of similar items.',
+            }),
+        )
+        expect(result.warnings).toContain('rationale lacks specific prices')
+    })
+
+    test('does not warn for low-value mass-produced items', () => {
+        const result = validateAnalysis(
+            validValuationInput({
+                category: 'electronics',
+                estimatedValue: '50.00',
+                valueRangeLow: '30.00',
+                valueRangeHigh: '75.00',
+                valuationRationale:
+                    'Ebay sold: $45 on 2025-10. $55 on 2025-11.',
+            }),
+        )
+        const lazyWarning = result.warnings.find((w) =>
+            w.includes('suspiciously low'),
+        )
+        expect(lazyWarning).toBeUndefined()
+    })
+})
+
+// ---------------------------------------------------------------------------
+// buildFeedbackContext
+// ---------------------------------------------------------------------------
+
+describe('buildFeedbackContext', () => {
+    test('returns empty string when no corrections', () => {
+        expect(buildFeedbackContext([])).toBe('')
+    })
+
+    test('builds a context paragraph when corrections are present', () => {
+        const ctx = buildFeedbackContext([
+            {
+                itemName: 'Vintage Lamp',
+                category: 'decor',
+                aiEstimatedValue: '250.00',
+                correctedValue: '85.00',
+            },
+            {
+                itemName: 'Oak Desk',
+                category: 'furniture',
+                aiEstimatedValue: '150.00',
+                correctedValue: '3200.00',
+            },
+        ])
+        expect(ctx).toContain('PREVIOUS CORRECTION FEEDBACK')
+        expect(ctx).toContain('"Vintage Lamp"')
+        expect(ctx).toContain('$250.00')
+        expect(ctx).toContain('$85.00')
+        expect(ctx).toContain('"Oak Desk"')
     })
 })

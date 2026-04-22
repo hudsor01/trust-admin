@@ -74,13 +74,16 @@ type ConsensusInfo = {
     divergencePercent: number
 }
 
-/** Client-side resize (max 2048px) + JPEG compression to stay under Vercel's 4.5MB body limit. */
+/** Client-side resize (max 2576px = Opus 4.7 vision ceiling) + JPEG compression to stay under Vercel's 4.5MB body limit. */
 async function compressImageClientSide(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
         const img = new globalThis.Image()
         img.onload = () => {
             URL.revokeObjectURL(objectUrl)
-            const maxDim = 2048
+            // Opus 4.7 accepts up to 2576px / 3.75MP on the long edge.
+            // Previous 2048 cap threw away detail (signatures, hallmarks)
+            // the model can now use.
+            const maxDim = 2576
             let { width, height } = img
 
             if (width > maxDim || height > maxDim) {

@@ -13,16 +13,14 @@ import {
     hasInventoryAccess,
 } from '@/lib/inventory-access'
 import {
-    type CompressedImage,
-    compressImage,
-    type InventoryAnalysisResult,
-} from '@/lib/inventory-analysis'
-import {
     analyzeWithMarketResearch,
     analyzeWithMarketResearchSecondary,
     buildFeedbackContext,
+    type CompressedImage,
+    compressImage,
+    type InventoryAnalysisResult,
     validateAnalysis,
-} from '@/lib/inventory-analysis-enhanced'
+} from '@/lib/inventory-analysis'
 import { logger } from '@/lib/logger'
 import { uploadInventoryImages } from '@/lib/uploadthing-server'
 

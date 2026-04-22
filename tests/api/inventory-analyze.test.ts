@@ -120,11 +120,15 @@ const mockValidateAnalysis = mock(() => ({
 
 const mockBuildFeedbackContext = mock(() => '')
 
-mock.module('../../src/lib/inventory-analysis-enhanced', () => ({
+mock.module('../../src/lib/inventory-analysis', () => ({
     analyzeWithMarketResearch: mockAnalyzeWithMarketResearch,
     analyzeWithMarketResearchSecondary: mockAnalyzeSecondary,
     validateAnalysis: mockValidateAnalysis,
     buildFeedbackContext: mockBuildFeedbackContext,
+    // Pass-through compressImage — route calls it on every image before
+    // handing off to analyze*. Tests don't exercise sharp here.
+    compressImage: (base64: string, mimeType: string) =>
+        Promise.resolve({ base64, mimeType }),
 }))
 
 process.env.ANTHROPIC_API_KEY = 'test-api-key'
