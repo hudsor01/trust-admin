@@ -378,6 +378,29 @@ describe('POST /api/inventory/analyze', () => {
             expect(data.error.toLowerCase()).toContain('rate limit')
         })
 
+        test('surfaces credit-balance-low as 402 with a reload hint', async () => {
+            // Anthropic's real error text for out-of-credits accounts, pulled
+            // verbatim from Sentry event TRUST-ADMIN-Z. The route matches on
+            // the phrasing, so a plain Error with the real message is enough
+            // to exercise the 402 branch.
+            mockAnalyzeWithMarketResearch.mockRejectedValueOnce(
+                new Error(
+                    '400 {"type":"error","error":{"type":"invalid_request_error","message":"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits."}}',
+                ),
+            )
+
+            const image = await createTestImageBase64()
+            const request = createRequest({ images: [image] })
+
+            const response = await POST(request as never)
+            const data = await response.json()
+
+            expect(response.status).toBe(402)
+            expect(data.success).toBe(false)
+            expect(data.error.toLowerCase()).toContain('credit balance')
+            expect(data.error).toContain('console.anthropic.com')
+        })
+
         test('handles authentication errors', async () => {
             mockAnalyzeWithMarketResearch.mockRejectedValueOnce(
                 new Error('401 authentication failed'),

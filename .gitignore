@@ -4,6 +4,11 @@ node_modules
 .claude/
 node_modules/
 
+# local editor / MCP session state — not project config
+.gemini/
+.mcp.json
+.vscode/mcp.json
+
 # output
 out
 dist
