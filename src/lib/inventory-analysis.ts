@@ -297,8 +297,10 @@ export async function analyzeInventoryImage(
         },
     ]
 
+    // Opus 4.7: temperature/top_p/top_k are removed (400). Prompt the
+    // system for deterministic phrasing instead if variance is an issue.
     const { object } = await generateObject({
-        model: anthropic('claude-opus-4-6'),
+        model: anthropic('claude-opus-4-7'),
         schema: InventoryAnalysisSchema,
         system: INVENTORY_ANALYSIS_SYSTEM_PROMPT,
         messages: [
@@ -307,7 +309,6 @@ export async function analyzeInventoryImage(
                 content,
             },
         ],
-        temperature: 0.1, // Low temp for consistent valuation
         experimental_telemetry: {
             isEnabled: true,
             functionId: 'inventory-analysis',
@@ -363,7 +364,7 @@ export async function analyzeInventoryImageWithCompressed(
     ]
 
     const { object } = await generateObject({
-        model: anthropic('claude-opus-4-6'),
+        model: anthropic('claude-opus-4-7'),
         schema: InventoryAnalysisSchema,
         system: INVENTORY_ANALYSIS_SYSTEM_PROMPT,
         messages: [
@@ -372,7 +373,6 @@ export async function analyzeInventoryImageWithCompressed(
                 content,
             },
         ],
-        temperature: 0.1,
         experimental_telemetry: {
             isEnabled: true,
             functionId: 'inventory-analysis',

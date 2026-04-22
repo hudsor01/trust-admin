@@ -222,7 +222,12 @@ function extractJson(
 
 interface AgenticLoopOptions {
     model?: string
-    thinkingBudget?: number
+    /**
+     * Thinking depth + overall token spend. `xhigh` is Opus 4.7-only and is
+     * the best setting for agentic/coding workloads; `high` is the minimum
+     * recommended for intelligence-sensitive work across Opus 4.5+/Sonnet 4.6.
+     */
+    effort?: 'low' | 'medium' | 'high' | 'xhigh' | 'max'
     logPrefix?: string
 }
 
@@ -240,16 +245,19 @@ async function runAgenticLoop(
     options: AgenticLoopOptions = {},
 ): Promise<Anthropic.Message> {
     const {
-        model = 'claude-opus-4-6',
-        thinkingBudget = 10000,
+        model = 'claude-opus-4-7',
+        effort = 'xhigh',
         logPrefix = 'Agentic',
     } = options
 
+    // Opus 4.7: adaptive thinking only (budget_tokens is removed and 400s);
+    // temperature/top_p/top_k are also removed and 400 on 4.7. Effort inside
+    // output_config replaces the prior fixed-budget control.
     const createParams = {
         model,
         max_tokens: 16384,
-        temperature: 1 as const,
-        thinking: { type: 'enabled' as const, budget_tokens: thinkingBudget },
+        thinking: { type: 'adaptive' as const },
+        output_config: { effort },
         system: systemPrompt,
         tools: [
             {
@@ -260,16 +268,9 @@ async function runAgenticLoop(
         ],
     }
 
-    const requestOptions = {
-        headers: {
-            'anthropic-beta': 'interleaved-thinking-2025-05-14',
-        },
-    }
-
-    let response = await client.messages.create(
-        { ...createParams, messages },
-        requestOptions,
-    )
+    // interleaved-thinking beta is GA on 4.6 and included automatically by
+    // adaptive thinking — no beta header needed.
+    let response = await client.messages.create({ ...createParams, messages })
 
     let turns = 0
 
@@ -297,10 +298,7 @@ async function runAgenticLoop(
             ]
         }
 
-        response = await client.messages.create(
-            { ...createParams, messages },
-            requestOptions,
-        )
+        response = await client.messages.create({ ...createParams, messages })
     }
 
     if (turns >= MAX_TURNS) {
@@ -432,7 +430,7 @@ export async function analyzeWithMarketResearchSecondary(
 
     const response = await runAgenticLoop(client, messages, systemPrompt, {
         model: 'claude-sonnet-4-6',
-        thinkingBudget: 8000,
+        effort: 'high',
         logPrefix: 'Secondary',
     })
 
