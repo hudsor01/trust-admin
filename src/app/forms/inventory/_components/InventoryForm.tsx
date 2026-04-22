@@ -172,6 +172,7 @@ export function InventoryForm() {
     const [analysis, setAnalysis] = useState<AnalysisResult | null>(null)
     const [analysisError, setAnalysisError] = useState<string | null>(null)
     const [validationWarnings, setValidationWarnings] = useState<string[]>([])
+    const [overrideReasons, setOverrideReasons] = useState<string[]>([])
     const [photoLimitError, setPhotoLimitError] = useState<string | null>(null)
 
     // AI analysis pre-fills these; user can override before submit
@@ -203,6 +204,7 @@ export function InventoryForm() {
             setAnalysis(null)
             setAnalysisError(null)
             setValidationWarnings([])
+            setOverrideReasons([])
         },
         [photos.length],
     )
@@ -221,6 +223,7 @@ export function InventoryForm() {
             setAnalysis(null)
             setAnalysisError(null)
             setValidationWarnings([])
+            setOverrideReasons([])
         },
         [previewUrls],
     )
@@ -270,6 +273,9 @@ export function InventoryForm() {
                 }
                 if (data.validationWarnings) {
                     setValidationWarnings(data.validationWarnings)
+                }
+                if (Array.isArray(data.overrideReasons)) {
+                    setOverrideReasons(data.overrideReasons)
                 }
                 setFormValues({
                     name: data.data.name || '',
@@ -453,7 +459,10 @@ export function InventoryForm() {
 
                     {/* Polite live region so screen-reader users hear the
                         state change when a multi-minute analysis starts and
-                        finishes. The button label alone doesn't announce. */}
+                        finishes. The button label alone doesn't announce.
+                        Errors use aria-live="assertive" so a failure after a
+                        2-5 minute wait interrupts instead of queuing behind
+                        other announcements. */}
                     <p
                         id="analysis-status"
                         role="status"
@@ -464,6 +473,13 @@ export function InventoryForm() {
                             ? 'Researching valuation with Opus 4.7. This typically takes 2 to 5 minutes.'
                             : analysis
                               ? 'Analysis complete. Review the proposed valuation below.'
+                              : ''}
+                    </p>
+                    <p aria-live="assertive" className="sr-only">
+                        {analysisError
+                            ? `Analysis failed: ${analysisError}`
+                            : photoLimitError
+                              ? photoLimitError
                               : ''}
                     </p>
 
@@ -801,6 +817,13 @@ export function InventoryForm() {
                                 name="aiReviewStatus"
                                 value={analysis.reviewStatus}
                             />
+                            {overrideReasons.length > 0 && (
+                                <input
+                                    type="hidden"
+                                    name="aiServerOverrideReasons"
+                                    value={overrideReasons.join('\n')}
+                                />
+                            )}
                             <input
                                 type="hidden"
                                 name="aiSuggested"

@@ -165,9 +165,10 @@ export function mapToDbCategory(aiCategory: string): DbCategory {
  *   inventory_ready              → file on § 309.051 inventory as-is
  *   needs_admin_review           → sanity-check number + rationale before filing
  *   needs_professional_appraisal → commission a USPAP appraiser before filing
- *                                  (IRS Form 8283 requires qualified appraisal for
- *                                   estate items > $5,000; the same defensibility
- *                                   bar applies to probate inventory entries)
+ *                                  (Treas. Reg. § 20.2031-6(b) requires an
+ *                                   appraisal under oath for estate articles of
+ *                                   artistic or intrinsic value > $3,000 —
+ *                                   Form 706 Schedule F defensibility)
  */
 export const REVIEW_STATUSES = [
     'inventory_ready',
@@ -309,10 +310,10 @@ valueRangeHigh should be ≥ 1.2× valueRangeLow — narrower ranges suggest thi
 
 The \`reviewStatus\` field you return determines what the admin does with this valuation. Choose exactly one:
 
-- **\`inventory_ready\`** — you found multiple realized auction comps or at least 3 independent active-market sources, the identification is certain, and \`estimatedValue\` is ≤ $5,000. The admin can file this entry on the inventory as-is.
+- **\`inventory_ready\`** — you found multiple realized auction comps or at least 3 independent active-market sources, the identification is certain, and \`estimatedValue\` is ≤ $3,000. The admin can file this entry on the inventory as-is.
 - **\`needs_admin_review\`** — evidence is thin, identification has gaps, or comparables span a wide range. The admin should sanity-check your number + rationale before filing but does not necessarily need a professional appraiser. Use when there is uncertainty worth flagging but the item is low-stakes.
 - **\`needs_professional_appraisal\`** — one or more of the following is true:
-  - \`estimatedValue\` is > $5,000 (Treas. Reg. § 20.2031-6(b) requires an appraisal under oath for single articles / collections over $3,000; IRS Form 8283 parallel for appreciated property puts the USPAP-qualified-appraisal threshold at $5,000 — we use the higher number as a reasonable policy floor).
+  - \`estimatedValue\` is > $3,000. Treas. Reg. § 20.2031-6(b) requires "all articles of artistic or intrinsic value" over $3,000 to be appraised by an expert, under oath, for the estate inventory (Form 706 Schedule F). We enforce that threshold exactly — over-triggering is always safe for a sworn filing; under-triggering can produce an entry that fails the regulation.
   - Identification is ambiguous (e.g. "could be an original or a workshop copy and the photo alone cannot resolve it") and the item might be high-value.
   - No realized-auction comps exist for the artist/maker/model despite thorough research.
   - The category routinely requires specialist valuation (fine jewelry with gemstones, art by a listed artist, signed furniture attributions, numismatic coins).
@@ -323,7 +324,7 @@ Flagging \`needs_professional_appraisal\` is NOT a failure. It is the correct an
 
 Populate \`reviewNotes\` with one to three sentences explaining why you chose that status. Focus on what the admin or USPAP appraiser needs to verify, not on repeating the valuation rationale:
 
-- \`reviewNotes: "USPAP appraiser required before filing; estimatedValue exceeds $5,000 IRS threshold. Appraiser should confirm the McGrew attribution against the catalogue raisonné."\`
+- \`reviewNotes: "USPAP appraiser required before filing; estimatedValue exceeds the $3,000 Treas. Reg. § 20.2031-6(b) threshold. Appraiser should confirm the McGrew attribution against the catalogue raisonné."\`
 - \`reviewNotes: "Two realized auction comps within 30 days of DOD support the $35 value; file as-is."\`
 - \`reviewNotes: "Only a single asking-price comp found; admin should verify against LiveAuctioneers realized sales before filing."\`
 
@@ -334,7 +335,7 @@ Before calling record_valuation, verify:
 2. Do I have at least two real comparables with prices, sources, and source URLs?
 3. Did I weight comparables near the date of death (2025-12-28)?
 4. If this is art, did I search for the artist by name?
-5. If \`estimatedValue > 5000\`, is \`reviewStatus\` set to \`needs_professional_appraisal\`?
+5. If \`estimatedValue > 3000\`, is \`reviewStatus\` set to \`needs_professional_appraisal\`?
 6. Does \`reviewNotes\` tell the admin exactly what to verify?
 7. If I discounted an inflated source (Park West, cruise gallery, COA, gallery asking price), did I state the discount and reason in \`valuationRationale\`?
 
@@ -355,7 +356,7 @@ Call the \`record_valuation\` tool exactly once when your research is complete. 
 1. Never use a Park West / cruise-gallery / tourist-gallery COA "appraisal" as FMV.
 2. Never produce a valuation without at least one realized auction comparable OR three independent active-market sources.
 3. Never produce a valuation without identifying the maker / artist / brand from the image when one is visible.
-4. \`estimatedValue > 5000\` → \`reviewStatus: "needs_professional_appraisal"\`. No exceptions.
+4. \`estimatedValue > 3000\` → \`reviewStatus: "needs_professional_appraisal"\`. No exceptions. (Treas. Reg. § 20.2031-6(b) estate-tax appraisal threshold.)
 5. Weight comparables near the date of death (2025-12-28), not the current market.
 6. This output is an opinion of value for the estate's probate attorney to review before filing. It is not legal advice and not a USPAP-certified appraisal.
 
@@ -369,7 +370,7 @@ Call the \`record_valuation\` tool exactly once when your research is complete. 
 <example>
 <description>Antique furniture with maker's mark</description>
 <wrong_approach>Sees a wooden desk. Records: \`estimatedValue: "200.00"\`, \`reviewStatus: "inventory_ready"\`.</wrong_approach>
-<right_approach>Examines image carefully, finds brass plate reading "Stickley" on a drawer. Searches "Stickley Mission Oak desk auction results". Finds 1stDibs asking at $3,500–$8,000 (discounted as asking prices). Searches LiveAuctioneers for realized prices — comparable Stickley desks hammered at $2,800–$4,500 at auction in late 2025. Records \`estimatedValue: "3200.00"\`, \`reviewStatus: "needs_admin_review"\` (realized-comp range is wide; admin should verify the subject matches those model variants), \`reviewNotes: "Three LiveAuctioneers realized sales Nov-Dec 2025 span $2,800–$4,500. Admin should spot-check that the subject's edition and condition match the lower-priced comps before filing."\`</right_approach>
+<right_approach>Examines image carefully, finds brass plate reading "Stickley" on a drawer. Searches "Stickley Mission Oak desk auction results". Finds 1stDibs asking at $3,500–$8,000 (discounted as asking prices). Searches LiveAuctioneers for realized prices — comparable Stickley desks hammered at $2,800–$4,500 at auction in late 2025. Records \`estimatedValue: "3200.00"\`, \`reviewStatus: "needs_professional_appraisal"\` (value exceeds $3,000 Treas. Reg. § 20.2031-6(b) threshold), \`reviewNotes: "USPAP appraiser required before filing: estimatedValue exceeds $3,000. Three LiveAuctioneers realized sales Nov-Dec 2025 span $2,800–$4,500; appraiser should confirm the subject's edition and condition match the specific comps relied upon."\`</right_approach>
 </example>
 
 <example>
@@ -380,7 +381,7 @@ Call the \`record_valuation\` tool exactly once when your research is complete. 
 <example>
 <description>Park West cruise-ship art with a $3,500 COA</description>
 <wrong_approach>User provides a Park West COA stating appraised value $3,500. Records \`estimatedValue: "3500.00"\`, \`reviewStatus: "inventory_ready"\`.</wrong_approach>
-<right_approach>Identifies the artist and edition from the image and COA text. Searches the artist's name on LiveAuctioneers and eBay sold listings. Finds secondary-market resales of similar Park West editions at $150–$400. Records \`estimatedValue: "275.00"\`, \`reviewStatus: "inventory_ready"\` (evidence is strong and value is under $5k), \`valuationRationale\` noting: "Park West COA appraisal of $3,500 is retail replacement value, not FMV (IRS Pub. 561 — 'insured value does not reflect what a willing buyer and willing seller would pay'). Secondary-market resale comps on LiveAuctioneers (3 sales, 2024–2025) and eBay sold listings support $150–$400 FMV range.", \`reviewNotes: "Evidence supports $275 with three realized secondary-market comps; COA value correctly discarded per IRS Pub. 561."\`</right_approach>
+<right_approach>Identifies the artist and edition from the image and COA text. Searches the artist's name on LiveAuctioneers and eBay sold listings. Finds secondary-market resales of similar Park West editions at $150–$400. Records \`estimatedValue: "275.00"\`, \`reviewStatus: "inventory_ready"\` (evidence is strong and value is well under the $3,000 Reg. § 20.2031-6(b) threshold), \`valuationRationale\` noting: "Park West COA appraisal of $3,500 is retail replacement value, not FMV (IRS Pub. 561 — 'insured value does not reflect what a willing buyer and willing seller would pay'). Secondary-market resale comps on LiveAuctioneers (3 sales, 2024–2025) and eBay sold listings support $150–$400 FMV range.", \`reviewNotes: "Evidence supports $275 with three realized secondary-market comps; COA value correctly discarded per IRS Pub. 561."\`</right_approach>
 </example>
 </examples>`
 
@@ -544,7 +545,7 @@ const recordValuationTool: Anthropic.Tool = {
                 type: 'string',
                 enum: [...REVIEW_STATUSES],
                 description:
-                    'Action-oriented disposition: inventory_ready = file as-is; needs_admin_review = admin sanity-check required; needs_professional_appraisal = USPAP appraiser required (mandatory when estimatedValue > $5,000).',
+                    'Action-oriented disposition: inventory_ready = file as-is; needs_admin_review = admin sanity-check required; needs_professional_appraisal = USPAP appraiser required (mandatory when estimatedValue > $3,000 per Treas. Reg. § 20.2031-6(b)).',
             },
             reviewNotes: {
                 type: 'string',
@@ -848,14 +849,22 @@ export function validateAnalysis(analysis: {
 // Deterministic guardrails that run AFTER the model returns but BEFORE we
 // hand the result to the form/admin. The SYSTEM_PROMPT instructs the model
 // to set reviewStatus = "needs_professional_appraisal" when estimatedValue
-// > $5,000, but prompt rules alone aren't a load-bearing control for a
+// > $3,000 (the Treas. Reg. § 20.2031-6(b) estate-inventory appraisal
+// threshold), but prompt rules alone aren't a load-bearing control for a
 // sworn court filing — enforce the same rule in code.
 //
 // Precedence: only *escalate* severity, never downgrade. If the model
 // already flagged for professional appraisal, the result of these checks
 // can never move it back to needs_admin_review or inventory_ready.
 
-const APPRAISER_THRESHOLD_USD = 5000
+// Treas. Reg. § 20.2031-6(b) requires a sworn expert appraisal for any
+// single article (or collection) of artistic or intrinsic value exceeding
+// $3,000 on Form 706 Schedule F. IRS Form 8283's $5,000 USPAP-qualified-
+// appraisal floor is an income-tax (charitable-contribution) parallel,
+// not an estate-tax rule — our pipeline uses the estate-tax number.
+// Over-triggering the professional-appraisal flag is always safe for a
+// sworn filing; under-triggering produces entries that fail the reg.
+const APPRAISER_THRESHOLD_USD = 3000
 
 // Trailing ASCII punctuation that commonly attaches to a URL inside prose
 // (commas, semicolons, closing brackets, quotes, periods). Stripped before
@@ -864,18 +873,24 @@ const APPRAISER_THRESHOLD_USD = 5000
 // character class directly — leaving `)` out of the trailing strip avoids
 // butchering URLs that legitimately contain parens.
 const URL_PATTERN = /https?:\/\/[^\s)]+/g
-const URL_TRAILING_PUNCT = /[.,;:"'!?>]+$/
+const URL_TRAILING_PUNCT = /[.,;:"'!?>\]`]+$/
 
 function normalizeUrl(raw: string): string {
     return raw.replace(URL_TRAILING_PUNCT, '')
 }
 
-/** Host portion (including port) of a URL, or the input if unparseable. */
+/**
+ * Normalized host portion of a URL for independence comparison. Lowercases
+ * and strips a leading `www.` so `www.ebay.com`, `EBAY.com`, and `ebay.com`
+ * are recognized as one source. Returns the raw string lowercased if
+ * unparseable so dedup still works on malformed inputs.
+ */
 function urlHost(raw: string): string {
     try {
-        return new URL(raw).host
+        const host = new URL(raw).hostname.toLowerCase()
+        return host.startsWith('www.') ? host.slice(4) : host
     } catch {
-        return raw
+        return raw.toLowerCase()
     }
 }
 
@@ -932,7 +947,7 @@ export function applyReviewStatusOverrides(
     const value = parseFloat(analysis.estimatedValue)
     if (Number.isFinite(value) && value > APPRAISER_THRESHOLD_USD) {
         reasons.push(
-            `Server override: estimatedValue $${value.toLocaleString()} exceeds $${APPRAISER_THRESHOLD_USD.toLocaleString()} — items at that value require a USPAP appraisal before filing (Treas. Reg. § 20.2031-6(b); IRS Form 8283 parallel).`,
+            `Server override: estimatedValue $${value.toLocaleString()} exceeds $${APPRAISER_THRESHOLD_USD.toLocaleString()} — Treas. Reg. § 20.2031-6(b) requires an appraisal under oath for estate articles over $3,000 before filing on Form 706 Schedule F.`,
         )
         status = escalate(status, 'needs_professional_appraisal')
     }

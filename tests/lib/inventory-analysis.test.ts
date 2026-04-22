@@ -862,7 +862,7 @@ describe('applyReviewStatusOverrides', () => {
         expect(overrideReasons).toHaveLength(0)
     })
 
-    test('escalates to needs_professional_appraisal when estimatedValue > $5,000', () => {
+    test('escalates to needs_professional_appraisal when estimatedValue > $3,000', () => {
         const { analysis: out, overrideReasons } = applyReviewStatusOverrides(
             analysis({
                 estimatedValue: '22000.00',
@@ -871,19 +871,34 @@ describe('applyReviewStatusOverrides', () => {
             }),
         )
         expect(out.reviewStatus).toBe('needs_professional_appraisal')
-        expect(overrideReasons[0]).toMatch(/exceeds \$5,000/)
+        expect(overrideReasons[0]).toMatch(/exceeds \$3,000/)
     })
 
-    test('>$5k override wins even if model said inventory_ready', () => {
+    test('$3k+ override wins even if model said inventory_ready', () => {
         const { analysis: out } = applyReviewStatusOverrides(
             analysis({
-                estimatedValue: '7500.00',
-                valueRangeLow: '6000.00',
-                valueRangeHigh: '9000.00',
+                estimatedValue: '3500.00',
+                valueRangeLow: '3000.00',
+                valueRangeHigh: '4000.00',
                 reviewStatus: 'inventory_ready',
             }),
         )
         expect(out.reviewStatus).toBe('needs_professional_appraisal')
+    })
+
+    test('item at exactly $3,000 does NOT trigger the appraiser override', () => {
+        // Threshold is strictly >, not >=. At-or-under $3k is file-ready
+        // territory per Reg. § 20.2031-6(b).
+        const { analysis: out, overrideReasons } = applyReviewStatusOverrides(
+            analysis({
+                estimatedValue: '3000.00',
+                valueRangeLow: '2500.00',
+                valueRangeHigh: '3500.00',
+                reviewStatus: 'inventory_ready',
+            }),
+        )
+        expect(out.reviewStatus).toBe('inventory_ready')
+        expect(overrideReasons).toHaveLength(0)
     })
 
     test('escalates to needs_admin_review when estimatedValue is outside the range', () => {
@@ -957,6 +972,34 @@ describe('applyReviewStatusOverrides', () => {
         expect(overrideReasons).toHaveLength(0)
     })
 
+    test('treats www-prefixed and bare host as one source', () => {
+        const { analysis: out } = applyReviewStatusOverrides(
+            analysis({
+                valuationRationale:
+                    'Same site twice: https://www.ebay.com/item/1 and https://ebay.com/item/2.',
+            }),
+        )
+        expect(out.reviewStatus).toBe('needs_admin_review')
+    })
+
+    test('treats uppercase-host URL as same source as lowercase', () => {
+        const { analysis: out } = applyReviewStatusOverrides(
+            analysis({
+                valuationRationale:
+                    'Same site: https://EBAY.com/item/1 and https://ebay.com/item/2.',
+            }),
+        )
+        expect(out.reviewStatus).toBe('needs_admin_review')
+    })
+
+    test('empty rationale fails the 2-source check', () => {
+        const { analysis: out, overrideReasons } = applyReviewStatusOverrides(
+            analysis({ valuationRationale: '' }),
+        )
+        expect(out.reviewStatus).toBe('needs_admin_review')
+        expect(overrideReasons.some((r) => /0 independent/.test(r))).toBe(true)
+    })
+
     test('every failing guardrail emits a reason even when multiple fire at once', () => {
         // Model returns needs_admin_review already; value is >$5k AND out of
         // range AND rationale has 1 URL. Every guardrail should be surfaced.
@@ -972,7 +1015,7 @@ describe('applyReviewStatusOverrides', () => {
         )
         expect(out.reviewStatus).toBe('needs_professional_appraisal')
         expect(overrideReasons.length).toBeGreaterThanOrEqual(3)
-        expect(overrideReasons.some((r) => /exceeds \$5,000/.test(r))).toBe(
+        expect(overrideReasons.some((r) => /exceeds \$3,000/.test(r))).toBe(
             true,
         )
         expect(overrideReasons.some((r) => /outside/.test(r))).toBe(true)

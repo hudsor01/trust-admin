@@ -192,12 +192,12 @@ notes:          Valuation rationale and comparable sales summary
 
 ## Implementation
 
-The skill's logic is implemented in `src/lib/inventory-analysis-enhanced.ts`. It uses `@anthropic-ai/sdk` directly (not the AI SDK) because the `web_search_20250305` server-side tool requires the native Anthropic client. Key components:
+The skill's logic is implemented in `src/lib/inventory-analysis.ts`. It uses `@anthropic-ai/sdk` directly (not the AI SDK) because the `web_search_20260209` server-side tool with dynamic filtering requires the native Anthropic client. Key components:
 
-- **`analyzeWithMarketResearch(images)`** — Photo-based valuation with web search. Agentic loop runs Sonnet 4.5 with up to 10 turns.
-- **`valueItemByDescription(description, context)`** — Text-only valuation for items described verbally.
-- **Route handler** (`src/app/api/inventory/analyze/route.ts`) — `useWebSearch` boolean toggles between fast and research paths.
-- **Form toggle** (`InventoryForm.tsx`) — Switch component defaults to research-backed mode.
+- **`analyzeWithMarketResearch(images)`** — Photo-based valuation. Agentic loop runs Claude Opus 4.7 at `xhigh` effort with adaptive thinking, `web_search_20260209` (dynamic filtering), `code_execution_20260120`, and a strict `record_valuation` client tool for structured output. Up to `MAX_TURNS` (15) continuations.
+- **`applyReviewStatusOverrides(analysis)`** — Deterministic server-side guardrails applied after the model returns. Escalates `reviewStatus` when `estimatedValue > $3,000` (Treas. Reg. § 20.2031-6(b)), when `estimatedValue` falls outside the model's own range, or when the rationale cites fewer than two independent source URLs.
+- **Route handler** (`src/app/api/inventory/analyze/route.ts`) — Access-cookie gated, per-IP rate-limited, runs analysis + override guardrails.
+- **Submission form** (`InventoryForm.tsx`) — Single analyze button; no fast/research toggle.
 
 ## Special Considerations
 

@@ -1367,9 +1367,7 @@ export const pendingInventoryItem = pgTable(
         // ('inventory_ready' | 'needs_admin_review' |
         // 'needs_professional_appraisal'). The column name is kept as-is to
         // avoid migrating historical rows ('high' | 'medium' | 'low'); the
-        // admin UI accepts both shapes. AI's reviewNotes are shown to the
-        // submitter at analyze time but not persisted — aiValuationRationale
-        // already carries the full evidence trail.
+        // admin UI accepts both shapes.
         aiConfidence: t.text(),
         aiSuggested: t.boolean().default(false).notNull(),
         aiBrand: t.text(),
@@ -1378,6 +1376,14 @@ export const pendingInventoryItem = pgTable(
         aiMaterials: t.text(),
         aiValuationRationale: t.text(),
         aiConditionNotes: t.text(),
+        // Deterministic server-side guardrail failures from
+        // applyReviewStatusOverrides (estimatedValue over the $3,000 Treas.
+        // Reg. § 20.2031-6(b) threshold, range inconsistency, <2 independent
+        // source URLs, etc). Persisted as newline-joined text rather than an
+        // array column so admin-queue rendering can stay trivially-simple;
+        // the submitter saw the same list at analyze time. Empty / null if
+        // no guardrails fired.
+        aiServerOverrideReasons: t.text(),
         // Review workflow
         status: submissionStatus().default('PENDING').notNull(),
         reviewNotes: t.text(),

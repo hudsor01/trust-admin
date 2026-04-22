@@ -246,7 +246,7 @@ describe('POST /api/inventory/analyze', () => {
                         reviewStatus: 'needs_professional_appraisal',
                     },
                     overrideReasons: [
-                        'Server override: estimatedValue $22,000 exceeds $5,000.',
+                        'Server override: estimatedValue $22,000 exceeds $3,000.',
                     ],
                 }),
             )
@@ -259,7 +259,7 @@ describe('POST /api/inventory/analyze', () => {
             expect(response.status).toBe(200)
             expect(data.data.reviewStatus).toBe('needs_professional_appraisal')
             expect(data.validationWarnings).toContain(
-                'Server override: estimatedValue $22,000 exceeds $5,000.',
+                'Server override: estimatedValue $22,000 exceeds $3,000.',
             )
         })
 

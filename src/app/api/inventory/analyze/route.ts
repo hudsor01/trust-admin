@@ -51,6 +51,15 @@ interface AnalyzeSuccessResponse {
     data: InventoryAnalysisResult
     photoUrls: string[]
     validationWarnings: string[]
+    /**
+     * Server-side reviewStatus override reasons — emitted by
+     * applyReviewStatusOverrides when a guardrail fires (> $3,000,
+     * estimatedValue outside range, <2 independent source URLs). Separated
+     * from validationWarnings so the submission form can persist these onto
+     * pending_inventory_item.aiServerOverrideReasons and the admin sees the
+     * exact same red flags the submitter saw.
+     */
+    overrideReasons: string[]
 }
 
 interface AnalyzeErrorResponse {
@@ -73,37 +82,6 @@ export async function POST(
             return NextResponse.json(
                 { success: false, error: 'Unauthorized' },
                 { status: 401 },
-            )
-        }
-
-        // Per-IP rate limit — each call runs Opus 4.7 at xhigh effort with
-        // adaptive thinking and web_search, which spans several minutes and
-        // several dollars of inference per item. Without this, a captured
-        // access cookie is an unbounded spend risk.
-        const ip = await getClientIP()
-        const rate = checkAnalyzeRateLimit(ip)
-        if (!rate.allowed) {
-            return NextResponse.json(
-                {
-                    success: false,
-                    error: 'Too many analysis requests — please try again later.',
-                },
-                {
-                    status: 429,
-                    headers: rate.retryAfterSeconds
-                        ? { 'Retry-After': String(rate.retryAfterSeconds) }
-                        : undefined,
-                },
-            )
-        }
-
-        if (!env.ANTHROPIC_API_KEY) {
-            return NextResponse.json(
-                {
-                    success: false,
-                    error: 'Anthropic API key not configured',
-                },
-                { status: 503 },
             )
         }
 
@@ -147,6 +125,39 @@ export async function POST(
         }
 
         const { images, entityId } = validationResult.data
+
+        // Per-IP rate limit — each call runs Opus 4.7 at xhigh effort with
+        // adaptive thinking and web_search, which spans several minutes and
+        // several dollars of inference per item. Without this, a captured
+        // access cookie is an unbounded spend risk. Counted AFTER cheap
+        // validation so a misbehaving client can't burn the hourly budget on
+        // malformed requests that never reach Anthropic.
+        const ip = await getClientIP()
+        const rate = checkAnalyzeRateLimit(ip)
+        if (!rate.allowed) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    error: 'Too many analysis requests — please try again later.',
+                },
+                {
+                    status: 429,
+                    headers: rate.retryAfterSeconds
+                        ? { 'Retry-After': String(rate.retryAfterSeconds) }
+                        : undefined,
+                },
+            )
+        }
+
+        if (!env.ANTHROPIC_API_KEY) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    error: 'Anthropic API key not configured',
+                },
+                { status: 503 },
+            )
+        }
 
         // Fetch recent corrections for feedback loop. This table is optional
         // context — if it's missing (migration not applied) or the query fails
@@ -229,6 +240,7 @@ export async function POST(
             data: gated,
             photoUrls,
             validationWarnings: [...validationWarnings, ...overrideReasons],
+            overrideReasons,
         })
     } catch (error) {
         // Anthropic's error text contains "credit balance" / "Plans &
