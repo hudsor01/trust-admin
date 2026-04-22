@@ -49,6 +49,29 @@ const STATUS_VARIANTS: Record<
     REJECTED: 'destructive',
 }
 
+// aiConfidence column now stores reviewStatus strings (see db/schema.ts).
+// Legacy rows may still contain 'high' | 'medium' | 'low'; both are handled.
+const REVIEW_STATUS_LABELS: Record<string, string> = {
+    inventory_ready: 'Inventory ready',
+    needs_admin_review: 'Needs review',
+    needs_professional_appraisal: 'Appraisal required',
+    high: 'High confidence',
+    medium: 'Medium confidence',
+    low: 'Low confidence',
+}
+
+const REVIEW_STATUS_VARIANTS: Record<
+    string,
+    'default' | 'secondary' | 'destructive' | 'outline'
+> = {
+    inventory_ready: 'default',
+    needs_admin_review: 'secondary',
+    needs_professional_appraisal: 'destructive',
+    high: 'default',
+    medium: 'secondary',
+    low: 'outline',
+}
+
 export function InventoryQueueClient() {
     const utils = trpc.useUtils()
     const { data: entities } = trpc.entity.list.useQuery()
@@ -415,12 +438,24 @@ export function InventoryQueueClient() {
                                     </div>
                                     <div>
                                         <span className="text-sm text-muted-foreground">
-                                            AI Suggested
+                                            AI Review Status
                                         </span>
                                         <p className="font-medium">
-                                            {reviewingItem.aiSuggested ? (
-                                                <Badge variant="outline">
-                                                    {reviewingItem.aiConfidence}
+                                            {reviewingItem.aiSuggested &&
+                                            reviewingItem.aiConfidence ? (
+                                                <Badge
+                                                    variant={
+                                                        REVIEW_STATUS_VARIANTS[
+                                                            reviewingItem
+                                                                .aiConfidence
+                                                        ] ?? 'outline'
+                                                    }
+                                                >
+                                                    {REVIEW_STATUS_LABELS[
+                                                        reviewingItem
+                                                            .aiConfidence
+                                                    ] ??
+                                                        reviewingItem.aiConfidence}
                                                 </Badge>
                                             ) : (
                                                 'No'

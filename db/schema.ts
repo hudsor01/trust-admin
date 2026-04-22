@@ -1362,8 +1362,15 @@ export const pendingInventoryItem = pgTable(
         photoPath3: t.text(),
         photoPath4: t.text(),
         photoPath5: t.text(),
-        // AI analysis metadata
-        aiConfidence: t.text(), // 'high' | 'medium' | 'low' | null
+        // AI analysis metadata. aiConfidence was repurposed 2026-04-21 to hold
+        // the action-oriented reviewStatus values Opus 4.7 returns
+        // ('inventory_ready' | 'needs_admin_review' |
+        // 'needs_professional_appraisal'). The column name is kept as-is to
+        // avoid migrating historical rows ('high' | 'medium' | 'low'); the
+        // admin UI accepts both shapes. AI's reviewNotes are shown to the
+        // submitter at analyze time but not persisted — aiValuationRationale
+        // already carries the full evidence trail.
+        aiConfidence: t.text(),
         aiSuggested: t.boolean().default(false).notNull(),
         aiBrand: t.text(),
         aiModel: t.text(),

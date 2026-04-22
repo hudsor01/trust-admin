@@ -160,6 +160,22 @@ export function mapToDbCategory(aiCategory: string): DbCategory {
     return mapping[normalized] || 'OTHER'
 }
 
+/**
+ * Review status drives the post-valuation admin action directly:
+ *   inventory_ready              → file on § 309.051 inventory as-is
+ *   needs_admin_review           → sanity-check number + rationale before filing
+ *   needs_professional_appraisal → commission a USPAP appraiser before filing
+ *                                  (IRS Form 8283 requires qualified appraisal for
+ *                                   estate items > $5,000; the same defensibility
+ *                                   bar applies to probate inventory entries)
+ */
+export const REVIEW_STATUSES = [
+    'inventory_ready',
+    'needs_admin_review',
+    'needs_professional_appraisal',
+] as const
+export type ReviewStatus = (typeof REVIEW_STATUSES)[number]
+
 export const InventoryAnalysisSchema = z.object({
     name: z.string(),
     category: z.enum(CATEGORIES),
@@ -174,9 +190,8 @@ export const InventoryAnalysisSchema = z.object({
     conditionNotes: z.string(),
     description: z.string(),
     valuationRationale: z.string(),
-    confidence: z.enum(['high', 'medium', 'low']),
-    confidenceNotes: z.string(),
-    confidenceScore: z.number().min(0).max(100),
+    reviewStatus: z.enum(REVIEW_STATUSES),
+    reviewNotes: z.string(),
 })
 
 export type InventoryAnalysis = z.infer<typeof InventoryAnalysisSchema>
@@ -205,19 +220,25 @@ export const SYSTEM_PROMPT = `You are an estate inventory appraiser helping a pe
 - Decedent: Richard Hudson Sr., date of death 2025-12-28
 - Estate: Hudson Living Trust, Texas independent administration, case PR-2026-00281-A
 - User: Richard Hudson Jr. — the son, serving as personal representative / executor
-- Purpose: Every value you return is entered on the Inventory, Appraisement, and List of Claims required by Tex. Est. Code § 309.051 — a sworn filing with the probate court, due within 90 days of the personal representative's qualification
+- Purpose: Every value you return is aggregated into the Inventory, Appraisement, and List of Claims required by Tex. Est. Code § 309.051 — a sworn filing with the probate court, due within 90 days of the personal representative's qualification
 - Review: The estate's probate attorney reviews the inventory before it is filed
 
-This is a court document sworn under oath, not a casual estimate. The number you return is the number that gets inventoried.
+## WHY THESE NUMBERS MATTER
+
+The FMV you produce for each item is aggregated into the total estate value. Every individual valuation then drives three separate legal and financial consequences:
+
+1. **Gross estate reported to the probate court.** The inventory total is sworn testimony. Inflated numbers overstate the estate; understated numbers misrepresent it.
+2. **Heir's step-up cost basis (IRC § 1014).** Each item's FMV becomes the heir's new cost basis for capital-gains purposes. If the heir later sells an item valued too low here, he pays capital gains on appreciation that should have been captured by the step-up.
+3. **Pro-rata distribution.** If the will specifies percentage shares among beneficiaries rather than specific items, the per-item FMVs determine who gets what.
+
+This is a court document sworn under oath, not a casual estimate.
 
 ## WHY ACCURACY CUTS BOTH WAYS
 
-Undervaluing is just as wrong as overvaluing:
+- A $20,000 painting valued at $100 is a catastrophic failure. The heir loses tens of thousands in step-up basis — he pays capital gains on appreciation that should have been stepped up. The sworn inventory is also wrong.
+- A $50 mass-produced print valued at $5,000 is equally wrong — the executor swears to a false gross-estate total.
 
-- A $20,000 painting valued at $100 is a catastrophic failure. The heir loses tens of thousands in step-up basis (IRC § 1014). If he later sells, he pays capital gains on the real appreciation. The sworn inventory is also wrong.
-- A $50 mass-produced print valued at $5,000 is equally wrong — the executor swears to a false value.
-
-Do not be "conservative." Do not default to low values when uncertain. Do more research until you are confident.
+Do not be "conservative." Do not default to low values when uncertain. Do more research until the evidence supports a defensible number — or flag the item for professional appraisal.
 
 ## FAIR MARKET VALUE — THE LEGAL STANDARD
 
@@ -284,63 +305,81 @@ Round the final value:
 
 valueRangeHigh should be ≥ 1.2× valueRangeLow — narrower ranges suggest thin evidence, not certainty.
 
-### Step 5 — ESCALATION CHECK
+### Step 5 — ASSIGN REVIEW STATUS
 
-If the item is potentially worth over $5,000 and comparable sales are thin or contested, set \`confidence: "low"\` and state in \`confidenceNotes\` that a USPAP-certified appraiser is recommended before the inventory is filed. Flagging this correctly IS the job — it is not a failure. IRS Form 8283 requires a qualified appraisal for donated items over $5,000, and the same defensibility bar is appropriate for high-value estate inventory entries.
+The \`reviewStatus\` field you return determines what the admin does with this valuation. Choose exactly one:
 
-### Step 6 — SELF-VERIFY
+- **\`inventory_ready\`** — you found multiple realized auction comps or at least 3 independent active-market sources, the identification is certain, and \`estimatedValue\` is ≤ $5,000. The admin can file this entry on the inventory as-is.
+- **\`needs_admin_review\`** — evidence is thin, identification has gaps, or comparables span a wide range. The admin should sanity-check your number + rationale before filing but does not necessarily need a professional appraiser. Use when there is uncertainty worth flagging but the item is low-stakes.
+- **\`needs_professional_appraisal\`** — one or more of the following is true:
+  - \`estimatedValue\` is > $5,000 (IRS Form 8283 parallel: items at that value need a qualified appraisal for defensibility).
+  - Identification is ambiguous (e.g. "could be an original or a workshop copy and the photo alone cannot resolve it") and the item might be high-value.
+  - No realized-auction comps exist for the artist/maker/model despite thorough research.
+  - The category routinely requires specialist valuation (fine jewelry with gemstones, art by a listed artist, signed furniture attributions, numismatic coins).
 
-Before recording the valuation, verify:
+Flagging \`needs_professional_appraisal\` is NOT a failure. It is the correct and required output when the evidence bar for a sworn court filing exceeds what web research alone can establish.
+
+### Step 6 — EXPLAIN REVIEW STATUS
+
+Populate \`reviewNotes\` with one to three sentences explaining why you chose that status. Focus on what the admin or USPAP appraiser needs to verify, not on repeating the valuation rationale:
+
+- \`reviewNotes: "USPAP appraiser required before filing; estimatedValue exceeds $5,000 IRS threshold. Appraiser should confirm the McGrew attribution against the catalogue raisonné."\`
+- \`reviewNotes: "Two realized auction comps within 30 days of DOD support the $35 value; file as-is."\`
+- \`reviewNotes: "Only a single asking-price comp found; admin should verify against LiveAuctioneers realized sales before filing."\`
+
+### Step 7 — SELF-VERIFY
+
+Before calling record_valuation, verify:
 1. Did I identify the maker / artist / brand from the image, or am I guessing?
-2. Do I have at least two real comparables with prices, sources, and dates?
+2. Do I have at least two real comparables with prices, sources, and source URLs?
 3. Did I weight comparables near the date of death (2025-12-28)?
 4. If this is art, did I search for the artist by name?
-5. If evidence suggests > $5,000 FMV with thin comps, did I recommend a USPAP appraiser in \`confidenceNotes\`?
-6. Does \`confidenceScore\` match my actual evidence quality?
+5. If \`estimatedValue > 5000\`, is \`reviewStatus\` set to \`needs_professional_appraisal\`?
+6. Does \`reviewNotes\` tell the admin exactly what to verify?
 7. If I discounted an inflated source (Park West, cruise gallery, COA, gallery asking price), did I state the discount and reason in \`valuationRationale\`?
 
-### Step 7 — RECORD
+### Step 8 — RECORD
 
-Call the \`record_valuation\` tool exactly once when your research is complete. The tool call IS the output — do not prefix it with prose summaries. The structured input you pass becomes the inventory entry.
+Call the \`record_valuation\` tool exactly once when your research is complete. The tool call IS the output — do not prefix it with prose summaries. The structured input you pass becomes the entry on the estate inventory.
 
 ## TONE RULES
 
 - Lead with facts. No hedging language ("seems," "appears to be," "I think," "maybe").
 - No emojis, no corporate jargon, no excessive validation, no apologies.
-- If the user is wrong about a valuation (e.g., "the COA says $3,500 so use that"), correct it directly: explain why COA ≠ FMV per IRS Pub. 561.
-- If identification is ambiguous or comparables are thin, say so in \`confidenceNotes\` and set \`confidence: "low"\`. Do not invent a number to be helpful.
+- If the user is wrong about a valuation (e.g. "the COA says $3,500 so use that"), correct it directly: explain why COA ≠ FMV per IRS Pub. 561.
+- If identification is ambiguous or comparables are thin, say so in \`reviewNotes\` and set \`reviewStatus\` to \`needs_admin_review\` or \`needs_professional_appraisal\`. Do not invent a number to be helpful.
 
 ## HARD RULES
 
 1. Never use a Park West / cruise-gallery / tourist-gallery COA "appraisal" as FMV.
 2. Never produce a valuation without at least one realized auction comparable OR three independent active-market sources.
 3. Never produce a valuation without identifying the maker / artist / brand from the image when one is visible.
-4. For items likely over $5,000 FMV, recommend a USPAP appraiser in \`confidenceNotes\`.
+4. \`estimatedValue > 5000\` → \`reviewStatus: "needs_professional_appraisal"\`. No exceptions.
 5. Weight comparables near the date of death (2025-12-28), not the current market.
 6. This output is an opinion of value for the estate's probate attorney to review before filing. It is not legal advice and not a USPAP-certified appraisal.
 
 <examples>
 <example>
 <description>Painting that looks generic but is actually by a known artist</description>
-<wrong_approach>Sees a landscape painting. Does not read the signature. Records FMV: "Decorative landscape painting, $75"</wrong_approach>
-<right_approach>Reads signature in lower right: "R.B. McGrew". Searches "R Brownell McGrew paintings auction results". Finds Heritage Auctions sold similar McGrew oils for $18,000–$45,000 in 2024–2025. Searches Artnet to confirm auction history. Weights the late-2025 sales near DOD. Records FMV: $22,000 with cited auction URLs, \`confidenceScore: 82\`, \`confidenceNotes: "USPAP appraiser recommended before filing given individual value > $5,000."\`</right_approach>
+<wrong_approach>Sees a landscape painting. Does not read the signature. Records \`estimatedValue: "75.00"\`, \`reviewStatus: "inventory_ready"\`.</wrong_approach>
+<right_approach>Reads signature in lower right: "R.B. McGrew". Searches "R Brownell McGrew paintings auction results". Finds Heritage Auctions sold similar McGrew oils for $18,000–$45,000 in 2024–2025. Searches Artnet to confirm auction history. Weights the late-2025 sales near DOD. Records \`estimatedValue: "22000.00"\` with cited auction URLs in valuationRationale, \`reviewStatus: "needs_professional_appraisal"\`, \`reviewNotes: "USPAP appraiser required before filing: estimatedValue exceeds $5,000 and the McGrew attribution should be verified against the catalogue raisonné."\`</right_approach>
 </example>
 
 <example>
 <description>Antique furniture with maker's mark</description>
-<wrong_approach>Sees a wooden desk. Records: "Wooden desk, $200–400"</wrong_approach>
-<right_approach>Examines image carefully, finds brass plate reading "Stickley" on a drawer. Searches "Stickley Mission Oak desk auction results". Finds 1stDibs asking at $3,500–$8,000 (discounted as asking prices). Searches LiveAuctioneers for realized prices — comparable Stickley desks hammered at $2,800–$4,500 at auction in late 2025. Records FMV: $3,200 with specific auction citations.</right_approach>
+<wrong_approach>Sees a wooden desk. Records: \`estimatedValue: "200.00"\`, \`reviewStatus: "inventory_ready"\`.</wrong_approach>
+<right_approach>Examines image carefully, finds brass plate reading "Stickley" on a drawer. Searches "Stickley Mission Oak desk auction results". Finds 1stDibs asking at $3,500–$8,000 (discounted as asking prices). Searches LiveAuctioneers for realized prices — comparable Stickley desks hammered at $2,800–$4,500 at auction in late 2025. Records \`estimatedValue: "3200.00"\`, \`reviewStatus: "needs_admin_review"\` (realized-comp range is wide; admin should verify the subject matches those model variants), \`reviewNotes: "Three LiveAuctioneers realized sales Nov-Dec 2025 span $2,800–$4,500. Admin should spot-check that the subject's edition and condition match the lower-priced comps before filing."\`</right_approach>
 </example>
 
 <example>
 <description>Truly mass-produced low-value item</description>
-<approach>Identifies IKEA KALLAX shelf unit from visible label. Searches "IKEA KALLAX shelf used price". Finds eBay sold listings at $25–$60, Facebook Marketplace at $30–$50. Records FMV: $35, \`confidence: "high"\`, \`confidenceScore: 85\` — low value IS correct here because evidence supports it.</approach>
+<approach>Identifies IKEA KALLAX shelf unit from visible label. Searches "IKEA KALLAX shelf used price". Finds eBay sold listings at $25–$60, Facebook Marketplace at $30–$50. Records \`estimatedValue: "35.00"\`, \`reviewStatus: "inventory_ready"\`, \`reviewNotes: "Three eBay sold listings and two Facebook Marketplace sales within 30 days of DOD support $35. File as-is."\` — low value IS correct here because evidence supports it.</approach>
 </example>
 
 <example>
 <description>Park West cruise-ship art with a $3,500 COA</description>
-<wrong_approach>User provides a Park West COA stating appraised value $3,500. Records FMV: $3,500.</wrong_approach>
-<right_approach>Identifies the artist and edition from the image and COA text. Searches the artist's name on LiveAuctioneers and eBay sold listings. Finds secondary-market resales of similar Park West editions at $150–$400. Records FMV: $275 with \`valuationRationale\` noting: "Park West COA appraisal of $3,500 is retail replacement value, not FMV (IRS Pub. 561 — 'insured value does not reflect what a willing buyer and willing seller would pay'). Secondary-market resale comps on LiveAuctioneers (3 sales, 2024–2025) and eBay sold listings support $150–$400 FMV range."</right_approach>
+<wrong_approach>User provides a Park West COA stating appraised value $3,500. Records \`estimatedValue: "3500.00"\`, \`reviewStatus: "inventory_ready"\`.</wrong_approach>
+<right_approach>Identifies the artist and edition from the image and COA text. Searches the artist's name on LiveAuctioneers and eBay sold listings. Finds secondary-market resales of similar Park West editions at $150–$400. Records \`estimatedValue: "275.00"\`, \`reviewStatus: "inventory_ready"\` (evidence is strong and value is under $5k), \`valuationRationale\` noting: "Park West COA appraisal of $3,500 is retail replacement value, not FMV (IRS Pub. 561 — 'insured value does not reflect what a willing buyer and willing seller would pay'). Secondary-market resale comps on LiveAuctioneers (3 sales, 2024–2025) and eBay sold listings support $150–$400 FMV range.", \`reviewNotes: "Evidence supports $275 with three realized secondary-market comps; COA value correctly discarded per IRS Pub. 561."\`</right_approach>
 </example>
 </examples>`
 
@@ -394,13 +433,11 @@ export function buildFeedbackContext(
 const MAX_TURNS = 15
 
 /**
- * Per-model output cap. Opus 4.7 allows up to 128k; Sonnet 4.6 caps at 64k
- * exactly, so we leave a 4k safety margin under the Sonnet ceiling to avoid
- * off-by-one rejection at the boundary. Both values comfortably fit the
- * "starting at 64k tokens" docs guidance for xhigh/high effort.
+ * Output cap for Opus 4.7. Docs recommend "starting at 64k tokens and tuning
+ * from there" for xhigh effort. Opus 4.7's absolute ceiling is 128k; we stay
+ * at 64k to bound cost without truncating typical appraisal outputs.
  */
-const MAX_TOKENS_OPUS = 64000
-const MAX_TOKENS_SONNET = 60000
+const MAX_TOKENS = 64000
 
 function createClient(): Anthropic {
     if (!env.ANTHROPIC_API_KEY) {
@@ -502,20 +539,16 @@ const recordValuationTool: Anthropic.Tool = {
                 description:
                     'MUST cite at least two actual comparable sales with price, date, and source URL. If inflated sources were discounted (COA, gallery asking, cruise-line certificate), state the discount and reason. Note date-of-death weighting.',
             },
-            confidence: {
+            reviewStatus: {
                 type: 'string',
-                enum: ['high', 'medium', 'low'],
-                description: 'Model confidence in identification and valuation',
+                enum: [...REVIEW_STATUSES],
+                description:
+                    'Action-oriented disposition: inventory_ready = file as-is; needs_admin_review = admin sanity-check required; needs_professional_appraisal = USPAP appraiser required (mandatory when estimatedValue > $5,000).',
             },
-            confidenceNotes: {
+            reviewNotes: {
                 type: 'string',
                 description:
-                    'What factors affect confidence. If > $5k FMV with thin comps, state "USPAP appraiser recommended before filing".',
-            },
-            confidenceScore: {
-                type: 'number',
-                description:
-                    '0-100. 80-100 = multiple realized comps + strong ID; 50-79 = some evidence with gaps; 20-49 = limited; 0-19 = near-guessing',
+                    'One to three sentences telling the admin (or USPAP appraiser) exactly what to verify. Do not restate the valuation rationale — focus on what review action is needed and why.',
             },
         },
         required: [
@@ -532,9 +565,8 @@ const recordValuationTool: Anthropic.Tool = {
             'conditionNotes',
             'description',
             'valuationRationale',
-            'confidence',
-            'confidenceNotes',
-            'confidenceScore',
+            'reviewStatus',
+            'reviewNotes',
         ],
         additionalProperties: false,
     },
@@ -542,19 +574,16 @@ const recordValuationTool: Anthropic.Tool = {
 }
 
 interface AgenticLoopOptions {
-    model?: string
     /**
-     * Thinking depth + overall token spend. Not every value works on every
-     * model — the API returns 400 for mismatches. Allowed pairings:
-     *   - Opus 4.7     → low | medium | high | xhigh | max   (xhigh only here)
-     *   - Opus 4.6/4.5 → low | medium | high | max
-     *   - Sonnet 4.6   → low | medium | high                 (no xhigh, no max)
-     *   - Sonnet 4.5 / Haiku → effort not supported (omit)
-     * `xhigh` is the best setting for agentic work on Opus 4.7; `high` is
-     * the recommended minimum for intelligence-sensitive work generally.
+     * Thinking depth + overall token spend. `xhigh` is Opus 4.7's best
+     * setting for agentic/valuation work (Anthropic effort docs: "the
+     * recommended starting point for coding and agentic work, and for
+     * exploratory tasks such as repeated tool calling, detailed web
+     * search, and knowledge-base search"). `max` is reserved for
+     * genuinely frontier problems — on most workloads it adds cost for
+     * marginal quality gains.
      */
     effort?: 'low' | 'medium' | 'high' | 'xhigh' | 'max'
-    logPrefix?: string
 }
 
 /**
@@ -572,25 +601,15 @@ async function runAgenticLoop(
     systemPrompt: string,
     options: AgenticLoopOptions = {},
 ): Promise<InventoryAnalysisResult> {
-    const {
-        model = 'claude-opus-4-7',
-        effort = 'xhigh',
-        logPrefix = 'Agentic',
-    } = options
-
-    // Sonnet 4.6's output ceiling is 64k exactly; Opus 4.7's is 128k. Pick
-    // the cap by model prefix so the same loop can serve both without
-    // tripping Sonnet at the boundary.
-    const maxTokens = model.startsWith('claude-opus')
-        ? MAX_TOKENS_OPUS
-        : MAX_TOKENS_SONNET
+    const { effort = 'xhigh' } = options
+    const logPrefix = 'Opus'
 
     // Opus 4.7 breaking changes: adaptive thinking only (budget_tokens
     // returns 400); no temperature/top_p/top_k (also 400). Effort replaces
     // the fixed-budget thinking control.
     const createParams = {
-        model,
-        max_tokens: maxTokens,
+        model: 'claude-opus-4-7',
+        max_tokens: MAX_TOKENS,
         thinking: { type: 'adaptive' as const },
         output_config: { effort },
         system: systemPrompt,
@@ -601,11 +620,15 @@ async function runAgenticLoop(
             // i.e. appraisal. Dynamic filtering requires code_execution
             // to be enabled on the workspace; if it is not, the API 400s
             // on requests that include code_execution_20260120. To verify
-            // before shipping:
+            // the workspace is provisioned, run this preflight once (a 200
+            // or a content-related 400 means enabled; "tool not available"
+            // means not enabled):
             //
             //   curl https://api.anthropic.com/v1/messages \
             //     -H "x-api-key: $ANTHROPIC_API_KEY" \
             //     -H "anthropic-version: 2023-06-01" \
+            //     -H "content-type: application/json" \
+            //     -H "anthropic-beta: code-execution-2025-08-25" \
             //     -d '{"model":"claude-opus-4-7","max_tokens":512,
             //          "messages":[{"role":"user","content":"ping"}],
             //          "tools":[{"type":"code_execution_20260120",
@@ -678,7 +701,7 @@ async function runAgenticLoop(
                 continuationTurns: turns,
                 name: validated.name,
                 fmv: validated.estimatedValue,
-                confidence: validated.confidence,
+                reviewStatus: validated.reviewStatus,
             })
             return {
                 ...validated,
@@ -771,55 +794,6 @@ export async function analyzeWithMarketResearch(
     return { analysis, compressedImages }
 }
 
-/**
- * Secondary analysis for two-model consensus. Sonnet 4.6 with high effort.
- * Accepts pre-compressed images to avoid double-compression.
- */
-export async function analyzeWithMarketResearchSecondary(
-    images: InventoryImage[],
-    compressedImages: CompressedImage[],
-    feedbackContext?: string,
-): Promise<InventoryAnalysisResult> {
-    if (compressedImages.length === 0) {
-        throw new Error('At least one compressed image is required')
-    }
-
-    const client = createClient()
-
-    const imageBlocks: Anthropic.ImageBlockParam[] = compressedImages.map(
-        (img) => ({
-            type: 'image',
-            source: {
-                type: 'base64',
-                media_type: img.mimeType as
-                    | 'image/jpeg'
-                    | 'image/png'
-                    | 'image/gif'
-                    | 'image/webp',
-                data: img.base64,
-            },
-        }),
-    )
-
-    const { userPrompt, systemPrompt } = buildAnalysisPrompts(
-        images.length,
-        feedbackContext,
-    )
-
-    const messages: Anthropic.MessageParam[] = [
-        {
-            role: 'user',
-            content: [...imageBlocks, { type: 'text', text: userPrompt }],
-        },
-    ]
-
-    return runAgenticLoop(client, messages, systemPrompt, {
-        model: 'claude-sonnet-4-6',
-        effort: 'high',
-        logPrefix: 'Secondary',
-    })
-}
-
 // ============================================================================
 // Post-analysis validation
 // ============================================================================
@@ -864,4 +838,107 @@ export function validateAnalysis(analysis: {
     }
 
     return { valid: warnings.length === 0, warnings }
+}
+
+// ============================================================================
+// Server-side reviewStatus overrides
+// ============================================================================
+//
+// Deterministic guardrails that run AFTER the model returns but BEFORE we
+// hand the result to the form/admin. The SYSTEM_PROMPT instructs the model
+// to set reviewStatus = "needs_professional_appraisal" when estimatedValue
+// > $5,000, but prompt rules alone aren't a load-bearing control for a
+// sworn court filing — enforce the same rule in code.
+//
+// Precedence: only *escalate* severity, never downgrade. If the model
+// already flagged for professional appraisal, the result of these checks
+// can never move it back to needs_admin_review or inventory_ready.
+
+const APPRAISER_THRESHOLD_USD = 5000
+const URL_PATTERN = /https?:\/\/[^\s)]+/g
+
+const REVIEW_STATUS_SEVERITY: Record<ReviewStatus, number> = {
+    inventory_ready: 0,
+    needs_admin_review: 1,
+    needs_professional_appraisal: 2,
+}
+
+function escalate(current: ReviewStatus, proposed: ReviewStatus): ReviewStatus {
+    return REVIEW_STATUS_SEVERITY[proposed] > REVIEW_STATUS_SEVERITY[current]
+        ? proposed
+        : current
+}
+
+export interface ReviewStatusOverrideResult {
+    analysis: InventoryAnalysisResult
+    overrideReasons: string[]
+}
+
+/**
+ * Enforce deterministic review-status rules on top of whatever the model
+ * returned. Reasons describe *what was overridden*, suitable for surfacing
+ * as validationWarnings so the admin sees why a status was escalated.
+ */
+export function applyReviewStatusOverrides(
+    analysis: InventoryAnalysisResult,
+): ReviewStatusOverrideResult {
+    const reasons: string[] = []
+    let status = analysis.reviewStatus
+    const before = status
+
+    const value = parseFloat(analysis.estimatedValue)
+    if (Number.isFinite(value) && value > APPRAISER_THRESHOLD_USD) {
+        status = escalate(status, 'needs_professional_appraisal')
+    }
+
+    const low = parseFloat(analysis.valueRangeLow)
+    const high = parseFloat(analysis.valueRangeHigh)
+    if (
+        Number.isFinite(value) &&
+        Number.isFinite(low) &&
+        Number.isFinite(high) &&
+        (value < low || value > high)
+    ) {
+        status = escalate(status, 'needs_admin_review')
+    }
+
+    const urlMatches = analysis.valuationRationale.match(URL_PATTERN) ?? []
+    if (urlMatches.length < 2) {
+        status = escalate(status, 'needs_admin_review')
+    }
+
+    if (status !== before) {
+        if (
+            before !== 'needs_professional_appraisal' &&
+            status === 'needs_professional_appraisal' &&
+            value > APPRAISER_THRESHOLD_USD
+        ) {
+            reasons.push(
+                `Server override: estimatedValue $${value.toLocaleString()} exceeds $${APPRAISER_THRESHOLD_USD.toLocaleString()} — reviewStatus escalated to needs_professional_appraisal (IRS Form 8283 parallel).`,
+            )
+        }
+        if (
+            status === 'needs_admin_review' &&
+            before === 'inventory_ready' &&
+            (value < low || value > high)
+        ) {
+            reasons.push(
+                'Server override: estimatedValue falls outside the valueRange returned by the model — reviewStatus escalated to needs_admin_review.',
+            )
+        }
+        if (
+            status === 'needs_admin_review' &&
+            before === 'inventory_ready' &&
+            urlMatches.length < 2
+        ) {
+            reasons.push(
+                `Server override: valuationRationale cites ${urlMatches.length} URL(s); at least 2 independent source URLs are required to file as-is — reviewStatus escalated to needs_admin_review.`,
+            )
+        }
+    }
+
+    return {
+        analysis: { ...analysis, reviewStatus: status },
+        overrideReasons: reasons,
+    }
 }

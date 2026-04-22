@@ -28,6 +28,7 @@ mock.module('../../src/lib/env', () => ({
 
 const {
     analyzeWithMarketResearch,
+    applyReviewStatusOverrides,
     buildFeedbackContext,
     compressImage,
     validateAnalysis,
@@ -57,11 +58,10 @@ function validValuationInput(overrides: Record<string, unknown> = {}) {
         description:
             'Traditional mahogany dining table with two leaves. Seats 8-10.',
         valuationRationale:
-            'LiveAuctioneers realized $2,200 on 2025-11-15 (https://example.com/a). 1stDibs listed comparable at $3,500 (asking, discounted to $2,100 FMV). Date-of-death-weighted midpoint: $2,500.',
-        confidence: 'high',
-        confidenceNotes:
-            'Brand clearly marked, multiple realized auction comps within 60 days of DOD',
-        confidenceScore: 85,
+            'LiveAuctioneers realized $2,200 on 2025-11-15 (https://example.com/a). 1stDibs listed comparable at $3,500 (asking, discounted to $2,100 FMV, https://example.com/b). Date-of-death-weighted midpoint: $2,500.',
+        reviewStatus: 'inventory_ready',
+        reviewNotes:
+            'Two LiveAuctioneers + 1stDibs comps within 60 days of DOD support $2,500. File as-is.',
         ...overrides,
     }
 }
@@ -483,7 +483,7 @@ describe('analyzeWithMarketResearch', () => {
         expect(result.analysis.rawCategory).toBe('furniture')
         expect(result.analysis.dbCategory).toBe('FURNITURE')
         expect(result.analysis.condition).toBe('good')
-        expect(result.analysis.confidence).toBe('high')
+        expect(result.analysis.reviewStatus).toBe('inventory_ready')
         expect(result.compressedImages).toHaveLength(1)
     })
 
@@ -838,6 +838,87 @@ describe('validateAnalysis', () => {
             w.includes('suspiciously low'),
         )
         expect(lazyWarning).toBeUndefined()
+    })
+})
+
+// ---------------------------------------------------------------------------
+// applyReviewStatusOverrides (server-side deterministic guardrails)
+// ---------------------------------------------------------------------------
+
+describe('applyReviewStatusOverrides', () => {
+    function analysis(overrides: Record<string, unknown> = {}) {
+        return {
+            ...validValuationInput(overrides),
+            rawCategory: 'furniture',
+            dbCategory: 'FURNITURE' as const,
+        }
+    }
+
+    test('passes through a clean inventory_ready result unchanged', () => {
+        const input = analysis()
+        const { analysis: out, overrideReasons } =
+            applyReviewStatusOverrides(input)
+        expect(out.reviewStatus).toBe('inventory_ready')
+        expect(overrideReasons).toHaveLength(0)
+    })
+
+    test('escalates to needs_professional_appraisal when estimatedValue > $5,000', () => {
+        const { analysis: out, overrideReasons } = applyReviewStatusOverrides(
+            analysis({
+                estimatedValue: '22000.00',
+                valueRangeLow: '18000.00',
+                valueRangeHigh: '30000.00',
+            }),
+        )
+        expect(out.reviewStatus).toBe('needs_professional_appraisal')
+        expect(overrideReasons[0]).toMatch(/exceeds \$5,000/)
+    })
+
+    test('>$5k override wins even if model said inventory_ready', () => {
+        const { analysis: out } = applyReviewStatusOverrides(
+            analysis({
+                estimatedValue: '7500.00',
+                valueRangeLow: '6000.00',
+                valueRangeHigh: '9000.00',
+                reviewStatus: 'inventory_ready',
+            }),
+        )
+        expect(out.reviewStatus).toBe('needs_professional_appraisal')
+    })
+
+    test('downgrades to needs_admin_review when estimatedValue is outside the range', () => {
+        const { analysis: out, overrideReasons } = applyReviewStatusOverrides(
+            analysis({
+                estimatedValue: '100.00',
+                valueRangeLow: '500.00',
+                valueRangeHigh: '800.00',
+            }),
+        )
+        expect(out.reviewStatus).toBe('needs_admin_review')
+        expect(overrideReasons.some((r) => /outside/.test(r))).toBe(true)
+    })
+
+    test('downgrades to needs_admin_review when rationale has fewer than 2 URLs', () => {
+        const { analysis: out, overrideReasons } = applyReviewStatusOverrides(
+            analysis({
+                valuationRationale:
+                    'LiveAuctioneers realized $2,200 on 2025-11-15 (https://example.com/a). Second source referenced but not linked.',
+            }),
+        )
+        expect(out.reviewStatus).toBe('needs_admin_review')
+        expect(overrideReasons.some((r) => /URL/.test(r))).toBe(true)
+    })
+
+    test('never de-escalates: professional appraisal is terminal', () => {
+        const { analysis: out } = applyReviewStatusOverrides(
+            analysis({
+                reviewStatus: 'needs_professional_appraisal',
+                estimatedValue: '100.00',
+                valueRangeLow: '50.00',
+                valueRangeHigh: '150.00',
+            }),
+        )
+        expect(out.reviewStatus).toBe('needs_professional_appraisal')
     })
 })
 

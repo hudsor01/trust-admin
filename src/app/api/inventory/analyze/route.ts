@@ -14,22 +14,16 @@ import {
 } from '@/lib/inventory-access'
 import {
     analyzeWithMarketResearch,
-    analyzeWithMarketResearchSecondary,
+    applyReviewStatusOverrides,
     buildFeedbackContext,
-    type CompressedImage,
-    compressImage,
     type InventoryAnalysisResult,
     validateAnalysis,
 } from '@/lib/inventory-analysis'
 import { logger } from '@/lib/logger'
 import { uploadInventoryImages } from '@/lib/uploadthing-server'
 
-// Two models with extended thinking + web search can take 2-5 minutes
+// Opus 4.7 with xhigh effort + web_search + dynamic filtering can take 2-5 minutes
 export const maxDuration = 300
-
-/** Divergence thresholds for two-model consensus. */
-const DIVERGENCE_AGREED_THRESHOLD = 25
-const DIVERGENCE_REVIEW_THRESHOLD = 100
 
 const ImageSchema = z.object({
     base64: z
@@ -56,12 +50,6 @@ interface AnalyzeSuccessResponse {
     success: true
     data: InventoryAnalysisResult
     photoUrls: string[]
-    consensus?: {
-        status: 'agreed' | 'review' | 'divergent'
-        primary: InventoryAnalysisResult
-        secondary: InventoryAnalysisResult
-        divergencePercent: number
-    }
     validationWarnings: string[]
 }
 
@@ -73,76 +61,7 @@ interface AnalyzeErrorResponse {
 
 type AnalyzeResponse = AnalyzeSuccessResponse | AnalyzeErrorResponse
 
-/** Calculate percentage divergence between two estimated values. */
-function calculateDivergence(
-    primaryValue: string,
-    secondaryValue: string,
-): number {
-    const a = parseFloat(primaryValue)
-    const b = parseFloat(secondaryValue)
-    if (Number.isNaN(a) || Number.isNaN(b)) return 200 // Unparseable values → flag for review
-    if (a === 0 && b === 0) return 0
-    const max = Math.max(a, b)
-    const min = Math.min(a, b)
-    return ((max - min) / max) * 100
-}
-
-/** Merge two analysis results based on divergence level. */
-function mergeResults(
-    primary: InventoryAnalysisResult,
-    secondary: InventoryAnalysisResult,
-    divergencePercent: number,
-): {
-    merged: InventoryAnalysisResult
-    status: 'agreed' | 'review' | 'divergent'
-} {
-    if (divergencePercent <= DIVERGENCE_AGREED_THRESHOLD) {
-        // Agreed: average values, use higher confidence
-        const avgValue = (
-            (parseFloat(primary.estimatedValue) +
-                parseFloat(secondary.estimatedValue)) /
-            2
-        ).toFixed(2)
-        const avgLow = (
-            (parseFloat(primary.valueRangeLow) +
-                parseFloat(secondary.valueRangeLow)) /
-            2
-        ).toFixed(2)
-        const avgHigh = (
-            (parseFloat(primary.valueRangeHigh) +
-                parseFloat(secondary.valueRangeHigh)) /
-            2
-        ).toFixed(2)
-
-        const primaryScore = primary.confidenceScore ?? 0
-        const secondaryScore = secondary.confidenceScore ?? 0
-        const base = primaryScore >= secondaryScore ? primary : secondary
-
-        return {
-            merged: {
-                ...base,
-                estimatedValue: avgValue,
-                valueRangeLow: avgLow,
-                valueRangeHigh: avgHigh,
-            },
-            status: 'agreed',
-        }
-    }
-
-    // Review or divergent: use higher-confidence model's values
-    const primaryScore = primary.confidenceScore ?? 0
-    const secondaryScore = secondary.confidenceScore ?? 0
-    const selected = primaryScore >= secondaryScore ? primary : secondary
-
-    const status: 'review' | 'divergent' =
-        divergencePercent <= DIVERGENCE_REVIEW_THRESHOLD
-            ? 'review'
-            : 'divergent'
-
-    return { merged: selected, status }
-}
-
-/** Analyzes inventory images via two Claude models for consensus valuation. */
+/** Analyze inventory images via Claude Opus 4.7. */
 export async function POST(
     request: NextRequest,
 ): Promise<NextResponse<AnalyzeResponse>> {
@@ -202,11 +121,6 @@ export async function POST(
 
         const { images, entityId } = validationResult.data
 
-        // Compress images upfront for secondary model (primary compresses internally)
-        const compressedImages: CompressedImage[] = await Promise.all(
-            images.map((img) => compressImage(img.base64, img.mimeType)),
-        )
-
         // Fetch recent corrections for feedback loop. This table is optional
         // context — if it's missing (migration not applied) or the query fails
         // for any reason, fall back to no feedback rather than 500ing the whole
@@ -260,27 +174,10 @@ export async function POST(
 
         const feedbackContext = buildFeedbackContext(recentCorrections)
 
-        // Run both models in parallel
-        const [primaryResult, secondaryResult] = await Promise.allSettled([
-            analyzeWithMarketResearch(images, feedbackContext),
-            analyzeWithMarketResearchSecondary(
-                images,
-                compressedImages,
-                feedbackContext,
-            ),
-        ])
+        const { analysis, compressedImages: primaryCompressed } =
+            await analyzeWithMarketResearch(images, feedbackContext)
 
-        // Primary must succeed
-        if (primaryResult.status === 'rejected') {
-            throw primaryResult.reason
-        }
-
-        const {
-            analysis: primaryAnalysis,
-            compressedImages: primaryCompressed,
-        } = primaryResult.value
-
-        // Upload photos using primary's compressed images (non-fatal)
+        // Upload photos using the compressed images (non-fatal)
         let photoUrls: string[] = []
         try {
             photoUrls = await uploadInventoryImages(primaryCompressed)
@@ -288,62 +185,23 @@ export async function POST(
             // Non-fatal: analysis is still valuable without stored photos
         }
 
-        // If secondary failed, return primary only with validation warnings
-        if (secondaryResult.status === 'rejected') {
-            logger.api.warn('Secondary analysis failed, using primary only', {
-                error:
-                    secondaryResult.reason instanceof Error
-                        ? secondaryResult.reason.message
-                        : 'Unknown error',
-            })
+        const { warnings: validationWarnings } = validateAnalysis(analysis)
 
-            const { warnings } = validateAnalysis(primaryAnalysis)
-
-            return NextResponse.json({
-                success: true,
-                data: primaryAnalysis,
-                photoUrls,
-                validationWarnings: warnings,
-            })
-        }
-
-        // Both succeeded — calculate divergence and merge
-        const secondaryAnalysis = secondaryResult.value
-        const divergencePercent = calculateDivergence(
-            primaryAnalysis.estimatedValue,
-            secondaryAnalysis.estimatedValue,
-        )
-
-        const { merged, status } = mergeResults(
-            primaryAnalysis,
-            secondaryAnalysis,
-            divergencePercent,
-        )
-
-        const { warnings } = validateAnalysis(merged)
-
-        // Add consensus-specific warnings
-        if (status === 'review') {
-            warnings.push(
-                `Models diverged ${divergencePercent.toFixed(0)}% — flagged for admin review`,
-            )
-        } else if (status === 'divergent') {
-            warnings.push(
-                `Models strongly diverged ${divergencePercent.toFixed(0)}% — recommend professional appraisal`,
-            )
-        }
+        // Deterministic server-side guardrails. The model is instructed to
+        // return reviewStatus = "needs_professional_appraisal" when
+        // estimatedValue > $5,000, but trust-but-verify: a court-filed
+        // inventory (Tex. Est. Code § 309.051) can't rely on a prompt alone.
+        // Same logic for out-of-range values or rationales missing comparables
+        // — downgrade the status the model returned rather than silently
+        // shipping a number we don't have evidence for.
+        const { analysis: gated, overrideReasons } =
+            applyReviewStatusOverrides(analysis)
 
         return NextResponse.json({
             success: true,
-            data: merged,
+            data: gated,
             photoUrls,
-            consensus: {
-                status,
-                primary: primaryAnalysis,
-                secondary: secondaryAnalysis,
-                divergencePercent,
-            },
-            validationWarnings: warnings,
+            validationWarnings: [...validationWarnings, ...overrideReasons],
         })
     } catch (error) {
         // Anthropic's error text contains "credit balance" / "Plans &

@@ -28,7 +28,13 @@ const formSchema = z.object({
     photoPath3: z.string().optional(),
     photoPath4: z.string().optional(),
     photoPath5: z.string().optional(),
-    aiConfidence: z.string().optional(),
+    aiReviewStatus: z
+        .enum([
+            'inventory_ready',
+            'needs_admin_review',
+            'needs_professional_appraisal',
+        ])
+        .optional(),
     aiSuggested: z.coerce.boolean().optional(),
     aiBrand: z.string().optional(),
     aiModel: z.string().optional(),
@@ -70,7 +76,7 @@ export async function submitInventoryItem(
         photoPath3: formData.get('photoPath3') || undefined,
         photoPath4: formData.get('photoPath4') || undefined,
         photoPath5: formData.get('photoPath5') || undefined,
-        aiConfidence: formData.get('aiConfidence') || undefined,
+        aiReviewStatus: formData.get('aiReviewStatus') || undefined,
         aiSuggested: formData.get('aiSuggested') === 'true',
         aiBrand: formData.get('aiBrand') || undefined,
         aiModel: formData.get('aiModel') || undefined,
@@ -112,7 +118,7 @@ export async function submitInventoryItem(
                 photoPath3: result.data.photoPath3 || null,
                 photoPath4: result.data.photoPath4 || null,
                 photoPath5: result.data.photoPath5 || null,
-                aiConfidence: result.data.aiConfidence || null,
+                aiConfidence: result.data.aiReviewStatus || null,
                 aiSuggested: result.data.aiSuggested || false,
                 aiBrand: result.data.aiBrand || null,
                 aiModel: result.data.aiModel || null,

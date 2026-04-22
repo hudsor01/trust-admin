@@ -47,6 +47,11 @@ const CONDITIONS = [
     { value: 'poor', label: 'Poor' },
 ] as const
 
+type ReviewStatus =
+    | 'inventory_ready'
+    | 'needs_admin_review'
+    | 'needs_professional_appraisal'
+
 type AnalysisResult = {
     name: string
     category: string
@@ -62,16 +67,23 @@ type AnalysisResult = {
     conditionNotes: string
     description: string
     valuationRationale: string
-    confidence: 'high' | 'medium' | 'low'
-    confidenceNotes: string
-    confidenceScore: number
+    reviewStatus: ReviewStatus
+    reviewNotes: string
 }
 
-type ConsensusInfo = {
-    status: 'agreed' | 'review' | 'divergent'
-    primary: AnalysisResult
-    secondary: AnalysisResult
-    divergencePercent: number
+const REVIEW_STATUS_LABEL: Record<ReviewStatus, string> = {
+    inventory_ready: 'Inventory ready',
+    needs_admin_review: 'Needs admin review',
+    needs_professional_appraisal: 'Professional appraisal required',
+}
+
+const REVIEW_STATUS_VARIANT: Record<
+    ReviewStatus,
+    'default' | 'secondary' | 'destructive'
+> = {
+    inventory_ready: 'default',
+    needs_admin_review: 'secondary',
+    needs_professional_appraisal: 'destructive',
 }
 
 /** Client-side resize (max 2576px = Opus 4.7 vision ceiling) + JPEG compression to stay under Vercel's 4.5MB body limit. */
@@ -94,10 +106,18 @@ async function compressImageClientSide(file: File): Promise<string> {
                 test.width = 2576
                 test.height = 2576
                 const testCtx = test.getContext('2d')
-                testCtx?.fillRect(0, 0, 1, 1)
-                const sample = testCtx?.getImageData(0, 0, 1, 1).data?.[0]
-                // Some iOS versions silently zero out too-large canvases.
-                if (sample === undefined || sample === 0) {
+                if (testCtx) {
+                    // Use a non-default fillStyle so we can distinguish
+                    // "healthy canvas drew our color" from "canvas silently
+                    // zeroed" (the default fillStyle is black r=0, which
+                    // would make sample===0 indistinguishable from failure).
+                    testCtx.fillStyle = '#ff0000'
+                    testCtx.fillRect(0, 0, 1, 1)
+                    const sample = testCtx.getImageData(0, 0, 1, 1).data?.[0]
+                    if (sample !== 255) {
+                        maxDim = 2048
+                    }
+                } else {
                     maxDim = 2048
                 }
             }
@@ -151,7 +171,6 @@ export function InventoryForm() {
     const [analyzing, setAnalyzing] = useState(false)
     const [analysis, setAnalysis] = useState<AnalysisResult | null>(null)
     const [analysisError, setAnalysisError] = useState<string | null>(null)
-    const [consensus, setConsensus] = useState<ConsensusInfo | null>(null)
     const [validationWarnings, setValidationWarnings] = useState<string[]>([])
 
     // AI analysis pre-fills these; user can override before submit
@@ -181,7 +200,6 @@ export function InventoryForm() {
             })
             setAnalysis(null)
             setAnalysisError(null)
-            setConsensus(null)
             setValidationWarnings([])
         },
         [photos.length],
@@ -200,7 +218,6 @@ export function InventoryForm() {
             setPhotoUrls([])
             setAnalysis(null)
             setAnalysisError(null)
-            setConsensus(null)
             setValidationWarnings([])
         },
         [previewUrls],
@@ -248,9 +265,6 @@ export function InventoryForm() {
                 setAnalysis(data.data)
                 if (data.photoUrls && data.photoUrls.length > 0) {
                     setPhotoUrls(data.photoUrls)
-                }
-                if (data.consensus) {
-                    setConsensus(data.consensus)
                 }
                 if (data.validationWarnings) {
                     setValidationWarnings(data.validationWarnings)
@@ -414,7 +428,7 @@ export function InventoryForm() {
                             {analyzing ? (
                                 <>
                                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                    Analyzing with two AI models (2-4 min)...
+                                    Researching with Opus 4.7 (2-5 min)...
                                 </>
                             ) : (
                                 <>
@@ -443,36 +457,13 @@ export function InventoryForm() {
                                 <Sparkles className="h-5 w-5 text-primary" />
                                 AI Analysis
                             </span>
-                            <div className="flex items-center gap-2">
-                                <Badge
-                                    variant={
-                                        analysis.confidence === 'high'
-                                            ? 'default'
-                                            : analysis.confidence === 'medium'
-                                              ? 'secondary'
-                                              : 'outline'
-                                    }
-                                >
-                                    {analysis.confidence} confidence
-                                </Badge>
-                                {consensus && (
-                                    <Badge
-                                        variant={
-                                            consensus.status === 'agreed'
-                                                ? 'default'
-                                                : consensus.status === 'review'
-                                                  ? 'secondary'
-                                                  : 'destructive'
-                                        }
-                                    >
-                                        {consensus.status === 'agreed'
-                                            ? 'Models Agree'
-                                            : consensus.status === 'review'
-                                              ? `Models Differ ${Math.round(consensus.divergencePercent)}%`
-                                              : `Models Diverge ${Math.round(consensus.divergencePercent)}%`}
-                                    </Badge>
-                                )}
-                            </div>
+                            <Badge
+                                variant={
+                                    REVIEW_STATUS_VARIANT[analysis.reviewStatus]
+                                }
+                            >
+                                {REVIEW_STATUS_LABEL[analysis.reviewStatus]}
+                            </Badge>
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
@@ -554,39 +545,6 @@ export function InventoryForm() {
                             </p>
                         </div>
 
-                        {consensus && consensus.status !== 'agreed' && (
-                            <div className="grid grid-cols-2 gap-3">
-                                <div className="rounded-lg border p-3">
-                                    <p className="text-xs font-medium text-muted-foreground mb-1">
-                                        Model A (Opus)
-                                    </p>
-                                    <p className="text-lg font-bold">
-                                        $
-                                        {Number(
-                                            consensus.primary.estimatedValue,
-                                        ).toLocaleString()}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground mt-1 line-clamp-3">
-                                        {consensus.primary.valuationRationale}
-                                    </p>
-                                </div>
-                                <div className="rounded-lg border p-3">
-                                    <p className="text-xs font-medium text-muted-foreground mb-1">
-                                        Model B (Sonnet)
-                                    </p>
-                                    <p className="text-lg font-bold">
-                                        $
-                                        {Number(
-                                            consensus.secondary.estimatedValue,
-                                        ).toLocaleString()}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground mt-1 line-clamp-3">
-                                        {consensus.secondary.valuationRationale}
-                                    </p>
-                                </div>
-                            </div>
-                        )}
-
                         {validationWarnings.length > 0 && (
                             <Alert variant="destructive">
                                 <AlertCircle className="h-4 w-4" />
@@ -623,11 +581,21 @@ export function InventoryForm() {
                             </p>
                         </div>
 
-                        {analysis.confidence !== 'high' && (
-                            <Alert>
+                        {analysis.reviewStatus !== 'inventory_ready' && (
+                            <Alert
+                                variant={
+                                    analysis.reviewStatus ===
+                                    'needs_professional_appraisal'
+                                        ? 'destructive'
+                                        : 'default'
+                                }
+                            >
                                 <AlertCircle className="h-4 w-4" />
+                                <AlertTitle>
+                                    {REVIEW_STATUS_LABEL[analysis.reviewStatus]}
+                                </AlertTitle>
                                 <AlertDescription>
-                                    {analysis.confidenceNotes}
+                                    {analysis.reviewNotes}
                                 </AlertDescription>
                             </Alert>
                         )}
@@ -802,8 +770,8 @@ export function InventoryForm() {
                         <>
                             <input
                                 type="hidden"
-                                name="aiConfidence"
-                                value={analysis.confidence}
+                                name="aiReviewStatus"
+                                value={analysis.reviewStatus}
                             />
                             <input
                                 type="hidden"
