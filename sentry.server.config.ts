@@ -2,9 +2,14 @@
 
 import * as Sentry from '@sentry/nextjs'
 
+// Prefer server-only SENTRY_DSN, but fall back to the public DSN so
+// deploys that only set NEXT_PUBLIC_SENTRY_DSN in Vercel still capture
+// server-side exceptions. Mirrors sentry.edge.config.ts.
+const dsn = process.env.SENTRY_DSN ?? process.env.NEXT_PUBLIC_SENTRY_DSN
+
 Sentry.init({
-    dsn: process.env.SENTRY_DSN,
-    enabled: !!process.env.SENTRY_DSN,
+    dsn,
+    enabled: !!dsn,
 
     // Low-traffic private app — capture all traces
     tracesSampleRate: 1.0,
