@@ -237,12 +237,27 @@ export async function POST(
                 .orderBy(desc(valuationCorrection.createdAt))
                 .limit(10)
         } catch (err) {
+            // Most likely cause: the migration for this table hasn't been
+            // applied in prod yet. Also could be RLS rejection, connection
+            // drop, or DB timeout. All of those should surface once so we
+            // can notice drift — Sentry.captureMessage at warning level
+            // avoids polluting error-rate dashboards but stays observable.
             logger.api.warn(
-                'valuation_correction query failed — continuing without feedback',
+                'valuation_correction query failed — continuing without feedback (likely missing migration or RLS)',
                 {
                     error: err instanceof Error ? err.message : 'Unknown error',
                 },
             )
+            Sentry.captureMessage('valuation_correction query failed', {
+                level: 'warning',
+                tags: {
+                    route: 'api/inventory/analyze',
+                    subsystem: 'feedback-query',
+                },
+                extra: {
+                    error: err instanceof Error ? err.message : 'Unknown error',
+                },
+            })
         }
 
         const feedbackContext = buildFeedbackContext(recentCorrections)
