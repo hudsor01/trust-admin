@@ -3,33 +3,6 @@ import sharp from 'sharp'
 
 /** Integration tests for POST /api/inventory/analyze — image compression, Claude analysis, and Uploadthing upload. */
 
-const mockGenerateObject = mock(() =>
-    Promise.resolve({
-        object: {
-            name: 'Vintage Lamp',
-            category: 'Furniture',
-            brand: 'Tiffany Style',
-            model: null,
-            materials: ['glass', 'bronze'],
-            era: '1990s',
-            estimatedValue: '250',
-            valueRangeLow: '150',
-            valueRangeHigh: '350',
-            condition: 'good',
-            conditionNotes: 'Minor patina on base',
-            description: 'Stained glass table lamp in Tiffany style',
-            valuationRationale: 'Based on similar decorative lamps',
-            confidence: 'medium',
-            confidenceNotes: 'Style identified but not authentic Tiffany',
-            confidenceScore: 75,
-        },
-    }),
-)
-
-mock.module('ai', () => ({
-    generateObject: mockGenerateObject,
-}))
-
 const mockUploadFiles = mock(() =>
     Promise.resolve([
         { data: { ufsUrl: 'https://utfs.io/f/lamp-photo-1.jpg' }, error: null },
@@ -168,7 +141,6 @@ function createRequest(body: unknown): Request {
 
 describe('POST /api/inventory/analyze', () => {
     beforeEach(() => {
-        mockGenerateObject.mockClear()
         mockUploadFiles.mockClear()
         mockAnalyzeWithMarketResearch.mockClear()
         mockAnalyzeSecondary.mockClear()

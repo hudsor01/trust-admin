@@ -674,6 +674,61 @@ describe('agentic loop', () => {
         expect(result.analysis.estimatedValue).toBe('2500.00')
     })
 
+    test('truncated record_valuation on max_tokens triggers continuation, not Zod error', async () => {
+        // Simulates Claude starting the tool call but hitting the token cap
+        // mid-JSON. The block has name=record_valuation but incomplete input.
+        // The loop must check stop_reason: max_tokens BEFORE parsing, else
+        // Zod throws a confusing error instead of nudging.
+        mockMessagesCreate
+            .mockResolvedValueOnce({
+                id: 'msg_truncated',
+                type: 'message' as const,
+                role: 'assistant' as const,
+                content: [
+                    {
+                        type: 'tool_use' as const,
+                        id: 'toolu_partial',
+                        name: 'record_valuation',
+                        input: { name: 'Incomplete' }, // missing 15 required fields
+                    },
+                ],
+                model: 'claude-opus-4-7',
+                stop_reason: 'max_tokens' as const,
+                usage: { input_tokens: 100, output_tokens: 64000 },
+            })
+            .mockResolvedValueOnce(makeRecordValuationResponse())
+
+        const image = await createTestImage()
+        const result = await analyzeWithMarketResearch([image])
+
+        expect(mockMessagesCreate).toHaveBeenCalledTimes(2)
+        // Final result comes from the SECOND (complete) response.
+        expect(result.analysis.name).toBe(
+            'Henredon Aston Court Mahogany Dining Table',
+        )
+    })
+
+    test('stop_reason:refusal throws immediately (no retry loop)', async () => {
+        mockMessagesCreate.mockResolvedValueOnce({
+            id: 'msg_refused',
+            type: 'message' as const,
+            role: 'assistant' as const,
+            content: [
+                { type: 'text' as const, text: "I can't help with that." },
+            ],
+            model: 'claude-opus-4-7',
+            stop_reason: 'refusal' as const,
+            usage: { input_tokens: 100, output_tokens: 20 },
+        })
+
+        const image = await createTestImage()
+        await expect(analyzeWithMarketResearch([image])).rejects.toThrow(
+            /model refused/i,
+        )
+        // Refusal is terminal — no resume attempt.
+        expect(mockMessagesCreate).toHaveBeenCalledTimes(1)
+    })
+
     test('hits MAX_TURNS and throws rather than returning a partial result', async () => {
         // 16 pause_turn responses (initial + 15 loop iterations) — never records.
         for (let i = 0; i < 16; i++) {

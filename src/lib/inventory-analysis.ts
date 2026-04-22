@@ -53,6 +53,9 @@ export async function compressImage(
     const newWidth = Math.round(width * scaleFactor)
     const newHeight = Math.round(height * scaleFactor)
 
+    // Byte-driven scaleFactor already keeps images well under 2576 in
+    // practice; this floor is defense-in-depth for unusual inputs (e.g.
+    // very low-entropy images where the JPEG stays huge even at 0% quality).
     const finalWidth = Math.min(newWidth, MAX_IMAGE_DIMENSION)
     const finalHeight = Math.min(newHeight, MAX_IMAGE_DIMENSION)
 
@@ -390,8 +393,14 @@ export function buildFeedbackContext(
 /** Maximum agentic turns. Handles pause_turn (server-side tool loop) + max_tokens continuations. */
 const MAX_TURNS = 15
 
-/** Opus 4.7 needs headroom for adaptive thinking + web_search results + tool call. */
-const MAX_TOKENS = 64000
+/**
+ * Per-model output cap. Opus 4.7 allows up to 128k; Sonnet 4.6 caps at 64k
+ * exactly, so we leave a 4k safety margin under the Sonnet ceiling to avoid
+ * off-by-one rejection at the boundary. Both values comfortably fit the
+ * "starting at 64k tokens" docs guidance for xhigh/high effort.
+ */
+const MAX_TOKENS_OPUS = 64000
+const MAX_TOKENS_SONNET = 60000
 
 function createClient(): Anthropic {
     if (!env.ANTHROPIC_API_KEY) {
@@ -569,20 +578,38 @@ async function runAgenticLoop(
         logPrefix = 'Agentic',
     } = options
 
+    // Sonnet 4.6's output ceiling is 64k exactly; Opus 4.7's is 128k. Pick
+    // the cap by model prefix so the same loop can serve both without
+    // tripping Sonnet at the boundary.
+    const maxTokens = model.startsWith('claude-opus')
+        ? MAX_TOKENS_OPUS
+        : MAX_TOKENS_SONNET
+
     // Opus 4.7 breaking changes: adaptive thinking only (budget_tokens
     // returns 400); no temperature/top_p/top_k (also 400). Effort replaces
     // the fixed-budget thinking control.
     const createParams = {
         model,
-        max_tokens: MAX_TOKENS,
+        max_tokens: maxTokens,
         thinking: { type: 'adaptive' as const },
         output_config: { effort },
         system: systemPrompt,
         tools: [
             // web_search_20260209 has dynamic filtering — docs say this is
             // especially effective for "literature review and citation
-            // verification" and "response grounding and verification" —
-            // which is exactly appraisal. Requires code_execution enabled.
+            // verification" and "response grounding and verification",
+            // i.e. appraisal. Dynamic filtering requires code_execution
+            // to be enabled on the workspace; if it is not, the API 400s
+            // on requests that include code_execution_20260120. To verify
+            // before shipping:
+            //
+            //   curl https://api.anthropic.com/v1/messages \
+            //     -H "x-api-key: $ANTHROPIC_API_KEY" \
+            //     -H "anthropic-version: 2023-06-01" \
+            //     -d '{"model":"claude-opus-4-7","max_tokens":512,
+            //          "messages":[{"role":"user","content":"ping"}],
+            //          "tools":[{"type":"code_execution_20260120",
+            //                    "name":"code_execution"}]}'
             {
                 type: 'web_search_20260209' as const,
                 name: 'web_search' as const,
@@ -605,6 +632,41 @@ async function runAgenticLoop(
     let turns = 0
 
     while (turns < MAX_TURNS) {
+        // Handle max_tokens FIRST. A truncated record_valuation tool_use block
+        // looks structurally valid but has partial input — running it through
+        // InventoryAnalysisSchema.parse would throw a confusing Zod error
+        // instead of triggering the continuation nudge. Always check the
+        // truncation signal before trusting content.
+        if (response.stop_reason === 'max_tokens') {
+            turns++
+            log.info(
+                `${logPrefix} turn ${turns}, stop_reason: max_tokens (nudging continuation)`,
+            )
+            currentMessages = [
+                ...currentMessages,
+                { role: 'assistant', content: response.content },
+                {
+                    role: 'user',
+                    content:
+                        'Continue your analysis. Call record_valuation when ready.',
+                },
+            ]
+            response = await client.messages.create({
+                ...createParams,
+                messages: currentMessages,
+            })
+            continue
+        }
+
+        // Refusal: the model declined to answer (streaming classifier
+        // intervened or policy block). Resuming would likely re-refuse
+        // indefinitely — throw immediately with a clear message.
+        if (response.stop_reason === 'refusal') {
+            throw new Error(
+                `${logPrefix}: model refused to produce a valuation (stop_reason: refusal)`,
+            )
+        }
+
         // Success: Claude called record_valuation — extract and return.
         const recordCall = response.content.find(
             (b): b is Anthropic.ToolUseBlock =>
@@ -613,7 +675,7 @@ async function runAgenticLoop(
         if (recordCall) {
             const validated = InventoryAnalysisSchema.parse(recordCall.input)
             log.info(`${logPrefix} completed`, {
-                turns,
+                continuationTurns: turns,
                 name: validated.name,
                 fmv: validated.estimatedValue,
                 confidence: validated.confidence,
@@ -637,27 +699,13 @@ async function runAgenticLoop(
             `${logPrefix} turn ${turns}, stop_reason: ${response.stop_reason}`,
         )
 
-        // Append the model's response to the conversation.
+        // pause_turn (server-side tool loop limit) and any other non-terminal
+        // stop_reason re-send with the assistant's content appended; the API
+        // resumes automatically.
         currentMessages = [
             ...currentMessages,
             { role: 'assistant', content: response.content },
         ]
-
-        // Output truncated mid-thought — nudge to continue and record.
-        if (response.stop_reason === 'max_tokens') {
-            currentMessages = [
-                ...currentMessages,
-                {
-                    role: 'user',
-                    content:
-                        'Continue your analysis. Call record_valuation when ready.',
-                },
-            ]
-        }
-
-        // pause_turn (server-side tool loop limit) re-sends with no extra
-        // user message; the API resumes automatically. Any other stop_reason
-        // falls through to the same resume behavior.
 
         response = await client.messages.create({
             ...createParams,

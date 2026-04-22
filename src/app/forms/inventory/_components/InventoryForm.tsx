@@ -83,7 +83,24 @@ async function compressImageClientSide(file: File): Promise<string> {
             // Opus 4.7 accepts up to 2576px / 3.75MP on the long edge.
             // Previous 2048 cap threw away detail (signatures, hallmarks)
             // the model can now use.
-            const maxDim = 2576
+            //
+            // Mobile Safari on iPhones older than iPhone 11 / iOS < 14 caps
+            // canvas at ~5M pixels; 2576x2576 = 6.63M. If we can detect
+            // that ceiling via a test canvas, step down to keep the output
+            // usable — better a smaller good image than a blank white one.
+            let maxDim = 2576
+            if (img.width * img.height > 5_000_000) {
+                const test = document.createElement('canvas')
+                test.width = 2576
+                test.height = 2576
+                const testCtx = test.getContext('2d')
+                testCtx?.fillRect(0, 0, 1, 1)
+                const sample = testCtx?.getImageData(0, 0, 1, 1).data?.[0]
+                // Some iOS versions silently zero out too-large canvases.
+                if (sample === undefined || sample === 0) {
+                    maxDim = 2048
+                }
+            }
             let { width, height } = img
 
             if (width > maxDim || height > maxDim) {
