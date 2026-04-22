@@ -1,0 +1,12 @@
+-- Adds pending_inventory_item.aiServerOverrideReasons to persist deterministic
+-- guardrail failures emitted by applyReviewStatusOverrides (estimatedValue over
+-- the $3,000 Treas. Reg. § 20.2031-6(b) threshold, value outside range, fewer
+-- than 2 independent source URLs). Newline-joined text so the admin-queue UI
+-- can render each reason as a list item without a JSONB round-trip.
+--
+-- The drizzle-kit auto-generated migration proposed re-creating every existing
+-- table and policy because the live DB was created before the drizzle snapshot
+-- was initialized. The surrounding DDL (CREATE TABLE / CREATE POLICY) in that
+-- auto-generation is already present in production and would error or worse.
+-- Hand-trimmed to only the new column.
+ALTER TABLE "pending_inventory_item" ADD COLUMN IF NOT EXISTS "aiServerOverrideReasons" text;

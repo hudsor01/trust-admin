@@ -376,6 +376,22 @@ export function InventoryQueueClient() {
 
                     {reviewingItem && (
                         <div className="space-y-4">
+                            {reviewingItem.aiServerOverrideReasons && (
+                                <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-4">
+                                    <Label className="text-sm font-semibold text-destructive">
+                                        Server-enforced guardrails fired
+                                    </Label>
+                                    <ul className="mt-2 space-y-1 text-sm list-disc pl-4">
+                                        {reviewingItem.aiServerOverrideReasons
+                                            .split('\n')
+                                            .filter(Boolean)
+                                            .map((reason, i) => (
+                                                <li key={i}>{reason}</li>
+                                            ))}
+                                    </ul>
+                                </div>
+                            )}
+
                             {getPhotoUrls(reviewingItem).length > 0 && (
                                 <div>
                                     <Label className="text-sm text-muted-foreground">
@@ -475,22 +491,6 @@ export function InventoryQueueClient() {
                                     <p className="mt-1 text-sm bg-muted/50 rounded-lg p-3">
                                         {reviewingItem.description}
                                     </p>
-                                </div>
-                            )}
-
-                            {reviewingItem.aiServerOverrideReasons && (
-                                <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-4">
-                                    <Label className="text-sm font-semibold text-destructive">
-                                        Server-enforced guardrails fired
-                                    </Label>
-                                    <ul className="mt-2 space-y-1 text-sm list-disc pl-4">
-                                        {reviewingItem.aiServerOverrideReasons
-                                            .split('\n')
-                                            .filter(Boolean)
-                                            .map((reason, i) => (
-                                                <li key={i}>{reason}</li>
-                                            ))}
-                                    </ul>
                                 </div>
                             )}
 

@@ -172,7 +172,6 @@ export function InventoryForm() {
     const [analysis, setAnalysis] = useState<AnalysisResult | null>(null)
     const [analysisError, setAnalysisError] = useState<string | null>(null)
     const [validationWarnings, setValidationWarnings] = useState<string[]>([])
-    const [overrideReasons, setOverrideReasons] = useState<string[]>([])
     const [photoLimitError, setPhotoLimitError] = useState<string | null>(null)
 
     // AI analysis pre-fills these; user can override before submit
@@ -204,7 +203,6 @@ export function InventoryForm() {
             setAnalysis(null)
             setAnalysisError(null)
             setValidationWarnings([])
-            setOverrideReasons([])
         },
         [photos.length],
     )
@@ -223,7 +221,6 @@ export function InventoryForm() {
             setAnalysis(null)
             setAnalysisError(null)
             setValidationWarnings([])
-            setOverrideReasons([])
         },
         [previewUrls],
     )
@@ -273,9 +270,6 @@ export function InventoryForm() {
                 }
                 if (data.validationWarnings) {
                     setValidationWarnings(data.validationWarnings)
-                }
-                if (Array.isArray(data.overrideReasons)) {
-                    setOverrideReasons(data.overrideReasons)
                 }
                 setFormValues({
                     name: data.data.name || '',
@@ -817,13 +811,6 @@ export function InventoryForm() {
                                 name="aiReviewStatus"
                                 value={analysis.reviewStatus}
                             />
-                            {overrideReasons.length > 0 && (
-                                <input
-                                    type="hidden"
-                                    name="aiServerOverrideReasons"
-                                    value={overrideReasons.join('\n')}
-                                />
-                            )}
                             <input
                                 type="hidden"
                                 name="aiSuggested"

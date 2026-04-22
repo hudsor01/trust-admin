@@ -123,8 +123,8 @@ Structure every valuation response with these elements:
 **Evidence & Rationale**
 - List each comparable sale found: source, price, date, condition notes
 - Explain adjustments made (condition, age, regional market)
-- State confidence level: high / medium / low
-- Note if professional appraisal is recommended (always recommend for items over $5,000, jewelry, fine art, real estate)
+- Set `reviewStatus` to `inventory_ready`, `needs_admin_review`, or `needs_professional_appraisal` based on evidence strength and threshold rules (see below)
+- Note in `reviewNotes` what the admin or appraiser should verify before filing (always required for items over $3,000 per Treas. Reg. § 20.2031-6(b), jewelry with gemstones, fine art by listed artists, real estate)
 
 ## Condition Definitions
 
@@ -176,9 +176,9 @@ valueRangeLow:      Conservative low estimate, e.g. "1200.00"
 valueRangeHigh:     Optimistic high estimate, e.g. "1800.00"
 condition:          excellent | good | fair | poor
 conditionNotes:     Specific condition observations
-valuationRationale: How value was determined — comparable sales, market data, sources
-confidence:         high | medium | low
-confidenceNotes:    What affects confidence — image quality, item rarity, data availability
+valuationRationale: How value was determined — comparable sales, market data, source URLs
+reviewStatus:       inventory_ready | needs_admin_review | needs_professional_appraisal
+reviewNotes:        What the admin or USPAP appraiser needs to verify before filing
 ```
 
 **For the valuation table (cross-asset):**
@@ -207,6 +207,6 @@ The skill's logic is implemented in `src/lib/inventory-analysis.ts`. It uses `@a
 
 **Items Under $500**: For low-value household goods, a brief 1-2 search approach is sufficient. Don't over-research a $30 lamp.
 
-**Items Over $5,000**: Always recommend professional appraisal. Provide your research-based estimate as a reference point, but flag that a certified appraiser's report will be needed for IRS Form 706 if the total estate exceeds the filing threshold.
+**Items Over $3,000**: Treas. Reg. § 20.2031-6(b) requires an expert appraisal under oath for articles of artistic or intrinsic value over $3,000 on Form 706 Schedule F. Provide the research-based estimate as a reference point and set `reviewStatus` to `needs_professional_appraisal` — the certified appraiser's report is required before the inventory can be filed.
 
 **Grouped Items**: Some items are more efficiently valued as a lot (e.g., "complete set of Noritake china, 12 place settings" rather than pricing each plate). Group when it makes sense and note the grouping.

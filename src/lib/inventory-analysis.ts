@@ -364,7 +364,7 @@ Call the \`record_valuation\` tool exactly once when your research is complete. 
 <example>
 <description>Painting that looks generic but is actually by a known artist</description>
 <wrong_approach>Sees a landscape painting. Does not read the signature. Records \`estimatedValue: "75.00"\`, \`reviewStatus: "inventory_ready"\`.</wrong_approach>
-<right_approach>Reads signature in lower right: "R.B. McGrew". Searches "R Brownell McGrew paintings auction results". Finds Heritage Auctions sold similar McGrew oils for $18,000–$45,000 in 2024–2025. Searches Artnet to confirm auction history. Weights the late-2025 sales near DOD. Records \`estimatedValue: "22000.00"\` with cited auction URLs in valuationRationale, \`reviewStatus: "needs_professional_appraisal"\`, \`reviewNotes: "USPAP appraiser required before filing: estimatedValue exceeds $5,000 and the McGrew attribution should be verified against the catalogue raisonné."\`</right_approach>
+<right_approach>Reads signature in lower right: "R.B. McGrew". Searches "R Brownell McGrew paintings auction results". Finds Heritage Auctions sold similar McGrew oils for $18,000–$45,000 in 2024–2025. Searches Artnet to confirm auction history. Weights the late-2025 sales near DOD. Records \`estimatedValue: "22000.00"\` with cited auction URLs in valuationRationale, \`reviewStatus: "needs_professional_appraisal"\`, \`reviewNotes: "USPAP appraiser required before filing: estimatedValue exceeds $3,000 (Treas. Reg. § 20.2031-6(b)), and the McGrew attribution should be verified against the catalogue raisonné."\`</right_approach>
 </example>
 
 <example>

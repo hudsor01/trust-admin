@@ -227,8 +227,9 @@ export async function POST(
 
         // Deterministic server-side guardrails. The model is instructed to
         // return reviewStatus = "needs_professional_appraisal" when
-        // estimatedValue > $5,000, but trust-but-verify: a court-filed
-        // inventory (Tex. Est. Code § 309.051) can't rely on a prompt alone.
+        // estimatedValue > $3,000 (Treas. Reg. § 20.2031-6(b)), but
+        // trust-but-verify: a court-filed inventory (Tex. Est. Code
+        // § 309.051) can't rely on a prompt alone.
         // Same logic for out-of-range values or rationales missing comparables
         // — downgrade the status the model returned rather than silently
         // shipping a number we don't have evidence for.

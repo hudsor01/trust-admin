@@ -1040,7 +1040,7 @@ describe('applyReviewStatusOverrides', () => {
         expect(overrideReasons.some((r) => /outside/.test(r))).toBe(true)
     })
 
-    test('escalates from needs_admin_review up to needs_professional_appraisal on >$5k', () => {
+    test('escalates from needs_admin_review up to needs_professional_appraisal on >$3k', () => {
         const { analysis: out } = applyReviewStatusOverrides(
             analysis({
                 reviewStatus: 'needs_admin_review',

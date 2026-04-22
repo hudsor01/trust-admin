@@ -4,6 +4,10 @@ import { z } from 'zod'
 import { db } from '@/db'
 import { pendingInventoryItem } from '@/db/schema'
 import { hasInventoryAccess } from '@/lib/inventory-access'
+import {
+    applyReviewStatusOverrides,
+    mapToDbCategory,
+} from '@/lib/inventory-analysis'
 import { logger } from '@/lib/logger'
 
 const log = logger.create('Inventory')
@@ -35,7 +39,9 @@ const formSchema = z.object({
             'needs_professional_appraisal',
         ])
         .optional(),
-    aiServerOverrideReasons: z.string().optional(),
+    // Deliberately NOT reading aiServerOverrideReasons from the client. We
+    // re-derive server-side below so a motivated submitter can't strip the
+    // evidence trail out of the hidden input before the admin sees it.
     aiSuggested: z.coerce.boolean().optional(),
     aiBrand: z.string().optional(),
     aiModel: z.string().optional(),
@@ -78,8 +84,6 @@ export async function submitInventoryItem(
         photoPath4: formData.get('photoPath4') || undefined,
         photoPath5: formData.get('photoPath5') || undefined,
         aiReviewStatus: formData.get('aiReviewStatus') || undefined,
-        aiServerOverrideReasons:
-            formData.get('aiServerOverrideReasons') || undefined,
         aiSuggested: formData.get('aiSuggested') === 'true',
         aiBrand: formData.get('aiBrand') || undefined,
         aiModel: formData.get('aiModel') || undefined,
@@ -105,6 +109,42 @@ export async function submitInventoryItem(
         }
     }
 
+    // Re-derive server-side overrides from the submitted evidence so the
+    // persisted row reflects the true guardrail state — not whatever the
+    // client chose to send (or strip). Mirrors the "trust but verify"
+    // pattern applied at /api/inventory/analyze. Only runs when aiSuggested
+    // is true; a manually-entered item has no AI evidence to check.
+    let rederivedReviewStatus = result.data.aiReviewStatus ?? null
+    let rederivedOverrideReasons: string | null = null
+    if (result.data.aiSuggested && result.data.aiReviewStatus) {
+        const { analysis: gated, overrideReasons } = applyReviewStatusOverrides(
+            {
+                name: result.data.name,
+                category: 'other',
+                brand: result.data.aiBrand ?? null,
+                model: result.data.aiModel ?? null,
+                materials: result.data.aiMaterials
+                    ? result.data.aiMaterials.split(',').map((s) => s.trim())
+                    : [],
+                era: result.data.aiEra ?? null,
+                estimatedValue: result.data.estimatedValue ?? '0',
+                valueRangeLow: result.data.valueRangeLow ?? '0',
+                valueRangeHigh: result.data.valueRangeHigh ?? '0',
+                condition: result.data.condition,
+                conditionNotes: result.data.aiConditionNotes ?? '',
+                description: result.data.description ?? '',
+                valuationRationale: result.data.aiValuationRationale ?? '',
+                reviewStatus: result.data.aiReviewStatus,
+                reviewNotes: '',
+                rawCategory: 'other',
+                dbCategory: mapToDbCategory(result.data.category),
+            },
+        )
+        rederivedReviewStatus = gated.reviewStatus
+        rederivedOverrideReasons =
+            overrideReasons.length > 0 ? overrideReasons.join('\n') : null
+    }
+
     try {
         const [item] = await db
             .insert(pendingInventoryItem)
@@ -121,9 +161,8 @@ export async function submitInventoryItem(
                 photoPath3: result.data.photoPath3 || null,
                 photoPath4: result.data.photoPath4 || null,
                 photoPath5: result.data.photoPath5 || null,
-                aiConfidence: result.data.aiReviewStatus || null,
-                aiServerOverrideReasons:
-                    result.data.aiServerOverrideReasons || null,
+                aiConfidence: rederivedReviewStatus,
+                aiServerOverrideReasons: rederivedOverrideReasons,
                 aiSuggested: result.data.aiSuggested || false,
                 aiBrand: result.data.aiBrand || null,
                 aiModel: result.data.aiModel || null,

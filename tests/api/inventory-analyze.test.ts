@@ -232,7 +232,7 @@ describe('POST /api/inventory/analyze', () => {
             expect(data.data.rawCategory).toBe('Furniture')
         })
 
-        test('appends server-side override reasons to validationWarnings', async () => {
+        test('appends server-side override reasons to validationWarnings AND exposes them separately', async () => {
             mockUploadFiles.mockResolvedValueOnce([
                 {
                     data: { ufsUrl: 'https://utfs.io/f/test.jpg' },
@@ -258,7 +258,14 @@ describe('POST /api/inventory/analyze', () => {
 
             expect(response.status).toBe(200)
             expect(data.data.reviewStatus).toBe('needs_professional_appraisal')
+            // Merged into validationWarnings for the form's warning UI…
             expect(data.validationWarnings).toContain(
+                'Server override: estimatedValue $22,000 exceeds $3,000.',
+            )
+            // …AND exposed as a dedicated top-level field so submitInventoryItem
+            // can persist override reasons separately from warnings.
+            expect(Array.isArray(data.overrideReasons)).toBe(true)
+            expect(data.overrideReasons).toContain(
                 'Server override: estimatedValue $22,000 exceeds $3,000.',
             )
         })
