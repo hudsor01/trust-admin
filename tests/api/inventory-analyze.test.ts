@@ -3,33 +3,6 @@ import sharp from 'sharp'
 
 /** Integration tests for POST /api/inventory/analyze — image compression, Claude analysis, and Uploadthing upload. */
 
-const mockGenerateObject = mock(() =>
-    Promise.resolve({
-        object: {
-            name: 'Vintage Lamp',
-            category: 'Furniture',
-            brand: 'Tiffany Style',
-            model: null,
-            materials: ['glass', 'bronze'],
-            era: '1990s',
-            estimatedValue: '250',
-            valueRangeLow: '150',
-            valueRangeHigh: '350',
-            condition: 'good',
-            conditionNotes: 'Minor patina on base',
-            description: 'Stained glass table lamp in Tiffany style',
-            valuationRationale: 'Based on similar decorative lamps',
-            confidence: 'medium',
-            confidenceNotes: 'Style identified but not authentic Tiffany',
-            confidenceScore: 75,
-        },
-    }),
-)
-
-mock.module('ai', () => ({
-    generateObject: mockGenerateObject,
-}))
-
 const mockUploadFiles = mock(() =>
     Promise.resolve([
         { data: { ufsUrl: 'https://utfs.io/f/lamp-photo-1.jpg' }, error: null },
@@ -95,10 +68,10 @@ const mockAnalysisResult = {
     condition: 'good',
     conditionNotes: 'Minor patina on base',
     description: 'Stained glass table lamp in Tiffany style',
-    valuationRationale: 'Based on similar decorative lamps at $200-$300',
-    confidence: 'medium',
-    confidenceNotes: 'Style identified but not authentic Tiffany',
-    confidenceScore: 75,
+    valuationRationale:
+        'LiveAuctioneers realized $220 on 2025-11-20 (https://example.com/a). eBay sold for $275 on 2025-12-05 (https://example.com/b).',
+    reviewStatus: 'inventory_ready',
+    reviewNotes: 'Two realized comps within 60 days of DOD support $250.',
 }
 
 const mockAnalyzeWithMarketResearch = mock(
@@ -111,8 +84,6 @@ const mockAnalyzeWithMarketResearch = mock(
     }),
 )
 
-const mockAnalyzeSecondary = mock(async () => mockAnalysisResult)
-
 const mockValidateAnalysis = mock(() => ({
     valid: true,
     warnings: [],
@@ -120,11 +91,22 @@ const mockValidateAnalysis = mock(() => ({
 
 const mockBuildFeedbackContext = mock(() => '')
 
-mock.module('../../src/lib/inventory-analysis-enhanced', () => ({
+const mockApplyReviewStatusOverrides = mock(
+    (analysis: typeof mockAnalysisResult) => ({
+        analysis,
+        overrideReasons: [] as string[],
+    }),
+)
+
+mock.module('../../src/lib/inventory-analysis', () => ({
     analyzeWithMarketResearch: mockAnalyzeWithMarketResearch,
-    analyzeWithMarketResearchSecondary: mockAnalyzeSecondary,
+    applyReviewStatusOverrides: mockApplyReviewStatusOverrides,
     validateAnalysis: mockValidateAnalysis,
     buildFeedbackContext: mockBuildFeedbackContext,
+    // Pass-through compressImage — route calls it on every image before
+    // handing off to analyze*. Tests don't exercise sharp here.
+    compressImage: (base64: string, mimeType: string) =>
+        Promise.resolve({ base64, mimeType }),
 }))
 
 process.env.ANTHROPIC_API_KEY = 'test-api-key'
@@ -164,12 +146,15 @@ function createRequest(body: unknown): Request {
 
 describe('POST /api/inventory/analyze', () => {
     beforeEach(() => {
-        mockGenerateObject.mockClear()
         mockUploadFiles.mockClear()
         mockAnalyzeWithMarketResearch.mockClear()
-        mockAnalyzeSecondary.mockClear()
         mockValidateAnalysis.mockClear()
         mockBuildFeedbackContext.mockClear()
+        mockApplyReviewStatusOverrides.mockClear()
+        mockApplyReviewStatusOverrides.mockImplementation((analysis) => ({
+            analysis,
+            overrideReasons: [],
+        }))
     })
 
     describe('Successful analysis', () => {
@@ -247,6 +232,44 @@ describe('POST /api/inventory/analyze', () => {
             expect(data.data.rawCategory).toBe('Furniture')
         })
 
+        test('appends server-side override reasons to validationWarnings AND exposes them separately', async () => {
+            mockUploadFiles.mockResolvedValueOnce([
+                {
+                    data: { ufsUrl: 'https://utfs.io/f/test.jpg' },
+                    error: null,
+                },
+            ])
+            mockApplyReviewStatusOverrides.mockImplementationOnce(
+                (analysis) => ({
+                    analysis: {
+                        ...analysis,
+                        reviewStatus: 'needs_professional_appraisal',
+                    },
+                    overrideReasons: [
+                        'Server override: estimatedValue $22,000 exceeds $3,000.',
+                    ],
+                }),
+            )
+
+            const image = await createTestImageBase64()
+            const request = createRequest({ images: [image] })
+            const response = await POST(request as never)
+            const data = await response.json()
+
+            expect(response.status).toBe(200)
+            expect(data.data.reviewStatus).toBe('needs_professional_appraisal')
+            // Merged into validationWarnings for the form's warning UI…
+            expect(data.validationWarnings).toContain(
+                'Server override: estimatedValue $22,000 exceeds $3,000.',
+            )
+            // …AND exposed as a dedicated top-level field so submitInventoryItem
+            // can persist override reasons separately from warnings.
+            expect(Array.isArray(data.overrideReasons)).toBe(true)
+            expect(data.overrideReasons).toContain(
+                'Server override: estimatedValue $22,000 exceeds $3,000.',
+            )
+        })
+
         test('continues with analysis even if upload fails', async () => {
             mockUploadFiles.mockRejectedValueOnce(new Error('Upload failed'))
 
@@ -264,6 +287,37 @@ describe('POST /api/inventory/analyze', () => {
     })
 
     describe('Request validation', () => {
+        test('rejects request without application/json Content-Type', async () => {
+            const request = new Request(
+                'http://localhost:3000/api/inventory/analyze',
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: '{"images":[]}',
+                },
+            )
+            const response = await POST(request as never)
+            const data = await response.json()
+            expect(response.status).toBe(415)
+            expect(data.success).toBe(false)
+            expect(data.error).toMatch(/content-type/i)
+        })
+
+        test('rejects request with malformed JSON body', async () => {
+            const request = new Request(
+                'http://localhost:3000/api/inventory/analyze',
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: '{not valid json',
+                },
+            )
+            const response = await POST(request as never)
+            const data = await response.json()
+            expect(response.status).toBe(400)
+            expect(data.error).toMatch(/invalid json/i)
+        })
+
         test('rejects request with no images', async () => {
             const request = createRequest({ images: [] })
 

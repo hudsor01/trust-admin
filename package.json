@@ -52,7 +52,6 @@
     "typescript": "^6.0.3"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "3.0.71",
     "@anthropic-ai/sdk": "0.90.0",
     "@hookform/resolvers": "5.2.2",
     "@neondatabase/auth": "0.2.0-beta.1",
@@ -85,7 +84,6 @@
     "@trpc/react-query": "11.16.0",
     "@trpc/server": "11.16.0",
     "@uploadthing/react": "7.3.3",
-    "ai": "6.0.168",
     "bcryptjs": "3.0.3",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",

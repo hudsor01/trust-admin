@@ -49,6 +49,29 @@ const STATUS_VARIANTS: Record<
     REJECTED: 'destructive',
 }
 
+// aiConfidence column now stores reviewStatus strings (see db/schema.ts).
+// Legacy rows may still contain 'high' | 'medium' | 'low'; both are handled.
+const REVIEW_STATUS_LABELS: Record<string, string> = {
+    inventory_ready: 'Inventory ready',
+    needs_admin_review: 'Needs review',
+    needs_professional_appraisal: 'Appraisal required',
+    high: 'High confidence',
+    medium: 'Medium confidence',
+    low: 'Low confidence',
+}
+
+const REVIEW_STATUS_VARIANTS: Record<
+    string,
+    'default' | 'secondary' | 'destructive' | 'outline'
+> = {
+    inventory_ready: 'default',
+    needs_admin_review: 'secondary',
+    needs_professional_appraisal: 'destructive',
+    high: 'default',
+    medium: 'secondary',
+    low: 'outline',
+}
+
 export function InventoryQueueClient() {
     const utils = trpc.useUtils()
     const { data: entities } = trpc.entity.list.useQuery()
@@ -353,6 +376,22 @@ export function InventoryQueueClient() {
 
                     {reviewingItem && (
                         <div className="space-y-4">
+                            {reviewingItem.aiServerOverrideReasons && (
+                                <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-4">
+                                    <Label className="text-sm font-semibold text-destructive">
+                                        Server-enforced guardrails fired
+                                    </Label>
+                                    <ul className="mt-2 space-y-1 text-sm list-disc pl-4">
+                                        {reviewingItem.aiServerOverrideReasons
+                                            .split('\n')
+                                            .filter(Boolean)
+                                            .map((reason, i) => (
+                                                <li key={i}>{reason}</li>
+                                            ))}
+                                    </ul>
+                                </div>
+                            )}
+
                             {getPhotoUrls(reviewingItem).length > 0 && (
                                 <div>
                                     <Label className="text-sm text-muted-foreground">
@@ -415,15 +454,29 @@ export function InventoryQueueClient() {
                                     </div>
                                     <div>
                                         <span className="text-sm text-muted-foreground">
-                                            AI Suggested
+                                            AI Review Status
                                         </span>
                                         <p className="font-medium">
-                                            {reviewingItem.aiSuggested ? (
-                                                <Badge variant="outline">
-                                                    {reviewingItem.aiConfidence}
+                                            {reviewingItem.aiSuggested &&
+                                            reviewingItem.aiConfidence ? (
+                                                <Badge
+                                                    variant={
+                                                        REVIEW_STATUS_VARIANTS[
+                                                            reviewingItem
+                                                                .aiConfidence
+                                                        ] ?? 'outline'
+                                                    }
+                                                >
+                                                    {REVIEW_STATUS_LABELS[
+                                                        reviewingItem
+                                                            .aiConfidence
+                                                    ] ??
+                                                        reviewingItem.aiConfidence}
                                                 </Badge>
                                             ) : (
-                                                'No'
+                                                <span className="text-muted-foreground">
+                                                    Not AI-suggested
+                                                </span>
                                             )}
                                         </p>
                                     </div>
@@ -438,6 +491,110 @@ export function InventoryQueueClient() {
                                     <p className="mt-1 text-sm bg-muted/50 rounded-lg p-3">
                                         {reviewingItem.description}
                                     </p>
+                                </div>
+                            )}
+
+                            {reviewingItem.aiSuggested && (
+                                <div className="rounded-lg border p-4 space-y-3">
+                                    <Label className="text-sm font-semibold">
+                                        AI Evidence
+                                    </Label>
+
+                                    {(reviewingItem.valueRangeLow ||
+                                        reviewingItem.valueRangeHigh) && (
+                                        <div>
+                                            <span className="text-xs text-muted-foreground">
+                                                Value range
+                                            </span>
+                                            <p className="text-sm font-medium">
+                                                {reviewingItem.valueRangeLow
+                                                    ? formatCurrency(
+                                                          reviewingItem.valueRangeLow,
+                                                      )
+                                                    : '—'}{' '}
+                                                –{' '}
+                                                {reviewingItem.valueRangeHigh
+                                                    ? formatCurrency(
+                                                          reviewingItem.valueRangeHigh,
+                                                      )
+                                                    : '—'}
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    {(reviewingItem.aiBrand ||
+                                        reviewingItem.aiModel ||
+                                        reviewingItem.aiEra ||
+                                        reviewingItem.aiMaterials) && (
+                                        <div className="grid grid-cols-2 gap-3">
+                                            {reviewingItem.aiBrand && (
+                                                <div>
+                                                    <span className="text-xs text-muted-foreground">
+                                                        Brand
+                                                    </span>
+                                                    <p className="text-sm font-medium">
+                                                        {reviewingItem.aiBrand}
+                                                    </p>
+                                                </div>
+                                            )}
+                                            {reviewingItem.aiModel && (
+                                                <div>
+                                                    <span className="text-xs text-muted-foreground">
+                                                        Model
+                                                    </span>
+                                                    <p className="text-sm font-medium">
+                                                        {reviewingItem.aiModel}
+                                                    </p>
+                                                </div>
+                                            )}
+                                            {reviewingItem.aiEra && (
+                                                <div>
+                                                    <span className="text-xs text-muted-foreground">
+                                                        Era
+                                                    </span>
+                                                    <p className="text-sm font-medium">
+                                                        {reviewingItem.aiEra}
+                                                    </p>
+                                                </div>
+                                            )}
+                                            {reviewingItem.aiMaterials && (
+                                                <div>
+                                                    <span className="text-xs text-muted-foreground">
+                                                        Materials
+                                                    </span>
+                                                    <p className="text-sm font-medium">
+                                                        {
+                                                            reviewingItem.aiMaterials
+                                                        }
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {reviewingItem.aiValuationRationale && (
+                                        <div>
+                                            <span className="text-xs text-muted-foreground">
+                                                Valuation rationale
+                                            </span>
+                                            <p className="text-sm whitespace-pre-wrap bg-muted/50 rounded p-3">
+                                                {
+                                                    reviewingItem.aiValuationRationale
+                                                }
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    {reviewingItem.aiConditionNotes && (
+                                        <div>
+                                            <span className="text-xs text-muted-foreground">
+                                                Condition notes
+                                            </span>
+                                            <p className="text-sm">
+                                                {reviewingItem.aiConditionNotes}
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
                             )}
 

@@ -1362,8 +1362,13 @@ export const pendingInventoryItem = pgTable(
         photoPath3: t.text(),
         photoPath4: t.text(),
         photoPath5: t.text(),
-        // AI analysis metadata
-        aiConfidence: t.text(), // 'high' | 'medium' | 'low' | null
+        // AI analysis metadata. aiConfidence was repurposed 2026-04-21 to hold
+        // the action-oriented reviewStatus values Opus 4.7 returns
+        // ('inventory_ready' | 'needs_admin_review' |
+        // 'needs_professional_appraisal'). The column name is kept as-is to
+        // avoid migrating historical rows ('high' | 'medium' | 'low'); the
+        // admin UI accepts both shapes.
+        aiConfidence: t.text(),
         aiSuggested: t.boolean().default(false).notNull(),
         aiBrand: t.text(),
         aiModel: t.text(),
@@ -1371,6 +1376,14 @@ export const pendingInventoryItem = pgTable(
         aiMaterials: t.text(),
         aiValuationRationale: t.text(),
         aiConditionNotes: t.text(),
+        // Deterministic server-side guardrail failures from
+        // applyReviewStatusOverrides (estimatedValue over the $3,000 Treas.
+        // Reg. § 20.2031-6(b) threshold, range inconsistency, <2 independent
+        // source URLs, etc). Persisted as newline-joined text rather than an
+        // array column so admin-queue rendering can stay trivially-simple;
+        // the submitter saw the same list at analyze time. Empty / null if
+        // no guardrails fired.
+        aiServerOverrideReasons: t.text(),
         // Review workflow
         status: submissionStatus().default('PENDING').notNull(),
         reviewNotes: t.text(),

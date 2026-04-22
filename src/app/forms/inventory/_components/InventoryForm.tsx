@@ -47,6 +47,11 @@ const CONDITIONS = [
     { value: 'poor', label: 'Poor' },
 ] as const
 
+type ReviewStatus =
+    | 'inventory_ready'
+    | 'needs_admin_review'
+    | 'needs_professional_appraisal'
+
 type AnalysisResult = {
     name: string
     category: string
@@ -62,25 +67,60 @@ type AnalysisResult = {
     conditionNotes: string
     description: string
     valuationRationale: string
-    confidence: 'high' | 'medium' | 'low'
-    confidenceNotes: string
-    confidenceScore: number
+    reviewStatus: ReviewStatus
+    reviewNotes: string
 }
 
-type ConsensusInfo = {
-    status: 'agreed' | 'review' | 'divergent'
-    primary: AnalysisResult
-    secondary: AnalysisResult
-    divergencePercent: number
+const REVIEW_STATUS_LABEL: Record<ReviewStatus, string> = {
+    inventory_ready: 'Inventory ready',
+    needs_admin_review: 'Needs admin review',
+    needs_professional_appraisal: 'Professional appraisal required',
 }
 
-/** Client-side resize (max 2048px) + JPEG compression to stay under Vercel's 4.5MB body limit. */
+const REVIEW_STATUS_VARIANT: Record<
+    ReviewStatus,
+    'default' | 'secondary' | 'destructive'
+> = {
+    inventory_ready: 'default',
+    needs_admin_review: 'secondary',
+    needs_professional_appraisal: 'destructive',
+}
+
+/** Client-side resize (max 2576px = Opus 4.7 vision ceiling) + JPEG compression to stay under Vercel's 4.5MB body limit. */
 async function compressImageClientSide(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
         const img = new globalThis.Image()
         img.onload = () => {
             URL.revokeObjectURL(objectUrl)
-            const maxDim = 2048
+            // Opus 4.7 accepts up to 2576px / 3.75MP on the long edge.
+            // Previous 2048 cap threw away detail (signatures, hallmarks)
+            // the model can now use.
+            //
+            // Mobile Safari on iPhones older than iPhone 11 / iOS < 14 caps
+            // canvas at ~5M pixels; 2576x2576 = 6.63M. If we can detect
+            // that ceiling via a test canvas, step down to keep the output
+            // usable — better a smaller good image than a blank white one.
+            let maxDim = 2576
+            if (img.width * img.height > 5_000_000) {
+                const test = document.createElement('canvas')
+                test.width = 2576
+                test.height = 2576
+                const testCtx = test.getContext('2d')
+                if (testCtx) {
+                    // Use a non-default fillStyle so we can distinguish
+                    // "healthy canvas drew our color" from "canvas silently
+                    // zeroed" (the default fillStyle is black r=0, which
+                    // would make sample===0 indistinguishable from failure).
+                    testCtx.fillStyle = '#ff0000'
+                    testCtx.fillRect(0, 0, 1, 1)
+                    const sample = testCtx.getImageData(0, 0, 1, 1).data?.[0]
+                    if (sample !== 255) {
+                        maxDim = 2048
+                    }
+                } else {
+                    maxDim = 2048
+                }
+            }
             let { width, height } = img
 
             if (width > maxDim || height > maxDim) {
@@ -131,8 +171,8 @@ export function InventoryForm() {
     const [analyzing, setAnalyzing] = useState(false)
     const [analysis, setAnalysis] = useState<AnalysisResult | null>(null)
     const [analysisError, setAnalysisError] = useState<string | null>(null)
-    const [consensus, setConsensus] = useState<ConsensusInfo | null>(null)
     const [validationWarnings, setValidationWarnings] = useState<string[]>([])
+    const [photoLimitError, setPhotoLimitError] = useState<string | null>(null)
 
     // AI analysis pre-fills these; user can override before submit
     const [formValues, setFormValues] = useState({
@@ -149,9 +189,10 @@ export function InventoryForm() {
         (e: React.ChangeEvent<HTMLInputElement>) => {
             const files = Array.from(e.target.files || [])
             if (files.length + photos.length > 5) {
-                alert('Maximum 5 photos allowed')
+                setPhotoLimitError('Maximum 5 photos allowed')
                 return
             }
+            setPhotoLimitError(null)
             const newUrls = files.map((f) => URL.createObjectURL(f))
             setPhotos((prev) => [...prev, ...files])
             setPreviewUrls((prev) => {
@@ -161,7 +202,6 @@ export function InventoryForm() {
             })
             setAnalysis(null)
             setAnalysisError(null)
-            setConsensus(null)
             setValidationWarnings([])
         },
         [photos.length],
@@ -180,7 +220,6 @@ export function InventoryForm() {
             setPhotoUrls([])
             setAnalysis(null)
             setAnalysisError(null)
-            setConsensus(null)
             setValidationWarnings([])
         },
         [previewUrls],
@@ -228,9 +267,6 @@ export function InventoryForm() {
                 setAnalysis(data.data)
                 if (data.photoUrls && data.photoUrls.length > 0) {
                     setPhotoUrls(data.photoUrls)
-                }
-                if (data.consensus) {
-                    setConsensus(data.consensus)
                 }
                 if (data.validationWarnings) {
                     setValidationWarnings(data.validationWarnings)
@@ -384,17 +420,27 @@ export function InventoryForm() {
                         </div>
                     )}
 
+                    {photoLimitError && (
+                        <Alert variant="destructive">
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertDescription>
+                                {photoLimitError}
+                            </AlertDescription>
+                        </Alert>
+                    )}
+
                     {photos.length > 0 && !analysis && (
                         <Button
                             type="button"
                             onClick={analyzePhotos}
                             disabled={analyzing}
                             className="w-full"
+                            aria-describedby="analysis-status"
                         >
                             {analyzing ? (
                                 <>
                                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                    Analyzing with two AI models (2-4 min)...
+                                    Researching with Opus 4.7 (2-5 min)...
                                 </>
                             ) : (
                                 <>
@@ -404,6 +450,32 @@ export function InventoryForm() {
                             )}
                         </Button>
                     )}
+
+                    {/* Polite live region so screen-reader users hear the
+                        state change when a multi-minute analysis starts and
+                        finishes. The button label alone doesn't announce.
+                        Errors use aria-live="assertive" so a failure after a
+                        2-5 minute wait interrupts instead of queuing behind
+                        other announcements. */}
+                    <p
+                        id="analysis-status"
+                        role="status"
+                        aria-live="polite"
+                        className="sr-only"
+                    >
+                        {analyzing
+                            ? 'Researching valuation with Opus 4.7. This typically takes 2 to 5 minutes.'
+                            : analysis
+                              ? 'Analysis complete. Review the proposed valuation below.'
+                              : ''}
+                    </p>
+                    <p aria-live="assertive" className="sr-only">
+                        {analysisError
+                            ? `Analysis failed: ${analysisError}`
+                            : photoLimitError
+                              ? photoLimitError
+                              : ''}
+                    </p>
 
                     {analysisError && (
                         <Alert variant="destructive">
@@ -423,36 +495,13 @@ export function InventoryForm() {
                                 <Sparkles className="h-5 w-5 text-primary" />
                                 AI Analysis
                             </span>
-                            <div className="flex items-center gap-2">
-                                <Badge
-                                    variant={
-                                        analysis.confidence === 'high'
-                                            ? 'default'
-                                            : analysis.confidence === 'medium'
-                                              ? 'secondary'
-                                              : 'outline'
-                                    }
-                                >
-                                    {analysis.confidence} confidence
-                                </Badge>
-                                {consensus && (
-                                    <Badge
-                                        variant={
-                                            consensus.status === 'agreed'
-                                                ? 'default'
-                                                : consensus.status === 'review'
-                                                  ? 'secondary'
-                                                  : 'destructive'
-                                        }
-                                    >
-                                        {consensus.status === 'agreed'
-                                            ? 'Models Agree'
-                                            : consensus.status === 'review'
-                                              ? `Models Differ ${Math.round(consensus.divergencePercent)}%`
-                                              : `Models Diverge ${Math.round(consensus.divergencePercent)}%`}
-                                    </Badge>
-                                )}
-                            </div>
+                            <Badge
+                                variant={
+                                    REVIEW_STATUS_VARIANT[analysis.reviewStatus]
+                                }
+                            >
+                                {REVIEW_STATUS_LABEL[analysis.reviewStatus]}
+                            </Badge>
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
@@ -534,39 +583,6 @@ export function InventoryForm() {
                             </p>
                         </div>
 
-                        {consensus && consensus.status !== 'agreed' && (
-                            <div className="grid grid-cols-2 gap-3">
-                                <div className="rounded-lg border p-3">
-                                    <p className="text-xs font-medium text-muted-foreground mb-1">
-                                        Model A (Opus)
-                                    </p>
-                                    <p className="text-lg font-bold">
-                                        $
-                                        {Number(
-                                            consensus.primary.estimatedValue,
-                                        ).toLocaleString()}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground mt-1 line-clamp-3">
-                                        {consensus.primary.valuationRationale}
-                                    </p>
-                                </div>
-                                <div className="rounded-lg border p-3">
-                                    <p className="text-xs font-medium text-muted-foreground mb-1">
-                                        Model B (Sonnet)
-                                    </p>
-                                    <p className="text-lg font-bold">
-                                        $
-                                        {Number(
-                                            consensus.secondary.estimatedValue,
-                                        ).toLocaleString()}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground mt-1 line-clamp-3">
-                                        {consensus.secondary.valuationRationale}
-                                    </p>
-                                </div>
-                            </div>
-                        )}
-
                         {validationWarnings.length > 0 && (
                             <Alert variant="destructive">
                                 <AlertCircle className="h-4 w-4" />
@@ -603,11 +619,21 @@ export function InventoryForm() {
                             </p>
                         </div>
 
-                        {analysis.confidence !== 'high' && (
-                            <Alert>
+                        {analysis.reviewStatus !== 'inventory_ready' && (
+                            <Alert
+                                variant={
+                                    analysis.reviewStatus ===
+                                    'needs_professional_appraisal'
+                                        ? 'destructive'
+                                        : 'default'
+                                }
+                            >
                                 <AlertCircle className="h-4 w-4" />
+                                <AlertTitle>
+                                    {REVIEW_STATUS_LABEL[analysis.reviewStatus]}
+                                </AlertTitle>
                                 <AlertDescription>
-                                    {analysis.confidenceNotes}
+                                    {analysis.reviewNotes}
                                 </AlertDescription>
                             </Alert>
                         )}
@@ -782,8 +808,8 @@ export function InventoryForm() {
                         <>
                             <input
                                 type="hidden"
-                                name="aiConfidence"
-                                value={analysis.confidence}
+                                name="aiReviewStatus"
+                                value={analysis.reviewStatus}
                             />
                             <input
                                 type="hidden"
