@@ -280,13 +280,16 @@ export async function analyzeInventoryImage(
     )
 
     const content: Array<
-        | { type: 'text'; text: string }
-        | { type: 'image'; image: string; mimeType: string }
+        { type: 'text'; text: string } | { type: 'image'; image: string }
     > = [
+        // Encode as data URL so the AI SDK treats this as inline bytes
+        // rather than attempting to `fetch()` the base64 as a URL (which is
+        // what happened after the ai 6.0.98 -> 6.0.168 bump and caused
+        // `SyntaxError: Unexpected token '/', "/9j/2wBDAA..."` from the
+        // SDK's response.json() on the bogus fetch).
         ...compressedImages.map((img) => ({
             type: 'image' as const,
-            image: img.base64,
-            mimeType: img.mimeType,
+            image: `data:${img.mimeType};base64,${img.base64}`,
         })),
         {
             type: 'text',
@@ -345,13 +348,16 @@ export async function analyzeInventoryImageWithCompressed(
     )
 
     const content: Array<
-        | { type: 'text'; text: string }
-        | { type: 'image'; image: string; mimeType: string }
+        { type: 'text'; text: string } | { type: 'image'; image: string }
     > = [
+        // Encode as data URL so the AI SDK treats this as inline bytes
+        // rather than attempting to `fetch()` the base64 as a URL (which is
+        // what happened after the ai 6.0.98 -> 6.0.168 bump and caused
+        // `SyntaxError: Unexpected token '/', "/9j/2wBDAA..."` from the
+        // SDK's response.json() on the bogus fetch).
         ...compressedImages.map((img) => ({
             type: 'image' as const,
-            image: img.base64,
-            mimeType: img.mimeType,
+            image: `data:${img.mimeType};base64,${img.base64}`,
         })),
         {
             type: 'text',
