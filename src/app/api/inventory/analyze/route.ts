@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic'
 
+import * as Sentry from '@sentry/nextjs'
 import { desc, eq } from 'drizzle-orm'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
@@ -338,8 +339,14 @@ export async function POST(
             }
         }
 
+        // Capture to Sentry so we can actually see what's failing in prod
+        // (the stack trace is otherwise swallowed by this catch).
+        Sentry.captureException(error, {
+            tags: { route: 'api/inventory/analyze' },
+        })
         logger.api.error('Inventory analysis failed', {
             error: error instanceof Error ? error.message : 'Unknown error',
+            stack: error instanceof Error ? error.stack : undefined,
         })
         return NextResponse.json(
             {
