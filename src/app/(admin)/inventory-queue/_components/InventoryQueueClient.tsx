@@ -476,6 +476,110 @@ export function InventoryQueueClient() {
                                 </div>
                             )}
 
+                            {reviewingItem.aiSuggested && (
+                                <div className="rounded-lg border p-4 space-y-3">
+                                    <Label className="text-sm font-semibold">
+                                        AI Evidence
+                                    </Label>
+
+                                    {(reviewingItem.valueRangeLow ||
+                                        reviewingItem.valueRangeHigh) && (
+                                        <div>
+                                            <span className="text-xs text-muted-foreground">
+                                                Value range
+                                            </span>
+                                            <p className="text-sm font-medium">
+                                                {reviewingItem.valueRangeLow
+                                                    ? formatCurrency(
+                                                          reviewingItem.valueRangeLow,
+                                                      )
+                                                    : '—'}{' '}
+                                                –{' '}
+                                                {reviewingItem.valueRangeHigh
+                                                    ? formatCurrency(
+                                                          reviewingItem.valueRangeHigh,
+                                                      )
+                                                    : '—'}
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    {(reviewingItem.aiBrand ||
+                                        reviewingItem.aiModel ||
+                                        reviewingItem.aiEra ||
+                                        reviewingItem.aiMaterials) && (
+                                        <div className="grid grid-cols-2 gap-3">
+                                            {reviewingItem.aiBrand && (
+                                                <div>
+                                                    <span className="text-xs text-muted-foreground">
+                                                        Brand
+                                                    </span>
+                                                    <p className="text-sm font-medium">
+                                                        {reviewingItem.aiBrand}
+                                                    </p>
+                                                </div>
+                                            )}
+                                            {reviewingItem.aiModel && (
+                                                <div>
+                                                    <span className="text-xs text-muted-foreground">
+                                                        Model
+                                                    </span>
+                                                    <p className="text-sm font-medium">
+                                                        {reviewingItem.aiModel}
+                                                    </p>
+                                                </div>
+                                            )}
+                                            {reviewingItem.aiEra && (
+                                                <div>
+                                                    <span className="text-xs text-muted-foreground">
+                                                        Era
+                                                    </span>
+                                                    <p className="text-sm font-medium">
+                                                        {reviewingItem.aiEra}
+                                                    </p>
+                                                </div>
+                                            )}
+                                            {reviewingItem.aiMaterials && (
+                                                <div>
+                                                    <span className="text-xs text-muted-foreground">
+                                                        Materials
+                                                    </span>
+                                                    <p className="text-sm font-medium">
+                                                        {
+                                                            reviewingItem.aiMaterials
+                                                        }
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {reviewingItem.aiValuationRationale && (
+                                        <div>
+                                            <span className="text-xs text-muted-foreground">
+                                                Valuation rationale
+                                            </span>
+                                            <p className="text-sm whitespace-pre-wrap bg-muted/50 rounded p-3">
+                                                {
+                                                    reviewingItem.aiValuationRationale
+                                                }
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    {reviewingItem.aiConditionNotes && (
+                                        <div>
+                                            <span className="text-xs text-muted-foreground">
+                                                Condition notes
+                                            </span>
+                                            <p className="text-sm">
+                                                {reviewingItem.aiConditionNotes}
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
                             {(reviewingItem.submitterName ||
                                 reviewingItem.submitterEmail ||
                                 reviewingItem.submitterPhone) && (

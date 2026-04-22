@@ -76,9 +76,10 @@ export async function POST(
             )
         }
 
-        // Per-IP rate limit — each call invokes two Claude models (Opus +
-        // Sonnet) with extended thinking and web search. Without this, a
-        // captured access cookie is an unbounded spend risk.
+        // Per-IP rate limit — each call runs Opus 4.7 at xhigh effort with
+        // adaptive thinking and web_search, which spans several minutes and
+        // several dollars of inference per item. Without this, a captured
+        // access cookie is an unbounded spend risk.
         const ip = await getClientIP()
         const rate = checkAnalyzeRateLimit(ip)
         if (!rate.allowed) {
@@ -106,7 +107,33 @@ export async function POST(
             )
         }
 
-        const body = await request.json()
+        // Explicit JSON content-type guard so a misrouted request returns
+        // 415 instead of the caught 500 from a thrown request.json() parse
+        // error. The form is the only real caller, but a clear rejection is
+        // cheaper than a Sentry event.
+        const contentType = request.headers.get('content-type') ?? ''
+        if (!contentType.toLowerCase().includes('application/json')) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    error: 'Content-Type must be application/json',
+                },
+                { status: 415 },
+            )
+        }
+
+        let body: unknown
+        try {
+            body = await request.json()
+        } catch {
+            return NextResponse.json(
+                {
+                    success: false,
+                    error: 'Invalid JSON body',
+                },
+                { status: 400 },
+            )
+        }
         const validationResult = AnalyzeRequestSchema.safeParse(body)
         if (!validationResult.success) {
             return NextResponse.json(

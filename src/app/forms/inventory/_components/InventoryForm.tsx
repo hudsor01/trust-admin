@@ -172,6 +172,7 @@ export function InventoryForm() {
     const [analysis, setAnalysis] = useState<AnalysisResult | null>(null)
     const [analysisError, setAnalysisError] = useState<string | null>(null)
     const [validationWarnings, setValidationWarnings] = useState<string[]>([])
+    const [photoLimitError, setPhotoLimitError] = useState<string | null>(null)
 
     // AI analysis pre-fills these; user can override before submit
     const [formValues, setFormValues] = useState({
@@ -188,9 +189,10 @@ export function InventoryForm() {
         (e: React.ChangeEvent<HTMLInputElement>) => {
             const files = Array.from(e.target.files || [])
             if (files.length + photos.length > 5) {
-                alert('Maximum 5 photos allowed')
+                setPhotoLimitError('Maximum 5 photos allowed')
                 return
             }
+            setPhotoLimitError(null)
             const newUrls = files.map((f) => URL.createObjectURL(f))
             setPhotos((prev) => [...prev, ...files])
             setPreviewUrls((prev) => {
@@ -418,12 +420,22 @@ export function InventoryForm() {
                         </div>
                     )}
 
+                    {photoLimitError && (
+                        <Alert variant="destructive">
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertDescription>
+                                {photoLimitError}
+                            </AlertDescription>
+                        </Alert>
+                    )}
+
                     {photos.length > 0 && !analysis && (
                         <Button
                             type="button"
                             onClick={analyzePhotos}
                             disabled={analyzing}
                             className="w-full"
+                            aria-describedby="analysis-status"
                         >
                             {analyzing ? (
                                 <>
@@ -438,6 +450,22 @@ export function InventoryForm() {
                             )}
                         </Button>
                     )}
+
+                    {/* Polite live region so screen-reader users hear the
+                        state change when a multi-minute analysis starts and
+                        finishes. The button label alone doesn't announce. */}
+                    <p
+                        id="analysis-status"
+                        role="status"
+                        aria-live="polite"
+                        className="sr-only"
+                    >
+                        {analyzing
+                            ? 'Researching valuation with Opus 4.7. This typically takes 2 to 5 minutes.'
+                            : analysis
+                              ? 'Analysis complete. Review the proposed valuation below.'
+                              : ''}
+                    </p>
 
                     {analysisError && (
                         <Alert variant="destructive">

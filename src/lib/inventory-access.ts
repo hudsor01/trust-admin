@@ -41,7 +41,7 @@ export async function getClientIP(): Promise<string> {
 
 // --- Per-IP rate limit for /api/inventory/analyze ---
 //
-// /api/inventory/analyze runs two Claude models (Opus + Sonnet) with extended
+// /api/inventory/analyze runs Opus 4.7 at xhigh effort with adaptive
 // thinking and web search per request — 2–5 minutes, several dollars of
 // inference. Cookie auth alone doesn't bound cost if a cookie leaks; this
 // rate limit does.

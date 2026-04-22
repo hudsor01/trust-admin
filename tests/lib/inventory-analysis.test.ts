@@ -58,7 +58,7 @@ function validValuationInput(overrides: Record<string, unknown> = {}) {
         description:
             'Traditional mahogany dining table with two leaves. Seats 8-10.',
         valuationRationale:
-            'LiveAuctioneers realized $2,200 on 2025-11-15 (https://example.com/a). 1stDibs listed comparable at $3,500 (asking, discounted to $2,100 FMV, https://example.com/b). Date-of-death-weighted midpoint: $2,500.',
+            'LiveAuctioneers realized $2,200 on 2025-11-15 (https://liveauctioneers.com/a). 1stDibs listed comparable at $3,500 (asking, discounted to $2,100 FMV, https://1stdibs.com/b). Date-of-death-weighted midpoint: $2,500.',
         reviewStatus: 'inventory_ready',
         reviewNotes:
             'Two LiveAuctioneers + 1stDibs comps within 60 days of DOD support $2,500. File as-is.',
@@ -886,7 +886,7 @@ describe('applyReviewStatusOverrides', () => {
         expect(out.reviewStatus).toBe('needs_professional_appraisal')
     })
 
-    test('downgrades to needs_admin_review when estimatedValue is outside the range', () => {
+    test('escalates to needs_admin_review when estimatedValue is outside the range', () => {
         const { analysis: out, overrideReasons } = applyReviewStatusOverrides(
             analysis({
                 estimatedValue: '100.00',
@@ -898,7 +898,7 @@ describe('applyReviewStatusOverrides', () => {
         expect(overrideReasons.some((r) => /outside/.test(r))).toBe(true)
     })
 
-    test('downgrades to needs_admin_review when rationale has fewer than 2 URLs', () => {
+    test('escalates to needs_admin_review when rationale has fewer than 2 independent URLs', () => {
         const { analysis: out, overrideReasons } = applyReviewStatusOverrides(
             analysis({
                 valuationRationale:
@@ -906,7 +906,107 @@ describe('applyReviewStatusOverrides', () => {
             }),
         )
         expect(out.reviewStatus).toBe('needs_admin_review')
-        expect(overrideReasons.some((r) => /URL/.test(r))).toBe(true)
+        expect(overrideReasons.some((r) => /independent source/.test(r))).toBe(
+            true,
+        )
+    })
+
+    test('treats duplicate URLs as one source', () => {
+        const { analysis: out, overrideReasons } = applyReviewStatusOverrides(
+            analysis({
+                valuationRationale:
+                    'LiveAuctioneers $2,200 at https://example.com/a and again at https://example.com/a — single source repeated.',
+            }),
+        )
+        expect(out.reviewStatus).toBe('needs_admin_review')
+        expect(overrideReasons.some((r) => /independent source/.test(r))).toBe(
+            true,
+        )
+    })
+
+    test('treats two URLs on the same host as one independent source', () => {
+        const { analysis: out } = applyReviewStatusOverrides(
+            analysis({
+                valuationRationale:
+                    'Two sold listings from the same host: https://ebay.com/item/1 and https://ebay.com/item/2 — not independent.',
+            }),
+        )
+        expect(out.reviewStatus).toBe('needs_admin_review')
+    })
+
+    test('strips trailing punctuation before deduping', () => {
+        // Two URLs with a trailing comma would otherwise dedupe to "two URLs"
+        // but post-strip they are the same URL from the same host → 1 source.
+        const { analysis: out } = applyReviewStatusOverrides(
+            analysis({
+                valuationRationale:
+                    'Cited https://example.com/a, and https://example.com/a.',
+            }),
+        )
+        expect(out.reviewStatus).toBe('needs_admin_review')
+    })
+
+    test('accepts two distinct independent hosts', () => {
+        const { analysis: out, overrideReasons } = applyReviewStatusOverrides(
+            analysis({
+                valuationRationale:
+                    'LiveAuctioneers https://liveauctioneers.com/x and 1stDibs https://1stdibs.com/y.',
+            }),
+        )
+        expect(out.reviewStatus).toBe('inventory_ready')
+        expect(overrideReasons).toHaveLength(0)
+    })
+
+    test('every failing guardrail emits a reason even when multiple fire at once', () => {
+        // Model returns needs_admin_review already; value is >$5k AND out of
+        // range AND rationale has 1 URL. Every guardrail should be surfaced.
+        const { analysis: out, overrideReasons } = applyReviewStatusOverrides(
+            analysis({
+                reviewStatus: 'needs_admin_review',
+                estimatedValue: '10000.00',
+                valueRangeLow: '15000.00',
+                valueRangeHigh: '20000.00',
+                valuationRationale:
+                    'Only one comp cited: https://example.com/single.',
+            }),
+        )
+        expect(out.reviewStatus).toBe('needs_professional_appraisal')
+        expect(overrideReasons.length).toBeGreaterThanOrEqual(3)
+        expect(overrideReasons.some((r) => /exceeds \$5,000/.test(r))).toBe(
+            true,
+        )
+        expect(overrideReasons.some((r) => /outside/.test(r))).toBe(true)
+        expect(overrideReasons.some((r) => /independent source/.test(r))).toBe(
+            true,
+        )
+    })
+
+    test('reasons still surface even when status does not change', () => {
+        // Model already flagged professional appraisal; guardrail check
+        // still fires and must report the underlying problem so the admin
+        // knows *why* the model's own rationale is suspicious.
+        const { analysis: out, overrideReasons } = applyReviewStatusOverrides(
+            analysis({
+                reviewStatus: 'needs_professional_appraisal',
+                estimatedValue: '100.00',
+                valueRangeLow: '1000.00',
+                valueRangeHigh: '2000.00',
+            }),
+        )
+        expect(out.reviewStatus).toBe('needs_professional_appraisal')
+        expect(overrideReasons.some((r) => /outside/.test(r))).toBe(true)
+    })
+
+    test('escalates from needs_admin_review up to needs_professional_appraisal on >$5k', () => {
+        const { analysis: out } = applyReviewStatusOverrides(
+            analysis({
+                reviewStatus: 'needs_admin_review',
+                estimatedValue: '8000.00',
+                valueRangeLow: '6000.00',
+                valueRangeHigh: '10000.00',
+            }),
+        )
+        expect(out.reviewStatus).toBe('needs_professional_appraisal')
     })
 
     test('never de-escalates: professional appraisal is terminal', () => {

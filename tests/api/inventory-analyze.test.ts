@@ -280,6 +280,37 @@ describe('POST /api/inventory/analyze', () => {
     })
 
     describe('Request validation', () => {
+        test('rejects request without application/json Content-Type', async () => {
+            const request = new Request(
+                'http://localhost:3000/api/inventory/analyze',
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: '{"images":[]}',
+                },
+            )
+            const response = await POST(request as never)
+            const data = await response.json()
+            expect(response.status).toBe(415)
+            expect(data.success).toBe(false)
+            expect(data.error).toMatch(/content-type/i)
+        })
+
+        test('rejects request with malformed JSON body', async () => {
+            const request = new Request(
+                'http://localhost:3000/api/inventory/analyze',
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: '{not valid json',
+                },
+            )
+            const response = await POST(request as never)
+            const data = await response.json()
+            expect(response.status).toBe(400)
+            expect(data.error).toMatch(/invalid json/i)
+        })
+
         test('rejects request with no images', async () => {
             const request = createRequest({ images: [] })
 

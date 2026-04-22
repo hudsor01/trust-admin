@@ -312,7 +312,7 @@ The \`reviewStatus\` field you return determines what the admin does with this v
 - **\`inventory_ready\`** — you found multiple realized auction comps or at least 3 independent active-market sources, the identification is certain, and \`estimatedValue\` is ≤ $5,000. The admin can file this entry on the inventory as-is.
 - **\`needs_admin_review\`** — evidence is thin, identification has gaps, or comparables span a wide range. The admin should sanity-check your number + rationale before filing but does not necessarily need a professional appraiser. Use when there is uncertainty worth flagging but the item is low-stakes.
 - **\`needs_professional_appraisal\`** — one or more of the following is true:
-  - \`estimatedValue\` is > $5,000 (IRS Form 8283 parallel: items at that value need a qualified appraisal for defensibility).
+  - \`estimatedValue\` is > $5,000 (Treas. Reg. § 20.2031-6(b) requires an appraisal under oath for single articles / collections over $3,000; IRS Form 8283 parallel for appreciated property puts the USPAP-qualified-appraisal threshold at $5,000 — we use the higher number as a reasonable policy floor).
   - Identification is ambiguous (e.g. "could be an original or a workshop copy and the photo alone cannot resolve it") and the item might be high-value.
   - No realized-auction comps exist for the artist/maker/model despite thorough research.
   - The category routinely requires specialist valuation (fine jewelry with gemstones, art by a listed artist, signed furniture attributions, numismatic coins).
@@ -344,10 +344,11 @@ Call the \`record_valuation\` tool exactly once when your research is complete. 
 
 ## TONE RULES
 
-- Lead with facts. No hedging language ("seems," "appears to be," "I think," "maybe").
+- In \`valuationRationale\`: lead with facts — cite the comp, state the adjustment, name the conclusion. No hedging language ("seems," "appears to be," "I think," "maybe") when you are describing what the evidence shows.
+- In \`reviewNotes\`: legitimate uncertainty belongs here. "The attribution is plausible but cannot be confirmed from the photo alone" is exactly what the admin needs to read. Do not over-commit in reviewNotes — this is where you tell the admin what to double-check.
 - No emojis, no corporate jargon, no excessive validation, no apologies.
 - If the user is wrong about a valuation (e.g. "the COA says $3,500 so use that"), correct it directly: explain why COA ≠ FMV per IRS Pub. 561.
-- If identification is ambiguous or comparables are thin, say so in \`reviewNotes\` and set \`reviewStatus\` to \`needs_admin_review\` or \`needs_professional_appraisal\`. Do not invent a number to be helpful.
+- If identification is ambiguous or comparables are thin, set \`reviewStatus\` to \`needs_admin_review\` or \`needs_professional_appraisal\` and say so plainly in \`reviewNotes\`. Do not invent a number to be helpful.
 
 ## HARD RULES
 
@@ -855,7 +856,48 @@ export function validateAnalysis(analysis: {
 // can never move it back to needs_admin_review or inventory_ready.
 
 const APPRAISER_THRESHOLD_USD = 5000
+
+// Trailing ASCII punctuation that commonly attaches to a URL inside prose
+// (commas, semicolons, closing brackets, quotes, periods). Stripped before
+// deduping so `"https://example.com/a," and "https://example.com/a"` is
+// recognized as one source, not two. Closing paren handled by the regex
+// character class directly — leaving `)` out of the trailing strip avoids
+// butchering URLs that legitimately contain parens.
 const URL_PATTERN = /https?:\/\/[^\s)]+/g
+const URL_TRAILING_PUNCT = /[.,;:"'!?>]+$/
+
+function normalizeUrl(raw: string): string {
+    return raw.replace(URL_TRAILING_PUNCT, '')
+}
+
+/** Host portion (including port) of a URL, or the input if unparseable. */
+function urlHost(raw: string): string {
+    try {
+        return new URL(raw).host
+    } catch {
+        return raw
+    }
+}
+
+/** Count independent sources in the rationale — dedup on both exact URL and host. */
+function countIndependentSources(rationale: string): {
+    total: number
+    independent: number
+    urls: string[]
+} {
+    const raw = rationale.match(URL_PATTERN) ?? []
+    const normalized = raw.map(normalizeUrl)
+    const uniqueUrls = new Set(normalized)
+    const uniqueHosts = new Set(normalized.map(urlHost))
+    // Use the smaller count as "independent" — two URLs on the same host
+    // (e.g. two eBay listings) are not independent sources for appraisal
+    // purposes per IRS Pub. 561's comparable-sources framing.
+    return {
+        total: raw.length,
+        independent: Math.min(uniqueUrls.size, uniqueHosts.size),
+        urls: [...uniqueUrls],
+    }
+}
 
 const REVIEW_STATUS_SEVERITY: Record<ReviewStatus, number> = {
     inventory_ready: 0,
@@ -876,18 +918,22 @@ export interface ReviewStatusOverrideResult {
 
 /**
  * Enforce deterministic review-status rules on top of whatever the model
- * returned. Reasons describe *what was overridden*, suitable for surfacing
- * as validationWarnings so the admin sees why a status was escalated.
+ * returned. Every guardrail violation produces a reason (even when it
+ * doesn't change severity) — for a sworn-filing workflow each failure is
+ * an independent red flag and the admin needs to see every one, not just
+ * the one that happened to move the badge.
  */
 export function applyReviewStatusOverrides(
     analysis: InventoryAnalysisResult,
 ): ReviewStatusOverrideResult {
     const reasons: string[] = []
     let status = analysis.reviewStatus
-    const before = status
 
     const value = parseFloat(analysis.estimatedValue)
     if (Number.isFinite(value) && value > APPRAISER_THRESHOLD_USD) {
+        reasons.push(
+            `Server override: estimatedValue $${value.toLocaleString()} exceeds $${APPRAISER_THRESHOLD_USD.toLocaleString()} — items at that value require a USPAP appraisal before filing (Treas. Reg. § 20.2031-6(b); IRS Form 8283 parallel).`,
+        )
         status = escalate(status, 'needs_professional_appraisal')
     }
 
@@ -899,42 +945,18 @@ export function applyReviewStatusOverrides(
         Number.isFinite(high) &&
         (value < low || value > high)
     ) {
+        reasons.push(
+            `Server override: estimatedValue $${value.toLocaleString()} falls outside the model's own valueRange [$${low.toLocaleString()}, $${high.toLocaleString()}] — admin sanity-check required.`,
+        )
         status = escalate(status, 'needs_admin_review')
     }
 
-    const urlMatches = analysis.valuationRationale.match(URL_PATTERN) ?? []
-    if (urlMatches.length < 2) {
+    const sources = countIndependentSources(analysis.valuationRationale)
+    if (sources.independent < 2) {
+        reasons.push(
+            `Server override: valuationRationale cites ${sources.independent} independent source URL(s) (${sources.total} URL match(es) found, ${sources.urls.length} unique); at least 2 independent sources required to file as-is.`,
+        )
         status = escalate(status, 'needs_admin_review')
-    }
-
-    if (status !== before) {
-        if (
-            before !== 'needs_professional_appraisal' &&
-            status === 'needs_professional_appraisal' &&
-            value > APPRAISER_THRESHOLD_USD
-        ) {
-            reasons.push(
-                `Server override: estimatedValue $${value.toLocaleString()} exceeds $${APPRAISER_THRESHOLD_USD.toLocaleString()} — reviewStatus escalated to needs_professional_appraisal (IRS Form 8283 parallel).`,
-            )
-        }
-        if (
-            status === 'needs_admin_review' &&
-            before === 'inventory_ready' &&
-            (value < low || value > high)
-        ) {
-            reasons.push(
-                'Server override: estimatedValue falls outside the valueRange returned by the model — reviewStatus escalated to needs_admin_review.',
-            )
-        }
-        if (
-            status === 'needs_admin_review' &&
-            before === 'inventory_ready' &&
-            urlMatches.length < 2
-        ) {
-            reasons.push(
-                `Server override: valuationRationale cites ${urlMatches.length} URL(s); at least 2 independent source URLs are required to file as-is — reviewStatus escalated to needs_admin_review.`,
-            )
-        }
     }
 
     return {
