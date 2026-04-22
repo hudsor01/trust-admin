@@ -349,6 +349,22 @@ export async function POST(
         })
     } catch (error) {
         if (error instanceof Error) {
+            // Anthropic's actual error text contains "credit balance" when the
+            // org has run out of API credits — surface that specifically so an
+            // admin knows to reload credits rather than chase a code bug.
+            if (
+                error.message.includes('credit balance') ||
+                error.message.includes('Plans & Billing')
+            ) {
+                return NextResponse.json(
+                    {
+                        success: false,
+                        error: 'Anthropic API credit balance is too low. An admin needs to reload credits at https://console.anthropic.com/settings/billing before analysis can run.',
+                    },
+                    { status: 402 },
+                )
+            }
+
             if (error.message.includes('rate limit')) {
                 return NextResponse.json(
                     {
