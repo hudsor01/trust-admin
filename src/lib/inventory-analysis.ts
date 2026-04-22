@@ -267,7 +267,7 @@ export interface InventoryImage {
     mimeType: string
 }
 
-/** Analyze inventory images via Claude Opus 4.5. Auto-compresses oversized images. */
+/** Analyze inventory images via Claude Opus (latest). Auto-compresses oversized images. */
 export async function analyzeInventoryImage(
     images: InventoryImage[],
 ): Promise<InventoryAnalysisResult> {
@@ -299,8 +299,10 @@ export async function analyzeInventoryImage(
 
     // Opus 4.7: temperature/top_p/top_k are removed (400). Prompt the
     // system for deterministic phrasing instead if variance is an issue.
+    // effort:'xhigh' is Opus 4.7's best setting for agentic/valuation work.
     const { object } = await generateObject({
         model: anthropic('claude-opus-4-7'),
+        providerOptions: { anthropic: { effort: 'xhigh' } },
         schema: InventoryAnalysisSchema,
         system: INVENTORY_ANALYSIS_SYSTEM_PROMPT,
         messages: [
@@ -365,6 +367,7 @@ export async function analyzeInventoryImageWithCompressed(
 
     const { object } = await generateObject({
         model: anthropic('claude-opus-4-7'),
+        providerOptions: { anthropic: { effort: 'xhigh' } },
         schema: InventoryAnalysisSchema,
         system: INVENTORY_ANALYSIS_SYSTEM_PROMPT,
         messages: [

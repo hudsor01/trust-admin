@@ -223,9 +223,14 @@ function extractJson(
 interface AgenticLoopOptions {
     model?: string
     /**
-     * Thinking depth + overall token spend. `xhigh` is Opus 4.7-only and is
-     * the best setting for agentic/coding workloads; `high` is the minimum
-     * recommended for intelligence-sensitive work across Opus 4.5+/Sonnet 4.6.
+     * Thinking depth + overall token spend. Not every value works on every
+     * model — the API returns 400 for mismatches. Allowed pairings:
+     *   - Opus 4.7     → low | medium | high | xhigh | max   (xhigh only here)
+     *   - Opus 4.6/4.5 → low | medium | high | max
+     *   - Sonnet 4.6   → low | medium | high                 (no xhigh, no max)
+     *   - Sonnet 4.5 / Haiku → effort not supported (omit)
+     * `xhigh` is the best setting for agentic/coding on Opus 4.7; `high` is
+     * the recommended minimum for intelligence-sensitive work generally.
      */
     effort?: 'low' | 'medium' | 'high' | 'xhigh' | 'max'
     logPrefix?: string

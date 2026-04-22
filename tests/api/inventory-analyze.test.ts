@@ -379,7 +379,10 @@ describe('POST /api/inventory/analyze', () => {
         })
 
         test('surfaces credit-balance-low as 402 with a reload hint', async () => {
-            // Anthropic's real error text for out-of-credits accounts
+            // Anthropic's real error text for out-of-credits accounts, pulled
+            // verbatim from Sentry event TRUST-ADMIN-Z. The route matches on
+            // the phrasing, so a plain Error with the real message is enough
+            // to exercise the 402 branch.
             mockAnalyzeWithMarketResearch.mockRejectedValueOnce(
                 new Error(
                     '400 {"type":"error","error":{"type":"invalid_request_error","message":"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits."}}',

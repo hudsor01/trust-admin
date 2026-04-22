@@ -348,23 +348,38 @@ export async function POST(
             validationWarnings: warnings,
         })
     } catch (error) {
-        if (error instanceof Error) {
-            // Anthropic's actual error text contains "credit balance" when the
-            // org has run out of API credits — surface that specifically so an
-            // admin knows to reload credits rather than chase a code bug.
-            if (
-                error.message.includes('credit balance') ||
-                error.message.includes('Plans & Billing')
-            ) {
-                return NextResponse.json(
-                    {
-                        success: false,
-                        error: 'Anthropic API credit balance is too low. An admin needs to reload credits at https://console.anthropic.com/settings/billing before analysis can run.',
+        // Anthropic's error text contains "credit balance" / "Plans &
+        // Billing" when the org runs out of credits. Surface that as a 402
+        // with a direct reload hint so an admin doesn't have to dig through
+        // Sentry to discover it's a billing issue, not a code bug. Match
+        // the literal phrasing Anthropic returns — it's not contractual,
+        // but matches the other branches in this catch block. Also log a
+        // Sentry breadcrumb at warning level for frequency visibility —
+        // known/actionable, not an exception, so we skip captureException.
+        if (
+            error instanceof Error &&
+            /credit balance|Plans & Billing/i.test(error.message)
+        ) {
+            Sentry.captureMessage(
+                'Anthropic credit balance too low on /api/inventory/analyze',
+                {
+                    level: 'warning',
+                    tags: {
+                        route: 'api/inventory/analyze',
+                        subsystem: 'anthropic-billing',
                     },
-                    { status: 402 },
-                )
-            }
+                },
+            )
+            return NextResponse.json(
+                {
+                    success: false,
+                    error: 'Anthropic API credit balance is too low. An admin needs to reload credits at https://console.anthropic.com/settings/billing before analysis can run.',
+                },
+                { status: 402 },
+            )
+        }
 
+        if (error instanceof Error) {
             if (error.message.includes('rate limit')) {
                 return NextResponse.json(
                     {
