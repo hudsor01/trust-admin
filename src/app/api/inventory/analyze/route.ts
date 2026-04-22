@@ -209,22 +209,41 @@ export async function POST(
             images.map((img) => compressImage(img.base64, img.mimeType)),
         )
 
-        // Fetch recent corrections for feedback loop
-        const recentCorrections = await db
-            .select({
-                itemName: valuationCorrection.itemName,
-                category: valuationCorrection.category,
-                aiEstimatedValue: valuationCorrection.aiEstimatedValue,
-                correctedValue: valuationCorrection.correctedValue,
-            })
-            .from(valuationCorrection)
-            .where(
-                entityId
-                    ? eq(valuationCorrection.entityId, entityId)
-                    : undefined,
+        // Fetch recent corrections for feedback loop. This table is optional
+        // context — if it's missing (migration not applied) or the query fails
+        // for any reason, fall back to no feedback rather than 500ing the whole
+        // analysis. The core valuation still works; we just don't benefit from
+        // prior admin corrections.
+        let recentCorrections: Array<{
+            itemName: string
+            category: string
+            aiEstimatedValue: string
+            correctedValue: string
+        }> = []
+        try {
+            recentCorrections = await db
+                .select({
+                    itemName: valuationCorrection.itemName,
+                    category: valuationCorrection.category,
+                    aiEstimatedValue: valuationCorrection.aiEstimatedValue,
+                    correctedValue: valuationCorrection.correctedValue,
+                })
+                .from(valuationCorrection)
+                .where(
+                    entityId
+                        ? eq(valuationCorrection.entityId, entityId)
+                        : undefined,
+                )
+                .orderBy(desc(valuationCorrection.createdAt))
+                .limit(10)
+        } catch (err) {
+            logger.api.warn(
+                'valuation_correction query failed — continuing without feedback',
+                {
+                    error: err instanceof Error ? err.message : 'Unknown error',
+                },
             )
-            .orderBy(desc(valuationCorrection.createdAt))
-            .limit(10)
+        }
 
         const feedbackContext = buildFeedbackContext(recentCorrections)
 
