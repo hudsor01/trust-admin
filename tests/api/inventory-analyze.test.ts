@@ -409,6 +409,37 @@ describe('POST /api/inventory/analyze', () => {
             expect(data.success).toBe(false)
             expect(data.error).toBe('Internal server error')
         })
+
+        test('continues with empty feedback when valuation_correction query fails (e.g. missing table in prod)', async () => {
+            // Simulate NeonDbError('relation "valuation_correction" does not exist')
+            mockDbChain.limit.mockRejectedValueOnce(
+                new Error(
+                    'Failed query: relation "valuation_correction" does not exist',
+                ),
+            )
+
+            mockUploadFiles.mockResolvedValueOnce([
+                {
+                    data: { ufsUrl: 'https://utfs.io/f/photo.jpg' },
+                    error: null,
+                },
+            ])
+
+            const image = await createTestImageBase64()
+            const request = createRequest({ images: [image] })
+
+            const response = await POST(request as never)
+            const data = await response.json()
+
+            // Whole analysis still succeeds with empty feedback context
+            expect(response.status).toBe(200)
+            expect(data.success).toBe(true)
+            expect(data.data.name).toBe('Vintage Lamp')
+            // buildFeedbackContext gets called with [] (no recent corrections)
+            expect(mockBuildFeedbackContext).toHaveBeenCalledWith([])
+            // Reset for subsequent tests
+            mockDbChain.limit.mockImplementation(() => Promise.resolve([]))
+        })
     })
 
     describe('Maximum images boundary', () => {
