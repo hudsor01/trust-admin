@@ -23,7 +23,11 @@ const MANAGED_AGENTS_BETA = 'managed-agents-2026-04-01'
  * We use the same InventoryAnalysisSchema the rest of the app expects so
  * downstream code (cache → submit → personal_property columns) is unchanged.
  */
-const EXTRACTION_SYSTEM = `You are converting a free-text estate valuation report into a strict JSON object for downstream database storage. Do not change any numbers or facts — extract them verbatim from the report. If a field is not stated in the report, use an empty string for text fields, an empty array for materials, "fair" for condition, "manual_review" for reviewStatus. Keep the original valuation's full prose in valuationRationale.`
+const EXTRACTION_SYSTEM = `You are converting a free-text estate valuation report into a strict JSON object for downstream database storage. Do not change any numbers or facts — extract them as stated in the report.
+
+CRITICAL NUMERIC FORMAT: estimatedValue, valueRangeLow, and valueRangeHigh MUST be plain decimal strings with NO currency symbols, NO thousands separators, NO text. Correct: "800.00", "550", "1075.50". Wrong: "$800", "1,075", "$550–$1,075", "approximately 800". If the report gives a range (e.g. "$550–$1,075") pick the midpoint for estimatedValue and the range endpoints for valueRangeLow/valueRangeHigh. If a number is not stated, use "0".
+
+If a field is not stated in the report, use an empty string for text fields, an empty array for materials, "fair" for condition, "manual_review" for reviewStatus. Keep the original valuation's full prose in valuationRationale.`
 
 /**
  * Runs a single valuation through the Managed Agent (session lifecycle:
@@ -196,14 +200,68 @@ async function extractStructuredAnalysis(
         )
     }
 
+    // Sanitize numeric fields before schema validation. The extraction
+    // prompt forbids currency symbols / thousand separators / ranges, but
+    // the model can still slip one through — and dinero.js NaNs on any
+    // non-digit, so "$800" downstream renders as "$NaN" in the admin UI
+    // and the form. Strip to a bare decimal before storing.
+    const sanitized = sanitizeNumericFields(parsed)
+
     // Validate one more time so a malformed parse (e.g. category outside
     // the enum) throws a concrete Zod error rather than propagating garbage.
-    const validated = InventoryAnalysisSchema.parse(parsed)
+    const validated = InventoryAnalysisSchema.parse(sanitized)
     return {
         ...validated,
         dbCategory: mapToDbCategory(validated.category),
         rawCategory: validated.category,
     }
+}
+
+/**
+ * Coerces estimatedValue / valueRangeLow / valueRangeHigh to bare decimals.
+ * Handles the realistic failure modes we've seen the model emit despite the
+ * prompt instruction: "$800", "1,075", "$550–$1,075", "approximately 800".
+ * For range strings, keeps the lowest number for valueRangeLow and the
+ * highest for valueRangeHigh (if the field in question is a range itself).
+ * Unparseable strings become "0" rather than erroring — the admin queue
+ * will show $0 and the admin can correct it manually.
+ */
+function sanitizeNumericFields(parsed: unknown): unknown {
+    if (!parsed || typeof parsed !== 'object') return parsed
+    const obj = parsed as Record<string, unknown>
+    const NUMERIC_FIELDS = [
+        'estimatedValue',
+        'valueRangeLow',
+        'valueRangeHigh',
+    ] as const
+    const cleaned: Record<string, unknown> = { ...obj }
+    for (const field of NUMERIC_FIELDS) {
+        const raw = obj[field]
+        cleaned[field] =
+            typeof raw === 'string'
+                ? toBareDecimal(raw, field === 'valueRangeHigh' ? 'max' : 'min')
+                : raw
+    }
+    return cleaned
+}
+
+function toBareDecimal(raw: string, pick: 'min' | 'max'): string {
+    // Extract every non-negative numeric token (digits, optional decimal).
+    // Commas inside numbers are stripped first so "1,075" becomes one token.
+    // We intentionally do NOT honor a leading minus — estate item values are
+    // non-negative, and a range like "450-900" must split into [450, 900],
+    // not [450, -900] (which would pick the wrong end).
+    const normalized = raw.replace(/,/g, '')
+    const matches = normalized.match(/\d+(?:\.\d+)?/g)
+    if (!matches || matches.length === 0) return '0'
+    const numbers = matches
+        .map((s) => parseFloat(s))
+        .filter((n) => !Number.isNaN(n))
+    if (numbers.length === 0) return '0'
+    if (numbers.length === 1) return numbers[0]!.toString()
+    return (
+        pick === 'max' ? Math.max(...numbers) : Math.min(...numbers)
+    ).toString()
 }
 
 // Exported for tests and for the analyze route to know whether the managed
@@ -216,7 +274,15 @@ export function isManagedAgentConfigured(): boolean {
     )
 }
 
-export const _testables = { buildUserPrompt, EXTRACTION_SYSTEM }
+// Exported for test coverage. The legit "$800 → 800" transformation needs
+// a direct unit test so a regression doesn't re-surface the $NaN field-test
+// bug from 2026-04-23.
+export const _testables = {
+    buildUserPrompt,
+    EXTRACTION_SYSTEM,
+    sanitizeNumericFields,
+    toBareDecimal,
+}
 
 // Re-export for clarity at call sites that don't want to import from the
 // legacy file.
