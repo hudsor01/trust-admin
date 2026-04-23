@@ -42,10 +42,8 @@ export function AppSidebar() {
         '/properties',
         '/accounts',
         '/vehicles',
-        '/artwork',
         '/personal-property',
         '/insurance',
-        '/inventory-queue',
     ].includes(pathname)
 
     const prefetch = {
@@ -96,10 +94,6 @@ export function AppSidebar() {
             utils.vehicle.list.prefetch({ entityId })
             utils.entity.list.prefetch()
         },
-        artwork: () => {
-            utils.artwork.list.prefetch({ entityId })
-            utils.entity.list.prefetch()
-        },
         personalProperty: () => {
             utils.personalProperty.list.prefetch({ entityId })
             utils.entity.list.prefetch()
@@ -113,7 +107,6 @@ export function AppSidebar() {
             utils.bankAccount.list.prefetch({ entityId })
             utils.entity.list.prefetch()
         },
-        inventoryQueue: () => utils.pendingInventoryItem.list.prefetch(),
         activityLog: () => utils.activityLog.list.prefetch({}),
         settings: () => {
             utils.beneficiary.list.prefetch({ entityId })
@@ -403,23 +396,6 @@ export function AppSidebar() {
                                             <SidebarMenuSubButton
                                                 asChild
                                                 isActive={
-                                                    pathname === '/artwork'
-                                                }
-                                            >
-                                                <Link
-                                                    href="/artwork"
-                                                    onMouseEnter={
-                                                        prefetch.artwork
-                                                    }
-                                                >
-                                                    <span>Artwork</span>
-                                                </Link>
-                                            </SidebarMenuSubButton>
-                                        </SidebarMenuSubItem>
-                                        <SidebarMenuSubItem>
-                                            <SidebarMenuSubButton
-                                                asChild
-                                                isActive={
                                                     pathname ===
                                                     '/personal-property'
                                                 }
@@ -450,24 +426,6 @@ export function AppSidebar() {
                                                     }
                                                 >
                                                     <span>Insurance</span>
-                                                </Link>
-                                            </SidebarMenuSubButton>
-                                        </SidebarMenuSubItem>
-                                        <SidebarMenuSubItem>
-                                            <SidebarMenuSubButton
-                                                asChild
-                                                isActive={
-                                                    pathname ===
-                                                    '/inventory-queue'
-                                                }
-                                            >
-                                                <Link
-                                                    href="/inventory-queue"
-                                                    onMouseEnter={
-                                                        prefetch.inventoryQueue
-                                                    }
-                                                >
-                                                    <span>Inventory Queue</span>
                                                 </Link>
                                             </SidebarMenuSubButton>
                                         </SidebarMenuSubItem>

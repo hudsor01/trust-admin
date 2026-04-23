@@ -1113,7 +1113,6 @@ export const valuation = pgTable(
         bankAccountId: bigint({ mode: 'number' }),
         investmentAccountId: bigint({ mode: 'number' }),
         personalPropertyId: bigint({ mode: 'number' }),
-        artworkId: bigint({ mode: 'number' }),
         valuationDate: t
             .timestamp({ precision: 3, mode: 'string', withTimezone: true })
             .notNull(),
@@ -1137,7 +1136,6 @@ export const valuation = pgTable(
         index('idx_valuation_personal_property_id').on(
             table.personalPropertyId,
         ),
-        index('idx_valuation_artwork_id').on(table.artworkId),
         index('idx_valuation_date').on(table.valuationDate.desc()),
         foreignKey({
             columns: [table.vehicleId],
@@ -1181,13 +1179,6 @@ export const valuation = pgTable(
         })
             .onUpdate('cascade')
             .onDelete('set null'),
-        foreignKey({
-            columns: [table.artworkId],
-            foreignColumns: [artwork.id],
-            name: 'valuation_artwork_id_fkey',
-        })
-            .onUpdate('cascade')
-            .onDelete('set null'),
         // Polymorphic constraint: exactly one FK must be set
         check(
             'valuation_single_asset_check',
@@ -1197,8 +1188,7 @@ export const valuation = pgTable(
                  CASE WHEN ${table.rentalPropertyId} IS NOT NULL THEN 1 ELSE 0 END +
                  CASE WHEN ${table.bankAccountId} IS NOT NULL THEN 1 ELSE 0 END +
                  CASE WHEN ${table.investmentAccountId} IS NOT NULL THEN 1 ELSE 0 END +
-                 CASE WHEN ${table.personalPropertyId} IS NOT NULL THEN 1 ELSE 0 END +
-                 CASE WHEN ${table.artworkId} IS NOT NULL THEN 1 ELSE 0 END
+                 CASE WHEN ${table.personalPropertyId} IS NOT NULL THEN 1 ELSE 0 END
                 ) = 1
             )`,
         ),
@@ -1295,6 +1285,29 @@ export const personalProperty = pgTable(
         status: recordStatus().default('ACTIVE').notNull(), // Consolidated status
         transferStatus: transferStatus().default('PENDING').notNull(),
         notes: t.text(),
+        // Photos (UploadThing CDN URLs) — attached when item is added via
+        // /forms/inventory. Up to 5 photos per item.
+        photoPath1: t.text(),
+        photoPath2: t.text(),
+        photoPath3: t.text(),
+        photoPath4: t.text(),
+        photoPath5: t.text(),
+        // AI analysis metadata from Opus 4.7 valuation at intake time.
+        // aiConfidence holds the reviewStatus enum value
+        // ('inventory_ready' | 'needs_admin_review' |
+        // 'needs_professional_appraisal') — column name kept for
+        // historical continuity with the pre-simplification schema.
+        aiSuggested: t.boolean().default(false).notNull(),
+        aiConfidence: t.text(),
+        aiServerOverrideReasons: t.text(),
+        aiBrand: t.text(),
+        aiModel: t.text(),
+        aiEra: t.text(),
+        aiMaterials: t.text(),
+        aiValuationRationale: t.text(),
+        aiConditionNotes: t.text(),
+        valueRangeLow: t.numeric({ precision: 12, scale: 2 }),
+        valueRangeHigh: t.numeric({ precision: 12, scale: 2 }),
         createdAt: t
             .timestamp({ precision: 3, mode: 'string', withTimezone: true })
             .default(sql`CURRENT_TIMESTAMP`)
@@ -1339,115 +1352,6 @@ export const personalProperty = pgTable(
 
 export type PersonalProperty = typeof personalProperty.$inferSelect
 export type InsertPersonalProperty = typeof personalProperty.$inferInsert
-
-// ============================================
-// Pending Inventory Items (Public Submission Queue)
-// ============================================
-
-export const pendingInventoryItem = pgTable(
-    'pending_inventory_item',
-    (t) => ({
-        id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
-        // Submission data
-        name: t.text().notNull(),
-        category: personalPropertyCategory().notNull(),
-        description: t.text(),
-        estimatedValue: t.numeric({ precision: 12, scale: 2 }),
-        valueRangeLow: t.numeric({ precision: 12, scale: 2 }),
-        valueRangeHigh: t.numeric({ precision: 12, scale: 2 }),
-        condition: itemCondition().notNull(),
-        // Photo references (local paths)
-        photoPath1: t.text(),
-        photoPath2: t.text(),
-        photoPath3: t.text(),
-        photoPath4: t.text(),
-        photoPath5: t.text(),
-        // AI analysis metadata. aiConfidence was repurposed 2026-04-21 to hold
-        // the action-oriented reviewStatus values Opus 4.7 returns
-        // ('inventory_ready' | 'needs_admin_review' |
-        // 'needs_professional_appraisal'). The column name is kept as-is to
-        // avoid migrating historical rows ('high' | 'medium' | 'low'); the
-        // admin UI accepts both shapes.
-        aiConfidence: t.text(),
-        aiSuggested: t.boolean().default(false).notNull(),
-        aiBrand: t.text(),
-        aiModel: t.text(),
-        aiEra: t.text(),
-        aiMaterials: t.text(),
-        aiValuationRationale: t.text(),
-        aiConditionNotes: t.text(),
-        // Deterministic server-side guardrail failures from
-        // applyReviewStatusOverrides (estimatedValue over the $3,000 Treas.
-        // Reg. § 20.2031-6(b) threshold, range inconsistency, <2 independent
-        // source URLs, etc). Persisted as newline-joined text rather than an
-        // array column so admin-queue rendering can stay trivially-simple;
-        // the submitter saw the same list at analyze time. Empty / null if
-        // no guardrails fired.
-        aiServerOverrideReasons: t.text(),
-        // Review workflow
-        status: submissionStatus().default('PENDING').notNull(),
-        reviewNotes: t.text(),
-        approvedAt: t.timestamp({
-            precision: 3,
-            mode: 'string',
-            withTimezone: true,
-        }),
-        approvedById: bigint({ mode: 'number' }),
-        // Target entity (set by admin on approval)
-        entityId: bigint({ mode: 'number' }),
-        // Submitter contact info
-        submitterName: t.text(),
-        submitterEmail: t.text(),
-        submitterPhone: t.text(),
-        // Tracking
-        createdAt: t
-            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
-            .default(sql`CURRENT_TIMESTAMP`)
-            .notNull(),
-        updatedAt: t
-            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
-            .notNull(),
-    }),
-    (table) => [
-        index('idx_pending_inventory_item_status').on(table.status),
-        index('idx_pending_inventory_item_entity_id').on(table.entityId),
-        index('idx_pending_inventory_item_created_at').on(
-            table.createdAt.desc(),
-        ),
-        foreignKey({
-            columns: [table.entityId],
-            foreignColumns: [entity.id],
-            name: 'pending_inventory_item_entity_id_fkey',
-        })
-            .onUpdate('cascade')
-            .onDelete('set null'),
-        pgPolicy('crud-authenticated-policy-select', {
-            as: 'permissive',
-            for: 'select',
-            to: ['authenticated'],
-            using: sql`( SELECT app.is_admin() AS is_admin)`,
-        }),
-        pgPolicy('crud-authenticated-policy-insert', {
-            as: 'permissive',
-            for: 'insert',
-            to: ['authenticated'],
-        }),
-        pgPolicy('crud-authenticated-policy-update', {
-            as: 'permissive',
-            for: 'update',
-            to: ['authenticated'],
-        }),
-        pgPolicy('crud-authenticated-policy-delete', {
-            as: 'permissive',
-            for: 'delete',
-            to: ['authenticated'],
-        }),
-    ],
-).enableRLS()
-
-export type PendingInventoryItem = typeof pendingInventoryItem.$inferSelect
-export type InsertPendingInventoryItem =
-    typeof pendingInventoryItem.$inferInsert
 
 // ============================================
 // Inventory Analysis Cache
@@ -1940,81 +1844,6 @@ export const task = pgTable(
 
 export type Task = typeof task.$inferSelect
 export type InsertTask = typeof task.$inferInsert
-
-// ============================================
-// Assets - Artwork
-// ============================================
-
-export const artwork = pgTable(
-    'artwork',
-    (t) => ({
-        id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
-        entityId: bigint({ mode: 'number' }).notNull(),
-        title: t.text().notNull(),
-        artist: t.text(),
-        medium: t.text(),
-        dimensions: t.text(),
-        acquisitionDate: t.timestamp({
-            precision: 3,
-            mode: 'string',
-            withTimezone: true,
-        }),
-        acquisitionCost: t.numeric({ precision: 12, scale: 2 }),
-        location: t.text(),
-        dodValue: t.numeric({ precision: 14, scale: 2 }),
-        dodValueDate: t.timestamp({
-            precision: 3,
-            mode: 'string',
-            withTimezone: true,
-        }),
-        dodValueType: valuationType(), // Consolidated
-        transferStatus: transferStatus().default('PENDING').notNull(),
-        status: recordStatus().default('ACTIVE').notNull(), // Consolidated status
-        notes: t.text(),
-        createdAt: t
-            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
-            .default(sql`CURRENT_TIMESTAMP`)
-            .notNull(),
-        updatedAt: t
-            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
-            .notNull(),
-    }),
-    (table) => [
-        index('idx_artwork_entity_id').on(table.entityId),
-        index('idx_artwork_status').on(table.status),
-        foreignKey({
-            columns: [table.entityId],
-            foreignColumns: [entity.id],
-            name: 'artwork_entity_id_fkey',
-        })
-            .onUpdate('cascade')
-            .onDelete('restrict'),
-        pgPolicy('crud-authenticated-policy-select', {
-            as: 'permissive',
-            for: 'select',
-            to: ['authenticated'],
-            using: sql`( SELECT app.is_admin() AS is_admin)`,
-        }),
-        pgPolicy('crud-authenticated-policy-insert', {
-            as: 'permissive',
-            for: 'insert',
-            to: ['authenticated'],
-        }),
-        pgPolicy('crud-authenticated-policy-update', {
-            as: 'permissive',
-            for: 'update',
-            to: ['authenticated'],
-        }),
-        pgPolicy('crud-authenticated-policy-delete', {
-            as: 'permissive',
-            for: 'delete',
-            to: ['authenticated'],
-        }),
-    ],
-).enableRLS()
-
-export type Artwork = typeof artwork.$inferSelect
-export type InsertArtwork = typeof artwork.$inferInsert
 
 // ============================================
 // Trustees

@@ -299,7 +299,6 @@ export function AccountingClient() {
                 homesteads,
                 rentalProperties,
                 vehicles,
-                artworkData,
                 personalPropertyData,
                 insurancePolicies,
                 liabilities,
@@ -310,7 +309,6 @@ export function AccountingClient() {
                 utils.homestead.list.fetch({ entityId }),
                 utils.rentalProperty.list.fetch({ entityId }),
                 utils.vehicle.list.fetch({ entityId }),
-                utils.artwork.list.fetch({ entityId }),
                 utils.personalProperty.list.fetch({ entityId }),
                 utils.insurancePolicy.list.fetch({ entityId }),
                 utils.liability.list.fetch({ entityId }),
@@ -335,7 +333,6 @@ export function AccountingClient() {
                 investmentAccountCount: investmentAccounts.length,
                 propertyCount: homesteads.length + rentalProperties.length,
                 vehicleCount: vehicles.length,
-                artworkCount: artworkData.length,
                 personalPropertyCount: personalPropertyData.length,
                 insurancePolicyCount: insurancePolicies.length,
                 liabilityCount: liabilities.length,
@@ -434,7 +431,6 @@ interface ReportHtmlParams {
     investmentAccountCount: number
     propertyCount: number
     vehicleCount: number
-    artworkCount: number
     personalPropertyCount: number
     insurancePolicyCount: number
     liabilityCount: number
@@ -475,7 +471,6 @@ function buildReportHtml(p: ReportHtmlParams): string {
   <p>Investment Accounts: ${p.investmentAccountCount} accounts</p>
   <p>Real Property: ${p.propertyCount} properties</p>
   <p>Vehicles: ${p.vehicleCount} vehicles</p>
-  <p>Artwork: ${p.artworkCount} items</p>
   <p>Personal Property: ${p.personalPropertyCount} items</p>
   <p>Insurance Policies: ${p.insurancePolicyCount} policies</p>
   <h2>Section 3: Liabilities</h2>

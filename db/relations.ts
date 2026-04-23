@@ -1,6 +1,5 @@
 import { relations } from 'drizzle-orm/relations'
 import {
-    artwork,
     bankAccount,
     beneficiary,
     contact,
@@ -14,7 +13,6 @@ import {
     investmentAccount,
     liability,
     liabilityPayment,
-    pendingInventoryItem,
     personalProperty,
     rentalProperty,
     specificBequest,
@@ -44,7 +42,6 @@ export const entityRelations = relations(entity, ({ one, many }) => ({
     investmentAccounts: many(investmentAccount),
     insurancePolicies: many(insurancePolicy),
     personalProperties: many(personalProperty),
-    artworks: many(artwork),
     documents: many(document),
     contactAssociations: many(contactAssociation),
     trustees: many(trustee),
@@ -57,7 +54,6 @@ export const entityRelations = relations(entity, ({ one, many }) => ({
     trusteeFeeSchedules: many(trusteeFeeSchedule),
     trusteeFeeEntries: many(trusteeFeeEntry),
     liabilities: many(liability),
-    pendingInventoryItems: many(pendingInventoryItem),
 }))
 
 export const vehicleRelations = relations(vehicle, ({ one, many }) => ({
@@ -184,10 +180,6 @@ export const valuationRelations = relations(valuation, ({ one }) => ({
         fields: [valuation.personalPropertyId],
         references: [personalProperty.id],
     }),
-    artwork: one(artwork, {
-        fields: [valuation.artworkId],
-        references: [artwork.id],
-    }),
 }))
 
 export const personalPropertyRelations = relations(
@@ -281,14 +273,6 @@ export const contactAssociationRelations = relations(
 export const contactRelations = relations(contact, ({ many }) => ({
     contactAssociations: many(contactAssociation),
     trustees: many(trustee),
-}))
-
-export const artworkRelations = relations(artwork, ({ one, many }) => ({
-    entity: one(entity, {
-        fields: [artwork.entityId],
-        references: [entity.id],
-    }),
-    valuations: many(valuation),
 }))
 
 export const trusteeRelations = relations(trustee, ({ one, many }) => ({
@@ -435,17 +419,6 @@ export const trusteeFeeEntryRelations = relations(
         schedule: one(trusteeFeeSchedule, {
             fields: [trusteeFeeEntry.scheduleId],
             references: [trusteeFeeSchedule.id],
-        }),
-    }),
-)
-
-// Pending Inventory Item Relations
-export const pendingInventoryItemRelations = relations(
-    pendingInventoryItem,
-    ({ one }) => ({
-        entity: one(entity, {
-            fields: [pendingInventoryItem.entityId],
-            references: [entity.id],
         }),
     }),
 )
