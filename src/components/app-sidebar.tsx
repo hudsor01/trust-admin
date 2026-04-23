@@ -43,6 +43,7 @@ export function AppSidebar() {
         '/accounts',
         '/vehicles',
         '/personal-property',
+        '/artwork',
         '/insurance',
     ].includes(pathname)
 
@@ -95,7 +96,17 @@ export function AppSidebar() {
             utils.entity.list.prefetch()
         },
         personalProperty: () => {
-            utils.personalProperty.list.prefetch({ entityId })
+            utils.personalProperty.list.prefetch({
+                entityId,
+                excludeCategory: 'ART',
+            })
+            utils.entity.list.prefetch()
+        },
+        artwork: () => {
+            utils.personalProperty.list.prefetch({
+                entityId,
+                category: 'ART',
+            })
             utils.entity.list.prefetch()
         },
         insurance: () => {
@@ -409,6 +420,23 @@ export function AppSidebar() {
                                                     <span>
                                                         Personal Property
                                                     </span>
+                                                </Link>
+                                            </SidebarMenuSubButton>
+                                        </SidebarMenuSubItem>
+                                        <SidebarMenuSubItem>
+                                            <SidebarMenuSubButton
+                                                asChild
+                                                isActive={
+                                                    pathname === '/artwork'
+                                                }
+                                            >
+                                                <Link
+                                                    href="/artwork"
+                                                    onMouseEnter={
+                                                        prefetch.artwork
+                                                    }
+                                                >
+                                                    <span>Artwork</span>
                                                 </Link>
                                             </SidebarMenuSubButton>
                                         </SidebarMenuSubItem>

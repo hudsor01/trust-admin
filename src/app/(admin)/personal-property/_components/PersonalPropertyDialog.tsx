@@ -26,6 +26,7 @@ interface PersonalPropertyDialogProps {
     formInstance: UseResourceFormReturn<
         ReturnType<typeof personalPropertyFormDefaults>
     >['formInstance']
+    mode?: 'personal-property' | 'artwork'
 }
 
 export function PersonalPropertyDialog({
@@ -35,14 +36,14 @@ export function PersonalPropertyDialog({
     onOpenChange,
     onSubmit,
     formInstance,
+    mode = 'personal-property',
 }: PersonalPropertyDialogProps) {
+    const noun = mode === 'artwork' ? 'Artwork' : 'Personal Property'
     return (
         <ResourceDialog
             open={isOpen}
             onOpenChange={onOpenChange}
-            title={
-                isEditing ? 'Edit Personal Property' : 'Add Personal Property'
-            }
+            title={isEditing ? `Edit ${noun}` : `Add ${noun}`}
             onSubmit={onSubmit}
             isLoading={isSubmitting}
         >

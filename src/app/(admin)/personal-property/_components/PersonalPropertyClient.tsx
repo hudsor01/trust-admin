@@ -20,18 +20,60 @@ import { formatCurrency } from '@/utils/formatters'
 import { PersonalPropertyDialog } from './PersonalPropertyDialog'
 import { PersonalPropertyTable } from './PersonalPropertyTable'
 
-const log = logger.create('PersonalProperty')
+type Mode = 'personal-property' | 'artwork'
 
-export function PersonalPropertyClient() {
+const COPY: Record<
+    Mode,
+    {
+        heading: string
+        subheading: string
+        addButton: string
+        deleteTitle: string
+        defaultCategory: string
+    }
+> = {
+    'personal-property': {
+        heading: 'Personal Property',
+        subheading: 'Manage personal property assets',
+        addButton: 'Add Personal Property',
+        deleteTitle: 'Delete Personal Property',
+        defaultCategory: 'OTHER',
+    },
+    artwork: {
+        heading: 'Artwork',
+        subheading: 'Manage artwork assets',
+        addButton: 'Add Artwork',
+        deleteTitle: 'Delete Artwork',
+        defaultCategory: 'ART',
+    },
+}
+
+const LOGGERS: Record<Mode, ReturnType<typeof logger.create>> = {
+    'personal-property': logger.create('PersonalProperty'),
+    artwork: logger.create('Artwork'),
+}
+
+interface PersonalPropertyClientProps {
+    mode?: Mode
+}
+
+export function PersonalPropertyClient({
+    mode = 'personal-property',
+}: PersonalPropertyClientProps) {
+    const copy = COPY[mode]
+    const log = LOGGERS[mode]
+
     const utils = trpc.useUtils()
     const { data: entities } = trpc.entity.list.useQuery()
     const entityId = entities?.[0]?.id
 
+    const listInput =
+        mode === 'artwork'
+            ? { entityId: entityId!, category: 'ART' as const }
+            : { entityId: entityId!, excludeCategory: 'ART' as const }
+
     const { data: items = [], isLoading: itemsLoading } =
-        trpc.personalProperty.list.useQuery(
-            { entityId: entityId! },
-            { enabled: !!entityId },
-        )
+        trpc.personalProperty.list.useQuery(listInput, { enabled: !!entityId })
 
     const createMutation = trpc.personalProperty.create.useMutation({
         onSuccess: () => utils.personalProperty.list.invalidate(),
@@ -49,7 +91,7 @@ export function PersonalPropertyClient() {
 
     const { dialogProps: deleteDialogProps, confirm: confirmDelete } =
         useConfirmDialog({
-            title: 'Delete Personal Property',
+            title: copy.deleteTitle,
             description:
                 'Are you sure you want to delete this item? This action cannot be undone.',
             confirmText: 'Delete',
@@ -62,7 +104,7 @@ export function PersonalPropertyClient() {
                         entityId: entityId!,
                     })
                 } catch (err) {
-                    log.error('Failed to delete personal property', {
+                    log.error('Failed to delete item', {
                         error: err,
                     })
                 } finally {
@@ -72,7 +114,10 @@ export function PersonalPropertyClient() {
         })
 
     const itemForm = useResourceForm({
-        initialData: personalPropertyFormDefaults(),
+        initialData: {
+            ...personalPropertyFormDefaults(),
+            category: copy.defaultCategory,
+        },
         onSubmit: async (data) => {
             const payload = {
                 entityId: entityId!,
@@ -141,10 +186,10 @@ export function PersonalPropertyClient() {
                     data: updates,
                 })
             } catch (err) {
-                log.error('Failed to update personal property', { error: err })
+                log.error('Failed to update item', { error: err })
             }
         },
-        [updateMutation, entityId],
+        [updateMutation, entityId, log],
     )
 
     const totalValue = sumStrings(items.map((p) => p.dodValue))
@@ -154,10 +199,10 @@ export function PersonalPropertyClient() {
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-2xl font-semibold tracking-tight">
-                        Personal Property
+                        {copy.heading}
                     </h2>
                     <p className="text-sm text-muted-foreground">
-                        Manage personal property assets
+                        {copy.subheading}
                         {items.length > 0 &&
                             ` - Total DOD Value: ${formatCurrency(totalValue)}`}
                     </p>
@@ -167,7 +212,7 @@ export function PersonalPropertyClient() {
             <div className="flex justify-end">
                 <Button onClick={itemForm.handleAdd}>
                     <Plus className="h-4 w-4 mr-2" />
-                    Add Personal Property
+                    {copy.addButton}
                 </Button>
             </div>
 
@@ -186,6 +231,7 @@ export function PersonalPropertyClient() {
                 onOpenChange={itemForm.close}
                 onSubmit={itemForm.handleSave}
                 formInstance={itemForm.formInstance}
+                mode={mode}
             />
 
             <ConfirmDialog {...deleteDialogProps} />
