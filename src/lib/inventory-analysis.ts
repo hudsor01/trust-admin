@@ -648,11 +648,20 @@ async function runAgenticLoop(
         ] as Anthropic.ToolUnion[],
     }
 
+    // Stream instead of non-streaming .create() because Opus 4.7 at xhigh
+    // effort + web_search + code_execution can exceed the SDK's 10-minute
+    // timeout ceiling on non-streaming requests ("Streaming is required for
+    // operations that may take longer than 10 minutes" — Anthropic SDK
+    // calculateNonstreamingTimeout). .finalMessage() resolves to the same
+    // Message shape as .create() once the stream completes, so the rest of
+    // the agentic loop is identical.
+    const createMessage = (msgs: Anthropic.MessageParam[]) =>
+        client.messages
+            .stream({ ...createParams, messages: msgs })
+            .finalMessage()
+
     let currentMessages = messages
-    let response = await client.messages.create({
-        ...createParams,
-        messages: currentMessages,
-    })
+    let response = await createMessage(currentMessages)
 
     let turns = 0
 
@@ -676,10 +685,7 @@ async function runAgenticLoop(
                         'Continue your analysis. Call record_valuation when ready.',
                 },
             ]
-            response = await client.messages.create({
-                ...createParams,
-                messages: currentMessages,
-            })
+            response = await createMessage(currentMessages)
             continue
         }
 
@@ -732,10 +738,7 @@ async function runAgenticLoop(
             { role: 'assistant', content: response.content },
         ]
 
-        response = await client.messages.create({
-            ...createParams,
-            messages: currentMessages,
-        })
+        response = await createMessage(currentMessages)
     }
 
     throw new Error(
