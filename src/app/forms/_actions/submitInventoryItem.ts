@@ -1,11 +1,13 @@
 'use server'
 
+import { and, eq, gt } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '@/db'
-import { pendingInventoryItem } from '@/db/schema'
+import { inventoryAnalysisCache, pendingInventoryItem } from '@/db/schema'
 import { hasInventoryAccess } from '@/lib/inventory-access'
 import {
     applyReviewStatusOverrides,
+    InventoryAnalysisSchema,
     mapToDbCategory,
 } from '@/lib/inventory-analysis'
 import { logger } from '@/lib/logger'
@@ -32,6 +34,12 @@ const formSchema = z.object({
     photoPath3: z.string().optional(),
     photoPath4: z.string().optional(),
     photoPath5: z.string().optional(),
+    // UUID pointing at inventory_analysis_cache. Optional so manual
+    // submissions (no AI analysis) still work. When present and valid, the
+    // server uses the cached analysis as the source of truth for
+    // guardrail checks — client-submitted aiReviewStatus / estimatedValue
+    // / valuationRationale are NOT trusted for override decisions.
+    analysisId: z.string().uuid().optional(),
     aiReviewStatus: z
         .enum([
             'inventory_ready',
@@ -39,13 +47,14 @@ const formSchema = z.object({
             'needs_professional_appraisal',
         ])
         .optional(),
-    // Deliberately NOT reading aiServerOverrideReasons from the client. We
-    // re-derive server-side below so a motivated submitter can't strip the
-    // evidence trail out of the hidden input before the admin sees it.
+    // aiServerOverrideReasons is deliberately absent from the schema —
+    // computed server-side from the cached analysis only.
     aiSuggested: z.coerce.boolean().optional(),
     aiBrand: z.string().optional(),
     aiModel: z.string().optional(),
     aiEra: z.string().optional(),
+    // Serialized as JSON string; parsed server-side. Previous comma-join
+    // round-trip broke on materials with embedded commas ("brass, bronze").
     aiMaterials: z.string().optional(),
     aiValuationRationale: z.string().optional(),
     aiConditionNotes: z.string().optional(),
@@ -65,7 +74,6 @@ export async function submitInventoryItem(
     _prevState: InventoryFormState,
     formData: FormData,
 ): Promise<InventoryFormState> {
-    // Guard: enforce same access check as the layout — prevents direct POST bypass
     if (!(await hasInventoryAccess())) {
         return { success: false, error: 'Access denied' }
     }
@@ -83,6 +91,7 @@ export async function submitInventoryItem(
         photoPath3: formData.get('photoPath3') || undefined,
         photoPath4: formData.get('photoPath4') || undefined,
         photoPath5: formData.get('photoPath5') || undefined,
+        analysisId: formData.get('analysisId') || undefined,
         aiReviewStatus: formData.get('aiReviewStatus') || undefined,
         aiSuggested: formData.get('aiSuggested') === 'true',
         aiBrand: formData.get('aiBrand') || undefined,
@@ -109,40 +118,62 @@ export async function submitInventoryItem(
         }
     }
 
-    // Re-derive server-side overrides from the submitted evidence so the
-    // persisted row reflects the true guardrail state — not whatever the
-    // client chose to send (or strip). Mirrors the "trust but verify"
-    // pattern applied at /api/inventory/analyze. Only runs when aiSuggested
-    // is true; a manually-entered item has no AI evidence to check.
-    let rederivedReviewStatus = result.data.aiReviewStatus ?? null
+    // Look up the cached analysis if the client sent an id. This row was
+    // written by /api/inventory/analyze at the moment Opus produced the
+    // valuation — it is IMMUNE to client DOM tampering between analyze
+    // and submit. We run applyReviewStatusOverrides on THIS, not on
+    // result.data, so a submitter can't lower estimatedValue in the form
+    // to slip past the $3,000 / range / URL guardrails.
+    let rederivedReviewStatus: string | null = null
     let rederivedOverrideReasons: string | null = null
-    if (result.data.aiSuggested && result.data.aiReviewStatus) {
-        const { analysis: gated, overrideReasons } = applyReviewStatusOverrides(
-            {
-                name: result.data.name,
-                category: 'other',
-                brand: result.data.aiBrand ?? null,
-                model: result.data.aiModel ?? null,
-                materials: result.data.aiMaterials
-                    ? result.data.aiMaterials.split(',').map((s) => s.trim())
-                    : [],
-                era: result.data.aiEra ?? null,
-                estimatedValue: result.data.estimatedValue ?? '0',
-                valueRangeLow: result.data.valueRangeLow ?? '0',
-                valueRangeHigh: result.data.valueRangeHigh ?? '0',
-                condition: result.data.condition,
-                conditionNotes: result.data.aiConditionNotes ?? '',
-                description: result.data.description ?? '',
-                valuationRationale: result.data.aiValuationRationale ?? '',
-                reviewStatus: result.data.aiReviewStatus,
-                reviewNotes: '',
-                rawCategory: 'other',
-                dbCategory: mapToDbCategory(result.data.category),
-            },
-        )
-        rederivedReviewStatus = gated.reviewStatus
-        rederivedOverrideReasons =
-            overrideReasons.length > 0 ? overrideReasons.join('\n') : null
+    if (result.data.analysisId) {
+        try {
+            const [cached] = await db
+                .select({ analysisJson: inventoryAnalysisCache.analysisJson })
+                .from(inventoryAnalysisCache)
+                .where(
+                    and(
+                        eq(inventoryAnalysisCache.id, result.data.analysisId),
+                        gt(
+                            inventoryAnalysisCache.expiresAt,
+                            new Date().toISOString(),
+                        ),
+                    ),
+                )
+                .limit(1)
+            if (cached?.analysisJson) {
+                const parsed = InventoryAnalysisSchema.safeParse(
+                    cached.analysisJson,
+                )
+                if (parsed.success) {
+                    const { analysis: gated, overrideReasons } =
+                        applyReviewStatusOverrides({
+                            ...parsed.data,
+                            rawCategory: parsed.data.category,
+                            dbCategory: mapToDbCategory(parsed.data.category),
+                        })
+                    rederivedReviewStatus = gated.reviewStatus
+                    rederivedOverrideReasons =
+                        overrideReasons.length > 0
+                            ? overrideReasons.join('\n')
+                            : null
+                } else {
+                    log.warn(
+                        'Cached analysis failed schema validation; falling back to no-AI-metadata submit',
+                        { analysisId: result.data.analysisId },
+                    )
+                }
+            } else {
+                // Missing or expired row — treat as no-AI-metadata submit.
+                // The user can retry the analysis if they want the flag.
+                log.warn(
+                    'analysisId not found or expired; AI metadata will not be persisted',
+                    { analysisId: result.data.analysisId },
+                )
+            }
+        } catch (err) {
+            log.error('inventory_analysis_cache lookup failed', { error: err })
+        }
     }
 
     try {
@@ -161,9 +192,14 @@ export async function submitInventoryItem(
                 photoPath3: result.data.photoPath3 || null,
                 photoPath4: result.data.photoPath4 || null,
                 photoPath5: result.data.photoPath5 || null,
+                // aiConfidence column stores the *server-derived* reviewStatus
+                // from the cached analysis. Falls back to null if no cache
+                // hit, so a tampered submission without a valid analysisId
+                // lands as "not AI-suggested" and the admin sees it as a
+                // manual entry — not "inventory_ready" by default.
                 aiConfidence: rederivedReviewStatus,
                 aiServerOverrideReasons: rederivedOverrideReasons,
-                aiSuggested: result.data.aiSuggested || false,
+                aiSuggested: rederivedReviewStatus !== null,
                 aiBrand: result.data.aiBrand || null,
                 aiModel: result.data.aiModel || null,
                 aiEra: result.data.aiEra || null,

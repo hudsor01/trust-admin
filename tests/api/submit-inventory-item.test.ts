@@ -1,4 +1,4 @@
-/** Tests for submitInventoryItem — trust-boundary behavior on review status */
+/** Tests for submitInventoryItem — trust-boundary on reviewStatus via cached analysis */
 
 import { beforeEach, describe, expect, mock, test } from 'bun:test'
 
@@ -6,11 +6,12 @@ mock.module('../../src/lib/inventory-access', () => ({
     hasInventoryAccess: () => Promise.resolve(true),
 }))
 
-// Mock applyReviewStatusOverrides explicitly so this test is self-contained
-// regardless of other test files in the run (bun's mock.module state can
-// leak across files). We assert what the SERVER ACTION does with the result
-// — not re-verify the override math, which is covered by
-// tests/lib/inventory-analysis.test.ts.
+// Explicit pass-through mock. In a multi-file bun test run, sibling test
+// files (e.g. tests/api/inventory-analyze.test.ts) also register
+// mock.module('../../src/lib/inventory-analysis', …), and bun's module
+// cache means the last writer wins for the whole process. Rather than
+// rely on file ordering, this test explicitly provides the functions
+// submitInventoryItem needs AND captures what was passed in.
 const mockApplyReviewStatusOverrides = mock(
     (analysis: Record<string, unknown>) => ({
         analysis,
@@ -18,14 +19,20 @@ const mockApplyReviewStatusOverrides = mock(
     }),
 )
 const mockMapToDbCategory = mock((_c: string) => 'OTHER' as const)
+// Permissive schema mock so submit action treats the cached JSON as valid.
+const mockSchemaParse = mock((input: unknown) => ({
+    success: true,
+    data: input as Record<string, unknown>,
+}))
 mock.module('../../src/lib/inventory-analysis', () => ({
     applyReviewStatusOverrides: mockApplyReviewStatusOverrides,
     mapToDbCategory: mockMapToDbCategory,
+    InventoryAnalysisSchema: { safeParse: mockSchemaParse },
 }))
 
 // Capture the values passed to db.insert().values() so we can assert the
-// server re-derived reviewStatus / aiServerOverrideReasons rather than
-// using whatever the client sent.
+// server re-derived reviewStatus / aiServerOverrideReasons from the cached
+// analysis, NOT from the client form data.
 let capturedInsertValues: Record<string, unknown> | null = null
 const mockReturning = mock(() => Promise.resolve([{ id: 123 }]))
 const mockValues = mock((v: Record<string, unknown>) => {
@@ -34,12 +41,33 @@ const mockValues = mock((v: Record<string, unknown>) => {
 })
 const mockInsert = mock(() => ({ values: mockValues }))
 
+let cachedAnalysis: unknown = null
+const mockLimit = mock(() =>
+    Promise.resolve(
+        cachedAnalysis !== null ? [{ analysisJson: cachedAnalysis }] : [],
+    ),
+)
+const mockWhere = mock(() => ({ limit: mockLimit }))
+const mockFrom = mock(() => ({ where: mockWhere }))
+const mockSelect = mock(() => ({ from: mockFrom }))
+
 mock.module('../../db', () => ({
-    db: { insert: mockInsert },
+    db: { insert: mockInsert, select: mockSelect },
 }))
 
 mock.module('../../db/schema', () => ({
-    pendingInventoryItem: { _: 'mocked-table' },
+    pendingInventoryItem: { _: 'mocked-pending-item' },
+    inventoryAnalysisCache: {
+        id: 'mocked-id',
+        analysisJson: 'mocked-analysis-json',
+        expiresAt: 'mocked-expires-at',
+    },
+}))
+
+mock.module('drizzle-orm', () => ({
+    and: () => 'and',
+    eq: () => 'eq',
+    gt: () => 'gt',
 }))
 
 const { submitInventoryItem } = await import(
@@ -54,69 +82,163 @@ function buildFormData(fields: Record<string, string | undefined>): FormData {
     return fd
 }
 
-describe('submitInventoryItem server action', () => {
+function freshCachedAnalysis(overrides: Record<string, unknown> = {}) {
+    return {
+        name: 'Painting',
+        category: 'artwork',
+        brand: null,
+        model: null,
+        materials: [],
+        era: null,
+        estimatedValue: '22000.00',
+        valueRangeLow: '18000.00',
+        valueRangeHigh: '30000.00',
+        condition: 'good',
+        conditionNotes: '',
+        description: '',
+        valuationRationale: 'https://heritage.com/a; https://artnet.com/b',
+        reviewStatus: 'needs_professional_appraisal',
+        reviewNotes: '',
+        ...overrides,
+    }
+}
+
+describe('submitInventoryItem server action — cached-analysis trust boundary', () => {
     beforeEach(() => {
         capturedInsertValues = null
+        cachedAnalysis = null
         mockInsert.mockClear()
         mockValues.mockClear()
         mockReturning.mockClear()
         mockReturning.mockImplementation(() => Promise.resolve([{ id: 123 }]))
+        mockSelect.mockClear()
+        mockFrom.mockClear()
+        mockWhere.mockClear()
+        mockLimit.mockClear()
         mockApplyReviewStatusOverrides.mockClear()
-        // Default: passthrough (no overrides fired)
         mockApplyReviewStatusOverrides.mockImplementation((analysis) => ({
             analysis,
             overrideReasons: [],
         }))
+        mockSchemaParse.mockClear()
+        mockSchemaParse.mockImplementation((input) => ({
+            success: true,
+            data: input,
+        }))
     })
 
-    test('uses applyReviewStatusOverrides output, not client-sent aiServerOverrideReasons', async () => {
-        // Client submits with a forged-empty aiServerOverrideReasons AND a
-        // claimed inventory_ready. The server's override function returns
-        // needs_professional_appraisal + a reason. The persisted row MUST
-        // reflect the server's output, not the client's claim.
+    test('passes CACHED (not client-submitted) values to applyReviewStatusOverrides', async () => {
+        // The critical wiring-level assertion: the function is called with
+        // cached analysis fields, NOT the client-submitted form fields.
+        // This is what closes the DOM-tampering trust boundary.
+        const cached = freshCachedAnalysis({
+            estimatedValue: '22000.00',
+            valueRangeLow: '18000.00',
+            valueRangeHigh: '30000.00',
+            valuationRationale:
+                'Heritage https://heritage.com/a; Artnet https://artnet.com/b',
+            reviewStatus: 'needs_professional_appraisal',
+        })
+        cachedAnalysis = cached
+
+        // Make the mock simulate the real function's behavior for this test:
+        // escalate + emit an override reason.
         mockApplyReviewStatusOverrides.mockImplementationOnce((analysis) => ({
             analysis: {
                 ...(analysis as Record<string, unknown>),
                 reviewStatus: 'needs_professional_appraisal',
             },
             overrideReasons: [
-                'Server override: estimatedValue exceeds $3,000.',
+                'Server override: estimatedValue $22,000 exceeds $3,000.',
             ],
         }))
 
         const fd = buildFormData({
-            name: 'Painting',
+            name: 'Cheap print',
             category: 'ART',
             condition: 'good',
-            estimatedValue: '8500.00',
-            valueRangeLow: '7000.00',
-            valueRangeHigh: '10000.00',
+            // Client attempts to submit much lower values
+            estimatedValue: '500.00',
+            valueRangeLow: '400.00',
+            valueRangeHigh: '600.00',
             aiReviewStatus: 'inventory_ready',
-            aiSuggested: 'true',
-            aiValuationRationale: 'comps: https://example.com/a',
-            // Client tries to hide the override evidence:
-            aiServerOverrideReasons: 'ignored — do not trust client',
+            aiValuationRationale:
+                'https://example.com/a and https://example.com/b',
+            analysisId: '11111111-2222-4333-8444-555555555555',
         })
         const result = await submitInventoryItem({ success: false }, fd)
-
         expect(result.success).toBe(true)
-        expect(capturedInsertValues).not.toBeNull()
+
+        // The override function was called with CACHED fields, not client-form fields
+        expect(mockApplyReviewStatusOverrides).toHaveBeenCalledTimes(1)
+        const [arg] = mockApplyReviewStatusOverrides.mock.calls[0] ?? []
+        const argRec = arg as Record<string, unknown>
+        expect(argRec.estimatedValue).toBe('22000.00')
+        expect(argRec.valueRangeLow).toBe('18000.00')
+        expect(argRec.valueRangeHigh).toBe('30000.00')
+        expect(argRec.valuationRationale).toContain('heritage.com')
+        // NOT the tampered client-form values
+        expect(argRec.estimatedValue).not.toBe('500.00')
+        expect(argRec.valuationRationale).not.toContain('example.com')
+
+        // Row persisted with server-derived status + reasons
         expect(capturedInsertValues?.aiConfidence).toBe(
             'needs_professional_appraisal',
         )
-        // Server-rendered reasons, NOT the client-supplied string
-        expect(capturedInsertValues?.aiServerOverrideReasons).toBe(
-            'Server override: estimatedValue exceeds $3,000.',
+        expect(capturedInsertValues?.aiServerOverrideReasons).toMatch(
+            /exceeds \$3,000/,
         )
+        // Form-supplied display values still flow through for admin visibility
+        expect(capturedInsertValues?.name).toBe('Cheap print')
+        expect(capturedInsertValues?.estimatedValue).toBe('500.00')
     })
 
-    test('non-AI submission skips applyReviewStatusOverrides and leaves AI fields null', async () => {
+    test('clean cached analysis yields the status the override function returns', async () => {
+        cachedAnalysis = freshCachedAnalysis({
+            estimatedValue: '35.00',
+            valueRangeLow: '25.00',
+            valueRangeHigh: '60.00',
+            reviewStatus: 'inventory_ready',
+        })
         const fd = buildFormData({
-            name: 'Garage shelving',
+            name: 'IKEA KALLAX',
+            category: 'FURNITURE',
+            condition: 'good',
+            estimatedValue: '35.00',
+            analysisId: '22222222-3333-4444-8555-666666666666',
+        })
+        const result = await submitInventoryItem({ success: false }, fd)
+        expect(result.success).toBe(true)
+        expect(capturedInsertValues?.aiConfidence).toBe('inventory_ready')
+        expect(capturedInsertValues?.aiServerOverrideReasons).toBeNull()
+        expect(capturedInsertValues?.aiSuggested).toBe(true)
+    })
+
+    test('missing analysisId → row stored as non-AI (no false inventory_ready)', async () => {
+        const fd = buildFormData({
+            name: 'Manual entry',
             category: 'OTHER',
             condition: 'good',
             estimatedValue: '100.00',
-            aiSuggested: 'false',
+            aiReviewStatus: 'inventory_ready',
+        })
+        const result = await submitInventoryItem({ success: false }, fd)
+        expect(result.success).toBe(true)
+        expect(mockApplyReviewStatusOverrides).not.toHaveBeenCalled()
+        expect(capturedInsertValues?.aiConfidence).toBeNull()
+        expect(capturedInsertValues?.aiServerOverrideReasons).toBeNull()
+        expect(capturedInsertValues?.aiSuggested).toBe(false)
+    })
+
+    test('stale / expired analysisId → treated as non-AI', async () => {
+        cachedAnalysis = null
+        const fd = buildFormData({
+            name: 'Expired cache test',
+            category: 'ART',
+            condition: 'good',
+            estimatedValue: '100.00',
+            analysisId: '33333333-4444-4555-8666-777777777777',
+            aiReviewStatus: 'inventory_ready',
         })
         const result = await submitInventoryItem({ success: false }, fd)
         expect(result.success).toBe(true)
@@ -125,23 +247,23 @@ describe('submitInventoryItem server action', () => {
         expect(capturedInsertValues?.aiServerOverrideReasons).toBeNull()
     })
 
-    test('AI submission with no overrides stores reviewStatus but null reasons', async () => {
+    test('cached analysis failing schema validation → treated as non-AI', async () => {
+        cachedAnalysis = { some: 'garbage' }
+        mockSchemaParse.mockImplementationOnce(() => ({
+            success: false,
+            data: null,
+        }))
         const fd = buildFormData({
-            name: 'IKEA shelf',
-            category: 'FURNITURE',
+            name: 'Malformed cache',
+            category: 'OTHER',
             condition: 'good',
-            estimatedValue: '35.00',
-            valueRangeLow: '25.00',
-            valueRangeHigh: '60.00',
+            estimatedValue: '100.00',
+            analysisId: '44444444-5555-4666-8777-888888888888',
             aiReviewStatus: 'inventory_ready',
-            aiSuggested: 'true',
-            aiValuationRationale:
-                'https://ebay.com/a $35, https://facebook.com/b $40',
         })
         const result = await submitInventoryItem({ success: false }, fd)
         expect(result.success).toBe(true)
-        expect(mockApplyReviewStatusOverrides).toHaveBeenCalledTimes(1)
-        expect(capturedInsertValues?.aiConfidence).toBe('inventory_ready')
-        expect(capturedInsertValues?.aiServerOverrideReasons).toBeNull()
+        expect(mockApplyReviewStatusOverrides).not.toHaveBeenCalled()
+        expect(capturedInsertValues?.aiConfidence).toBeNull()
     })
 })

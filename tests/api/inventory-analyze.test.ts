@@ -36,6 +36,13 @@ const mockDbChain = {
     where: mock(() => mockDbChain),
     orderBy: mock(() => mockDbChain),
     limit: mock(() => Promise.resolve([])),
+    // db.insert(table).values({...}).returning({id}) — used by the
+    // inventory_analysis_cache write.
+    insert: mock(() => mockDbChain),
+    values: mock(() => mockDbChain),
+    returning: mock(() =>
+        Promise.resolve([{ id: '00000000-0000-0000-0000-000000000000' }]),
+    ),
 }
 
 mock.module('../../db', () => ({
@@ -50,6 +57,10 @@ mock.module('../../db/schema', () => ({
         correctedValue: 'corrected_value',
         entityId: 'entity_id',
         createdAt: 'created_at',
+    },
+    inventoryAnalysisCache: {
+        id: 'cache_id',
+        analysisJson: 'analysis_json',
     },
 }))
 
@@ -230,6 +241,48 @@ describe('POST /api/inventory/analyze', () => {
 
             expect(data.data.dbCategory).toBe('FURNITURE')
             expect(data.data.rawCategory).toBe('Furniture')
+        })
+
+        test('returns an analysisId pointing at the persisted cache row', async () => {
+            mockUploadFiles.mockResolvedValueOnce([
+                {
+                    data: { ufsUrl: 'https://utfs.io/f/test.jpg' },
+                    error: null,
+                },
+            ])
+            // Override returning to yield a specific id so we can assert it
+            mockDbChain.returning.mockImplementationOnce(() =>
+                Promise.resolve([
+                    { id: 'deadbeef-dead-beef-dead-beefdeadbeef' },
+                ]),
+            )
+            const image = await createTestImageBase64()
+            const request = createRequest({ images: [image] })
+            const response = await POST(request as never)
+            const data = await response.json()
+            expect(response.status).toBe(200)
+            expect(data.analysisId).toBe('deadbeef-dead-beef-dead-beefdeadbeef')
+        })
+
+        test('cache insert failure does not break analysis response', async () => {
+            mockUploadFiles.mockResolvedValueOnce([
+                {
+                    data: { ufsUrl: 'https://utfs.io/f/test.jpg' },
+                    error: null,
+                },
+            ])
+            mockDbChain.returning.mockImplementationOnce(() =>
+                Promise.reject(new Error('DB cache write failed')),
+            )
+            const image = await createTestImageBase64()
+            const request = createRequest({ images: [image] })
+            const response = await POST(request as never)
+            const data = await response.json()
+            expect(response.status).toBe(200)
+            expect(data.success).toBe(true)
+            // analysisId falls back to empty string, signaling the submit
+            // action to treat the submission as non-AI (safer default)
+            expect(data.analysisId).toBe('')
         })
 
         test('appends server-side override reasons to validationWarnings AND exposes them separately', async () => {

@@ -173,6 +173,12 @@ export function InventoryForm() {
     const [analysisError, setAnalysisError] = useState<string | null>(null)
     const [validationWarnings, setValidationWarnings] = useState<string[]>([])
     const [photoLimitError, setPhotoLimitError] = useState<string | null>(null)
+    // Opaque UUID pointing at the server-persisted analysis. The submit
+    // server action re-derives reviewStatus overrides from the stored
+    // analysis, not from the form's editable fields — DOM-tampering
+    // between analyze and submit cannot bypass the $3k / range / URL
+    // guardrails.
+    const [analysisId, setAnalysisId] = useState<string>('')
 
     // AI analysis pre-fills these; user can override before submit
     const [formValues, setFormValues] = useState({
@@ -203,6 +209,7 @@ export function InventoryForm() {
             setAnalysis(null)
             setAnalysisError(null)
             setValidationWarnings([])
+            setAnalysisId('')
         },
         [photos.length],
     )
@@ -221,6 +228,7 @@ export function InventoryForm() {
             setAnalysis(null)
             setAnalysisError(null)
             setValidationWarnings([])
+            setAnalysisId('')
         },
         [previewUrls],
     )
@@ -270,6 +278,9 @@ export function InventoryForm() {
                 }
                 if (data.validationWarnings) {
                     setValidationWarnings(data.validationWarnings)
+                }
+                if (typeof data.analysisId === 'string' && data.analysisId) {
+                    setAnalysisId(data.analysisId)
                 }
                 setFormValues({
                     name: data.data.name || '',
@@ -806,6 +817,13 @@ export function InventoryForm() {
                     {/* AI metadata passed to server action via hidden fields */}
                     {analysis && (
                         <>
+                            {analysisId && (
+                                <input
+                                    type="hidden"
+                                    name="analysisId"
+                                    value={analysisId}
+                                />
+                            )}
                             <input
                                 type="hidden"
                                 name="aiReviewStatus"
@@ -831,10 +849,16 @@ export function InventoryForm() {
                                 name="aiEra"
                                 value={analysis.era || ''}
                             />
+                            {/* JSON-encoded so materials like "brass, bronze
+                                fittings" round-trip correctly (a prior
+                                comma-join splitter silently split on the
+                                embedded comma). Submit action parses via
+                                JSON.parse and falls back to the raw string
+                                for legacy rows. */}
                             <input
                                 type="hidden"
                                 name="aiMaterials"
-                                value={analysis.materials.join(', ')}
+                                value={JSON.stringify(analysis.materials)}
                             />
                             <input
                                 type="hidden"
