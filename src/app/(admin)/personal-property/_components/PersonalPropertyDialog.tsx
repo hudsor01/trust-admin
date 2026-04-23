@@ -15,6 +15,7 @@ import type { UseResourceFormReturn } from '@/hooks/use-resource-form'
 import { DOD_VALUE_TYPES, TRANSFER_STATUS } from '@/lib/constants'
 import type { personalPropertyFormDefaults } from '@/lib/form-factory'
 import { getFieldError } from '@/lib/form-helpers'
+import type { PersonalPropertyMode } from './PersonalPropertyClient'
 import { ASSET_STATUS, CATEGORY_OPTIONS } from './PersonalPropertyTable'
 
 interface PersonalPropertyDialogProps {
@@ -26,7 +27,7 @@ interface PersonalPropertyDialogProps {
     formInstance: UseResourceFormReturn<
         ReturnType<typeof personalPropertyFormDefaults>
     >['formInstance']
-    mode?: 'personal-property' | 'artwork'
+    mode?: PersonalPropertyMode
     categoryOptions?: { value: string; label: string }[]
 }
 
