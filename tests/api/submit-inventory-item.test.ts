@@ -164,7 +164,7 @@ describe('submitInventoryItem — direct insert into personal_property', () => {
         }))
     })
 
-    test('passes cached analysis (not form data) to applyReviewStatusOverrides', async () => {
+    test('uses cached reviewStatus directly (no client override), form display values flow through', async () => {
         cachedAnalysis = freshCachedAnalysis({
             estimatedValue: '22000.00',
             valueRangeLow: '18000.00',
@@ -173,15 +173,6 @@ describe('submitInventoryItem — direct insert into personal_property', () => {
                 'Heritage https://heritage.com/a; Artnet https://artnet.com/b',
             reviewStatus: 'needs_professional_appraisal',
         })
-        mockApplyReviewStatusOverrides.mockImplementationOnce((analysis) => ({
-            analysis: {
-                ...(analysis as Record<string, unknown>),
-                reviewStatus: 'needs_professional_appraisal',
-            },
-            overrideReasons: [
-                'Server override: estimatedValue $22,000 exceeds $3,000.',
-            ],
-        }))
 
         const fd = buildFormData({
             name: 'Cheap print',
@@ -198,21 +189,16 @@ describe('submitInventoryItem — direct insert into personal_property', () => {
         const result = await submitInventoryItem({ success: false }, fd)
 
         expect(result.success).toBe(true)
-        // applyReviewStatusOverrides called with CACHED fields, not client-form fields
-        expect(mockApplyReviewStatusOverrides).toHaveBeenCalledTimes(1)
-        const [arg] = mockApplyReviewStatusOverrides.mock.calls[0] ?? []
-        const argRec = arg as Record<string, unknown>
-        expect(argRec.estimatedValue).toBe('22000.00')
-        expect(argRec.valueRangeLow).toBe('18000.00')
-        expect(argRec.valueRangeHigh).toBe('30000.00')
-
-        // Row persisted with server-derived status + reasons, not the form's claim
+        // Estate-tax override guardrails were removed alongside the
+        // managed-agent swap (see commit swap-to-managed-agent). The stored
+        // reviewStatus from the cached analysis is written directly to the
+        // aiConfidence column — client-submitted aiReviewStatus is ignored.
+        expect(mockApplyReviewStatusOverrides).not.toHaveBeenCalled()
         expect(capturedInsertValues?.aiConfidence).toBe(
             'needs_professional_appraisal',
         )
-        expect(capturedInsertValues?.aiServerOverrideReasons).toMatch(
-            /exceeds \$3,000/,
-        )
+        // With overrides removed, aiServerOverrideReasons is always null.
+        expect(capturedInsertValues?.aiServerOverrideReasons).toBeNull()
         // Form display values still flow through (dodValue = estimatedValue)
         expect(capturedInsertValues?.name).toBe('Cheap print')
         expect(capturedInsertValues?.dodValue).toBe('500.00')

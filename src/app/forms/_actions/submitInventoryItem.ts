@@ -6,11 +6,7 @@ import { db } from '@/db'
 import { entity, inventoryAnalysisCache, personalProperty } from '@/db/schema'
 import { authServer } from '@/lib/auth/server'
 import { env } from '@/lib/env'
-import {
-    applyReviewStatusOverrides,
-    InventoryAnalysisSchema,
-    mapToDbCategory,
-} from '@/lib/inventory-analysis'
+import { InventoryAnalysisSchema } from '@/lib/inventory-analysis'
 import { logger } from '@/lib/logger'
 
 const log = logger.create('Inventory')
@@ -120,13 +116,12 @@ export async function submitInventoryItem(
     }
 
     // Look up the cached analysis if the client sent an id. This row was
-    // written by /api/inventory/analyze at the moment Opus produced the
-    // valuation — immune to client DOM tampering between analyze and
-    // submit. Run applyReviewStatusOverrides on the STORED values, not on
-    // result.data, so the submitter can't edit hidden inputs to slip past
-    // the $3,000 / range / URL guardrails.
-    let rederivedReviewStatus: string | null = null
-    let rederivedOverrideReasons: string | null = null
+    // written by /api/inventory/analyze at the moment the managed agent
+    // produced the valuation — immune to client DOM tampering between
+    // analyze and submit. We use the stored reviewStatus directly (the
+    // old estate-tax guardrail overrides have been dropped — user isn't
+    // filing a sworn inventory via this path right now).
+    let cachedReviewStatus: string | null = null
     if (result.data.analysisId) {
         try {
             const [cached] = await db
@@ -147,17 +142,7 @@ export async function submitInventoryItem(
                     cached.analysisJson,
                 )
                 if (parsed.success) {
-                    const { analysis: gated, overrideReasons } =
-                        applyReviewStatusOverrides({
-                            ...parsed.data,
-                            rawCategory: parsed.data.category,
-                            dbCategory: mapToDbCategory(parsed.data.category),
-                        })
-                    rederivedReviewStatus = gated.reviewStatus
-                    rederivedOverrideReasons =
-                        overrideReasons.length > 0
-                            ? overrideReasons.join('\n')
-                            : null
+                    cachedReviewStatus = parsed.data.reviewStatus
                 } else {
                     log.warn(
                         'Cached analysis failed schema validation; falling back to no-AI-metadata submit',
@@ -207,14 +192,13 @@ export async function submitInventoryItem(
                 dodValue: result.data.estimatedValue || null,
                 valueRangeLow: result.data.valueRangeLow || null,
                 valueRangeHigh: result.data.valueRangeHigh || null,
-                // aiConfidence column stores the *server-derived* reviewStatus
-                // from the cached analysis. Falls back to null if no cache
-                // hit, so a tampered submission without a valid analysisId
-                // lands as "not AI-suggested" — not "inventory_ready" by
-                // default.
-                aiConfidence: rederivedReviewStatus,
-                aiServerOverrideReasons: rederivedOverrideReasons,
-                aiSuggested: rederivedReviewStatus !== null,
+                // aiConfidence = reviewStatus from the cached (server-written)
+                // analysis. Null when no valid analysisId was supplied → row
+                // shows as "not AI-suggested" rather than silently inheriting
+                // any client-claimed status.
+                aiConfidence: cachedReviewStatus,
+                aiServerOverrideReasons: null,
+                aiSuggested: cachedReviewStatus !== null,
                 aiBrand: result.data.aiBrand || null,
                 aiModel: result.data.aiModel || null,
                 aiEra: result.data.aiEra || null,

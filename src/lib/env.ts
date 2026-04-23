@@ -37,6 +37,12 @@ export const env = createEnv({
         LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
 
         ANTHROPIC_API_KEY: z.string().optional(),
+        // Managed Agent IDs for the Estate Property Valuation Agent (see
+        // console.anthropic.com → Agents). When both are set, the analyze
+        // route routes through the managed agent; otherwise it falls back
+        // to the legacy direct-tool-use path in src/lib/inventory-analysis.ts.
+        ANTHROPIC_AGENT_ID: z.string().optional(),
+        ANTHROPIC_AGENT_ENVIRONMENT_ID: z.string().optional(),
         // min(1) so an accidentally-empty value in Vercel doesn't behave
         // differently from an unset one — both now surface the same fail-
         // closed-in-prod path in hasInventoryAccess().
@@ -68,6 +74,9 @@ export const env = createEnv({
         NODE_ENV: process.env.NODE_ENV,
         LOG_LEVEL: process.env.LOG_LEVEL,
         ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
+        ANTHROPIC_AGENT_ID: process.env.ANTHROPIC_AGENT_ID,
+        ANTHROPIC_AGENT_ENVIRONMENT_ID:
+            process.env.ANTHROPIC_AGENT_ENVIRONMENT_ID,
         INVENTORY_ACCESS_CODE: process.env.INVENTORY_ACCESS_CODE,
         UPLOADTHING_TOKEN: process.env.UPLOADTHING_TOKEN,
         SENTRY_DSN: process.env.SENTRY_DSN,
