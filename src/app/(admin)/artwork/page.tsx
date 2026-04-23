@@ -1,22 +1,19 @@
 import { dehydrate, HydrationBoundary } from '@tanstack/react-query'
 import { createTRPCHelpers } from '@/lib/trpc-server'
-import { PersonalPropertyClient } from './_components/PersonalPropertyClient'
+import { PersonalPropertyClient } from '../personal-property/_components/PersonalPropertyClient'
 
-export default async function PersonalPropertyPage() {
+export default async function ArtworkPage() {
     const helpers = await createTRPCHelpers()
     await Promise.all([
-        // Exclude ART — artwork has its own admin page at /artwork.
-        // The category column is the only thing distinguishing them;
-        // one table, two filtered views.
         helpers.personalProperty.list.prefetch({
             entityId: 1,
-            excludeCategory: 'ART',
+            category: 'ART',
         }),
         helpers.entity.list.prefetch(),
     ])
     return (
         <HydrationBoundary state={dehydrate(helpers.queryClient)}>
-            <PersonalPropertyClient />
+            <PersonalPropertyClient mode="artwork" />
         </HydrationBoundary>
     )
 }

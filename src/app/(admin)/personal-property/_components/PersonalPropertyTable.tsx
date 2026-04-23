@@ -35,6 +35,9 @@ interface PersonalPropertyTableProps {
         id: number,
         updates: Partial<PersonalProperty>,
     ) => Promise<void>
+    categoryOptions?: { value: string; label: string }[]
+    searchPlaceholder?: string
+    emptyMessage?: string
 }
 
 export function PersonalPropertyTable({
@@ -43,6 +46,9 @@ export function PersonalPropertyTable({
     onEdit,
     onDelete,
     onInlineUpdate,
+    categoryOptions = CATEGORY_OPTIONS,
+    searchPlaceholder = 'Search personal property...',
+    emptyMessage = 'No personal property. Click Add Personal Property to create one.',
 }: PersonalPropertyTableProps) {
     const columns: ColumnDef<PersonalProperty>[] = [
         {
@@ -73,7 +79,7 @@ export function PersonalPropertyTable({
             cell: ({ row }) => (
                 <EditableSelectCell
                     value={row.original.category}
-                    options={CATEGORY_OPTIONS}
+                    options={categoryOptions}
                     variants={STATUS_VARIANTS}
                     onSave={(val) =>
                         onInlineUpdate(row.original.id, {
@@ -173,9 +179,9 @@ export function PersonalPropertyTable({
             columns={columns}
             data={items}
             searchKey="item"
-            searchPlaceholder="Search personal property..."
+            searchPlaceholder={searchPlaceholder}
             isLoading={isLoading}
-            emptyMessage="No personal property. Click Add Personal Property to create one."
+            emptyMessage={emptyMessage}
             enablePagination={true}
         />
     )

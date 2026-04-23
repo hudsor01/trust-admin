@@ -15,6 +15,7 @@ import type { UseResourceFormReturn } from '@/hooks/use-resource-form'
 import { DOD_VALUE_TYPES, TRANSFER_STATUS } from '@/lib/constants'
 import type { personalPropertyFormDefaults } from '@/lib/form-factory'
 import { getFieldError } from '@/lib/form-helpers'
+import type { PersonalPropertyMode } from './PersonalPropertyClient'
 import { ASSET_STATUS, CATEGORY_OPTIONS } from './PersonalPropertyTable'
 
 interface PersonalPropertyDialogProps {
@@ -26,6 +27,8 @@ interface PersonalPropertyDialogProps {
     formInstance: UseResourceFormReturn<
         ReturnType<typeof personalPropertyFormDefaults>
     >['formInstance']
+    mode?: PersonalPropertyMode
+    categoryOptions?: { value: string; label: string }[]
 }
 
 export function PersonalPropertyDialog({
@@ -35,14 +38,15 @@ export function PersonalPropertyDialog({
     onOpenChange,
     onSubmit,
     formInstance,
+    mode = 'personal-property',
+    categoryOptions = CATEGORY_OPTIONS,
 }: PersonalPropertyDialogProps) {
+    const noun = mode === 'artwork' ? 'Artwork' : 'Personal Property'
     return (
         <ResourceDialog
             open={isOpen}
             onOpenChange={onOpenChange}
-            title={
-                isEditing ? 'Edit Personal Property' : 'Add Personal Property'
-            }
+            title={isEditing ? `Edit ${noun}` : `Add ${noun}`}
             onSubmit={onSubmit}
             isLoading={isSubmitting}
         >
@@ -87,7 +91,7 @@ export function PersonalPropertyDialog({
                                             <SelectValue placeholder="Select category" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {CATEGORY_OPTIONS.map((opt) => (
+                                            {categoryOptions.map((opt) => (
                                                 <SelectItem
                                                     key={opt.value}
                                                     value={opt.value}
