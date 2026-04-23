@@ -1,10 +1,11 @@
 'use server'
 
-import { and, eq, gt } from 'drizzle-orm'
+import { and, asc, eq, gt } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '@/db'
-import { inventoryAnalysisCache, pendingInventoryItem } from '@/db/schema'
-import { hasInventoryAccess } from '@/lib/inventory-access'
+import { entity, inventoryAnalysisCache, personalProperty } from '@/db/schema'
+import { authServer } from '@/lib/auth/server'
+import { env } from '@/lib/env'
 import {
     applyReviewStatusOverrides,
     InventoryAnalysisSchema,
@@ -47,20 +48,13 @@ const formSchema = z.object({
             'needs_professional_appraisal',
         ])
         .optional(),
-    // aiServerOverrideReasons is deliberately absent from the schema —
-    // computed server-side from the cached analysis only.
     aiSuggested: z.coerce.boolean().optional(),
     aiBrand: z.string().optional(),
     aiModel: z.string().optional(),
     aiEra: z.string().optional(),
-    // Serialized as JSON string; parsed server-side. Previous comma-join
-    // round-trip broke on materials with embedded commas ("brass, bronze").
     aiMaterials: z.string().optional(),
     aiValuationRationale: z.string().optional(),
     aiConditionNotes: z.string().optional(),
-    submitterName: z.string().optional(),
-    submitterEmail: z.string().email().optional().or(z.literal('')),
-    submitterPhone: z.string().optional(),
 })
 
 export type InventoryFormState = {
@@ -70,12 +64,23 @@ export type InventoryFormState = {
     itemId?: number
 }
 
+/**
+ * Direct submission into personal_property. The pending_inventory_item
+ * queue + approval workflow was dropped 2026-04-23 — Richard is the only
+ * user, so items go straight to the canonical inventory with AI metadata
+ * attached. Auth is the admin session (no more access-code cookie).
+ */
 export async function submitInventoryItem(
     _prevState: InventoryFormState,
     formData: FormData,
 ): Promise<InventoryFormState> {
-    if (!(await hasInventoryAccess())) {
-        return { success: false, error: 'Access denied' }
+    // Admin-only — Richard logs in on his phone once and the form works.
+    const { data: session } = await authServer.getSession()
+    const isOwner = session?.user?.email === env.ADMIN_EMAIL
+    const isAdmin =
+        session?.user && 'role' in session.user && session.user.role === 'admin'
+    if (!session?.user || (!isOwner && !isAdmin)) {
+        return { success: false, error: 'Admin access required' }
     }
 
     const raw = {
@@ -100,13 +105,9 @@ export async function submitInventoryItem(
         aiMaterials: formData.get('aiMaterials') || undefined,
         aiValuationRationale: formData.get('aiValuationRationale') || undefined,
         aiConditionNotes: formData.get('aiConditionNotes') || undefined,
-        submitterName: formData.get('submitterName') || undefined,
-        submitterEmail: formData.get('submitterEmail') || undefined,
-        submitterPhone: formData.get('submitterPhone') || undefined,
     }
 
     const result = formSchema.safeParse(raw)
-
     if (!result.success) {
         return {
             success: false,
@@ -120,10 +121,10 @@ export async function submitInventoryItem(
 
     // Look up the cached analysis if the client sent an id. This row was
     // written by /api/inventory/analyze at the moment Opus produced the
-    // valuation — it is IMMUNE to client DOM tampering between analyze
-    // and submit. We run applyReviewStatusOverrides on THIS, not on
-    // result.data, so a submitter can't lower estimatedValue in the form
-    // to slip past the $3,000 / range / URL guardrails.
+    // valuation — immune to client DOM tampering between analyze and
+    // submit. Run applyReviewStatusOverrides on the STORED values, not on
+    // result.data, so the submitter can't edit hidden inputs to slip past
+    // the $3,000 / range / URL guardrails.
     let rederivedReviewStatus: string | null = null
     let rederivedOverrideReasons: string | null = null
     if (result.data.analysisId) {
@@ -164,8 +165,6 @@ export async function submitInventoryItem(
                     )
                 }
             } else {
-                // Missing or expired row — treat as no-AI-metadata submit.
-                // The user can retry the analysis if they want the flag.
                 log.warn(
                     'analysisId not found or expired; AI metadata will not be persisted',
                     { analysisId: result.data.analysisId },
@@ -176,27 +175,43 @@ export async function submitInventoryItem(
         }
     }
 
+    // Single-trust app: the Hudson Living Trust is always entity #1
+    // (ordered by id asc). Resolve at submit time rather than requiring
+    // the form to ship an entityId.
+    let entityId: number | null = null
+    try {
+        const [row] = await db
+            .select({ id: entity.id })
+            .from(entity)
+            .orderBy(asc(entity.id))
+            .limit(1)
+        entityId = row?.id ?? null
+    } catch (err) {
+        log.error('Failed to resolve default entity', { error: err })
+    }
+    if (entityId == null) {
+        return {
+            success: false,
+            error: 'No trust entity found — seed the database first',
+        }
+    }
+
     try {
         const [item] = await db
-            .insert(pendingInventoryItem)
+            .insert(personalProperty)
             .values({
+                entityId,
                 name: result.data.name,
-                category: result.data.category,
                 description: result.data.description || null,
-                estimatedValue: result.data.estimatedValue || null,
+                category: result.data.category,
+                dodValue: result.data.estimatedValue || null,
                 valueRangeLow: result.data.valueRangeLow || null,
                 valueRangeHigh: result.data.valueRangeHigh || null,
-                condition: result.data.condition,
-                photoPath1: result.data.photoPath1 || null,
-                photoPath2: result.data.photoPath2 || null,
-                photoPath3: result.data.photoPath3 || null,
-                photoPath4: result.data.photoPath4 || null,
-                photoPath5: result.data.photoPath5 || null,
                 // aiConfidence column stores the *server-derived* reviewStatus
                 // from the cached analysis. Falls back to null if no cache
                 // hit, so a tampered submission without a valid analysisId
-                // lands as "not AI-suggested" and the admin sees it as a
-                // manual entry — not "inventory_ready" by default.
+                // lands as "not AI-suggested" — not "inventory_ready" by
+                // default.
                 aiConfidence: rederivedReviewStatus,
                 aiServerOverrideReasons: rederivedOverrideReasons,
                 aiSuggested: rederivedReviewStatus !== null,
@@ -206,10 +221,11 @@ export async function submitInventoryItem(
                 aiMaterials: result.data.aiMaterials || null,
                 aiValuationRationale: result.data.aiValuationRationale || null,
                 aiConditionNotes: result.data.aiConditionNotes || null,
-                submitterName: result.data.submitterName || null,
-                submitterEmail: result.data.submitterEmail || null,
-                submitterPhone: result.data.submitterPhone || null,
-                status: 'PENDING',
+                photoPath1: result.data.photoPath1 || null,
+                photoPath2: result.data.photoPath2 || null,
+                photoPath3: result.data.photoPath3 || null,
+                photoPath4: result.data.photoPath4 || null,
+                photoPath5: result.data.photoPath5 || null,
                 updatedAt: new Date().toISOString(),
             })
             .returning()
@@ -218,10 +234,7 @@ export async function submitInventoryItem(
             throw new Error('Failed to create item')
         }
 
-        return {
-            success: true,
-            itemId: item.id,
-        }
+        return { success: true, itemId: item.id }
     } catch (error) {
         log.error('Failed to create inventory item', { error })
         return {

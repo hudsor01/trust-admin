@@ -16,7 +16,6 @@ import {
     entity,
     hemsRequest,
     liabilityPayment,
-    pendingInventoryItem,
     personalProperty,
     trustAccounting,
     valuation,
@@ -630,58 +629,6 @@ export async function searchActivityLogByField(
 }
 
 // =============================================================================
-// PENDING INVENTORY ITEM QUERIES (used by pendingInventoryItemCrud)
-// =============================================================================
-
-async function getPendingInventoryItems(
-    status?: 'PENDING' | 'APPROVED' | 'REJECTED',
-) {
-    if (status) {
-        return db
-            .select()
-            .from(pendingInventoryItem)
-            .where(eq(pendingInventoryItem.status, status))
-    }
-    return db.select().from(pendingInventoryItem)
-}
-
-async function getPendingInventoryItemById(id: number) {
-    return db.query.pendingInventoryItem.findFirst({
-        where: eq(pendingInventoryItem.id, id),
-    })
-}
-
-async function createPendingInventoryItem(
-    data: typeof pendingInventoryItem.$inferInsert,
-) {
-    const [created] = await db
-        .insert(pendingInventoryItem)
-        .values({ ...data, updatedAt: new Date().toISOString() })
-        .returning()
-    return created
-}
-
-async function updatePendingInventoryItem(
-    id: number,
-    data: Partial<typeof pendingInventoryItem.$inferInsert>,
-) {
-    const [updated] = await db
-        .update(pendingInventoryItem)
-        .set({ ...data, updatedAt: new Date().toISOString() })
-        .where(eq(pendingInventoryItem.id, id))
-        .returning()
-    return updated
-}
-
-async function deletePendingInventoryItem(id: number) {
-    const [deleted] = await db
-        .delete(pendingInventoryItem)
-        .where(eq(pendingInventoryItem.id, id))
-        .returning()
-    return deleted
-}
-
-// =============================================================================
 // BENEFICIARY DEATH HANDLING - Trust Section 7.01
 // =============================================================================
 
@@ -985,14 +932,6 @@ export const personalPropertyCrud = {
     create: createPersonalProperty,
     update: updatePersonalProperty,
     delete: deletePersonalProperty,
-}
-
-export const pendingInventoryItemCrud = {
-    getAllArray: getPendingInventoryItems,
-    getById: getPendingInventoryItemById,
-    create: createPendingInventoryItem,
-    update: updatePendingInventoryItem,
-    delete: deletePendingInventoryItem,
 }
 
 export const valuationCrud = {

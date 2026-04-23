@@ -11,7 +11,6 @@ import {
     hemsRequest,
     liability,
     liabilityPayment,
-    pendingInventoryItem,
     personalProperty,
     trustAccounting,
 } from '@/db/schema'
@@ -47,7 +46,6 @@ const testData = {
     hemsRequestIds: [] as number[],
     distributionIds: [] as number[],
     trustAccountingIds: [] as number[],
-    pendingInventoryItemIds: [] as number[],
     personalPropertyIds: [] as number[],
 }
 
@@ -154,12 +152,6 @@ describe.skipIf(isProductionDb)('Business Logic', () => {
 
         for (const id of testData.personalPropertyIds) {
             await db.delete(personalProperty).where(eq(personalProperty.id, id))
-        }
-
-        for (const id of testData.pendingInventoryItemIds) {
-            await db
-                .delete(pendingInventoryItem)
-                .where(eq(pendingInventoryItem.id, id))
         }
 
         if (testData.beneficiaryId) {
@@ -805,140 +797,7 @@ describe.skipIf(isProductionDb)('Business Logic', () => {
     })
 
     // =========================================================================
-    // 5. PENDING INVENTORY ITEM APPROVE / REJECT
+    // 5. (removed 2026-04-23) Pending queue workflow — direct-submission
+    // now inserts into personal_property; see tests/api/submit-inventory-item.test.ts.
     // =========================================================================
-
-    describe('pending inventory item approve/reject workflow', () => {
-        test(
-            'approve creates personalProperty record and updates status to APPROVED',
-            async () => {
-                const caller = adminCaller()
-                const now = new Date().toISOString()
-
-                const [pendingItem] = await db
-                    .insert(pendingInventoryItem)
-                    .values({
-                        name: 'Antique Clock',
-                        category: 'COLLECTIBLES',
-                        condition: 'good',
-                        description: 'Grandfather clock from 1920s',
-                        estimatedValue: '2500.00',
-                        status: 'PENDING',
-                        updatedAt: now,
-                    })
-                    .returning()
-                testData.pendingInventoryItemIds.push(pendingItem.id)
-
-                const result = await caller.pendingInventoryItem.approve({
-                    id: pendingItem.id,
-                    entityId: testData.entityId!,
-                    reviewNotes: 'Verified - adding to inventory',
-                })
-
-                expect(result).toBeDefined()
-                expect(result.property).toBeDefined()
-                expect(result.property.name).toBe('Antique Clock')
-                expect(result.property.category).toBe('COLLECTIBLES')
-                expect(result.property.entityId).toBe(testData.entityId)
-                expect(result.property.status).toBe('ACTIVE')
-                testData.personalPropertyIds.push(result.property.id)
-
-                const updatedPending = await caller.pendingInventoryItem.byId(
-                    pendingItem.id,
-                )
-                expect(updatedPending).toBeDefined()
-                expect(updatedPending!.status).toBe('APPROVED')
-                expect(updatedPending!.entityId).toBe(testData.entityId)
-            },
-            TEST_TIMEOUT,
-        )
-
-        test(
-            'approve with override values uses the overrides',
-            async () => {
-                const caller = adminCaller()
-                const now = new Date().toISOString()
-
-                const [pendingItem] = await db
-                    .insert(pendingInventoryItem)
-                    .values({
-                        name: 'Old Painting',
-                        category: 'ART',
-                        condition: 'fair',
-                        estimatedValue: '1000.00',
-                        status: 'PENDING',
-                        updatedAt: now,
-                    })
-                    .returning()
-                testData.pendingInventoryItemIds.push(pendingItem.id)
-
-                const result = await caller.pendingInventoryItem.approve({
-                    id: pendingItem.id,
-                    entityId: testData.entityId!,
-                    name: 'Oil Painting - Landscape',
-                    category: 'ART',
-                    dodValue: '3000.00',
-                    reviewNotes: 'Appraised at higher value',
-                })
-
-                expect(result.property.name).toBe('Oil Painting - Landscape')
-                expect(result.property.dodValue).toBe('3000.00')
-                testData.personalPropertyIds.push(result.property.id)
-            },
-            TEST_TIMEOUT,
-        )
-
-        test(
-            'reject updates status to REJECTED',
-            async () => {
-                const caller = adminCaller()
-                const now = new Date().toISOString()
-
-                const [pendingItem] = await db
-                    .insert(pendingInventoryItem)
-                    .values({
-                        name: 'Broken Vase',
-                        category: 'OTHER',
-                        condition: 'poor',
-                        estimatedValue: '50.00',
-                        status: 'PENDING',
-                        updatedAt: now,
-                    })
-                    .returning()
-                testData.pendingInventoryItemIds.push(pendingItem.id)
-
-                const rejected = await caller.pendingInventoryItem.reject({
-                    id: pendingItem.id,
-                    reviewNotes: 'No value - not adding to inventory',
-                })
-
-                expect(rejected).toBeDefined()
-                expect(rejected.status).toBe('REJECTED')
-                expect(rejected.reviewNotes).toBe(
-                    'No value - not adding to inventory',
-                )
-            },
-            TEST_TIMEOUT,
-        )
-
-        test(
-            'approve throws for nonexistent pending item',
-            async () => {
-                const caller = adminCaller()
-                try {
-                    await caller.pendingInventoryItem.approve({
-                        id: 999999,
-                        entityId: testData.entityId!,
-                    })
-                    expect(true).toBe(false)
-                } catch (err) {
-                    expect(err).toBeDefined()
-                    expect((err as Error).message).toContain(
-                        'Pending item not found',
-                    )
-                }
-            },
-            TEST_TIMEOUT,
-        )
-    })
 })

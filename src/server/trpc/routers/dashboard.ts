@@ -2,7 +2,6 @@ import { and, count, desc, eq, sql, sum } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '@/db'
 import {
-    artwork,
     bankAccount,
     beneficiary,
     hemsRequest,
@@ -34,7 +33,6 @@ export const dashboardRouter = createTRPCRouter({
                 homesteads,
                 rentalProperties,
                 vehicles,
-                artworks,
                 personalProperties,
                 insurancePolicies,
                 liabilities,
@@ -91,7 +89,6 @@ export const dashboardRouter = createTRPCRouter({
                     .from(rentalProperty)
                     .where(eq(rentalProperty.entityId, entityId)),
                 db.select().from(vehicle).where(eq(vehicle.entityId, entityId)),
-                db.select().from(artwork).where(eq(artwork.entityId, entityId)),
                 db
                     .select()
                     .from(personalProperty)
@@ -121,7 +118,6 @@ export const dashboardRouter = createTRPCRouter({
                 homesteads,
                 rentalProperties,
                 vehicles,
-                artworks,
                 personalProperties,
                 insurancePolicies,
                 liabilities,

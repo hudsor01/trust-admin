@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'bun:test'
 import {
-    updateArtworkSchema,
     updateBankAccountSchema,
     updateBeneficiarySchema,
     updateContactSchema,
@@ -13,7 +12,6 @@ import {
     updateInvestmentAccountSchema,
     updateLiabilityPaymentSchema,
     updateLiabilitySchema,
-    updatePendingInventoryItemSchema,
     updatePersonalPropertySchema,
     updateRentalPropertySchema,
     updateSpecificBequestSchema,
@@ -28,7 +26,6 @@ import {
     updateWithdrawalRecordSchema,
 } from '@/db/validation'
 
-// All 27 update schemas (26 + userProfile)
 const allUpdateSchemas = {
     updateTrusteeSchema,
     updateVehicleSchema,
@@ -45,7 +42,6 @@ const allUpdateSchemas = {
     updateDistributionSchema,
     updateTaskSchema,
     updateTrustAccountingSchema,
-    updateArtworkSchema,
     updateHemsRequestSchema,
     updatePersonalPropertySchema,
     updateTrusteeFeeEntrySchema,
@@ -54,7 +50,6 @@ const allUpdateSchemas = {
     updateDocumentSchema,
     updateLiabilityPaymentSchema,
     updateInsurancePolicySchema,
-    updatePendingInventoryItemSchema,
     updateUserProfileSchema,
 } as const
 

@@ -859,7 +859,6 @@ describe.skipIf(isProductionDb)('Row-Level Security', () => {
             'trust_accounting',
             'vehicle',
             'withdrawal_record',
-            'artwork',
             'rental_property',
             'insurance_policy',
             'personal_property',
@@ -874,7 +873,6 @@ describe.skipIf(isProductionDb)('Row-Level Security', () => {
             'valuation',
             'transaction',
             'activity_log',
-            'pending_inventory_item',
             'specific_bequest',
             // Auth / session / profile tables — RLS required so a captured
             // access-code cookie can't query another user's session or

@@ -68,7 +68,6 @@ export function DashboardClient() {
     const homesteads = summary?.homesteads ?? []
     const rentalProperties = summary?.rentalProperties ?? []
     const vehicles = summary?.vehicles ?? []
-    const artworks = summary?.artworks ?? []
     const personalProperties = summary?.personalProperties ?? []
     const insurancePolicies = summary?.insurancePolicies ?? []
     const tasks = summary?.tasks ?? []
@@ -207,9 +206,6 @@ export function DashboardClient() {
             const vehicleTotal = sumStrings(
                 vehicles.map((v) => v.dodValue ?? '0'),
             )
-            const artworkTotal = sumStrings(
-                artworks.map((a) => a.dodValue ?? '0'),
-            )
             const personalPropertyTotal = sumStrings(
                 personalProperties.map((p) => p.dodValue ?? '0'),
             )
@@ -224,7 +220,6 @@ export function DashboardClient() {
                 investTotal,
                 realEstateTotal,
                 vehicleTotal,
-                artworkTotal,
                 personalPropertyTotal,
                 insuranceTotal,
             ])
@@ -250,11 +245,6 @@ export function DashboardClient() {
                     fill: 'hsl(38, 92%, 50%)',
                 },
                 {
-                    name: 'Artwork',
-                    value: Number.parseFloat(artworkTotal) || 0,
-                    fill: 'hsl(340, 82%, 52%)',
-                },
-                {
                     name: 'Personal Property',
                     value: Number.parseFloat(personalPropertyTotal) || 0,
                     fill: 'hsl(25, 95%, 53%)',
@@ -277,7 +267,6 @@ export function DashboardClient() {
             homesteads,
             rentalProperties,
             vehicles,
-            artworks,
             personalProperties,
             insurancePolicies,
             liabilities,

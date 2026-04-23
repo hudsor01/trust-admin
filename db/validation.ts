@@ -2,7 +2,6 @@ import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
 import { z } from 'zod'
 import {
     activityLog,
-    artwork,
     bankAccount,
     beneficiary,
     contact,
@@ -16,7 +15,6 @@ import {
     investmentAccount,
     liability,
     liabilityPayment,
-    pendingInventoryItem,
     personalProperty,
     rentalProperty,
     specificBequest,
@@ -138,12 +136,6 @@ export const insertActivityLogSchema = createInsertSchema(activityLog, {
     createdAt: (schema) => schema.optional(),
 })
 export const selectActivityLogSchema = createSelectSchema(activityLog)
-
-export const insertArtworkSchema = createInsertSchema(artwork, {
-    createdAt: (schema) => schema.optional(),
-    updatedAt: (schema) => schema.optional(),
-})
-export const selectArtworkSchema = createSelectSchema(artwork)
 
 export const insertBankAccountSchema = createInsertSchema(bankAccount, {
     createdAt: (schema) => schema.optional(),
@@ -286,19 +278,6 @@ export const insertPersonalPropertySchema = createInsertSchema(
 )
 export const selectPersonalPropertySchema = createSelectSchema(personalProperty)
 
-export const insertPendingInventoryItemSchema = createInsertSchema(
-    pendingInventoryItem,
-    {
-        createdAt: (schema) => schema.optional(),
-        updatedAt: (schema) => schema.optional(),
-        estimatedValue: () => positiveNumberValidation,
-        submitterEmail: () => emailValidation,
-        submitterPhone: () => phoneValidation,
-    },
-)
-export const selectPendingInventoryItemSchema =
-    createSelectSchema(pendingInventoryItem)
-
 export const insertRentalPropertySchema = createInsertSchema(rentalProperty, {
     createdAt: (schema) => schema.optional(),
     updatedAt: (schema) => schema.optional(),
@@ -437,9 +416,6 @@ export const updateTaskSchema = requireAtLeastOneField(
 export const updateTrustAccountingSchema = requireAtLeastOneField(
     insertTrustAccountingSchema.partial(),
 )
-export const updateArtworkSchema = requireAtLeastOneField(
-    insertArtworkSchema.partial(),
-)
 export const updateHemsRequestSchema = requireAtLeastOneField(
     insertHemsRequestSchema.partial(),
 )
@@ -463,9 +439,6 @@ export const updateLiabilityPaymentSchema = requireAtLeastOneField(
 )
 export const updateInsurancePolicySchema = requireAtLeastOneField(
     insertInsurancePolicySchema.partial(),
-)
-export const updatePendingInventoryItemSchema = requireAtLeastOneField(
-    insertPendingInventoryItemSchema.partial(),
 )
 
 export const insertUserProfileSchema = createInsertSchema(userProfile, {
