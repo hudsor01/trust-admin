@@ -4,8 +4,14 @@ import { beforeEach, describe, expect, mock, test } from 'bun:test'
 import sharp from 'sharp'
 
 // ---------------------------------------------------------------------------
-// SDK mock — intercepts `new Anthropic()` and `client.messages.create()`.
-// The agentic loop, tool-use extraction, and schema validation run for real.
+// SDK mock — intercepts `new Anthropic()` and `client.messages.stream()`.
+// Production code uses the canonical streaming pattern
+// (`client.messages.stream({...}).finalMessage()`) because Opus 4.7 +
+// xhigh effort + 64k max_tokens exceeds the SDK's 10-minute non-streaming
+// timeout. The mock mirrors that surface: stream(params) returns an object
+// whose .finalMessage() resolves to the same Message shape the agentic
+// loop expects. Name preserved as `mockMessagesCreate` to minimize churn
+// in the ~20 test cases that reference it.
 // ---------------------------------------------------------------------------
 
 const mockMessagesCreate = mock(() =>
@@ -14,7 +20,11 @@ const mockMessagesCreate = mock(() =>
 
 mock.module('@anthropic-ai/sdk', () => ({
     default: class MockAnthropic {
-        messages = { create: mockMessagesCreate }
+        messages = {
+            stream: (params: unknown) => ({
+                finalMessage: () => mockMessagesCreate(params),
+            }),
+        }
     },
 }))
 
