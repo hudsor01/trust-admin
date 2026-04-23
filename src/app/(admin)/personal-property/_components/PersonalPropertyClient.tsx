@@ -1,7 +1,8 @@
 'use client'
 
 import { Plus } from 'lucide-react'
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
+import { toast } from 'sonner'
 import { ConfirmDialog, useConfirmDialog } from '@/components/confirm-dialog'
 import { Button } from '@/components/ui/button'
 import type { PersonalProperty } from '@/db/schema'
@@ -15,21 +16,27 @@ import {
     asRecordStatus,
     asTransferStatus,
     asValuationType,
+    type PersonalPropertyCategory,
 } from '@/lib/type-utils'
 import { formatCurrency } from '@/utils/formatters'
 import { PersonalPropertyDialog } from './PersonalPropertyDialog'
-import { PersonalPropertyTable } from './PersonalPropertyTable'
+import {
+    CATEGORY_OPTIONS,
+    PersonalPropertyTable,
+} from './PersonalPropertyTable'
 
-type Mode = 'personal-property' | 'artwork'
+export type PersonalPropertyMode = 'personal-property' | 'artwork'
 
 const COPY: Record<
-    Mode,
+    PersonalPropertyMode,
     {
         heading: string
         subheading: string
         addButton: string
         deleteTitle: string
-        defaultCategory: string
+        searchPlaceholder: string
+        emptyMessage: string
+        defaultCategory: PersonalPropertyCategory
     }
 > = {
     'personal-property': {
@@ -37,6 +44,9 @@ const COPY: Record<
         subheading: 'Manage personal property assets',
         addButton: 'Add Personal Property',
         deleteTitle: 'Delete Personal Property',
+        searchPlaceholder: 'Search personal property...',
+        emptyMessage:
+            'No personal property. Click Add Personal Property to create one.',
         defaultCategory: 'OTHER',
     },
     artwork: {
@@ -44,17 +54,22 @@ const COPY: Record<
         subheading: 'Manage artwork assets',
         addButton: 'Add Artwork',
         deleteTitle: 'Delete Artwork',
+        searchPlaceholder: 'Search artwork...',
+        emptyMessage: 'No artwork. Click Add Artwork to create one.',
         defaultCategory: 'ART',
     },
 }
 
-const LOGGERS: Record<Mode, ReturnType<typeof logger.create>> = {
+const LOGGERS: Record<
+    PersonalPropertyMode,
+    ReturnType<typeof logger.create>
+> = {
     'personal-property': logger.create('PersonalProperty'),
     artwork: logger.create('Artwork'),
 }
 
 interface PersonalPropertyClientProps {
-    mode?: Mode
+    mode?: PersonalPropertyMode
 }
 
 export function PersonalPropertyClient({
@@ -116,14 +131,15 @@ export function PersonalPropertyClient({
     const itemForm = useResourceForm({
         initialData: {
             ...personalPropertyFormDefaults(),
-            category: copy.defaultCategory,
+            category: copy.defaultCategory as string,
         },
         onSubmit: async (data) => {
+            const category = asPersonalPropertyCategory(data.category)
             const payload = {
                 entityId: entityId!,
                 name: data.name,
                 description: data.description || null,
-                category: asPersonalPropertyCategory(data.category),
+                category,
                 location: data.location || null,
                 acquisitionDate: data.acquisitionDate || null,
                 acquisitionCost: data.acquisitionCost || null,
@@ -141,13 +157,21 @@ export function PersonalPropertyClient({
                 'id' in itemForm.editing
             ) {
                 const editingId = (itemForm.editing as PersonalProperty).id
+                const previousCategory = (itemForm.editing as PersonalProperty)
+                    .category
                 await updateMutation.mutateAsync({
                     id: editingId,
                     entityId: entityId!,
                     data: payload,
                 })
+                notifyCategoryCrossing(mode, previousCategory, category)
             } else {
                 await createMutation.mutateAsync(payload)
+                if (mode === 'artwork' && category !== 'ART') {
+                    toast.info(
+                        'Item saved under Personal Property because its category is not Artwork.',
+                    )
+                }
             }
         },
     })
@@ -179,17 +203,33 @@ export function PersonalPropertyClient({
 
     const handleInlineUpdate = useCallback(
         async (id: number, updates: Partial<PersonalProperty>) => {
+            const previousCategory = items.find((p) => p.id === id)?.category
             try {
                 await updateMutation.mutateAsync({
                     id,
                     entityId: entityId!,
                     data: updates,
                 })
+                if (updates.category && previousCategory) {
+                    notifyCategoryCrossing(
+                        mode,
+                        previousCategory,
+                        updates.category,
+                    )
+                }
             } catch (err) {
                 log.error('Failed to update item', { error: err })
             }
         },
-        [updateMutation, entityId, log],
+        [updateMutation, entityId, log, items, mode],
+    )
+
+    const categoryOptions = useMemo(
+        () =>
+            mode === 'artwork'
+                ? CATEGORY_OPTIONS.filter((o) => o.value === 'ART')
+                : CATEGORY_OPTIONS,
+        [mode],
     )
 
     const totalValue = sumStrings(items.map((p) => p.dodValue))
@@ -222,6 +262,9 @@ export function PersonalPropertyClient({
                 onEdit={handleEdit}
                 onDelete={handleDelete}
                 onInlineUpdate={handleInlineUpdate}
+                categoryOptions={categoryOptions}
+                searchPlaceholder={copy.searchPlaceholder}
+                emptyMessage={copy.emptyMessage}
             />
 
             <PersonalPropertyDialog
@@ -232,9 +275,25 @@ export function PersonalPropertyClient({
                 onSubmit={itemForm.handleSave}
                 formInstance={itemForm.formInstance}
                 mode={mode}
+                categoryOptions={categoryOptions}
             />
 
             <ConfirmDialog {...deleteDialogProps} />
         </div>
     )
+}
+
+function notifyCategoryCrossing(
+    mode: PersonalPropertyMode,
+    previous: PersonalPropertyCategory,
+    next: PersonalPropertyCategory,
+) {
+    if (previous === next) return
+    if (mode === 'artwork' && previous === 'ART' && next !== 'ART') {
+        toast.info('Moved to Personal Property.')
+        return
+    }
+    if (mode === 'personal-property' && previous !== 'ART' && next === 'ART') {
+        toast.info('Moved to Artwork.')
+    }
 }

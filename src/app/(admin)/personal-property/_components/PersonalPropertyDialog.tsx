@@ -27,6 +27,7 @@ interface PersonalPropertyDialogProps {
         ReturnType<typeof personalPropertyFormDefaults>
     >['formInstance']
     mode?: 'personal-property' | 'artwork'
+    categoryOptions?: { value: string; label: string }[]
 }
 
 export function PersonalPropertyDialog({
@@ -37,6 +38,7 @@ export function PersonalPropertyDialog({
     onSubmit,
     formInstance,
     mode = 'personal-property',
+    categoryOptions = CATEGORY_OPTIONS,
 }: PersonalPropertyDialogProps) {
     const noun = mode === 'artwork' ? 'Artwork' : 'Personal Property'
     return (
@@ -88,7 +90,7 @@ export function PersonalPropertyDialog({
                                             <SelectValue placeholder="Select category" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {CATEGORY_OPTIONS.map((opt) => (
+                                            {categoryOptions.map((opt) => (
                                                 <SelectItem
                                                     key={opt.value}
                                                     value={opt.value}

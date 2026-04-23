@@ -7,40 +7,25 @@ import {
     insertPersonalPropertySchema,
     updatePersonalPropertySchema,
 } from '@/db/validation'
+import { PERSONAL_PROPERTY_CATEGORY_VALUES } from '@/lib/type-utils'
 import { adminProcedure, createTRPCRouter } from '../init'
+
+const personalPropertyCategoryEnum = z.enum(PERSONAL_PROPERTY_CATEGORY_VALUES)
 
 export const personalPropertyRouter = createTRPCRouter({
     /**
-     * Lists rows with optional category filter. Admin views split on
+     * Lists rows with optional category filter. Admin views filter on
      * this column: /artwork lists `category = 'ART'`, /personal-property
-     * lists everything else. One canonical table, two views — the ART
-     * enum value does the work of what was historically a separate
+     * lists `category != 'ART'`. One canonical table, two views — the
+     * ART enum value does the work of what was historically a separate
      * `artwork` table.
      */
     list: adminProcedure
         .input(
             z.object({
                 entityId: z.coerce.number(),
-                category: z
-                    .enum([
-                        'JEWELRY',
-                        'ART',
-                        'COLLECTIBLES',
-                        'ELECTRONICS',
-                        'FURNITURE',
-                        'OTHER',
-                    ])
-                    .optional(),
-                excludeCategory: z
-                    .enum([
-                        'JEWELRY',
-                        'ART',
-                        'COLLECTIBLES',
-                        'ELECTRONICS',
-                        'FURNITURE',
-                        'OTHER',
-                    ])
-                    .optional(),
+                category: personalPropertyCategoryEnum.optional(),
+                excludeCategory: personalPropertyCategoryEnum.optional(),
             }),
         )
         .query(({ input }) => {

@@ -800,4 +800,101 @@ describe.skipIf(isProductionDb)('Business Logic', () => {
     // 5. (removed 2026-04-23) Pending queue workflow — direct-submission
     // now inserts into personal_property; see tests/api/submit-inventory-item.test.ts.
     // =========================================================================
+
+    // =========================================================================
+    // 6. personalProperty.list category / excludeCategory filters
+    //    Drives the /artwork vs /personal-property admin split.
+    // =========================================================================
+    describe('personalProperty.list category filters', () => {
+        const created: number[] = []
+
+        afterAll(async () => {
+            for (const id of created) {
+                await db
+                    .delete(personalProperty)
+                    .where(eq(personalProperty.id, id))
+            }
+        }, TEST_TIMEOUT)
+
+        test(
+            'category=ART returns only ART rows; excludeCategory=ART returns everything else',
+            async () => {
+                const caller = adminCaller()
+                const now = new Date().toISOString()
+                const tag = `filter-${Date.now().toString().slice(-6)}`
+
+                const rows = await db
+                    .insert(personalProperty)
+                    .values([
+                        {
+                            entityId: testData.entityId!,
+                            name: `${tag} Painting`,
+                            category: 'ART',
+                            status: 'ACTIVE',
+                            transferStatus: 'PENDING',
+                            updatedAt: now,
+                        },
+                        {
+                            entityId: testData.entityId!,
+                            name: `${tag} Sculpture`,
+                            category: 'ART',
+                            status: 'ACTIVE',
+                            transferStatus: 'PENDING',
+                            updatedAt: now,
+                        },
+                        {
+                            entityId: testData.entityId!,
+                            name: `${tag} Saddle`,
+                            category: 'OTHER',
+                            status: 'ACTIVE',
+                            transferStatus: 'PENDING',
+                            updatedAt: now,
+                        },
+                        {
+                            entityId: testData.entityId!,
+                            name: `${tag} Ring`,
+                            category: 'JEWELRY',
+                            status: 'ACTIVE',
+                            transferStatus: 'PENDING',
+                            updatedAt: now,
+                        },
+                    ])
+                    .returning()
+                created.push(...rows.map((r) => r.id))
+
+                const artOnly = await caller.personalProperty.list({
+                    entityId: testData.entityId!,
+                    category: 'ART',
+                })
+                const artOnlyTagged = artOnly.filter((r) =>
+                    r.name.startsWith(tag),
+                )
+                expect(artOnlyTagged).toHaveLength(2)
+                expect(artOnlyTagged.every((r) => r.category === 'ART')).toBe(
+                    true,
+                )
+
+                const nonArt = await caller.personalProperty.list({
+                    entityId: testData.entityId!,
+                    excludeCategory: 'ART',
+                })
+                const nonArtTagged = nonArt.filter((r) =>
+                    r.name.startsWith(tag),
+                )
+                expect(nonArtTagged).toHaveLength(2)
+                expect(nonArtTagged.every((r) => r.category !== 'ART')).toBe(
+                    true,
+                )
+
+                const unfiltered = await caller.personalProperty.list({
+                    entityId: testData.entityId!,
+                })
+                const unfilteredTagged = unfiltered.filter((r) =>
+                    r.name.startsWith(tag),
+                )
+                expect(unfilteredTagged).toHaveLength(4)
+            },
+            TEST_TIMEOUT,
+        )
+    })
 })
