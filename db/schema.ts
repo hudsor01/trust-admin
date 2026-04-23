@@ -1450,6 +1450,54 @@ export type InsertPendingInventoryItem =
     typeof pendingInventoryItem.$inferInsert
 
 // ============================================
+// Inventory Analysis Cache
+// ============================================
+//
+// Server-side persistence of Opus 4.7 analyze output, keyed by UUID and
+// short-lived (24h TTL). Purpose: close the trust-boundary gap where
+// submitInventoryItem would otherwise re-derive reviewStatus overrides
+// from *client-submitted* form data — which a motivated submitter could
+// tamper with in the DOM between analyze and submit.
+//
+// Flow:
+//   1. /api/inventory/analyze runs Opus, writes row, returns id.
+//   2. Form stores id in a hidden input, lets user edit display fields.
+//   3. submitInventoryItem looks up by id, runs applyReviewStatusOverrides
+//      on the STORED analysis. User's form edits (name, estimatedValue,
+//      etc.) still flow into pending_inventory_item so the admin sees the
+//      user's intended values, but aiConfidence + aiServerOverrideReasons
+//      reflect the true AI output, immune to DOM tampering.
+
+export const inventoryAnalysisCache = pgTable(
+    'inventory_analysis_cache',
+    (t) => ({
+        // UUID chosen by the server at analyze time; opaque to the client.
+        id: t.uuid().primaryKey().defaultRandom(),
+        // Full InventoryAnalysisResult JSON, including reviewStatus,
+        // estimatedValue, valueRangeLow/High, valuationRationale — every
+        // input applyReviewStatusOverrides needs.
+        analysisJson: t.jsonb().notNull(),
+        createdAt: t
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
+            .default(sql`CURRENT_TIMESTAMP`)
+            .notNull(),
+        // 24-hour TTL. Rows older than this are ignored on submit and can
+        // be swept lazily. Matches the access-code cookie lifetime.
+        expiresAt: t
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
+            .default(sql`CURRENT_TIMESTAMP + interval '24 hours'`)
+            .notNull(),
+    }),
+    (table) => [
+        index('idx_inventory_analysis_cache_expires_at').on(table.expiresAt),
+    ],
+)
+
+export type InventoryAnalysisCache = typeof inventoryAnalysisCache.$inferSelect
+export type InsertInventoryAnalysisCache =
+    typeof inventoryAnalysisCache.$inferInsert
+
+// ============================================
 // Documents
 // ============================================
 

@@ -5,7 +5,7 @@ import { desc, eq } from 'drizzle-orm'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { db } from '@/db'
-import { valuationCorrection } from '@/db/schema'
+import { inventoryAnalysisCache, valuationCorrection } from '@/db/schema'
 import { env } from '@/lib/env'
 import {
     checkAnalyzeRateLimit,
@@ -60,6 +60,13 @@ interface AnalyzeSuccessResponse {
      * exact same red flags the submitter saw.
      */
     overrideReasons: string[]
+    /**
+     * Opaque server-generated UUID pointing at the persisted analysis in
+     * inventory_analysis_cache. The submit action looks up this row and
+     * re-derives overrides from the *stored* (untampered) analysis rather
+     * than from form fields. Closes the DOM-tampering trust boundary.
+     */
+    analysisId: string
 }
 
 interface AnalyzeErrorResponse {
@@ -236,12 +243,43 @@ export async function POST(
         const { analysis: gated, overrideReasons } =
             applyReviewStatusOverrides(analysis)
 
+        // Persist the authoritative analysis server-side. submitInventoryItem
+        // will look this row up by id and run applyReviewStatusOverrides on
+        // the stored fields — not on anything the client can edit between
+        // now and submit. Insert is non-fatal: if the cache write fails the
+        // submitter still sees a valid valuation, but the submit-side
+        // guardrail will fall back to conservative "no cached AI output"
+        // handling.
+        let analysisId = ''
+        try {
+            const [row] = await db
+                .insert(inventoryAnalysisCache)
+                .values({ analysisJson: gated })
+                .returning({ id: inventoryAnalysisCache.id })
+            analysisId = row?.id ?? ''
+        } catch (err) {
+            logger.api.warn(
+                'inventory_analysis_cache insert failed — submit will treat as no AI',
+                {
+                    error: err instanceof Error ? err.message : 'Unknown error',
+                },
+            )
+            Sentry.captureMessage('inventory_analysis_cache insert failed', {
+                level: 'warning',
+                tags: { route: 'api/inventory/analyze' },
+                extra: {
+                    error: err instanceof Error ? err.message : 'Unknown error',
+                },
+            })
+        }
+
         return NextResponse.json({
             success: true,
             data: gated,
             photoUrls,
             validationWarnings: [...validationWarnings, ...overrideReasons],
             overrideReasons,
+            analysisId,
         })
     } catch (error) {
         // Anthropic's error text contains "credit balance" / "Plans &

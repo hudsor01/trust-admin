@@ -1,7 +1,14 @@
 'use client'
 
 import type { ColumnDef } from '@tanstack/react-table'
-import { CheckCircle, Clock, Loader2, Package, XCircle } from 'lucide-react'
+import {
+    AlertTriangle,
+    CheckCircle,
+    Clock,
+    Loader2,
+    Package,
+    XCircle,
+} from 'lucide-react'
 import Image from 'next/image'
 import { useMemo, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
@@ -72,6 +79,27 @@ const REVIEW_STATUS_VARIANTS: Record<
     low: 'outline',
 }
 
+/**
+ * aiMaterials was historically stored as a comma-joined string from the
+ * form. New submissions use JSON.stringify(materials) so commas inside
+ * material names ("brass, bronze fittings") round-trip. Accept both
+ * shapes so legacy rows render correctly.
+ */
+function formatMaterials(raw: string): string {
+    const trimmed = raw.trim()
+    if (trimmed.startsWith('[')) {
+        try {
+            const parsed = JSON.parse(trimmed)
+            if (Array.isArray(parsed)) {
+                return parsed.filter((s) => typeof s === 'string').join(', ')
+            }
+        } catch {
+            // Fall through to raw display
+        }
+    }
+    return raw
+}
+
 export function InventoryQueueClient() {
     const utils = trpc.useUtils()
     const { data: entities } = trpc.entity.list.useQuery()
@@ -130,13 +158,27 @@ export function InventoryQueueClient() {
                 <DataTableColumnHeader column={column} title="Item" />
             ),
             cell: ({ row }) => (
-                <div>
-                    <p className="font-medium">{row.original.name}</p>
-                    {row.original.submitterName && (
-                        <p className="text-xs text-muted-foreground">
-                            by {row.original.submitterName}
-                        </p>
+                <div className="flex items-start gap-2">
+                    {row.original.aiServerOverrideReasons && (
+                        <span
+                            role="img"
+                            title="Server-enforced guardrails fired — open for details"
+                            aria-label="Server-enforced guardrails fired"
+                        >
+                            <AlertTriangle
+                                className="h-4 w-4 text-destructive shrink-0 mt-0.5"
+                                aria-hidden="true"
+                            />
+                        </span>
                     )}
+                    <div>
+                        <p className="font-medium">{row.original.name}</p>
+                        {row.original.submitterName && (
+                            <p className="text-xs text-muted-foreground">
+                                by {row.original.submitterName}
+                            </p>
+                        )}
+                    </div>
                 </div>
             ),
         },
@@ -371,17 +413,34 @@ export function InventoryQueueClient() {
                         </DialogTitle>
                         <DialogDescription>
                             {reviewingItem?.name}
+                            {reviewingItem?.aiServerOverrideReasons &&
+                                ` · ${
+                                    reviewingItem.aiServerOverrideReasons
+                                        .split('\n')
+                                        .filter(Boolean).length
+                                } server-enforced guardrail(s) flagged for review`}
                         </DialogDescription>
                     </DialogHeader>
 
                     {reviewingItem && (
                         <div className="space-y-4">
                             {reviewingItem.aiServerOverrideReasons && (
-                                <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-4">
-                                    <Label className="text-sm font-semibold text-destructive">
+                                <div
+                                    role="alert"
+                                    aria-labelledby="guardrails-heading"
+                                    className="rounded-lg border border-destructive/40 bg-destructive/5 p-4"
+                                >
+                                    <h3
+                                        id="guardrails-heading"
+                                        className="text-sm font-semibold text-destructive flex items-center gap-2"
+                                    >
+                                        <AlertTriangle
+                                            className="h-4 w-4"
+                                            aria-hidden="true"
+                                        />
                                         Server-enforced guardrails fired
-                                    </Label>
-                                    <ul className="mt-2 space-y-1 text-sm list-disc pl-4">
+                                    </h3>
+                                    <ul className="mt-2 space-y-1 text-sm text-destructive/90 list-disc pl-4">
                                         {reviewingItem.aiServerOverrideReasons
                                             .split('\n')
                                             .filter(Boolean)
@@ -563,9 +622,9 @@ export function InventoryQueueClient() {
                                                         Materials
                                                     </span>
                                                     <p className="text-sm font-medium">
-                                                        {
-                                                            reviewingItem.aiMaterials
-                                                        }
+                                                        {formatMaterials(
+                                                            reviewingItem.aiMaterials,
+                                                        )}
                                                     </p>
                                                 </div>
                                             )}
