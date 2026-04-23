@@ -1,3 +1,3 @@
--- Migration 0002: Index additions (applied manually to Neon DB)
--- This file is a placeholder to satisfy the drizzle migrations sequencing requirement.
--- The actual indexes were applied directly to the database.
+-- Historical index-additions migration. Captured into the 0000 baseline
+-- via pg_dump, so this file is now a no-op placeholder for ordering.
+SELECT 1;

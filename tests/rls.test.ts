@@ -842,6 +842,11 @@ describe.skipIf(isProductionDb)('Row-Level Security', () => {
     // =========================================================================
 
     describe('RLS on All Protected Tables', () => {
+        // Core domain tables — 28 were the original coverage set. Auth /
+        // session / user_profile tables were added when the 0000 baseline
+        // was regenerated from a pg_dump of the live schema (their RLS was
+        // provisioned by earlier hand-written migrations outside the
+        // drizzle pipeline). All 34 public tables should have RLS on.
         const rlsEnabledTables = [
             'bank_account',
             'beneficiary',
@@ -871,6 +876,15 @@ describe.skipIf(isProductionDb)('Row-Level Security', () => {
             'activity_log',
             'pending_inventory_item',
             'specific_bequest',
+            // Auth / session / profile tables — RLS required so a captured
+            // access-code cookie can't query another user's session or
+            // profile.
+            'account',
+            'session',
+            'user',
+            'user_profile',
+            'verification',
+            'password_reset_token',
         ]
 
         test.each(
@@ -880,7 +894,7 @@ describe.skipIf(isProductionDb)('Row-Level Security', () => {
             expect(enabled).toBe(true)
         })
 
-        test('exactly 28 tables have RLS enabled', async () => {
+        test('every listed table matches the live RLS-enabled count', async () => {
             const client = getClient()
             const result = await client`
                 SELECT COUNT(*)::int as count
@@ -890,7 +904,11 @@ describe.skipIf(isProductionDb)('Row-Level Security', () => {
                 AND c.relkind = 'r'
                 AND c.relrowsecurity = true
             `
-            expect(result[0]?.count).toBe(28)
+            // Lock the invariant: the rlsEnabledTables list above must
+            // enumerate every public table with RLS enabled. If this
+            // assertion fires, either a new table was added without
+            // being added to the list, or a table lost its RLS flag.
+            expect(result[0]?.count).toBe(rlsEnabledTables.length)
         })
 
         test('beneficiary cannot write to admin-only tables (entity)', async () => {
