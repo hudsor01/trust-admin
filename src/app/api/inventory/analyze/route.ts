@@ -1,11 +1,10 @@
 export const dynamic = 'force-dynamic'
 
 import * as Sentry from '@sentry/nextjs'
-import { desc, eq } from 'drizzle-orm'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { db } from '@/db'
-import { inventoryAnalysisCache, valuationCorrection } from '@/db/schema'
+import { inventoryAnalysisCache } from '@/db/schema'
 import { env } from '@/lib/env'
 import {
     checkAnalyzeRateLimit,
@@ -13,16 +12,15 @@ import {
     hasInventoryAccess,
 } from '@/lib/inventory-access'
 import {
-    analyzeWithMarketResearch,
-    applyReviewStatusOverrides,
-    buildFeedbackContext,
+    analyzeViaManagedAgent,
     type InventoryAnalysisResult,
-    validateAnalysis,
-} from '@/lib/inventory-analysis'
+    isManagedAgentConfigured,
+} from '@/lib/inventory-agent'
 import { logger } from '@/lib/logger'
 import { uploadInventoryImages } from '@/lib/uploadthing-server'
 
-// Opus 4.7 with xhigh effort + web_search + dynamic filtering can take 2-5 minutes
+// Managed agent + structured-extraction round-trip can span several minutes
+// for a single item (web_search + code_execution + the extraction pass).
 export const maxDuration = 300
 
 const ImageSchema = z.object({
@@ -50,21 +48,11 @@ interface AnalyzeSuccessResponse {
     success: true
     data: InventoryAnalysisResult
     photoUrls: string[]
-    validationWarnings: string[]
-    /**
-     * Server-side reviewStatus override reasons — emitted by
-     * applyReviewStatusOverrides when a guardrail fires (> $3,000,
-     * estimatedValue outside range, <2 independent source URLs). Separated
-     * from validationWarnings so the submission form can persist these onto
-     * pending_inventory_item.aiServerOverrideReasons and the admin sees the
-     * exact same red flags the submitter saw.
-     */
-    overrideReasons: string[]
     /**
      * Opaque server-generated UUID pointing at the persisted analysis in
      * inventory_analysis_cache. The submit action looks up this row and
-     * re-derives overrides from the *stored* (untampered) analysis rather
-     * than from form fields. Closes the DOM-tampering trust boundary.
+     * uses the stored (untampered) analysis instead of form fields — closes
+     * the DOM-tampering trust boundary.
      */
     analysisId: string
 }
@@ -77,14 +65,11 @@ interface AnalyzeErrorResponse {
 
 type AnalyzeResponse = AnalyzeSuccessResponse | AnalyzeErrorResponse
 
-/** Analyze inventory images via Claude Opus 4.7. */
+/** Analyze inventory images via the Managed Estate Valuation Agent. */
 export async function POST(
     request: NextRequest,
 ): Promise<NextResponse<AnalyzeResponse>> {
     try {
-        // /forms/inventory is a public intake form gated by an access-code
-        // cookie (set by verifyAccessCode). Trust that gate here — the admin
-        // session check was wrong: beneficiaries using the form are not admins.
         if (!(await hasInventoryAccess())) {
             return NextResponse.json(
                 { success: false, error: 'Unauthorized' },
@@ -92,10 +77,6 @@ export async function POST(
             )
         }
 
-        // Explicit JSON content-type guard so a misrouted request returns
-        // 415 instead of the caught 500 from a thrown request.json() parse
-        // error. The form is the only real caller, but a clear rejection is
-        // cheaper than a Sentry event.
         const contentType = request.headers.get('content-type') ?? ''
         if (!contentType.toLowerCase().includes('application/json')) {
             return NextResponse.json(
@@ -112,10 +93,7 @@ export async function POST(
             body = await request.json()
         } catch {
             return NextResponse.json(
-                {
-                    success: false,
-                    error: 'Invalid JSON body',
-                },
+                { success: false, error: 'Invalid JSON body' },
                 { status: 400 },
             )
         }
@@ -131,14 +109,10 @@ export async function POST(
             )
         }
 
-        const { images, entityId } = validationResult.data
+        const { images } = validationResult.data
 
-        // Per-IP rate limit — each call runs Opus 4.7 at xhigh effort with
-        // adaptive thinking and web_search, which spans several minutes and
-        // several dollars of inference per item. Without this, a captured
-        // access cookie is an unbounded spend risk. Counted AFTER cheap
-        // validation so a misbehaving client can't burn the hourly budget on
-        // malformed requests that never reach Anthropic.
+        // Per-IP rate limit — each call drives the managed agent loop +
+        // extraction pass, which spans minutes and several dollars.
         const ip = await getClientIP()
         const rate = checkAnalyzeRateLimit(ip)
         if (!rate.allowed) {
@@ -158,103 +132,46 @@ export async function POST(
 
         if (!env.ANTHROPIC_API_KEY) {
             return NextResponse.json(
+                { success: false, error: 'Anthropic API key not configured' },
+                { status: 503 },
+            )
+        }
+
+        if (!isManagedAgentConfigured()) {
+            return NextResponse.json(
                 {
                     success: false,
-                    error: 'Anthropic API key not configured',
+                    error: 'Managed agent not configured — set ANTHROPIC_AGENT_ID and ANTHROPIC_AGENT_ENVIRONMENT_ID in the environment.',
                 },
                 { status: 503 },
             )
         }
 
-        // Fetch recent corrections for feedback loop. This table is optional
-        // context — if it's missing (migration not applied) or the query fails
-        // for any reason, fall back to no feedback rather than 500ing the whole
-        // analysis. The core valuation still works; we just don't benefit from
-        // prior admin corrections.
-        let recentCorrections: Array<{
-            itemName: string
-            category: string
-            aiEstimatedValue: string
-            correctedValue: string
-        }> = []
-        try {
-            recentCorrections = await db
-                .select({
-                    itemName: valuationCorrection.itemName,
-                    category: valuationCorrection.category,
-                    aiEstimatedValue: valuationCorrection.aiEstimatedValue,
-                    correctedValue: valuationCorrection.correctedValue,
-                })
-                .from(valuationCorrection)
-                .where(
-                    entityId
-                        ? eq(valuationCorrection.entityId, entityId)
-                        : undefined,
-                )
-                .orderBy(desc(valuationCorrection.createdAt))
-                .limit(10)
-        } catch (err) {
-            // Most likely cause: the migration for this table hasn't been
-            // applied in prod yet. Also could be RLS rejection, connection
-            // drop, or DB timeout. All of those should surface once so we
-            // can notice drift — Sentry.captureMessage at warning level
-            // avoids polluting error-rate dashboards but stays observable.
-            logger.api.warn(
-                'valuation_correction query failed — continuing without feedback (likely missing migration or RLS)',
-                {
-                    error: err instanceof Error ? err.message : 'Unknown error',
-                },
-            )
-            Sentry.captureMessage('valuation_correction query failed', {
-                level: 'warning',
-                tags: {
-                    route: 'api/inventory/analyze',
-                    subsystem: 'feedback-query',
-                },
-                extra: {
-                    error: err instanceof Error ? err.message : 'Unknown error',
-                },
-            })
-        }
+        const {
+            analysis,
+            compressedImages: primaryCompressed,
+            proseReport,
+            sessionId,
+        } = await analyzeViaManagedAgent(images)
 
-        const feedbackContext = buildFeedbackContext(recentCorrections)
-
-        const { analysis, compressedImages: primaryCompressed } =
-            await analyzeWithMarketResearch(images, feedbackContext)
-
-        // Upload photos using the compressed images (non-fatal)
+        // Upload photos using the compressed images (non-fatal).
         let photoUrls: string[] = []
         try {
             photoUrls = await uploadInventoryImages(primaryCompressed)
         } catch {
-            // Non-fatal: analysis is still valuable without stored photos
+            // Non-fatal: analysis is still valuable without stored photos.
         }
 
-        const { warnings: validationWarnings } = validateAnalysis(analysis)
-
-        // Deterministic server-side guardrails. The model is instructed to
-        // return reviewStatus = "needs_professional_appraisal" when
-        // estimatedValue > $3,000 (Treas. Reg. § 20.2031-6(b)), but
-        // trust-but-verify: a court-filed inventory (Tex. Est. Code
-        // § 309.051) can't rely on a prompt alone.
-        // Same logic for out-of-range values or rationales missing comparables
-        // — downgrade the status the model returned rather than silently
-        // shipping a number we don't have evidence for.
-        const { analysis: gated, overrideReasons } =
-            applyReviewStatusOverrides(analysis)
-
         // Persist the authoritative analysis server-side. submitInventoryItem
-        // will look this row up by id and run applyReviewStatusOverrides on
-        // the stored fields — not on anything the client can edit between
-        // now and submit. Insert is non-fatal: if the cache write fails the
-        // submitter still sees a valid valuation, but the submit-side
-        // guardrail will fall back to conservative "no cached AI output"
-        // handling.
+        // will read this row by id and use the stored fields — not anything
+        // the client can edit between now and submit. Cache write is non-
+        // fatal: if it fails the submitter still sees a valid valuation, the
+        // submit-side path just falls back to "no AI metadata".
         let analysisId = ''
         try {
             const [row] = await db
                 .insert(inventoryAnalysisCache)
-                .values({ analysisJson: gated })
+                .values({ analysisJson: analysis })
                 .returning({ id: inventoryAnalysisCache.id })
             analysisId = row?.id ?? ''
         } catch (err) {
@@ -273,23 +190,22 @@ export async function POST(
             })
         }
 
+        logger.api.info('Managed agent analysis complete', {
+            sessionId,
+            proseChars: proseReport.length,
+            analysisId,
+        })
+
         return NextResponse.json({
             success: true,
-            data: gated,
+            data: analysis,
             photoUrls,
-            validationWarnings: [...validationWarnings, ...overrideReasons],
-            overrideReasons,
             analysisId,
         })
     } catch (error) {
-        // Anthropic's error text contains "credit balance" / "Plans &
-        // Billing" when the org runs out of credits. Surface that as a 402
-        // with a direct reload hint so an admin doesn't have to dig through
-        // Sentry to discover it's a billing issue, not a code bug. Match
-        // the literal phrasing Anthropic returns — it's not contractual,
-        // but matches the other branches in this catch block. Also log a
-        // Sentry breadcrumb at warning level for frequency visibility —
-        // known/actionable, not an exception, so we skip captureException.
+        // Anthropic returns "credit balance" / "Plans & Billing" text in the
+        // error body when the org is out of credits. Surface as 402 so the
+        // admin knows it's a billing issue, not a code bug.
         if (
             error instanceof Error &&
             /credit balance|Plans & Billing/i.test(error.message)
@@ -338,8 +254,6 @@ export async function POST(
             }
         }
 
-        // Capture to Sentry so we can actually see what's failing in prod
-        // (the stack trace is otherwise swallowed by this catch).
         Sentry.captureException(error, {
             tags: { route: 'api/inventory/analyze' },
         })
@@ -348,10 +262,7 @@ export async function POST(
             stack: error instanceof Error ? error.stack : undefined,
         })
         return NextResponse.json(
-            {
-                success: false,
-                error: 'Internal server error',
-            },
+            { success: false, error: 'Internal server error' },
             { status: 500 },
         )
     }
