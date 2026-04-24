@@ -4,7 +4,7 @@
 # this image (from CI or a dev machine) — drizzle-kit is a devDep and
 # db/migrations/ is not copied into the runtime.
 
-FROM oven/bun:1 AS base
+FROM --platform=linux/amd64 oven/bun:1 AS base
 
 # Dependencies
 FROM base AS deps
@@ -32,8 +32,11 @@ ENV SENTRY_PROJECT=$SENTRY_PROJECT
 RUN --mount=type=secret,id=sentry_auth_token,env=SENTRY_AUTH_TOKEN \
     bun run build
 
-# Production runtime
-FROM node:22-slim AS runner
+# Production runtime — pinned to linux/amd64 so local builds on Apple
+# Silicon produce an image that runs on the deploy targets, and so the
+# narrow outputFileTracingIncludes glob in next.config.ts (which names
+# sharp-linux-x64 specifically) always resolves.
+FROM --platform=linux/amd64 node:22-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
