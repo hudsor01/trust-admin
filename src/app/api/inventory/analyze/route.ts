@@ -19,9 +19,15 @@ import {
 import { logger } from '@/lib/logger'
 import { uploadInventoryImages } from '@/lib/uploadthing-server'
 
-// Managed agent + structured-extraction round-trip can span several minutes
-// for a single item (web_search + code_execution + the extraction pass).
-export const maxDuration = 300
+// Managed agent runs can exceed 5 minutes for complex items (the Yanke
+// Doodle II field test timed out at 300s on 2026-04-23). Vercel Pro +
+// Fluid Compute allows up to 800 seconds (13 min) per function invocation;
+// the standard serverless ceiling is 300s. If this value gets rejected at
+// build time the project is not on Fluid Compute and we'll need to either
+// (a) enable Fluid in the Vercel dashboard or (b) move the agent call to
+// an async poll pattern (kick off session, client polls /status until
+// session.status === idle).
+export const maxDuration = 800
 
 const ImageSchema = z.object({
     base64: z
@@ -69,6 +75,10 @@ type AnalyzeResponse = AnalyzeSuccessResponse | AnalyzeErrorResponse
 export async function POST(
     request: NextRequest,
 ): Promise<NextResponse<AnalyzeResponse>> {
+    // Wall-clock timer for the whole route. Logged on both success and
+    // failure so we can size maxDuration and the eventual async refactor
+    // against real data instead of estimates.
+    const tStart = Date.now()
     try {
         if (!(await hasInventoryAccess())) {
             return NextResponse.json(
@@ -197,6 +207,7 @@ export async function POST(
             analysisId,
             toolUses,
             toolUseCount: toolUses.length,
+            durationMs: Date.now() - tStart,
         })
 
         return NextResponse.json({
@@ -221,6 +232,7 @@ export async function POST(
                         route: 'api/inventory/analyze',
                         subsystem: 'anthropic-billing',
                     },
+                    extra: { durationMs: Date.now() - tStart },
                 },
             )
             return NextResponse.json(
@@ -234,6 +246,10 @@ export async function POST(
 
         if (error instanceof Error) {
             if (error.message.includes('rate limit')) {
+                logger.api.warn('Anthropic rate-limit error', {
+                    error: error.message,
+                    durationMs: Date.now() - tStart,
+                })
                 return NextResponse.json(
                     {
                         success: false,
@@ -247,6 +263,10 @@ export async function POST(
                 error.message.includes('401') ||
                 error.message.includes('authentication')
             ) {
+                logger.api.warn('Anthropic auth error', {
+                    error: error.message,
+                    durationMs: Date.now() - tStart,
+                })
                 return NextResponse.json(
                     {
                         success: false,
@@ -263,6 +283,7 @@ export async function POST(
         logger.api.error('Inventory analysis failed', {
             error: error instanceof Error ? error.message : 'Unknown error',
             stack: error instanceof Error ? error.stack : undefined,
+            durationMs: Date.now() - tStart,
         })
         return NextResponse.json(
             { success: false, error: 'Internal server error' },
