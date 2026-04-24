@@ -19,9 +19,15 @@ import {
 import { logger } from '@/lib/logger'
 import { uploadInventoryImages } from '@/lib/uploadthing-server'
 
-// Managed agent + structured-extraction round-trip can span several minutes
-// for a single item (web_search + code_execution + the extraction pass).
-export const maxDuration = 300
+// Managed agent runs can exceed 5 minutes for complex items (the Yanke
+// Doodle II field test timed out at 300s on 2026-04-23). Vercel Pro +
+// Fluid Compute allows up to 800 seconds (13 min) per function invocation;
+// the standard serverless ceiling is 300s. If this value gets rejected at
+// build time the project is not on Fluid Compute and we'll need to either
+// (a) enable Fluid in the Vercel dashboard or (b) move the agent call to
+// an async poll pattern (kick off session, client polls /status until
+// session.status === idle).
+export const maxDuration = 800
 
 const ImageSchema = z.object({
     base64: z
