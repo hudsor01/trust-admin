@@ -310,7 +310,15 @@ export function InventoryForm() {
                     `/api/inventory/analyze/status?analysisId=${encodeURIComponent(analysisIdLocal)}`,
                 )
                 if (!sres.ok) {
-                    // Transient poll failure — keep trying unless 4xx terminal
+                    // 429 is retryable (Anthropic rate limit surfacing
+                    // through our route, or an upstream proxy limit); give
+                    // it extra backoff and keep polling — the agent is
+                    // still running on Anthropic's side regardless.
+                    if (sres.status === 429) {
+                        await new Promise((r) => setTimeout(r, 5000))
+                        continue
+                    }
+                    // Other 4xx = terminal (bad analysisId, auth lost)
                     if (sres.status >= 400 && sres.status < 500) {
                         let em = `Status check failed (${sres.status})`
                         try {
@@ -320,6 +328,7 @@ export function InventoryForm() {
                         setAnalysisError(em)
                         return
                     }
+                    // 5xx = transient, loop and retry
                     continue
                 }
                 const sdata = await sres.json()
@@ -544,7 +553,7 @@ export function InventoryForm() {
                         state change when a multi-minute analysis starts and
                         finishes. The button label alone doesn't announce.
                         Errors use aria-live="assertive" so a failure after a
-                        2-5 minute wait interrupts instead of queuing behind
+                        5-13 minute wait interrupts instead of queuing behind
                         other announcements. */}
                     <p
                         id="analysis-status"
@@ -553,7 +562,7 @@ export function InventoryForm() {
                         className="sr-only"
                     >
                         {analyzing
-                            ? 'Researching valuation with Opus 4.7. This typically takes 2 to 5 minutes.'
+                            ? 'Researching valuation with Opus 4.7. This typically takes 5 to 13 minutes.'
                             : analysis
                               ? 'Analysis complete. Review the proposed valuation below.'
                               : ''}

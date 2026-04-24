@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic'
 
 import * as Sentry from '@sentry/nextjs'
-import { eq } from 'drizzle-orm'
+import { and, eq, isNull } from 'drizzle-orm'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { db } from '@/db'
@@ -127,12 +127,42 @@ export async function GET(
         if (state.status === 'complete') {
             // Persist the extracted structured analysis so subsequent polls
             // (and the submit action) read it from the DB instead of
-            // re-hitting Anthropic.
+            // re-hitting Anthropic. Conditional WHERE on analysisJson IS
+            // NULL guards against the race where two /status polls both
+            // observe idle → both call messages.parse → both try to write.
+            // Loser's UPDATE matches zero rows (no error); we re-read the
+            // winner's analysisJson and return that instead of clobbering.
             try {
-                await db
+                const updated = await db
                     .update(inventoryAnalysisCache)
                     .set({ analysisJson: state.analysis })
-                    .where(eq(inventoryAnalysisCache.id, analysisId))
+                    .where(
+                        and(
+                            eq(inventoryAnalysisCache.id, analysisId),
+                            isNull(inventoryAnalysisCache.analysisJson),
+                        ),
+                    )
+                    .returning({ id: inventoryAnalysisCache.id })
+                if (updated.length === 0) {
+                    // Another poll won the race. Re-read and return its data
+                    // so the client doesn't see two different analyses.
+                    const [fresh] = await db
+                        .select({
+                            analysisJson: inventoryAnalysisCache.analysisJson,
+                        })
+                        .from(inventoryAnalysisCache)
+                        .where(eq(inventoryAnalysisCache.id, analysisId))
+                        .limit(1)
+                    if (fresh?.analysisJson) {
+                        return NextResponse.json({
+                            success: true,
+                            status: 'complete',
+                            analysisId,
+                            data: fresh.analysisJson as InventoryAnalysisResult,
+                            toolUses: state.toolUses,
+                        })
+                    }
+                }
             } catch (err) {
                 logger.api.warn(
                     'inventory_analysis_cache update failed on status complete',
