@@ -143,6 +143,21 @@ export default withSentryConfig(nextConfig, {
     project: process.env.SENTRY_PROJECT,
     authToken: process.env.SENTRY_AUTH_TOKEN,
 
+    // Suppresses the Sentry "Source Map Upload Report" — ~800 lines per
+    // Vercel build listing every bundled chunk + debug id (176 scripts +
+    // 648 SSR chunks on this project). Upload still happens; only the
+    // verbose manifest printout is muted. Type def is explicit:
+    // "Suppresses all Sentry SDK build logs."
+    //
+    // Unconditional rather than Sentry's suggested `silent: !process.env.CI`
+    // pattern — that assumes CI = where you want logs, local = quiet. For
+    // us the opposite is true: Vercel (CI=1) is where the noise lives,
+    // local `next build` is usually a one-off where logs don't matter.
+    silent: true,
+
+    // Skip Sentry's anonymous build-step usage telemetry.
+    telemetry: false,
+
     // Source maps only in production — dev builds skip upload silently
     sourcemaps: {
         disable:
