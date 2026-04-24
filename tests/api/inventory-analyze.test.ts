@@ -1,14 +1,14 @@
-/** Tests for POST /api/inventory/analyze (managed-agent path).
+/** Tests for POST /api/inventory/analyze (async kick-off).
  *
- * The route is thin: auth → parse/validate → rate limit → managed-agent
- * orchestration (mocked) → cache insert → response. These tests exercise
- * the route-level contracts (status codes, response shape, side effects);
- * the agent orchestration itself is covered by field tests against a real
- * session, not here. */
+ * The route is now thin: auth → parse/validate → rate limit → start
+ * managed-agent session → upload photos → insert placeholder cache row →
+ * return { analysisId, photoUrls }. The actual agent work happens on
+ * Anthropic infra; the /status route drains the result. These tests
+ * exercise the route-level contracts; agent orchestration is covered
+ * by field tests against a live session. */
 
-import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
+import { beforeEach, describe, expect, mock, test } from 'bun:test'
 
-// Access-code cookie passes by default.
 mock.module('../../src/lib/inventory-access', () => ({
     hasInventoryAccess: () => Promise.resolve(true),
     getClientIP: () => Promise.resolve('127.0.0.1'),
@@ -23,38 +23,15 @@ mock.module('../../src/lib/env', () => ({
     },
 }))
 
-const FAKE_ANALYSIS = {
-    name: 'Test Painting',
-    category: 'ART' as const,
-    brand: null,
-    model: null,
-    materials: ['oil on canvas'],
-    era: 'c. 1950',
-    estimatedValue: '1200.00',
-    valueRangeLow: '900.00',
-    valueRangeHigh: '1500.00',
-    condition: 'good' as const,
-    conditionNotes: 'minor craquelure',
-    description: 'mid-century oil painting',
-    valuationRationale: 'prose report with citations',
-    reviewStatus: 'inventory_ready' as const,
-    reviewNotes: '',
-    dbCategory: 'ART' as const,
-    rawCategory: 'ART',
-}
-
-const mockAnalyze = mock(() =>
+const mockStart = mock(() =>
     Promise.resolve({
-        analysis: FAKE_ANALYSIS,
-        compressedImages: [{ base64: 'Y29tcA==', mimeType: 'image/jpeg' }],
-        proseReport: 'full prose report',
         sessionId: 'sesn_test',
-        toolUses: ['web_search', 'web_search', 'code_execution'],
+        compressedImages: [{ base64: 'Y29tcA==', mimeType: 'image/jpeg' }],
     }),
 )
 const mockIsConfigured = mock(() => true)
 mock.module('../../src/lib/inventory-agent', () => ({
-    analyzeViaManagedAgent: mockAnalyze,
+    startAgentSession: mockStart,
     isManagedAgentConfigured: mockIsConfigured,
 }))
 
@@ -76,12 +53,10 @@ mock.module('../../db', () => ({
         }),
     },
 }))
-// Full schema surface so this mock doesn't shadow other test files'
-// expectations of the same module. bun mock.module is process-global
-// and last-write-wins — a partial mock here breaks sibling tests.
 mock.module('../../db/schema', () => ({
     inventoryAnalysisCache: {
         id: 'id-col',
+        sessionId: 'session-id-col',
         analysisJson: 'analysis-json-col',
         expiresAt: 'expires-at-col',
     },
@@ -103,9 +78,9 @@ function jsonRequest(body: unknown) {
     }) as unknown as Parameters<typeof mod.POST>[0]
 }
 
-describe('POST /api/inventory/analyze (managed agent path)', () => {
+describe('POST /api/inventory/analyze (async kick-off)', () => {
     beforeEach(async () => {
-        mockAnalyze.mockClear()
+        mockStart.mockClear()
         mockUpload.mockClear()
         mockInsertReturning.mockClear()
         mockIsConfigured.mockImplementation(() => true)
@@ -113,11 +88,7 @@ describe('POST /api/inventory/analyze (managed agent path)', () => {
         await loadRoute()
     })
 
-    afterEach(() => {
-        insertShouldFail = false
-    })
-
-    test('happy path → 200 with analysis, photoUrls, analysisId', async () => {
+    test('happy path → 200 with analysisId + photoUrls', async () => {
         const res = await mod.POST(
             jsonRequest({
                 images: [{ base64: 'Zm9v', mimeType: 'image/jpeg' }],
@@ -126,12 +97,9 @@ describe('POST /api/inventory/analyze (managed agent path)', () => {
         expect(res.status).toBe(200)
         const body = (await res.json()) as Record<string, unknown>
         expect(body.success).toBe(true)
-        expect((body.data as Record<string, unknown>).name).toBe(
-            'Test Painting',
-        )
-        expect(body.photoUrls).toEqual(['https://cdn/photo1.jpg'])
         expect(body.analysisId).toBe('cache-uuid-1')
-        expect(mockAnalyze).toHaveBeenCalledTimes(1)
+        expect(body.photoUrls).toEqual(['https://cdn/photo1.jpg'])
+        expect(mockStart).toHaveBeenCalledTimes(1)
     })
 
     test('401 when access cookie missing', async () => {
@@ -199,6 +167,8 @@ describe('POST /api/inventory/analyze (managed agent path)', () => {
         expect(res.status).toBe(200)
         const body = (await res.json()) as Record<string, unknown>
         expect(body.success).toBe(true)
+        // analysisId is empty when cache insert fails; client will see it
+        // as "no AI" and the submit path already handles that gracefully.
         expect(body.analysisId).toBe('')
     })
 
@@ -218,7 +188,7 @@ describe('POST /api/inventory/analyze (managed agent path)', () => {
     })
 
     test('402 + billing message when Anthropic returns credit balance error', async () => {
-        mockAnalyze.mockImplementationOnce(() =>
+        mockStart.mockImplementationOnce(() =>
             Promise.reject(
                 new Error(
                     'Your credit balance is too low. Please visit Plans & Billing.',
@@ -236,7 +206,7 @@ describe('POST /api/inventory/analyze (managed agent path)', () => {
     })
 
     test('500 on unknown error (Sentry captureException path)', async () => {
-        mockAnalyze.mockImplementationOnce(() =>
+        mockStart.mockImplementationOnce(() =>
             Promise.reject(new Error('totally unexpected')),
         )
         const res = await mod.POST(
