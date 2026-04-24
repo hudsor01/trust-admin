@@ -1,27 +1,17 @@
 /** Tests for submitInventoryItem — direct insert into personal_property
- * with admin-session gate + cached-analysis trust boundary. */
+ * with access-code cookie gate + cached-analysis trust boundary. */
 
 import { beforeEach, describe, expect, mock, test } from 'bun:test'
 
-// Admin session mock — submitInventoryItem checks authServer.getSession()
-// and the ADMIN_EMAIL env var. Tests default to an authenticated owner.
-mock.module('../../src/lib/auth/server', () => ({
-    authServer: {
-        getSession: () =>
-            Promise.resolve({
-                data: {
-                    user: {
-                        id: 'test-user',
-                        email: 'admin@test.com',
-                        role: 'admin',
-                    },
-                },
-            }),
-    },
+// Access-code cookie gate mock — submitInventoryItem gates on the same
+// hasInventoryAccess() cookie check as the /forms/inventory page and the
+// /api/inventory/analyze route. Tests default to an authenticated cookie.
+mock.module('../../src/lib/inventory-access', () => ({
+    hasInventoryAccess: () => Promise.resolve(true),
 }))
 
 mock.module('../../src/lib/env', () => ({
-    env: { ADMIN_EMAIL: 'admin@test.com' },
+    env: {},
 }))
 
 // Pass-through mock for the inventory-analysis module so sibling test
