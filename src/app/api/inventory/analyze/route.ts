@@ -75,6 +75,10 @@ type AnalyzeResponse = AnalyzeSuccessResponse | AnalyzeErrorResponse
 export async function POST(
     request: NextRequest,
 ): Promise<NextResponse<AnalyzeResponse>> {
+    // Wall-clock timer for the whole route. Logged on both success and
+    // failure so we can size maxDuration and the eventual async refactor
+    // against real data instead of estimates.
+    const tStart = Date.now()
     try {
         if (!(await hasInventoryAccess())) {
             return NextResponse.json(
@@ -203,6 +207,7 @@ export async function POST(
             analysisId,
             toolUses,
             toolUseCount: toolUses.length,
+            durationMs: Date.now() - tStart,
         })
 
         return NextResponse.json({
@@ -269,6 +274,7 @@ export async function POST(
         logger.api.error('Inventory analysis failed', {
             error: error instanceof Error ? error.message : 'Unknown error',
             stack: error instanceof Error ? error.stack : undefined,
+            durationMs: Date.now() - tStart,
         })
         return NextResponse.json(
             { success: false, error: 'Internal server error' },
