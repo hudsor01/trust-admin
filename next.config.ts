@@ -48,27 +48,50 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 const nextConfig: NextConfig = {
+    // standalone required for the Dockerfile self-host path (emits a minimal
+    // server.js + hand-picked node_modules under .next/standalone). Vercel
+    // ignores this — the platform runs its own bundler — so it's harmless
+    // there. Removing it would break `docker build`.
     output: 'standalone',
     reactStrictMode: true,
 
-    // sharp uses native binaries — must be excluded from serverless bundling
-    serverExternalPackages: ['sharp'],
+    // Don't leak "x-powered-by: Next.js" on every response.
+    poweredByHeader: false,
 
-    // Ensure Next's standalone tracer picks up sharp's platform-conditional
-    // prebuild packages (@img/sharp-linux-x64 + libvips). Automatic tracing
-    // has historically missed these — this keeps /api/inventory working
-    // inside the Docker image.
+    // React Compiler (via babel-plugin-react-compiler, stable in 16.2).
+    // Auto-memoizes components so admin forms and data tables skip
+    // unnecessary re-renders without manual useMemo / React.memo. Next.js
+    // uses SWC to only apply the compiler to files that contain JSX or
+    // hooks, so the build-time cost is small.
+    reactCompiler: true,
+
+    // sharp is on Next.js 16's default auto-externalize list
+    // (server-external-packages.jsonc in the Next source), so an explicit
+    // serverExternalPackages entry is redundant. Next's tracer also
+    // auto-copies the right platform-conditional prebuilds.
+    //
+    // outputFileTracingIncludes narrowed to linux-x64 only — the prior
+    // `./node_modules/@img/**/*` glob walked every prebuild (darwin,
+    // win32, linux-arm, linux-arm64, linuxmusl-arm64, etc.) and each
+    // traced file became a line in the Vercel build output ("million
+    // chunks"). Both targets we actually ship to (Vercel serverless +
+    // Dockerfile node:22-slim) are linux-x64, so the narrow glob is
+    // strictly sufficient. The generic `sharp/**/*` still pulls the
+    // platform-agnostic lib/ wrapper.
     outputFileTracingIncludes: {
         '/api/inventory/**': [
             './node_modules/sharp/**/*',
-            './node_modules/@img/**/*',
+            './node_modules/@img/sharp-linux-x64/**/*',
+            './node_modules/@img/sharp-libvips-linux-x64/**/*',
         ],
     },
 
+    // Tree-shake barrel imports. Next's default list already covers
+    // lucide-react and recharts, so those are omitted here. The Radix UI
+    // primitives each ship many named exports and aren't in the default
+    // list — keeping them explicit.
     experimental: {
-        // Tree-shake barrel exports — prevents bundling entire libraries
         optimizePackageImports: [
-            'lucide-react',
             '@radix-ui/react-alert-dialog',
             '@radix-ui/react-avatar',
             '@radix-ui/react-checkbox',
@@ -85,7 +108,6 @@ const nextConfig: NextConfig = {
             '@radix-ui/react-switch',
             '@radix-ui/react-tabs',
             '@radix-ui/react-tooltip',
-            'recharts',
         ],
     },
 
