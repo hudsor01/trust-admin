@@ -4,8 +4,7 @@ import { and, asc, eq, gt } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '@/db'
 import { entity, inventoryAnalysisCache, personalProperty } from '@/db/schema'
-import { authServer } from '@/lib/auth/server'
-import { env } from '@/lib/env'
+import { hasInventoryAccess } from '@/lib/inventory-access'
 import { InventoryAnalysisSchema } from '@/lib/inventory-analysis'
 import { logger } from '@/lib/logger'
 
@@ -64,19 +63,22 @@ export type InventoryFormState = {
  * Direct submission into personal_property. The pending_inventory_item
  * queue + approval workflow was dropped 2026-04-23 — Richard is the only
  * user, so items go straight to the canonical inventory with AI metadata
- * attached. Auth is the admin session (no more access-code cookie).
+ * attached.
+ *
+ * Auth: access-code cookie (same gate as /forms/inventory page and
+ * /api/inventory/analyze). A previous version required an admin session,
+ * but that created two auth paths for a single mobile flow — Richard
+ * would authenticate via the access code on the intake page, run the
+ * analyze call (cookie-gated, works), then hit "Submit" and get
+ * "Admin access required" because submit expected a Neon Auth session.
+ * Single gate: if you can load the page and run analyze, you can submit.
  */
 export async function submitInventoryItem(
     _prevState: InventoryFormState,
     formData: FormData,
 ): Promise<InventoryFormState> {
-    // Admin-only — Richard logs in on his phone once and the form works.
-    const { data: session } = await authServer.getSession()
-    const isOwner = session?.user?.email === env.ADMIN_EMAIL
-    const isAdmin =
-        session?.user && 'role' in session.user && session.user.role === 'admin'
-    if (!session?.user || (!isOwner && !isAdmin)) {
-        return { success: false, error: 'Admin access required' }
+    if (!(await hasInventoryAccess())) {
+        return { success: false, error: 'Unauthorized' }
     }
 
     const raw = {
