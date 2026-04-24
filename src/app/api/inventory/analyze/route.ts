@@ -232,6 +232,7 @@ export async function POST(
                         route: 'api/inventory/analyze',
                         subsystem: 'anthropic-billing',
                     },
+                    extra: { durationMs: Date.now() - tStart },
                 },
             )
             return NextResponse.json(
@@ -245,6 +246,10 @@ export async function POST(
 
         if (error instanceof Error) {
             if (error.message.includes('rate limit')) {
+                logger.api.warn('Anthropic rate-limit error', {
+                    error: error.message,
+                    durationMs: Date.now() - tStart,
+                })
                 return NextResponse.json(
                     {
                         success: false,
@@ -258,6 +263,10 @@ export async function POST(
                 error.message.includes('401') ||
                 error.message.includes('authentication')
             ) {
+                logger.api.warn('Anthropic auth error', {
+                    error: error.message,
+                    durationMs: Date.now() - tStart,
+                })
                 return NextResponse.json(
                     {
                         success: false,
