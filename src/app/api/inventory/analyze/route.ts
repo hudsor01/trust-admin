@@ -152,6 +152,7 @@ export async function POST(
             compressedImages: primaryCompressed,
             proseReport,
             sessionId,
+            toolUses,
         } = await analyzeViaManagedAgent(images)
 
         // Upload photos using the compressed images (non-fatal).
@@ -194,6 +195,8 @@ export async function POST(
             sessionId,
             proseChars: proseReport.length,
             analysisId,
+            toolUses,
+            toolUseCount: toolUses.length,
         })
 
         return NextResponse.json({
