@@ -1377,10 +1377,18 @@ export const inventoryAnalysisCache = pgTable(
     (t) => ({
         // UUID chosen by the server at analyze time; opaque to the client.
         id: t.uuid().primaryKey().defaultRandom(),
-        // Full InventoryAnalysisResult JSON, including reviewStatus,
-        // estimatedValue, valueRangeLow/High, valuationRationale — every
-        // input applyReviewStatusOverrides needs.
-        analysisJson: t.jsonb().notNull(),
+        // Full InventoryAnalysisResult JSON. Populated when the status
+        // endpoint finalizes a completed agent session — nullable because
+        // the kick-off endpoint inserts a row BEFORE the agent finishes so
+        // we have a stable analysisId to track from the moment analyze
+        // returns. Submit path treats null as "no AI metadata" via schema
+        // validation fallback.
+        analysisJson: t.jsonb(),
+        // Anthropic Managed Agent session id (sesn_...). Status endpoint
+        // polls session state by this id and writes the analysisJson once
+        // the agent goes idle. Nullable for rows that pre-date the async
+        // refactor.
+        sessionId: t.text(),
         createdAt: t
             .timestamp({ precision: 3, mode: 'string', withTimezone: true })
             .default(sql`CURRENT_TIMESTAMP`)
@@ -1394,6 +1402,7 @@ export const inventoryAnalysisCache = pgTable(
     }),
     (table) => [
         index('idx_inventory_analysis_cache_expires_at').on(table.expiresAt),
+        index('idx_inventory_analysis_cache_session_id').on(table.sessionId),
     ],
 )
 

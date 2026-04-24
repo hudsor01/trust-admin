@@ -1,6 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod'
-import { z } from 'zod'
 import { env } from '@/lib/env'
 import {
     type CompressedImage,
@@ -14,178 +13,223 @@ import { logger } from '@/lib/logger'
 
 const MANAGED_AGENTS_BETA = 'managed-agents-2026-04-01'
 
-/**
- * Minimal extraction schema. The Managed Agent returns prose + markdown;
- * we re-parse that prose with Opus + a JSON schema to populate the fields
- * the admin queue and personal_property columns need. Everything beyond the
- * bare minimum stays in `valuationRationale` (the prose itself).
- *
- * We use the same InventoryAnalysisSchema the rest of the app expects so
- * downstream code (cache → submit → personal_property columns) is unchanged.
- */
 const EXTRACTION_SYSTEM = `You are converting a free-text estate valuation report into a strict JSON object for downstream database storage. Do not change any numbers or facts — extract them as stated in the report.
 
 CRITICAL NUMERIC FORMAT: estimatedValue, valueRangeLow, and valueRangeHigh MUST be plain decimal strings with NO currency symbols, NO thousands separators, NO text. Correct: "800.00", "550", "1075.50". Wrong: "$800", "1,075", "$550–$1,075", "approximately 800". If the report gives a range (e.g. "$550–$1,075") pick the midpoint for estimatedValue and the range endpoints for valueRangeLow/valueRangeHigh. If a number is not stated, use "0".
 
 If a field is not stated in the report, use an empty string for text fields, an empty array for materials, "fair" for condition, "manual_review" for reviewStatus. Keep the original valuation's full prose in valuationRationale.`
 
-/**
- * Runs a single valuation through the Managed Agent (session lifecycle:
- * create → send user.message with images → stream until status_idle →
- * archive), then extracts a structured InventoryAnalysis record from the
- * agent's prose. Returns the analysis shape the rest of the pipeline
- * already understands.
- *
- * The legacy /src/lib/inventory-analysis.ts path (direct Opus + record_valuation
- * tool) remains available but is no longer wired into /api/inventory/analyze —
- * kept so its util exports (compressImage, mapCategory, the schema, tests)
- * continue to resolve.
- */
-export async function analyzeViaManagedAgent(
-    images: InventoryImage[],
-): Promise<{
-    analysis: InventoryAnalysisResult
-    compressedImages: CompressedImage[]
-    proseReport: string
-    sessionId: string
-    toolUses: string[]
-}> {
+function getClient(): Anthropic {
     if (!env.ANTHROPIC_API_KEY) {
         throw new Error('ANTHROPIC_API_KEY is not configured')
     }
+    return new Anthropic({ apiKey: env.ANTHROPIC_API_KEY })
+}
+
+function requireAgentConfig(): { agentId: string; environmentId: string } {
     if (!env.ANTHROPIC_AGENT_ID || !env.ANTHROPIC_AGENT_ENVIRONMENT_ID) {
         throw new Error(
             'ANTHROPIC_AGENT_ID / ANTHROPIC_AGENT_ENVIRONMENT_ID not configured — set both to enable the managed-agent valuation path',
         )
     }
+    return {
+        agentId: env.ANTHROPIC_AGENT_ID,
+        environmentId: env.ANTHROPIC_AGENT_ENVIRONMENT_ID,
+    }
+}
 
-    const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY })
+/**
+ * Phase 1 of the async analyze pattern. Creates a Managed Agent session,
+ * posts the user.message event with the compressed images, returns
+ * immediately once the agent has accepted the input. Does NOT wait for
+ * the agent to finish — that happens on Anthropic's side and the client
+ * polls /api/inventory/analyze/status to drain the result.
+ *
+ * Runs in <10s on the happy path (session create + event send), well
+ * under any serverless function cap.
+ */
+export async function startAgentSession(images: InventoryImage[]): Promise<{
+    sessionId: string
+    compressedImages: CompressedImage[]
+}> {
+    const { agentId, environmentId } = requireAgentConfig()
+    const client = getClient()
 
-    // Compress images before sending — the 10MB raw cap in the route schema
-    // would choke the 2MB-per-block ceiling on Anthropic's image blocks.
     const compressedImages = await Promise.all(
         images.map((img) => compressImage(img.base64, img.mimeType)),
     )
 
     const session = await client.beta.sessions.create(
         {
-            environment_id: env.ANTHROPIC_AGENT_ENVIRONMENT_ID,
-            agent: { type: 'agent', id: env.ANTHROPIC_AGENT_ID },
+            environment_id: environmentId,
+            agent: { type: 'agent', id: agentId },
             title: `Estate valuation — ${new Date().toISOString()}`,
         },
         { headers: { 'anthropic-beta': MANAGED_AGENTS_BETA } },
     )
     const sessionId = session.id
 
-    try {
-        // Open the event stream BEFORE sending the user message. The agent
-        // starts running the moment the send POST lands; if the stream
-        // isn't already connected, the earliest events (session.status_running,
-        // first agent.thinking / agent.message) can be lost. The Anthropic
-        // TypeScript sample (managed-agents-2026-04-01) explicitly creates
-        // the stream first, then sends. We await here — the SDK's
-        // APIPromise<Stream<>> isn't directly iterable, so we resolve to
-        // the underlying Stream (which has Symbol.asyncIterator).
-        const stream = await client.beta.sessions.events.stream(
-            sessionId,
-            undefined,
-            { headers: { 'anthropic-beta': MANAGED_AGENTS_BETA } },
-        )
-
-        await client.beta.sessions.events.send(
-            sessionId,
-            {
-                events: [
-                    {
-                        type: 'user.message',
-                        content: [
-                            {
-                                type: 'text',
-                                text: buildUserPrompt(compressedImages.length),
+    await client.beta.sessions.events.send(
+        sessionId,
+        {
+            events: [
+                {
+                    type: 'user.message',
+                    content: [
+                        {
+                            type: 'text',
+                            text: buildUserPrompt(compressedImages.length),
+                        },
+                        ...compressedImages.map((img) => ({
+                            type: 'image' as const,
+                            source: {
+                                type: 'base64' as const,
+                                media_type: img.mimeType as
+                                    | 'image/jpeg'
+                                    | 'image/png'
+                                    | 'image/gif'
+                                    | 'image/webp',
+                                data: img.base64,
                             },
-                            ...compressedImages.map((img) => ({
-                                type: 'image' as const,
-                                source: {
-                                    type: 'base64' as const,
-                                    media_type: img.mimeType as
-                                        | 'image/jpeg'
-                                        | 'image/png'
-                                        | 'image/gif'
-                                        | 'image/webp',
-                                    data: img.base64,
-                                },
-                            })),
-                        ],
-                    },
-                ],
-            },
-            { headers: { 'anthropic-beta': MANAGED_AGENTS_BETA } },
-        )
+                        })),
+                    ],
+                },
+            ],
+        },
+        { headers: { 'anthropic-beta': MANAGED_AGENTS_BETA } },
+    )
 
-        const collected: string[] = []
-        const toolUses: string[] = []
-        let ended = false
-        for await (const event of stream) {
-            if (event.type === 'agent.message') {
-                for (const block of event.content) {
-                    if (block.type === 'text') collected.push(block.text)
-                }
-            } else if (event.type === 'agent.tool_use') {
-                // Observability: capture which tools the agent fires so a
-                // slow / degenerate run is debuggable without guessing.
-                // Matches the helper-scaffold pattern from Anthropic's docs.
-                toolUses.push(event.name)
-                logger.api.info('Managed agent tool_use', {
-                    sessionId,
-                    tool: event.name,
-                })
-            } else if (event.type === 'session.status_idle') {
-                ended = true
-                break
-            } else if (event.type === 'session.status_terminated') {
-                throw new Error(
-                    `Managed agent session terminated: ${JSON.stringify(
-                        event,
-                    ).slice(0, 500)}`,
-                )
-            }
-        }
-        if (!ended) {
-            throw new Error(
-                'Managed agent stream closed without session.status_idle',
-            )
-        }
+    return { sessionId, compressedImages }
+}
 
-        const proseReport = collected.join('\n').trim()
-        if (!proseReport) {
-            throw new Error(
-                'Managed agent returned an empty response — no text blocks in agent.message events',
-            )
-        }
+/**
+ * Phase 2 of the async analyze pattern. Called by the /status route each
+ * time the client polls. Retrieves session state from Anthropic.
+ *
+ * - If the session is still running: returns { status: 'running', toolUses }
+ *   so the client can render progress.
+ * - If the session is idle (agent finished): fetches all events, extracts
+ *   agent.message text + toolUses, runs the structured-extraction pass
+ *   against the prose, archives the session, returns the analysis.
+ * - If the session terminated with an error: returns { status: 'failed' }.
+ *
+ * Each individual call runs in <30s worst case (the extraction step is
+ * the slowest part, and it only fires once per session).
+ */
+export async function fetchAgentSessionState(sessionId: string): Promise<
+    | {
+          status: 'running' | 'rescheduled'
+          toolUses: string[]
+      }
+    | {
+          status: 'complete'
+          analysis: InventoryAnalysisResult
+          proseReport: string
+          toolUses: string[]
+      }
+    | {
+          status: 'failed'
+          reason: string
+          toolUses: string[]
+      }
+> {
+    const client = getClient()
 
-        const analysis = await extractStructuredAnalysis(client, proseReport)
+    const session = await client.beta.sessions.retrieve(sessionId, undefined, {
+        headers: { 'anthropic-beta': MANAGED_AGENTS_BETA },
+    })
 
+    // Possible status values (managed-agents-2026-04-01): idle, running,
+    // rescheduling, terminated. An idle session has finished its turn.
+    if (session.status === 'running') {
+        return { status: 'running', toolUses: await collectToolUses(sessionId) }
+    }
+    if (session.status === 'rescheduling') {
         return {
-            analysis,
-            compressedImages,
-            proseReport,
-            sessionId,
-            toolUses,
-        }
-    } finally {
-        try {
-            await client.beta.sessions.archive(
-                sessionId,
-                {},
-                { headers: { 'anthropic-beta': MANAGED_AGENTS_BETA } },
-            )
-        } catch (err) {
-            logger.api.warn('Managed agent session archive failed', {
-                sessionId,
-                error: err instanceof Error ? err.message : 'Unknown error',
-            })
+            status: 'rescheduled',
+            toolUses: await collectToolUses(sessionId),
         }
     }
+    if (session.status === 'terminated') {
+        return {
+            status: 'failed',
+            reason: 'Managed agent session terminated',
+            toolUses: await collectToolUses(sessionId),
+        }
+    }
+
+    // idle → agent turn complete. Drain every event, collect prose + tools,
+    // run structured extraction, archive session.
+    const { text, toolUses } = await collectSessionPayload(sessionId)
+    if (!text.trim()) {
+        return {
+            status: 'failed',
+            reason: 'Managed agent returned no text in agent.message events',
+            toolUses,
+        }
+    }
+
+    const analysis = await extractStructuredAnalysis(client, text)
+
+    // Archive is non-fatal: the session result is already in our hands.
+    try {
+        await client.beta.sessions.archive(
+            sessionId,
+            {},
+            { headers: { 'anthropic-beta': MANAGED_AGENTS_BETA } },
+        )
+    } catch (err) {
+        logger.api.warn('Managed agent session archive failed', {
+            sessionId,
+            error: err instanceof Error ? err.message : 'Unknown error',
+        })
+    }
+
+    return {
+        status: 'complete',
+        analysis,
+        proseReport: text,
+        toolUses,
+    }
+}
+
+async function collectToolUses(sessionId: string): Promise<string[]> {
+    const client = getClient()
+    const toolUses: string[] = []
+    // Cursor-paginated — page through all events to capture tool history
+    // up to this poll. Lightweight because each event is <1KB.
+    const events = await client.beta.sessions.events.list(
+        sessionId,
+        undefined,
+        { headers: { 'anthropic-beta': MANAGED_AGENTS_BETA } },
+    )
+    for await (const event of events) {
+        if (event.type === 'agent.tool_use') toolUses.push(event.name)
+    }
+    return toolUses
+}
+
+async function collectSessionPayload(
+    sessionId: string,
+): Promise<{ text: string; toolUses: string[] }> {
+    const client = getClient()
+    const textParts: string[] = []
+    const toolUses: string[] = []
+    const events = await client.beta.sessions.events.list(
+        sessionId,
+        undefined,
+        { headers: { 'anthropic-beta': MANAGED_AGENTS_BETA } },
+    )
+    for await (const event of events) {
+        if (event.type === 'agent.message') {
+            for (const block of event.content) {
+                if (block.type === 'text') textParts.push(block.text)
+            }
+        } else if (event.type === 'agent.tool_use') {
+            toolUses.push(event.name)
+        }
+    }
+    return { text: textParts.join('\n').trim(), toolUses }
 }
 
 function buildUserPrompt(imageCount: number): string {
@@ -196,8 +240,6 @@ async function extractStructuredAnalysis(
     client: Anthropic,
     prose: string,
 ): Promise<InventoryAnalysisResult> {
-    // Opus-parse the agent's prose into the InventoryAnalysisSchema. Using
-    // a schema with only the fields we persist keeps this a tiny, cheap call.
     const extracted = await client.messages.parse({
         model: 'claude-opus-4-7',
         max_tokens: 8000,
@@ -220,15 +262,7 @@ async function extractStructuredAnalysis(
         )
     }
 
-    // Sanitize numeric fields before schema validation. The extraction
-    // prompt forbids currency symbols / thousand separators / ranges, but
-    // the model can still slip one through — and dinero.js NaNs on any
-    // non-digit, so "$800" downstream renders as "$NaN" in the admin UI
-    // and the form. Strip to a bare decimal before storing.
     const sanitized = sanitizeNumericFields(parsed)
-
-    // Validate one more time so a malformed parse (e.g. category outside
-    // the enum) throws a concrete Zod error rather than propagating garbage.
     const validated = InventoryAnalysisSchema.parse(sanitized)
     return {
         ...validated,
@@ -237,15 +271,6 @@ async function extractStructuredAnalysis(
     }
 }
 
-/**
- * Coerces estimatedValue / valueRangeLow / valueRangeHigh to bare decimals.
- * Handles the realistic failure modes we've seen the model emit despite the
- * prompt instruction: "$800", "1,075", "$550–$1,075", "approximately 800".
- * For range strings, keeps the lowest number for valueRangeLow and the
- * highest for valueRangeHigh (if the field in question is a range itself).
- * Unparseable strings become "0" rather than erroring — the admin queue
- * will show $0 and the admin can correct it manually.
- */
 function sanitizeNumericFields(parsed: unknown): unknown {
     if (!parsed || typeof parsed !== 'object') return parsed
     const obj = parsed as Record<string, unknown>
@@ -266,11 +291,6 @@ function sanitizeNumericFields(parsed: unknown): unknown {
 }
 
 function toBareDecimal(raw: string, pick: 'min' | 'max'): string {
-    // Extract every non-negative numeric token (digits, optional decimal).
-    // Commas inside numbers are stripped first so "1,075" becomes one token.
-    // We intentionally do NOT honor a leading minus — estate item values are
-    // non-negative, and a range like "450-900" must split into [450, 900],
-    // not [450, -900] (which would pick the wrong end).
     const normalized = raw.replace(/,/g, '')
     const matches = normalized.match(/\d+(?:\.\d+)?/g)
     if (!matches || matches.length === 0) return '0'
@@ -284,8 +304,6 @@ function toBareDecimal(raw: string, pick: 'min' | 'max'): string {
     ).toString()
 }
 
-// Exported for tests and for the analyze route to know whether the managed
-// agent path is configured (so it can return a clean 503 if not).
 export function isManagedAgentConfigured(): boolean {
     return !!(
         env.ANTHROPIC_API_KEY &&
@@ -294,9 +312,6 @@ export function isManagedAgentConfigured(): boolean {
     )
 }
 
-// Exported for test coverage. The legit "$800 → 800" transformation needs
-// a direct unit test so a regression doesn't re-surface the $NaN field-test
-// bug from 2026-04-23.
 export const _testables = {
     buildUserPrompt,
     EXTRACTION_SYSTEM,
@@ -304,10 +319,4 @@ export const _testables = {
     toBareDecimal,
 }
 
-// Re-export for clarity at call sites that don't want to import from the
-// legacy file.
 export type { InventoryAnalysisResult }
-
-// Zod is imported for side-effects (schema compilation) but the module also
-// uses it at the type level. Mark as referenced to keep noUnusedLocals quiet.
-z

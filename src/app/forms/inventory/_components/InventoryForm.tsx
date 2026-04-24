@@ -86,6 +86,13 @@ const REVIEW_STATUS_VARIANT: Record<
     needs_professional_appraisal: 'destructive',
 }
 
+function formatElapsed(ms: number): string {
+    const total = Math.floor(ms / 1000)
+    const m = Math.floor(total / 60)
+    const s = total % 60
+    return `${m}:${String(s).padStart(2, '0')}`
+}
+
 /** Client-side resize (max 2576px = Opus 4.7 vision ceiling) + JPEG compression to stay under Vercel's 4.5MB body limit. */
 async function compressImageClientSide(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
@@ -179,6 +186,13 @@ export function InventoryForm() {
     // between analyze and submit cannot bypass the $3k / range / URL
     // guardrails.
     const [analysisId, setAnalysisId] = useState<string>('')
+    // Async analyze progress: agent tool calls as they arrive from /status
+    // polls, plus elapsed wall-clock so the user sees something is happening
+    // during the 5-13 min agent run.
+    const [analysisToolUses, setAnalysisToolUses] = useState<string[]>([])
+    const [analysisStartedAt, setAnalysisStartedAt] = useState<number | null>(
+        null,
+    )
 
     // AI analysis pre-fills these; user can override before submit
     const [formValues, setFormValues] = useState({
@@ -238,6 +252,8 @@ export function InventoryForm() {
 
         setAnalyzing(true)
         setAnalysisError(null)
+        setAnalysisToolUses([])
+        setAnalysisStartedAt(Date.now())
 
         try {
             const images = await Promise.all(
@@ -247,22 +263,23 @@ export function InventoryForm() {
                 }),
             )
 
-            const res = await fetch('/api/inventory/analyze', {
+            // Phase 1 — kick off. Fast (<15s).
+            const kickoffRes = await fetch('/api/inventory/analyze', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ images }),
             })
 
-            if (!res.ok) {
-                let errorMsg = `Analysis failed (${res.status})`
+            if (!kickoffRes.ok) {
+                let errorMsg = `Analysis failed (${kickoffRes.status})`
                 try {
-                    const errData = await res.json()
+                    const errData = await kickoffRes.json()
                     if (errData.error) errorMsg = errData.error
                 } catch {
-                    if (res.status === 504)
+                    if (kickoffRes.status === 504)
                         errorMsg =
-                            'Analysis timed out - try with fewer or smaller photos'
-                    else if (res.status === 413)
+                            'Analysis kickoff timed out - try with fewer or smaller photos'
+                    else if (kickoffRes.status === 413)
                         errorMsg =
                             'Photos too large - try with fewer or smaller photos'
                 }
@@ -270,30 +287,76 @@ export function InventoryForm() {
                 return
             }
 
-            const data = await res.json()
-            if (data.success) {
-                setAnalysis(data.data)
-                if (data.photoUrls && data.photoUrls.length > 0) {
-                    setPhotoUrls(data.photoUrls)
-                }
-                if (data.validationWarnings) {
-                    setValidationWarnings(data.validationWarnings)
-                }
-                if (typeof data.analysisId === 'string' && data.analysisId) {
-                    setAnalysisId(data.analysisId)
-                }
-                setFormValues({
-                    name: data.data.name || '',
-                    category: data.data.dbCategory || '',
-                    condition: data.data.condition || '',
-                    estimatedValue: data.data.estimatedValue || '',
-                    valueRangeLow: data.data.valueRangeLow || '',
-                    valueRangeHigh: data.data.valueRangeHigh || '',
-                    description: data.data.description || '',
-                })
-            } else {
-                setAnalysisError(data.error || 'Analysis failed')
+            const kickoff = await kickoffRes.json()
+            if (!kickoff.success) {
+                setAnalysisError(kickoff.error || 'Analysis kickoff failed')
+                return
             }
+            const analysisIdLocal: string = kickoff.analysisId
+            if (kickoff.photoUrls && kickoff.photoUrls.length > 0) {
+                setPhotoUrls(kickoff.photoUrls)
+            }
+            setAnalysisId(analysisIdLocal)
+
+            // Phase 2 — poll /status until complete / failed. Agent runs
+            // on Anthropic infra for 5-13 min on complex items; each poll
+            // returns fast, so we never block a long-running request.
+            const POLL_INTERVAL_MS = 5000
+            const POLL_TIMEOUT_MS = 20 * 60 * 1000 // 20 minutes hard cap
+            const pollStart = Date.now()
+            while (Date.now() - pollStart < POLL_TIMEOUT_MS) {
+                await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS))
+                const sres = await fetch(
+                    `/api/inventory/analyze/status?analysisId=${encodeURIComponent(analysisIdLocal)}`,
+                )
+                if (!sres.ok) {
+                    // 429 is retryable (Anthropic rate limit surfacing
+                    // through our route, or an upstream proxy limit); give
+                    // it extra backoff and keep polling — the agent is
+                    // still running on Anthropic's side regardless.
+                    if (sres.status === 429) {
+                        await new Promise((r) => setTimeout(r, 5000))
+                        continue
+                    }
+                    // Other 4xx = terminal (bad analysisId, auth lost)
+                    if (sres.status >= 400 && sres.status < 500) {
+                        let em = `Status check failed (${sres.status})`
+                        try {
+                            const ed = await sres.json()
+                            if (ed.error) em = ed.error
+                        } catch {}
+                        setAnalysisError(em)
+                        return
+                    }
+                    // 5xx = transient, loop and retry
+                    continue
+                }
+                const sdata = await sres.json()
+                if (Array.isArray(sdata.toolUses)) {
+                    setAnalysisToolUses(sdata.toolUses)
+                }
+                if (sdata.status === 'complete') {
+                    setAnalysis(sdata.data)
+                    setFormValues({
+                        name: sdata.data.name || '',
+                        category: sdata.data.dbCategory || '',
+                        condition: sdata.data.condition || '',
+                        estimatedValue: sdata.data.estimatedValue || '',
+                        valueRangeLow: sdata.data.valueRangeLow || '',
+                        valueRangeHigh: sdata.data.valueRangeHigh || '',
+                        description: sdata.data.description || '',
+                    })
+                    return
+                }
+                if (sdata.status === 'failed') {
+                    setAnalysisError(sdata.error || 'Analysis failed')
+                    return
+                }
+                // status === 'running' or 'rescheduled' → keep polling
+            }
+            setAnalysisError(
+                'Analysis timed out after 20 minutes. The agent may still finish — reload the page to check.',
+            )
         } catch (err) {
             // compressImageClientSide rejects with "Failed to load image" when
             // the browser can't decode the file (usually HEIC/HEIF on desktop
@@ -451,7 +514,7 @@ export function InventoryForm() {
                             {analyzing ? (
                                 <>
                                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                    Researching with Opus 4.7 (2-5 min)...
+                                    Researching with Opus 4.7 (5-13 min)...
                                 </>
                             ) : (
                                 <>
@@ -462,11 +525,35 @@ export function InventoryForm() {
                         </Button>
                     )}
 
+                    {/* Live progress while the agent runs on Anthropic infra:
+                        elapsed time + the tools it has fired (web_search etc.)
+                        as they arrive from /status polls. Gives the user
+                        something to watch during the 5-13 min wait. */}
+                    {analyzing && analysisStartedAt && (
+                        <div className="text-xs text-muted-foreground text-center space-y-1">
+                            <p>
+                                Elapsed:{' '}
+                                {formatElapsed(Date.now() - analysisStartedAt)}
+                            </p>
+                            {analysisToolUses.length > 0 && (
+                                <p>
+                                    Agent has run {analysisToolUses.length}{' '}
+                                    research step
+                                    {analysisToolUses.length === 1 ? '' : 's'} (
+                                    {Array.from(new Set(analysisToolUses)).join(
+                                        ', ',
+                                    )}
+                                    )
+                                </p>
+                            )}
+                        </div>
+                    )}
+
                     {/* Polite live region so screen-reader users hear the
                         state change when a multi-minute analysis starts and
                         finishes. The button label alone doesn't announce.
                         Errors use aria-live="assertive" so a failure after a
-                        2-5 minute wait interrupts instead of queuing behind
+                        5-13 minute wait interrupts instead of queuing behind
                         other announcements. */}
                     <p
                         id="analysis-status"
@@ -475,7 +562,7 @@ export function InventoryForm() {
                         className="sr-only"
                     >
                         {analyzing
-                            ? 'Researching valuation with Opus 4.7. This typically takes 2 to 5 minutes.'
+                            ? 'Researching valuation with Opus 4.7. This typically takes 5 to 13 minutes.'
                             : analysis
                               ? 'Analysis complete. Review the proposed valuation below.'
                               : ''}

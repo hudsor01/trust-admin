@@ -12,22 +12,17 @@ import {
     hasInventoryAccess,
 } from '@/lib/inventory-access'
 import {
-    analyzeViaManagedAgent,
-    type InventoryAnalysisResult,
     isManagedAgentConfigured,
+    startAgentSession,
 } from '@/lib/inventory-agent'
 import { logger } from '@/lib/logger'
 import { uploadInventoryImages } from '@/lib/uploadthing-server'
 
-// Managed agent runs can exceed 5 minutes for complex items (the Yanke
-// Doodle II field test timed out at 300s on 2026-04-23). Vercel Pro +
-// Fluid Compute allows up to 800 seconds (13 min) per function invocation;
-// the standard serverless ceiling is 300s. If this value gets rejected at
-// build time the project is not on Fluid Compute and we'll need to either
-// (a) enable Fluid in the Vercel dashboard or (b) move the agent call to
-// an async poll pattern (kick off session, client polls /status until
-// session.status === idle).
-export const maxDuration = 800
+// Kick-off only: create session + send user.message + upload photos,
+// return immediately with the sessionId + analysisId placeholder. The
+// client polls /api/inventory/analyze/status to drain the result. This
+// endpoint runs in ~5-15s on the happy path (<<60s Hobby plan cap).
+export const maxDuration = 60
 
 const ImageSchema = z.object({
     base64: z
@@ -52,15 +47,10 @@ const AnalyzeRequestSchema = z.object({
 
 interface AnalyzeSuccessResponse {
     success: true
-    data: InventoryAnalysisResult
-    photoUrls: string[]
-    /**
-     * Opaque server-generated UUID pointing at the persisted analysis in
-     * inventory_analysis_cache. The submit action looks up this row and
-     * uses the stored (untampered) analysis instead of form fields — closes
-     * the DOM-tampering trust boundary.
-     */
+    /** Opaque id — client polls /status?analysisId=X. */
     analysisId: string
+    /** Present so the client has photos to preview while the agent runs. */
+    photoUrls: string[]
 }
 
 interface AnalyzeErrorResponse {
@@ -71,13 +61,9 @@ interface AnalyzeErrorResponse {
 
 type AnalyzeResponse = AnalyzeSuccessResponse | AnalyzeErrorResponse
 
-/** Analyze inventory images via the Managed Estate Valuation Agent. */
 export async function POST(
     request: NextRequest,
 ): Promise<NextResponse<AnalyzeResponse>> {
-    // Wall-clock timer for the whole route. Logged on both success and
-    // failure so we can size maxDuration and the eventual async refactor
-    // against real data instead of estimates.
     const tStart = Date.now()
     try {
         if (!(await hasInventoryAccess())) {
@@ -121,8 +107,6 @@ export async function POST(
 
         const { images } = validationResult.data
 
-        // Per-IP rate limit — each call drives the managed agent loop +
-        // extraction pass, which spans minutes and several dollars.
         const ip = await getClientIP()
         const rate = checkAnalyzeRateLimit(ip)
         if (!rate.allowed) {
@@ -146,7 +130,6 @@ export async function POST(
                 { status: 503 },
             )
         }
-
         if (!isManagedAgentConfigured()) {
             return NextResponse.json(
                 {
@@ -157,69 +140,59 @@ export async function POST(
             )
         }
 
-        const {
-            analysis,
-            compressedImages: primaryCompressed,
-            proseReport,
-            sessionId,
-            toolUses,
-        } = await analyzeViaManagedAgent(images)
+        // Kick off the agent session — this returns as soon as the
+        // user.message event is POSTed; the agent runs on Anthropic infra
+        // independently of this function's lifecycle.
+        const { sessionId, compressedImages } = await startAgentSession(images)
 
-        // Upload photos using the compressed images (non-fatal).
+        // Upload photos to UploadThing in parallel with the agent run
+        // (the agent only ever sees the base64 images we already sent;
+        // these URLs are for admin-queue display later). Non-fatal.
         let photoUrls: string[] = []
         try {
-            photoUrls = await uploadInventoryImages(primaryCompressed)
+            photoUrls = await uploadInventoryImages(compressedImages)
         } catch {
-            // Non-fatal: analysis is still valuable without stored photos.
+            // Analysis is still valuable without stored photos.
         }
 
-        // Persist the authoritative analysis server-side. submitInventoryItem
-        // will read this row by id and use the stored fields — not anything
-        // the client can edit between now and submit. Cache write is non-
-        // fatal: if it fails the submitter still sees a valid valuation, the
-        // submit-side path just falls back to "no AI metadata".
+        // Pre-allocate the cache row keyed on sessionId so the status
+        // endpoint can UPDATE it when the agent finishes. analysisJson is
+        // NULL until /status writes the structured output; submit treats
+        // NULL as "no AI metadata" via its existing fallback path.
         let analysisId = ''
         try {
             const [row] = await db
                 .insert(inventoryAnalysisCache)
-                .values({ analysisJson: analysis })
+                .values({ sessionId })
                 .returning({ id: inventoryAnalysisCache.id })
             analysisId = row?.id ?? ''
         } catch (err) {
-            logger.api.warn(
-                'inventory_analysis_cache insert failed — submit will treat as no AI',
-                {
-                    error: err instanceof Error ? err.message : 'Unknown error',
-                },
-            )
+            logger.api.warn('inventory_analysis_cache insert failed', {
+                error: err instanceof Error ? err.message : 'Unknown error',
+                sessionId,
+            })
             Sentry.captureMessage('inventory_analysis_cache insert failed', {
                 level: 'warning',
                 tags: { route: 'api/inventory/analyze' },
                 extra: {
                     error: err instanceof Error ? err.message : 'Unknown error',
+                    durationMs: Date.now() - tStart,
                 },
             })
         }
 
-        logger.api.info('Managed agent analysis complete', {
+        logger.api.info('Managed agent analysis kicked off', {
             sessionId,
-            proseChars: proseReport.length,
             analysisId,
-            toolUses,
-            toolUseCount: toolUses.length,
             durationMs: Date.now() - tStart,
         })
 
         return NextResponse.json({
             success: true,
-            data: analysis,
-            photoUrls,
             analysisId,
+            photoUrls,
         })
     } catch (error) {
-        // Anthropic returns "credit balance" / "Plans & Billing" text in the
-        // error body when the org is out of credits. Surface as 402 so the
-        // admin knows it's a billing issue, not a code bug.
         if (
             error instanceof Error &&
             /credit balance|Plans & Billing/i.test(error.message)
@@ -280,7 +253,7 @@ export async function POST(
         Sentry.captureException(error, {
             tags: { route: 'api/inventory/analyze' },
         })
-        logger.api.error('Inventory analysis failed', {
+        logger.api.error('Inventory analysis kickoff failed', {
             error: error instanceof Error ? error.message : 'Unknown error',
             stack: error instanceof Error ? error.stack : undefined,
             durationMs: Date.now() - tStart,
