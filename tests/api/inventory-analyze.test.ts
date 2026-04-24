@@ -49,6 +49,7 @@ const mockAnalyze = mock(() =>
         compressedImages: [{ base64: 'Y29tcA==', mimeType: 'image/jpeg' }],
         proseReport: 'full prose report',
         sessionId: 'sesn_test',
+        toolUses: ['web_search', 'web_search', 'code_execution'],
     }),
 )
 const mockIsConfigured = mock(() => true)

@@ -48,6 +48,7 @@ export async function analyzeViaManagedAgent(
     compressedImages: CompressedImage[]
     proseReport: string
     sessionId: string
+    toolUses: string[]
 }> {
     if (!env.ANTHROPIC_API_KEY) {
         throw new Error('ANTHROPIC_API_KEY is not configured')
@@ -77,6 +78,20 @@ export async function analyzeViaManagedAgent(
     const sessionId = session.id
 
     try {
+        // Open the event stream BEFORE sending the user message. The agent
+        // starts running the moment the send POST lands; if the stream
+        // isn't already connected, the earliest events (session.status_running,
+        // first agent.thinking / agent.message) can be lost. The Anthropic
+        // TypeScript sample (managed-agents-2026-04-01) explicitly creates
+        // the stream first, then sends. We await here — the SDK's
+        // APIPromise<Stream<>> isn't directly iterable, so we resolve to
+        // the underlying Stream (which has Symbol.asyncIterator).
+        const stream = await client.beta.sessions.events.stream(
+            sessionId,
+            undefined,
+            { headers: { 'anthropic-beta': MANAGED_AGENTS_BETA } },
+        )
+
         await client.beta.sessions.events.send(
             sessionId,
             {
@@ -107,19 +122,23 @@ export async function analyzeViaManagedAgent(
             { headers: { 'anthropic-beta': MANAGED_AGENTS_BETA } },
         )
 
-        const stream = await client.beta.sessions.events.stream(
-            sessionId,
-            undefined,
-            { headers: { 'anthropic-beta': MANAGED_AGENTS_BETA } },
-        )
-
         const collected: string[] = []
+        const toolUses: string[] = []
         let ended = false
         for await (const event of stream) {
             if (event.type === 'agent.message') {
                 for (const block of event.content) {
                     if (block.type === 'text') collected.push(block.text)
                 }
+            } else if (event.type === 'agent.tool_use') {
+                // Observability: capture which tools the agent fires so a
+                // slow / degenerate run is debuggable without guessing.
+                // Matches the helper-scaffold pattern from Anthropic's docs.
+                toolUses.push(event.name)
+                logger.api.info('Managed agent tool_use', {
+                    sessionId,
+                    tool: event.name,
+                })
             } else if (event.type === 'session.status_idle') {
                 ended = true
                 break
@@ -151,6 +170,7 @@ export async function analyzeViaManagedAgent(
             compressedImages,
             proseReport,
             sessionId,
+            toolUses,
         }
     } finally {
         try {
