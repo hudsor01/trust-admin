@@ -43,6 +43,12 @@ export const env = createEnv({
         // to the legacy direct-tool-use path in src/lib/inventory-analysis.ts.
         ANTHROPIC_AGENT_ID: z.string().optional(),
         ANTHROPIC_AGENT_ENVIRONMENT_ID: z.string().optional(),
+        // Comma-separated Anthropic vault IDs to attach at session-create
+        // time. Required for the agent to use any MCP server that needs a
+        // credential (e.g. the Airtable MCP that writes "Estate Valuations"
+        // → "Valuations" rows). Without this, the agent runs successfully
+        // but the MCP write fails silently.
+        ANTHROPIC_AGENT_VAULT_IDS: z.string().optional(),
         // min(1) so an accidentally-empty value in Vercel doesn't behave
         // differently from an unset one — both now surface the same fail-
         // closed-in-prod path in hasInventoryAccess().
@@ -77,6 +83,7 @@ export const env = createEnv({
         ANTHROPIC_AGENT_ID: process.env.ANTHROPIC_AGENT_ID,
         ANTHROPIC_AGENT_ENVIRONMENT_ID:
             process.env.ANTHROPIC_AGENT_ENVIRONMENT_ID,
+        ANTHROPIC_AGENT_VAULT_IDS: process.env.ANTHROPIC_AGENT_VAULT_IDS,
         INVENTORY_ACCESS_CODE: process.env.INVENTORY_ACCESS_CODE,
         UPLOADTHING_TOKEN: process.env.UPLOADTHING_TOKEN,
         SENTRY_DSN: process.env.SENTRY_DSN,

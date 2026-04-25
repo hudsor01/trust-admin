@@ -59,11 +59,24 @@ export async function startAgentSession(images: InventoryImage[]): Promise<{
         images.map((img) => compressImage(img.base64, img.mimeType)),
     )
 
+    // Vault IDs attach the agent's MCP credentials (currently the
+    // Airtable token used to log every valuation to "Estate Valuations" →
+    // "Valuations"). Required at session create time — without them the
+    // agent runs but every MCP write call returns an auth error and the
+    // record never persists. Comma-separated env var so we can attach
+    // multiple vaults later (e.g. a second integration) without a code
+    // change.
+    const vaultIds = (env.ANTHROPIC_AGENT_VAULT_IDS ?? '')
+        .split(',')
+        .map((v) => v.trim())
+        .filter(Boolean)
+
     const session = await client.beta.sessions.create(
         {
             environment_id: environmentId,
             agent: { type: 'agent', id: agentId },
             title: `Estate valuation — ${new Date().toISOString()}`,
+            ...(vaultIds.length > 0 ? { vault_ids: vaultIds } : {}),
         },
         { headers: { 'anthropic-beta': MANAGED_AGENTS_BETA } },
     )
