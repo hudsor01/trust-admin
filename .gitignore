@@ -7,7 +7,7 @@ node_modules/
 # local editor / MCP session state — not project config
 .gemini/
 .mcp.json
-.vscode/mcp.json
+.vscode/
 
 # output
 out
