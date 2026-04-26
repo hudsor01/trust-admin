@@ -16,6 +16,18 @@ on:
   # Docs-only changes can't break the build — paths-ignore skips the
   # whole job when every changed file matches. Any non-doc file touched
   # in the same PR will still trigger CI normally.
+  #
+  # WARNING: do NOT add this workflow as a required status check on main.
+  # GitHub records a paths-ignore-skipped run as "expected/pending" rather
+  # than "success" against required checks, which would silently block
+  # docs-only PRs from merging. If a required check is ever needed, switch
+  # to a wrapper-job pattern (see below) instead of paths-ignore:
+  #
+  #   1. Add a `changes` job using dorny/paths-filter to compute outputs.
+  #   2. Make `quality-checks` conditional on changes.outputs.code == 'true'.
+  #   3. Add a `quality-checks-skip` job named "Quality Checks" that runs
+  #      `if: changes.outputs.code != 'true'` and reports success — same
+  #      check name satisfies branch protection on docs-only PRs.
   pull_request:
     branches: [main]
     paths-ignore:
@@ -53,13 +65,21 @@ jobs:
 
       - name: Cache Next.js build
         # Restored before build so webpack can reuse compiled modules
-        # across runs. Exact-key match (bun.lock + every TS/JS file)
-        # gives a full hit; restore-keys fall back to the last build
-        # with the same deps for incremental compile when sources change.
+        # across runs. Exact-key match means (deps + every file actually
+        # consumed by `next build`) is unchanged → near-no-op rebuild;
+        # restore-keys fall back to the last build with the same deps
+        # for incremental compile when sources change.
+        #
+        # The hashed file set deliberately excludes tests/ and scripts/
+        # (excluded from the TS program in tsconfig.json, never imported
+        # by the build) so test-only edits keep the exact-match cache
+        # warm. Includes root build configs (next.config.ts,
+        # postcss.config.mjs, sentry.*.config.ts, instrumentation*.ts)
+        # whose changes legitimately invalidate the build cache.
         uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
         with:
           path: ${{ github.workspace }}/.next/cache
-          key: ${{ runner.os }}-nextjs-${{ hashFiles('bun.lock') }}-${{ hashFiles('**/*.ts', '**/*.tsx', '**/*.js', '**/*.jsx') }}
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('bun.lock') }}-${{ hashFiles('src/**/*.ts', 'src/**/*.tsx', 'src/**/*.js', 'src/**/*.jsx', 'db/**/*.ts', 'next.config.ts', 'postcss.config.mjs', 'sentry.*.config.ts', 'instrumentation*.ts') }}
           restore-keys: |
             ${{ runner.os }}-nextjs-${{ hashFiles('bun.lock') }}-
 
@@ -72,6 +92,11 @@ jobs:
       # No dedicated `bun run typecheck` step — `next build` runs tsc
       # internally and fails on type errors. Run typecheck locally via
       # `bun run typecheck` for fast feedback before pushing.
+      #
+      # IMPORTANT: this guarantee depends on `next.config.ts` NOT setting
+      # `typescript: { ignoreBuildErrors: true }`. If that ever changes,
+      # type errors will silently land in main — re-add an explicit
+      # `bun run typecheck` step here, or remove the ignoreBuildErrors flag.
       - name: Build Next.js application
         run: bun run build
         env:
