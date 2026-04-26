@@ -116,7 +116,7 @@ Entity list is ordered by `asc(entity.id)` — `entities[0]` is always The Hudso
 
 ### Supporting tables
 
-`valuation`, `valuationCorrection`, `inventoryAnalysisCache` (AI agent results, TTL'd), `document`, `transaction`, `contact`, `contactAssociation`, `task`, `trustee`, `specificBequest`, `liabilityPayment`, `trusteeFeeSchedule`, `trusteeFeeEntry`.
+`liability`, `liabilityPayment`, `valuation`, `valuationCorrection`, `inventoryAnalysisCache` (AI agent results, TTL'd), `document`, `transaction`, `contact`, `contactAssociation`, `task`, `trustee`, `specificBequest`, `trusteeFeeSchedule`, `trusteeFeeEntry`.
 
 ### Auth Tables
 
@@ -210,11 +210,15 @@ Two drivers behind a Drizzle proxy: `@neondatabase/serverless` (HTTP, stateless)
 `src/server/trpc/init.ts` defines context, procedures, JWT cache, and role resolution. `src/server/trpc/router.ts` registers the 24 domain routers under `routers/`. Procedures: `publicProcedure`, `protectedProcedure`, `adminProcedure` (includes owner-email override), `ownerProcedure` (`ADMIN_EMAIL` only), `beneficiaryProcedure`.
 
 ```typescript
-// Router
+// Router — most procedures inline a Drizzle query; `entityId` is always
+// in the WHERE clause and in the input schema (see Entity ID Validation
+// pattern in any router file).
 export const liabilityRouter = createTRPCRouter({
     list: adminProcedure
         .input(z.object({ entityId: z.coerce.number() }))
-        .query(({ input }) => liabilityCrud.getAllArray(input.entityId)),
+        .query(({ input }) =>
+            db.select().from(liability).where(eq(liability.entityId, input.entityId)),
+        ),
 })
 
 // Frontend — always gate on selectedEntity, invalidate on mutation
@@ -227,13 +231,15 @@ const update = trpc.liability.update.useMutation({
 })
 ```
 
+Two domains pre-package their queries as a hand-written object: `personalPropertyCrud` and `valuationCrud` in `db/queries.ts`. There is no generic `createCrud` factory — write inline Drizzle for new routers unless you have a reason to follow that pattern.
+
 ### App layout
 
 Admin pages live under `src/app/(admin)/` (route group, hidden from URL): `accounting`, `accounts`, `activity-log`, `artwork`, `beneficiaries`, `bequests`, `contacts`, `dashboard`, `hems`, `hems-queue`, `insurance`, `liabilities`, `personal-property`, `properties`, `settings`, `trustees`, `users`, `vehicles`. Each admin page colocates its UI in `_components/`. Server-action subfolders (`_actions/`) only exist under `/portal/` and `/forms/`.
 
 ### Inventory Agent (Anthropic Managed Agents)
 
-`src/lib/inventory-agent.ts` runs an async session: `/api/inventory/analyze` kicks off and returns an `analysisId`, `/api/inventory/analyze/status?analysisId=...` polls. Results cache in `inventoryAnalysisCache`, keyed by `id` (the UUID returned as `analysisId`); the agent's `sessionId` is stored alongside for traceability. When `ANTHROPIC_AGENT_ID` + `ANTHROPIC_AGENT_ENVIRONMENT_ID` are set the request goes through the managed agent; otherwise it falls back to direct tool-use in `src/lib/inventory-analysis.ts`. **`ANTHROPIC_AGENT_VAULT_IDS` must be attached via `client.beta.sessions.create({ vault_ids })`** — without it the agent runs but credentialed MCP calls (e.g. the Airtable writer) fail silently.
+`src/lib/inventory-agent.ts` runs an async session: `/api/inventory/analyze` kicks off and returns an `analysisId`, `/api/inventory/analyze/status?analysisId=...` polls. Results cache in `inventoryAnalysisCache`, keyed by `id` (the UUID returned as `analysisId`); the agent's `sessionId` is stored alongside for traceability. The route requires `ANTHROPIC_API_KEY`, `ANTHROPIC_AGENT_ID`, and `ANTHROPIC_AGENT_ENVIRONMENT_ID` — if any is missing the route returns **503**; there is no fallback path. (`src/lib/inventory-analysis.ts` only contributes the `InventoryAnalysisSchema` type used downstream.) **`ANTHROPIC_AGENT_VAULT_IDS` must be attached via `client.beta.sessions.create({ vault_ids })`** — without it the agent runs but credentialed MCP calls (e.g. the Airtable writer) fail silently.
 
 ---
 
@@ -269,7 +275,7 @@ Admin       → marks distribution paid    → status: DISTRIBUTED (manual)
 1. **Schema** (`db/schema.ts`): `pgTable` with indexes + FKs (+ `.enableRLS()` if scoped)
 2. **Relations** (`db/relations.ts`)
 3. **Validation** (`db/validation.ts`): insert/update Zod schemas
-4. **CRUD** (`db/queries.ts`): `createCrud(table, { filterColumn: "entityId" })`
+4. **Queries** — write Drizzle inline in the router's procedures. Only add a hand-written `*Crud` object in `db/queries.ts` if the domain needs reuse across routers (see `personalPropertyCrud`, `valuationCrud`). There is no generic factory.
 5. **Router** (`src/server/trpc/routers/<name>.ts`)
 6. **Register** (`src/server/trpc/router.ts`): add to `appRouter`
 7. `bun run db:deploy` (NOT `db:push` — see Commands)
@@ -300,7 +306,7 @@ Admin       → marks distribution paid    → status: DISTRIBUTED (manual)
 
 ## Environment Variables
 
-Defined and validated in `src/lib/env.ts` (`@t3-oss/env-nextjs`). All server values are `.trim()`'d to strip Vercel's trailing newlines.
+Defined and validated in `src/lib/env.ts` (`@t3-oss/env-nextjs`). The required string fields (`DATABASE_URL`, `NEON_AUTH_BASE_URL`, `ADMIN_EMAIL`, `NEON_AUTH_COOKIE_SECRET`) and every URL field call `.trim()` to strip Vercel's trailing newlines. Bare `z.string().optional()` values (Anthropic keys, Sentry org/project/auth token, UploadThing token, etc.) do **not** — paste carefully or retype in the Vercel UI.
 
 ### Server (required)
 
