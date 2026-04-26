@@ -98,9 +98,7 @@ Entity list is ordered by `asc(entity.id)` — `entities[0]` is always The Hudso
 
 ### Assets (7 tables)
 
-All share: `entityId`, `dodValue`, `dodValueDate`, `status`, `transferStatus`.
-
-`vehicle`, `homestead`, `rentalProperty`, `bankAccount`, `investmentAccount`, `insurancePolicy`, `personalProperty`
+`vehicle`, `homestead`, `rentalProperty`, `bankAccount`, `investmentAccount`, `personalProperty` share: `entityId`, `dodValue`, `dodValueDate`, `status`, `transferStatus`. **`insurancePolicy` is the exception** — it has `entityId` and `status` only (no DOD fields, no `transferStatus`; it carries `coverageAmount`, `premium`, `effectiveDate`, `expirationDate` instead).
 
 > **No separate `artwork` table** — artwork is a category within `personalProperty` (the `/artwork` admin page filters that table). The mental model diagram is conceptual.
 
@@ -209,7 +207,7 @@ Two drivers behind a Drizzle proxy: `@neondatabase/serverless` (HTTP, stateless)
 
 ### tRPC
 
-`src/server/trpc/init.ts` defines context, procedures, JWT cache, and role resolution. `src/server/trpc/router.ts` registers the 25 domain routers under `routers/`. Procedures: `publicProcedure`, `protectedProcedure`, `adminProcedure` (includes owner-email override), `ownerProcedure` (`ADMIN_EMAIL` only), `beneficiaryProcedure`.
+`src/server/trpc/init.ts` defines context, procedures, JWT cache, and role resolution. `src/server/trpc/router.ts` registers the 24 domain routers under `routers/`. Procedures: `publicProcedure`, `protectedProcedure`, `adminProcedure` (includes owner-email override), `ownerProcedure` (`ADMIN_EMAIL` only), `beneficiaryProcedure`.
 
 ```typescript
 // Router
@@ -231,11 +229,11 @@ const update = trpc.liability.update.useMutation({
 
 ### App layout
 
-Admin pages live under `src/app/(admin)/` (route group, hidden from URL): `accounting`, `accounts`, `activity-log`, `artwork`, `beneficiaries`, `bequests`, `contacts`, `dashboard`, `hems`, `hems-queue`, `insurance`, `liabilities`, `personal-property`, `properties`, `settings`, `trustees`, `users`, `vehicles`. Page-local code lives in colocated `_components/` and `_actions/` subfolders.
+Admin pages live under `src/app/(admin)/` (route group, hidden from URL): `accounting`, `accounts`, `activity-log`, `artwork`, `beneficiaries`, `bequests`, `contacts`, `dashboard`, `hems`, `hems-queue`, `insurance`, `liabilities`, `personal-property`, `properties`, `settings`, `trustees`, `users`, `vehicles`. Each admin page colocates its UI in `_components/`. Server-action subfolders (`_actions/`) only exist under `/portal/` and `/forms/`.
 
 ### Inventory Agent (Anthropic Managed Agents)
 
-`src/lib/inventory-agent.ts` runs an async session: `/api/inventory/analyze` kicks off, `/api/inventory/analyze/status` polls. Results cache in `inventoryAnalysisCache` keyed by sessionId. When `ANTHROPIC_AGENT_ID` + `ANTHROPIC_AGENT_ENVIRONMENT_ID` are set the request goes through the managed agent; otherwise it falls back to direct tool-use in `src/lib/inventory-analysis.ts`. **`ANTHROPIC_AGENT_VAULT_IDS` must be attached via `client.beta.sessions.create({ vault_ids })`** — without it the agent runs but credentialed MCP calls (e.g. the Airtable writer) fail silently.
+`src/lib/inventory-agent.ts` runs an async session: `/api/inventory/analyze` kicks off and returns an `analysisId`, `/api/inventory/analyze/status?analysisId=...` polls. Results cache in `inventoryAnalysisCache`, keyed by `id` (the UUID returned as `analysisId`); the agent's `sessionId` is stored alongside for traceability. When `ANTHROPIC_AGENT_ID` + `ANTHROPIC_AGENT_ENVIRONMENT_ID` are set the request goes through the managed agent; otherwise it falls back to direct tool-use in `src/lib/inventory-analysis.ts`. **`ANTHROPIC_AGENT_VAULT_IDS` must be attached via `client.beta.sessions.create({ vault_ids })`** — without it the agent runs but credentialed MCP calls (e.g. the Airtable writer) fail silently.
 
 ---
 
@@ -245,7 +243,9 @@ Admin pages live under `src/app/(admin)/` (route group, hidden from URL): `accou
 
 ```typescript
 recordPayment.mutate({
-    liabilityId: "xxx",
+    entityId: selectedEntity!,
+    liabilityId: 123,
+    bankAccountId: 7,            // funding source
     paymentDate: "2025-01-15",
     amount: "1500.00",
     principalPortion: "1200.00",
@@ -254,7 +254,7 @@ recordPayment.mutate({
 })
 ```
 
-Creates `liabilityPayment`, subtracts from `liability.currentBalance`, auto-creates `trustAccounting` EXPENSE entry.
+Creates `liabilityPayment`, subtracts from `liability.currentBalance`, auto-creates `trustAccounting` EXPENSE entry against `bankAccountId`.
 
 ### HEMS Request Flow
 
@@ -308,7 +308,7 @@ Defined and validated in `src/lib/env.ts` (`@t3-oss/env-nextjs`). All server val
 DATABASE_URL=postgresql://user:pass@ep-xxx-pooler.region.aws.neon.tech/neondb?sslmode=require
 NEON_AUTH_BASE_URL=https://ep-xxx.neonauth.region.aws.neon.tech/neondb/auth
 ADMIN_EMAIL=rhudsontspr@gmail.com         # Always gets admin role regardless of DB
-NEON_AUTH_COOKIE_SECRET=<>=32 chars>      # Cookie signing
+NEON_AUTH_COOKIE_SECRET=<secret, 32+ chars>   # Cookie signing
 ```
 
 ### Server (optional)
