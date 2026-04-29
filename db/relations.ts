@@ -272,25 +272,12 @@ export const contactAssociationRelations = relations(
 
 export const contactRelations = relations(contact, ({ many }) => ({
     contactAssociations: many(contactAssociation),
-    trustees: many(trustee),
 }))
 
 export const trusteeRelations = relations(trustee, ({ one, many }) => ({
     entity: one(entity, {
         fields: [trustee.entityId],
         references: [entity.id],
-    }),
-    contact: one(contact, {
-        fields: [trustee.contactId],
-        references: [contact.id],
-    }),
-    coTrustee: one(trustee, {
-        fields: [trustee.coTrusteeId],
-        references: [trustee.id],
-        relationName: 'trustee_coTrusteeId_trustee_id',
-    }),
-    coTrustees: many(trustee, {
-        relationName: 'trustee_coTrusteeId_trustee_id',
     }),
     feeSchedules: many(trusteeFeeSchedule),
     feeEntries: many(trusteeFeeEntry),

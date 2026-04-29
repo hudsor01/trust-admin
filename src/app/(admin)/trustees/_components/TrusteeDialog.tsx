@@ -12,7 +12,6 @@ import {
 } from '@/components/ui/select'
 import type { UseResourceFormReturn } from '@/hooks/use-resource-form'
 import type { trusteeFormDefaults } from '@/lib/form-factory'
-import { ROLE_LABELS } from '../../contacts/_components/ContactTable'
 import { STATUS_OPTIONS } from './TrusteeTable'
 
 interface TrusteeDialogProps {
@@ -24,9 +23,6 @@ interface TrusteeDialogProps {
     formInstance: UseResourceFormReturn<
         ReturnType<typeof trusteeFormDefaults>
     >['formInstance']
-    trustees: { id: number; name: string }[]
-    contacts: { id: number; name: string; role: string }[]
-    currentTrusteeId?: number
 }
 
 export function TrusteeDialog({
@@ -36,9 +32,6 @@ export function TrusteeDialog({
     onOpenChange,
     onSubmit,
     formInstance,
-    trustees,
-    contacts,
-    currentTrusteeId,
 }: TrusteeDialogProps) {
     return (
         <ResourceDialog
@@ -161,81 +154,6 @@ export function TrusteeDialog({
                             />
                             <p className="text-xs text-muted-foreground">
                                 Leave blank if currently serving
-                            </p>
-                        </div>
-                    )}
-                </formInstance.Field>
-
-                <formInstance.Field name="contactId">
-                    {(field) => (
-                        <div className="space-y-2">
-                            <Label htmlFor="contactId">Linked Contact</Label>
-                            <Select
-                                value={field.state.value || 'none'}
-                                onValueChange={(v) =>
-                                    field.handleChange(v === 'none' ? null : v)
-                                }
-                            >
-                                <SelectTrigger
-                                    id="contactId"
-                                    onBlur={field.handleBlur}
-                                >
-                                    <SelectValue placeholder="None" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="none">None</SelectItem>
-                                    {contacts.map((c) => (
-                                        <SelectItem
-                                            key={c.id}
-                                            value={String(c.id)}
-                                        >
-                                            {c.name} -{' '}
-                                            {ROLE_LABELS[c.role] || c.role}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <p className="text-xs text-muted-foreground">
-                                Link to a professional contact record
-                            </p>
-                        </div>
-                    )}
-                </formInstance.Field>
-
-                <formInstance.Field name="coTrusteeId">
-                    {(field) => (
-                        <div className="space-y-2">
-                            <Label htmlFor="coTrusteeId">Co-Trustee</Label>
-                            <Select
-                                value={field.state.value || 'none'}
-                                onValueChange={(v) =>
-                                    field.handleChange(v === 'none' ? null : v)
-                                }
-                            >
-                                <SelectTrigger
-                                    id="coTrusteeId"
-                                    onBlur={field.handleBlur}
-                                >
-                                    <SelectValue placeholder="None" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="none">None</SelectItem>
-                                    {trustees
-                                        .filter(
-                                            (t) => t.id !== currentTrusteeId,
-                                        )
-                                        .map((t) => (
-                                            <SelectItem
-                                                key={t.id}
-                                                value={String(t.id)}
-                                            >
-                                                {t.name}
-                                            </SelectItem>
-                                        ))}
-                                </SelectContent>
-                            </Select>
-                            <p className="text-xs text-muted-foreground">
-                                Designate a co-trustee
                             </p>
                         </div>
                     )}

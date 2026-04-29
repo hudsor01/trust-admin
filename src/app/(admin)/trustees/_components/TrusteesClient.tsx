@@ -27,8 +27,6 @@ export function TrusteesClient() {
             { enabled: !!entityId },
         )
 
-    const { data: contacts } = trpc.contact.list.useQuery()
-
     const createTrusteeMutation = trpc.trustee.create.useMutation({
         onSuccess: () => utils.trustee.list.invalidate(),
     })
@@ -50,8 +48,6 @@ export function TrusteesClient() {
                 order: data.order,
                 startDate: data.startDate || null,
                 endDate: data.endDate || null,
-                contactId: data.contactId ? Number(data.contactId) : null,
-                coTrusteeId: data.coTrusteeId ? Number(data.coTrusteeId) : null,
             }
 
             if (editingId) {
@@ -79,8 +75,6 @@ export function TrusteesClient() {
             status: t.status ?? 'ACTIVE',
             order: t.order,
             isCo: t.isCo ?? false,
-            coTrusteeId: t.coTrusteeId?.toString() ?? null,
-            contactId: t.contactId?.toString() ?? null,
             startDate: t.startDate?.split('T')[0] ?? null,
             endDate: t.endDate?.split('T')[0] ?? null,
         })
@@ -225,16 +219,6 @@ export function TrusteesClient() {
                 }}
                 onSubmit={trusteeForm.handleSave}
                 formInstance={trusteeForm.formInstance}
-                trustees={trustees.map((t) => ({
-                    id: t.id,
-                    name: t.name,
-                }))}
-                contacts={(contacts ?? []).map((c) => ({
-                    id: c.id,
-                    name: c.name,
-                    role: c.role,
-                }))}
-                currentTrusteeId={editingId ?? undefined}
             />
 
             <ConfirmDialog {...deleteDialogProps} />

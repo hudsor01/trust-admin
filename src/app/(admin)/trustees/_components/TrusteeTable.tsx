@@ -45,8 +45,6 @@ export type TrusteeRow = {
     status: TrusteeStatus | null
     order: number
     isCo: boolean | null
-    coTrusteeId: number | null
-    contactId: number | null
     startDate: string | null
     endDate: string | null
 }

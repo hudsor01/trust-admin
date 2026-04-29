@@ -1,4 +1,4 @@
-import { eq, type InferInsertModel } from 'drizzle-orm'
+import type { InferInsertModel } from 'drizzle-orm'
 import { db } from './index'
 import {
     beneficiary,
@@ -259,11 +259,9 @@ async function seed() {
         'Withdrawal records: add DOBs via UI to calculate eligibility dates',
     )
 
-    // 4. Create Trustees (insert first, then update co-trustee references)
-    // Insert co-trustees without references first
-    const [richardTrustee] = await db
-        .insert(trustee)
-        .values({
+    // 4. Create Trustees
+    await db.insert(trustee).values([
+        {
             entityId: trustId,
             name: 'Richard Wayne Hudson Jr.',
             status: 'ACTIVE',
@@ -271,42 +269,25 @@ async function seed() {
             isCo: true,
             startDate: GRANTOR_DOD,
             updatedAt: new Date().toISOString(),
-        })
-        .returning()
-    if (!richardTrustee) throw new Error('Failed to create trustee: Richard')
-
-    const [rickyTrustee] = await db
-        .insert(trustee)
-        .values({
+        },
+        {
             entityId: trustId,
-            name: 'Ricky Thomas Brown',
+            name: 'Rick Brown',
             status: 'ACTIVE',
             order: 1,
             isCo: true,
             startDate: GRANTOR_DOD,
             updatedAt: new Date().toISOString(),
-        })
-        .returning()
-    if (!rickyTrustee) throw new Error('Failed to create trustee: Ricky')
-
-    // Now update with co-trustee references
-    await db
-        .update(trustee)
-        .set({ coTrusteeId: rickyTrustee.id })
-        .where(eq(trustee.id, richardTrustee.id))
-    await db
-        .update(trustee)
-        .set({ coTrusteeId: richardTrustee.id })
-        .where(eq(trustee.id, rickyTrustee.id))
-
-    await db.insert(trustee).values({
-        entityId: trustId,
-        name: 'Ashley Leighann Govea',
-        status: 'SUCCESSOR',
-        order: 2,
-        isCo: false,
-        updatedAt: new Date().toISOString(),
-    })
+        },
+        {
+            entityId: trustId,
+            name: 'Ashley Leighann Govea',
+            status: 'ARBITER',
+            order: 2,
+            isCo: false,
+            updatedAt: new Date().toISOString(),
+        },
+    ])
     console.log('Created trustees')
 
     // 5. Specific Bequests - Per Section 6.01 (Tangible Personal Property)
@@ -363,7 +344,7 @@ async function seed() {
             priority: 1,
         },
         {
-            title: 'Notify co-trustee Ricky Thomas Brown',
+            title: 'Notify co-trustee Rick Brown',
             category: 'ADMINISTRATIVE',
             days: 1,
             priority: 1,

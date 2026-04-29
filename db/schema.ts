@@ -1863,7 +1863,6 @@ export const trustee = pgTable(
     (t) => ({
         id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
         entityId: bigint({ mode: 'number' }).notNull(),
-        contactId: bigint({ mode: 'number' }),
         name: t.text().notNull(),
         email: t.text(),
         phone: t.text(),
@@ -1871,7 +1870,6 @@ export const trustee = pgTable(
         status: trusteeStatus().default('ACTIVE'),
         order: t.integer().notNull(),
         isCo: t.boolean().default(false),
-        coTrusteeId: bigint({ mode: 'number' }),
         startDate: t.timestamp({
             precision: 3,
             mode: 'string',
@@ -1892,8 +1890,6 @@ export const trustee = pgTable(
     }),
     (table) => [
         index('idx_trustee_entity_id').on(table.entityId),
-        index('idx_trustee_contact_id').on(table.contactId),
-        index('idx_trustee_co_trustee_id').on(table.coTrusteeId),
         index('idx_trustee_status').on(table.status),
         foreignKey({
             columns: [table.entityId],
@@ -1902,20 +1898,6 @@ export const trustee = pgTable(
         })
             .onUpdate('cascade')
             .onDelete('restrict'),
-        foreignKey({
-            columns: [table.contactId],
-            foreignColumns: [contact.id],
-            name: 'trustee_contact_id_fkey',
-        })
-            .onUpdate('cascade')
-            .onDelete('set null'),
-        foreignKey({
-            columns: [table.coTrusteeId],
-            foreignColumns: [table.id],
-            name: 'trustee_co_trustee_id_fkey',
-        })
-            .onUpdate('cascade')
-            .onDelete('set null'),
         pgPolicy('crud-authenticated-policy-select', {
             as: 'permissive',
             for: 'select',
