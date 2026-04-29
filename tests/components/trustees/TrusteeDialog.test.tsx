@@ -31,15 +31,7 @@ const makeFormInstance = () => ({
 })
 
 const defaultExtraProps = {
-    trustees: [
-        { id: 1, name: 'Trustee A' },
-        { id: 2, name: 'Trustee B' },
-    ],
-    contacts: [
-        { id: 1, name: 'John Attorney', role: 'ATTORNEY' },
-        { id: 2, name: 'Jane CPA', role: 'ACCOUNTANT' },
-    ],
-    currentTrusteeId: undefined as number | undefined,
+    createMode: 'TRUSTEE' as const,
 }
 
 describe('TrusteeDialog', () => {
@@ -154,7 +146,7 @@ describe('TrusteeDialog', () => {
         expect(screen.getByText('Saving...')).toBeTruthy()
     })
 
-    test('renders form field labels when dialog is open', () => {
+    test('renders form field labels when dialog is open (create mode)', () => {
         render(
             <TrusteeDialog
                 isOpen={true}
@@ -167,9 +159,41 @@ describe('TrusteeDialog', () => {
             />,
         )
 
-        // Labels should be visible when dialog is open
+        // Status field is hidden on creates — button context determines status
         expect(screen.getByText('Name *')).toBeTruthy()
-        expect(screen.getByText('Status')).toBeTruthy()
+        expect(screen.queryByText('Status')).toBeNull()
         expect(screen.getByText('Order')).toBeTruthy()
+    })
+
+    test('shows Status field when editing', () => {
+        render(
+            <TrusteeDialog
+                isOpen={true}
+                isEditing={true}
+                isSubmitting={false}
+                onOpenChange={mock(() => {})}
+                onSubmit={mock(() => {})}
+                formInstance={makeFormInstance()}
+                createMode={null}
+            />,
+        )
+
+        expect(screen.getByText('Status')).toBeTruthy()
+    })
+
+    test('shows "Add Arbiter" title in arbiter create mode', () => {
+        render(
+            <TrusteeDialog
+                isOpen={true}
+                isEditing={false}
+                isSubmitting={false}
+                onOpenChange={mock(() => {})}
+                onSubmit={mock(() => {})}
+                formInstance={makeFormInstance()}
+                createMode="ARBITER"
+            />,
+        )
+
+        expect(screen.getByText('Add Arbiter')).toBeTruthy()
     })
 })

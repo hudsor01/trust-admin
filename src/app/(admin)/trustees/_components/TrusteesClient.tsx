@@ -38,13 +38,20 @@ export function TrusteesClient() {
     })
 
     const [editingId, setEditingId] = useState<number | null>(null)
+    const [createMode, setCreateMode] = useState<'TRUSTEE' | 'ARBITER' | null>(
+        null,
+    )
 
     const trusteeForm = useResourceForm({
         initialData: trusteeFormDefaults(),
         onSubmit: async (data) => {
             const payload = {
                 name: data.name,
-                status: asTrusteeStatus(data.status ?? ''),
+                status: editingId
+                    ? asTrusteeStatus(data.status ?? '')
+                    : createMode === 'ARBITER'
+                      ? ('ARBITER' as const)
+                      : ('ACTIVE' as const),
                 order: data.order,
                 startDate: data.startDate || null,
                 endDate: data.endDate || null,
@@ -63,7 +70,12 @@ export function TrusteesClient() {
                     entityId: entityId!,
                     ...payload,
                 })
-                toast.success('Trustee created')
+                toast.success(
+                    createMode === 'ARBITER'
+                        ? 'Arbiter created'
+                        : 'Trustee created',
+                )
+                setCreateMode(null)
             }
         },
     })
@@ -141,6 +153,7 @@ export function TrusteesClient() {
                 <Button
                     onClick={() => {
                         setEditingId(null)
+                        setCreateMode('TRUSTEE')
                         trusteeForm.open()
                     }}
                 >
@@ -181,6 +194,7 @@ export function TrusteesClient() {
                 <Button
                     onClick={() => {
                         setEditingId(null)
+                        setCreateMode('ARBITER')
                         trusteeForm.open({ status: 'ARBITER' })
                     }}
                 >
@@ -213,8 +227,10 @@ export function TrusteesClient() {
                 isOpen={trusteeForm.isOpen}
                 isEditing={trusteeForm.isEditing || editingId !== null}
                 isSubmitting={trusteeForm.isSubmitting}
+                createMode={createMode}
                 onOpenChange={() => {
                     setEditingId(null)
+                    setCreateMode(null)
                     trusteeForm.close()
                 }}
                 onSubmit={trusteeForm.handleSave}

@@ -18,6 +18,7 @@ interface TrusteeDialogProps {
     isOpen: boolean
     isEditing: boolean
     isSubmitting: boolean
+    createMode: 'TRUSTEE' | 'ARBITER' | null
     onOpenChange: (open: boolean) => void
     onSubmit: () => void
     formInstance: UseResourceFormReturn<
@@ -29,15 +30,21 @@ export function TrusteeDialog({
     isOpen,
     isEditing,
     isSubmitting,
+    createMode,
     onOpenChange,
     onSubmit,
     formInstance,
 }: TrusteeDialogProps) {
+    const title = isEditing
+        ? 'Edit Trustee'
+        : createMode === 'ARBITER'
+          ? 'Add Arbiter'
+          : 'Add Trustee'
     return (
         <ResourceDialog
             open={isOpen}
             onOpenChange={onOpenChange}
-            title={isEditing ? 'Edit Trustee' : 'Add Trustee'}
+            title={title}
             onSubmit={onSubmit}
             isLoading={isSubmitting}
         >
@@ -64,34 +71,36 @@ export function TrusteeDialog({
                     )}
                 </formInstance.Field>
 
-                <formInstance.Field name="status">
-                    {(field) => (
-                        <div className="space-y-2">
-                            <Label htmlFor="status">Status</Label>
-                            <Select
-                                value={field.state.value ?? undefined}
-                                onValueChange={(v) => field.handleChange(v)}
-                            >
-                                <SelectTrigger
-                                    id="status"
-                                    onBlur={field.handleBlur}
+                {isEditing && (
+                    <formInstance.Field name="status">
+                        {(field) => (
+                            <div className="space-y-2">
+                                <Label htmlFor="status">Status</Label>
+                                <Select
+                                    value={field.state.value ?? undefined}
+                                    onValueChange={(v) => field.handleChange(v)}
                                 >
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {STATUS_OPTIONS.map((s) => (
-                                        <SelectItem
-                                            key={s.value}
-                                            value={s.value}
-                                        >
-                                            {s.label}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    )}
-                </formInstance.Field>
+                                    <SelectTrigger
+                                        id="status"
+                                        onBlur={field.handleBlur}
+                                    >
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {STATUS_OPTIONS.map((s) => (
+                                            <SelectItem
+                                                key={s.value}
+                                                value={s.value}
+                                            >
+                                                {s.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
+                    </formInstance.Field>
+                )}
 
                 <formInstance.Field name="order">
                     {(field) => (
