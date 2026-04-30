@@ -19,13 +19,15 @@ import {
 } from '@/components/ui/select'
 import type { NeonAuthUser } from './types'
 
+export type AppRoleOption = 'admin' | 'trustee' | 'arbiter' | 'beneficiary'
+
 type ChangeRoleDialogProps = {
     open: boolean
     onOpenChange: (open: boolean) => void
     selectedUser: NeonAuthUser | null
-    newRole: 'admin' | 'user'
+    newRole: AppRoleOption
     isPending: boolean
-    onRoleChange: (role: 'admin' | 'user') => void
+    onRoleChange: (role: AppRoleOption) => void
     onSave: () => void
 }
 
@@ -58,16 +60,24 @@ export function ChangeRoleDialog({
                         <Select
                             value={newRole}
                             onValueChange={(v) =>
-                                onRoleChange(v as 'admin' | 'user')
+                                onRoleChange(v as AppRoleOption)
                             }
                         >
                             <SelectTrigger>
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="admin">Admin</SelectItem>
-                                <SelectItem value="user">
-                                    User (Beneficiary)
+                                <SelectItem value="admin">
+                                    Admin (full access)
+                                </SelectItem>
+                                <SelectItem value="trustee">
+                                    Trustee (trust admin, no user mgmt)
+                                </SelectItem>
+                                <SelectItem value="arbiter">
+                                    Arbiter (trust admin, no user mgmt)
+                                </SelectItem>
+                                <SelectItem value="beneficiary">
+                                    Beneficiary (own info only)
                                 </SelectItem>
                             </SelectContent>
                         </Select>

@@ -36,7 +36,12 @@
  *   Returns auth.user_id() in production, or app.test_user_id setting in test mode.
  *
  * app.is_admin() → boolean
- *   Returns true if current user has role='admin' in user_profile.
+ *   Returns true if the current user holds a trust-administrative role
+ *   ('admin', 'trustee', or 'arbiter') in user_profile. The function name
+ *   is preserved for policy compatibility — it gates the same set of
+ *   admin-only tables. Only the literal 'admin' role grants user
+ *   management access (enforced in tRPC via strictAdminProcedure /
+ *   ownerProcedure).
  *
  * app.get_user_beneficiary_id() → bigint
  *   Returns the beneficiary_id linked to the current user, or NULL.

@@ -26,7 +26,7 @@ import {
 import { trpc } from '@/lib/trpc'
 import { formatDate } from '@/utils/formatters'
 import { BanUserDialog } from './BanUserDialog'
-import { ChangeRoleDialog } from './ChangeRoleDialog'
+import { type AppRoleOption, ChangeRoleDialog } from './ChangeRoleDialog'
 import { CreatedCredentialsDialog } from './CreatedCredentialsDialog'
 import { CreatePortalAccountDialog } from './CreatePortalAccountDialog'
 import { EditUserDialog } from './EditUserDialog'
@@ -65,7 +65,7 @@ export function UsersClient() {
     const [editName, setEditName] = useState('')
     const [editEmail, setEditEmail] = useState('')
 
-    const [newRole, setNewRole] = useState<'admin' | 'user'>('user')
+    const [newRole, setNewRole] = useState<AppRoleOption>('beneficiary')
 
     const [newPassword, setNewPassword] = useState('')
     const [showNewPassword, setShowNewPassword] = useState(false)
@@ -197,7 +197,14 @@ export function UsersClient() {
 
     const openRoleDialog = (user: NeonAuthUser) => {
         setSelectedUser(user)
-        setNewRole((user.neonRole as 'admin' | 'user') ?? 'user')
+        const current = (user.appRole as AppRoleOption | null) ?? 'beneficiary'
+        const allowed: AppRoleOption[] = [
+            'admin',
+            'trustee',
+            'arbiter',
+            'beneficiary',
+        ]
+        setNewRole(allowed.includes(current) ? current : 'beneficiary')
         setRoleDialogOpen(true)
     }
 
@@ -258,13 +265,13 @@ export function UsersClient() {
             id: 'role',
             header: 'Role',
             cell: ({ row }) => {
-                const role = row.original.neonRole
+                const role = row.original.appRole ?? 'user'
                 return (
                     <Badge
                         variant={role === 'admin' ? 'default' : 'secondary'}
                         className="capitalize"
                     >
-                        {role || 'user'}
+                        {role}
                     </Badge>
                 )
             },

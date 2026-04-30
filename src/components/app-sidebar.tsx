@@ -23,12 +23,14 @@ import {
     SidebarMenuSubButton,
     SidebarMenuSubItem,
 } from '@/components/ui/sidebar'
+import type { AppRole } from '@/lib/auth'
 import { authClient } from '@/lib/auth/client'
 import { trpc } from '@/lib/trpc'
 
 const entityId = 1
 
-export function AppSidebar() {
+export function AppSidebar({ role }: { role: AppRole }) {
+    const isAdmin = role === 'admin'
     const pathname = usePathname()
     const router = useRouter()
     const utils = trpc.useUtils()
@@ -221,20 +223,22 @@ export function AppSidebar() {
                             </SidebarMenuButton>
                         </SidebarMenuItem>
 
-                        <SidebarMenuItem>
-                            <SidebarMenuButton
-                                asChild
-                                isActive={pathname === '/users'}
-                                tooltip="Users"
-                            >
-                                <Link
-                                    href="/users"
-                                    onMouseEnter={prefetch.users}
+                        {isAdmin && (
+                            <SidebarMenuItem>
+                                <SidebarMenuButton
+                                    asChild
+                                    isActive={pathname === '/users'}
+                                    tooltip="Users"
                                 >
-                                    <span>Users</span>
-                                </Link>
-                            </SidebarMenuButton>
-                        </SidebarMenuItem>
+                                    <Link
+                                        href="/users"
+                                        onMouseEnter={prefetch.users}
+                                    >
+                                        <span>Users</span>
+                                    </Link>
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                        )}
 
                         {/* Distributions submenu */}
                         <Collapsible

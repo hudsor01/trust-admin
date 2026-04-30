@@ -35,10 +35,27 @@ export interface NeonAuthUser {
     banExpires?: Date | null
 }
 
-/** Extended with user_profile fields. "user" = fallback when no profile exists. */
+/** App role precedence (highest → lowest privilege):
+ *   admin    — full access including user management
+ *   trustee  — trust administration (no user management)
+ *   arbiter  — trust administration (no user management)
+ *   beneficiary — own beneficiary record only
+ *   user     — fallback when no profile exists (no access)
+ */
+export type AppRole = 'admin' | 'trustee' | 'arbiter' | 'beneficiary' | 'user'
+
+/** Extended with user_profile fields. */
 export type AppUser = NeonAuthUser & {
-    role: 'admin' | 'beneficiary' | 'user'
+    role: AppRole
     beneficiaryId?: number | null
+}
+
+/** Roles that can administer the trust (everything except user management). */
+export const TRUST_ADMIN_ROLES = ['admin', 'trustee', 'arbiter'] as const
+export type TrustAdminRole = (typeof TRUST_ADMIN_ROLES)[number]
+
+export function isTrustAdmin(user: { role: AppRole }): boolean {
+    return (TRUST_ADMIN_ROLES as readonly string[]).includes(user.role)
 }
 
 /** Session data returned by neonAuth(). */

@@ -8,17 +8,17 @@ import { beneficiary, entity, userProfile } from '@/db/schema'
 import { authServer } from '@/lib/auth/server'
 import { env } from '@/lib/env'
 import {
-    adminProcedure,
     createTRPCRouter,
     ownerProcedure,
     protectedProcedure,
+    strictAdminProcedure,
 } from '../init'
 
 const OWNER_EMAIL = env.ADMIN_EMAIL
 
 export const userManagementRouter = createTRPCRouter({
     /** Used by frontend to gate user management CRUD controls. */
-    isOwner: adminProcedure.query(async ({ ctx }) => {
+    isOwner: strictAdminProcedure.query(async ({ ctx }) => {
         return {
             isOwner: ctx.user.email === OWNER_EMAIL,
             userId: ctx.user.id,
@@ -26,7 +26,7 @@ export const userManagementRouter = createTRPCRouter({
     }),
 
     /** List all Neon Auth users enriched with userProfile + beneficiary data. */
-    listAllUsers: adminProcedure.query(async () => {
+    listAllUsers: strictAdminProcedure.query(async () => {
         const { data, error } = await authServer.admin.listUsers({
             query: {
                 limit: 100,
@@ -309,12 +309,18 @@ export const userManagementRouter = createTRPCRouter({
             return { success: true }
         }),
 
-    /** Sync both Neon Auth native role and userProfile app role. */
+    /**
+     * Sync both Neon Auth native role and user_profile app role.
+     *
+     * Native Neon Auth only knows 'admin' | 'user' — we mirror admin to
+     * 'admin' and trustee/arbiter/beneficiary all to 'user' (the app role
+     * stored in user_profile is the source of truth for tRPC + RLS).
+     */
     setUserRole: ownerProcedure
         .input(
             z.object({
                 userId: z.string(),
-                role: z.enum(['admin', 'user']),
+                role: z.enum(['admin', 'trustee', 'arbiter', 'beneficiary']),
             }),
         )
         .mutation(async ({ input, ctx }) => {
@@ -325,9 +331,11 @@ export const userManagementRouter = createTRPCRouter({
                 })
             }
 
+            const neonRole = input.role === 'admin' ? 'admin' : 'user'
+
             const { error } = await authServer.admin.setRole({
                 userId: input.userId,
-                role: input.role,
+                role: neonRole,
             })
 
             if (error) {
@@ -337,30 +345,31 @@ export const userManagementRouter = createTRPCRouter({
                 })
             }
 
-            // Only promote to admin in userProfile; demoting to 'user' preserves
-            // existing app role to avoid granting unintended portal access.
             const [existing] = await db
                 .select()
                 .from(userProfile)
                 .where(eq(userProfile.userId, input.userId))
                 .limit(1)
 
-            if (existing && input.role === 'admin') {
+            if (existing) {
                 await db
                     .update(userProfile)
-                    .set({ role: 'admin', updatedAt: new Date() })
+                    .set({ role: input.role, updatedAt: new Date() })
                     .where(eq(userProfile.userId, input.userId))
+            } else {
+                await db.insert(userProfile).values({
+                    userId: input.userId,
+                    role: input.role,
+                    forcePasswordChange: false,
+                })
             }
-
-            const appRole =
-                input.role === 'admin' ? 'admin' : (existing?.role ?? 'user')
 
             await createActivityLog({
                 tableName: 'user',
                 recordId: input.userId,
                 action: 'UPDATE',
                 changedBy: ctx.user.id,
-                newValues: { neonRole: input.role, appRole },
+                newValues: { neonRole, appRole: input.role },
             })
 
             return { success: true }

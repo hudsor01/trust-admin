@@ -253,7 +253,12 @@ export const logAction = pgEnum('LogAction', [
     'FAILED_AUTH',
     'ACCESS_DENIED',
 ])
-export const userRole = pgEnum('UserRole', ['admin', 'beneficiary'])
+export const userRole = pgEnum('UserRole', [
+    'admin',
+    'trustee',
+    'arbiter',
+    'beneficiary',
+])
 
 // ============================================
 // Activity Log (Audit Trail)

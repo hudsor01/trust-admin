@@ -18,7 +18,9 @@ AS $$
     )
 $$;
 
--- Returns true if the current JWT user is an admin (per user_profile table).
+-- Returns true if the current JWT user holds a trust-administrative role
+-- (admin, trustee, or arbiter) per user_profile. Beneficiary access is
+-- still scoped row-by-row via app.get_user_beneficiary_id().
 CREATE OR REPLACE FUNCTION app.is_admin()
 RETURNS boolean
 LANGUAGE sql
@@ -28,7 +30,7 @@ AS $$
     SELECT EXISTS (
         SELECT 1 FROM user_profile
         WHERE user_profile.user_id = app.effective_user_id()
-        AND user_profile.role = 'admin'
+        AND user_profile.role IN ('admin', 'trustee', 'arbiter')
     )
 $$;
 
