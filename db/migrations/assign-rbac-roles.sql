@@ -1,11 +1,13 @@
 -- Assign app roles to Neon Auth users.
 --
--- Status: APPLY MANUALLY. This script is idempotent and skips emails that
--- don't yet have a neon_auth.user row, so it's safe to run before/after
+-- Status: APPLY MANUALLY. This script is idempotent: rows that don't yet
+-- have a neon_auth.user are skipped, so it's safe to run before/after
 -- creating accounts via the /users admin page.
 --
--- BEFORE RUNNING: replace the TODO emails below with the real addresses
--- for Rick Thomas Brown (trustee) and Ashley Govea (arbiter).
+-- BEFORE RUNNING: replace every TODO-… placeholder in the VALUES list
+-- below with the real address. The DO block raises an exception if any
+-- placeholder is left in place, so a careless apply does NOT silently
+-- leave roles unassigned.
 --
 -- The owner email (rhudsontspr@gmail.com) is always admin via the
 -- ADMIN_EMAIL override in tRPC, but we still write 'admin' to
@@ -15,6 +17,7 @@ DO $$
 DECLARE
     assignments record;
     target_user_id text;
+    placeholder_count int := 0;
 BEGIN
     FOR assignments IN
         SELECT * FROM (VALUES
@@ -24,6 +27,11 @@ BEGIN
             ('TODO-domineek-govea@example.com','beneficiary'::"UserRole")
         ) AS t(email, role)
     LOOP
+        IF assignments.email LIKE 'TODO-%' THEN
+            placeholder_count := placeholder_count + 1;
+            CONTINUE;
+        END IF;
+
         SELECT id INTO target_user_id
         FROM neon_auth."user"
         WHERE lower(email) = lower(assignments.email)
@@ -42,4 +50,8 @@ BEGIN
 
         RAISE NOTICE 'assigned %: % -> %', assignments.email, target_user_id, assignments.role;
     END LOOP;
+
+    IF placeholder_count > 0 THEN
+        RAISE EXCEPTION 'assign-rbac-roles: % TODO placeholder email(s) still present — edit the VALUES list and re-run', placeholder_count;
+    END IF;
 END $$;

@@ -19,11 +19,13 @@ mock.module('uploadthing/server', () => ({
     },
 }))
 
-// Mock auth middleware (admin by default)
-const mockRequireAdmin = mock(() => Promise.resolve({ id: '1', role: 'admin' }))
+// Mock auth middleware (trust admin by default)
+const mockRequireTrustAdmin = mock(() =>
+    Promise.resolve({ id: '1', role: 'admin' }),
+)
 
 mock.module('../../src/lib/middleware', () => ({
-    requireAdmin: mockRequireAdmin,
+    requireTrustAdmin: mockRequireTrustAdmin,
 }))
 
 // Mock logger to silence output
@@ -61,8 +63,8 @@ function createTestFile(
 describe('POST /api/inventory/upload', () => {
     beforeEach(() => {
         mockUploadFiles.mockClear()
-        mockRequireAdmin.mockClear()
-        mockRequireAdmin.mockImplementation(() =>
+        mockRequireTrustAdmin.mockClear()
+        mockRequireTrustAdmin.mockImplementation(() =>
             Promise.resolve({ id: '1', role: 'admin' }),
         )
     })
@@ -165,7 +167,7 @@ describe('POST /api/inventory/upload', () => {
     })
 
     test('rejects unauthenticated requests', async () => {
-        mockRequireAdmin.mockImplementation(() => {
+        mockRequireTrustAdmin.mockImplementation(() => {
             throw ApiError.unauthorized('Authentication required')
         })
 

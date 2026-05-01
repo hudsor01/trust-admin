@@ -4,7 +4,7 @@ import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import { getPublicDb } from '@/db'
 import { userProfile } from '@/db/schema'
-import { authServer } from '@/lib/auth'
+import { authServer, isTrustAdmin } from '@/lib/auth'
 import { env } from '@/lib/env'
 
 /**
@@ -37,11 +37,7 @@ export default async function RootPage() {
         .where(eq(userProfile.userId, session.user.id))
         .limit(1)
 
-    if (
-        profile?.role === 'admin' ||
-        profile?.role === 'trustee' ||
-        profile?.role === 'arbiter'
-    ) {
+    if (profile && isTrustAdmin({ role: profile.role })) {
         redirect('/dashboard')
     }
 

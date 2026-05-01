@@ -2957,7 +2957,7 @@ export type LogActionEnum =
     | 'SIGN_OUT'
     | 'FAILED_AUTH'
     | 'ACCESS_DENIED'
-export type UserRoleEnum = 'admin' | 'beneficiary'
+export type UserRoleEnum = 'admin' | 'trustee' | 'arbiter' | 'beneficiary'
 export type HemsRequestStatusEnum =
     | 'PENDING'
     | 'APPROVED'
@@ -3105,7 +3105,7 @@ export function isAllocationClass(
  * Type guard for UserRole enum
  */
 export function isUserRole(value: unknown): value is UserRoleEnum {
-    const valid: UserRoleEnum[] = ['admin', 'beneficiary']
+    const valid: UserRoleEnum[] = ['admin', 'trustee', 'arbiter', 'beneficiary']
     return typeof value === 'string' && valid.includes(value as UserRoleEnum)
 }
 

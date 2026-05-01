@@ -2,6 +2,17 @@
 
 import { logger } from './logger'
 
+export {
+    type AppRole,
+    isAdmin,
+    isBeneficiary,
+    isTrustAdmin,
+    TRUST_ADMIN_ROLES,
+    type TrustAdminRole,
+} from './auth/roles'
+
+import type { AppRole } from './auth/roles'
+
 const log = logger.auth
 
 // =============================================================================
@@ -35,47 +46,16 @@ export interface NeonAuthUser {
     banExpires?: Date | null
 }
 
-/** App role precedence (highest → lowest privilege):
- *   admin    — full access including user management
- *   trustee  — trust administration (no user management)
- *   arbiter  — trust administration (no user management)
- *   beneficiary — own beneficiary record only
- *   user     — fallback when no profile exists (no access)
- */
-export type AppRole = 'admin' | 'trustee' | 'arbiter' | 'beneficiary' | 'user'
-
 /** Extended with user_profile fields. */
 export type AppUser = NeonAuthUser & {
     role: AppRole
     beneficiaryId?: number | null
 }
 
-/** Roles that can administer the trust (everything except user management). */
-export const TRUST_ADMIN_ROLES = ['admin', 'trustee', 'arbiter'] as const
-export type TrustAdminRole = (typeof TRUST_ADMIN_ROLES)[number]
-
-export function isTrustAdmin(user: { role: AppRole }): boolean {
-    return (TRUST_ADMIN_ROLES as readonly string[]).includes(user.role)
-}
-
 /** Session data returned by neonAuth(). */
 export type SessionData =
     | { session: NeonAuthSession; user: NeonAuthUser }
     | { session: null; user: null }
-
-// =============================================================================
-// TYPE GUARDS
-// =============================================================================
-
-export function isAdmin(user: AppUser | NeonAuthUser): boolean {
-    return user.role === 'admin'
-}
-
-export function isBeneficiary(
-    user: AppUser | NeonAuthUser,
-): user is AppUser & { beneficiaryId: number } {
-    return user.role === 'beneficiary' && !!(user as AppUser).beneficiaryId
-}
 
 // =============================================================================
 // IP ADDRESS VALIDATION (for audit logging)

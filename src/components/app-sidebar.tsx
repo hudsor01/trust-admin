@@ -30,7 +30,8 @@ import { trpc } from '@/lib/trpc'
 const entityId = 1
 
 export function AppSidebar({ role }: { role: AppRole }) {
-    const isAdmin = role === 'admin'
+    // Only the literal 'admin' role can manage users; trustee/arbiter cannot
+    const canManageUsers = role === 'admin'
     const pathname = usePathname()
     const router = useRouter()
     const utils = trpc.useUtils()
@@ -223,7 +224,7 @@ export function AppSidebar({ role }: { role: AppRole }) {
                             </SidebarMenuButton>
                         </SidebarMenuItem>
 
-                        {isAdmin && (
+                        {canManageUsers && (
                             <SidebarMenuItem>
                                 <SidebarMenuButton
                                     asChild

@@ -10,7 +10,7 @@ import { eq } from 'drizzle-orm'
 import { ZodError } from 'zod'
 import { getPublicDb, setRequestAuthToken } from '@/db'
 import { userProfile } from '@/db/schema'
-import { type AppRole, TRUST_ADMIN_ROLES } from '@/lib/auth'
+import { type AppRole, isTrustAdmin } from '@/lib/auth/roles'
 import { authServer } from '@/lib/auth/server'
 import { env } from '@/lib/env'
 import { clearSentryUser, setSentryUser } from '@/lib/sentry'
@@ -219,7 +219,7 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
  * {@link strictAdminProcedure} or {@link ownerProcedure}.
  */
 export const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
-    if (!(TRUST_ADMIN_ROLES as readonly string[]).includes(ctx.user.role)) {
+    if (!isTrustAdmin(ctx.user)) {
         throw new TRPCError({
             code: 'FORBIDDEN',
             message: 'You must be a trust administrator to perform this action',
