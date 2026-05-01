@@ -351,15 +351,29 @@ export const userManagementRouter = createTRPCRouter({
                 .where(eq(userProfile.userId, input.userId))
                 .limit(1)
 
+            // Beneficiary linkage is only meaningful for the 'beneficiary' role;
+            // clearing it on transitions keeps user_profile consistent with the
+            // invariant that app.get_user_beneficiary_id() returns NULL for
+            // non-beneficiary users.
+            const beneficiaryIdForRow =
+                input.role === 'beneficiary'
+                    ? (existing?.beneficiaryId ?? null)
+                    : null
+
             if (existing) {
                 await db
                     .update(userProfile)
-                    .set({ role: input.role, updatedAt: new Date() })
+                    .set({
+                        role: input.role,
+                        beneficiaryId: beneficiaryIdForRow,
+                        updatedAt: new Date(),
+                    })
                     .where(eq(userProfile.userId, input.userId))
             } else {
                 await db.insert(userProfile).values({
                     userId: input.userId,
                     role: input.role,
+                    beneficiaryId: beneficiaryIdForRow,
                     forcePasswordChange: false,
                 })
             }
@@ -369,7 +383,17 @@ export const userManagementRouter = createTRPCRouter({
                 recordId: input.userId,
                 action: 'UPDATE',
                 changedBy: ctx.user.id,
-                newValues: { neonRole, appRole: input.role },
+                oldValues: existing
+                    ? {
+                          appRole: existing.role,
+                          beneficiaryId: existing.beneficiaryId,
+                      }
+                    : undefined,
+                newValues: {
+                    neonRole,
+                    appRole: input.role,
+                    beneficiaryId: beneficiaryIdForRow,
+                },
             })
 
             return { success: true }
