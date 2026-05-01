@@ -2,9 +2,10 @@
 
 A trust administration app for the **Hudson Living Trust** (Texas Irrevocable Trust). Grantor Richard Hudson died 2025-12-28 — this covers estate settlement + ongoing administration.
 
-**Two user types:**
-- **Admin (Trustee):** Manages assets, liabilities, accounting, distributions
-- **Beneficiary:** Views their share, submits HEMS requests via portal
+**Roles** (full matrix in the Auth section):
+- **Admin** — full trust administration + user management
+- **Trustee / Arbiter** — full trust administration, no user management
+- **Beneficiary** — views own share + submits HEMS requests via `/portal`
 
 **Key domain concepts:**
 - **HEMS:** Health, Education, Maintenance, Support — legal standard for discretionary distributions
