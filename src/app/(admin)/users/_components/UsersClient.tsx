@@ -266,11 +266,16 @@ export function UsersClient() {
             header: 'Role',
             cell: ({ row }) => {
                 const role = row.original.appRole ?? 'user'
+                // admin = filled (highest privilege), trustee/arbiter = outlined
+                // (trust admin without user mgmt), beneficiary/user = muted.
+                const variant: 'default' | 'outline' | 'secondary' =
+                    role === 'admin'
+                        ? 'default'
+                        : role === 'trustee' || role === 'arbiter'
+                          ? 'outline'
+                          : 'secondary'
                 return (
-                    <Badge
-                        variant={role === 'admin' ? 'default' : 'secondary'}
-                        className="capitalize"
-                    >
+                    <Badge variant={variant} className="capitalize">
                         {role}
                     </Badge>
                 )

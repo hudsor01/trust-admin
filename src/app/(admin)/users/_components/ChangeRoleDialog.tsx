@@ -17,9 +17,11 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
+import type { UserRoleEnum } from '@/db/schema'
 import type { NeonAuthUser } from './types'
 
-export type AppRoleOption = 'admin' | 'trustee' | 'arbiter' | 'beneficiary'
+/** Roles assignable from the admin Users page (mirrors db UserRole enum). */
+export type AppRoleOption = UserRoleEnum
 
 type ChangeRoleDialogProps = {
     open: boolean

@@ -4,7 +4,7 @@ import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { db, getClient } from '@/db'
 import { createActivityLog } from '@/db/queries'
-import { beneficiary, entity, userProfile } from '@/db/schema'
+import { beneficiary, entity, userProfile, userRole } from '@/db/schema'
 import { authServer } from '@/lib/auth/server'
 import { env } from '@/lib/env'
 import {
@@ -320,7 +320,7 @@ export const userManagementRouter = createTRPCRouter({
         .input(
             z.object({
                 userId: z.string(),
-                role: z.enum(['admin', 'trustee', 'arbiter', 'beneficiary']),
+                role: z.enum(userRole.enumValues),
             }),
         )
         .mutation(async ({ input, ctx }) => {
