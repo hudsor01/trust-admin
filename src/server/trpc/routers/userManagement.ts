@@ -517,19 +517,13 @@ export const userManagementRouter = createTRPCRouter({
                 }
             }
 
-            const neonRole = input.role === 'admin' ? 'admin' : 'user'
-
-            const { error } = await authServer.admin.setRole({
-                userId: input.userId,
-                role: neonRole,
-            })
-
-            if (error) {
-                throw new TRPCError({
-                    code: 'BAD_REQUEST',
-                    message: `Failed to set role: ${error.message}`,
-                })
-            }
+            // DB first, then external API — mirrors the removeUser pattern.
+            // If the Neon Auth setRole call fails after the local write
+            // succeeds, we restore the previous user_profile row so the
+            // app's source-of-truth role isn't out of sync with Neon's
+            // mirror. (Neon native role is mostly cosmetic at this point —
+            // it only knows admin|user — but keeping them aligned avoids
+            // confusion in the listAllUsers output.)
 
             const [existing] = await db
                 .select()
@@ -576,6 +570,48 @@ export const userManagementRouter = createTRPCRouter({
                     })
                 }
                 throw err
+            }
+
+            const neonRole = input.role === 'admin' ? 'admin' : 'user'
+
+            const { error } = await authServer.admin.setRole({
+                userId: input.userId,
+                role: neonRole,
+            })
+
+            if (error) {
+                // Restore the previous user_profile row so the local source
+                // of truth doesn't drift from Neon. This is best-effort —
+                // a restore failure is captured to Sentry but the original
+                // setRole error is still what bubbles to the caller.
+                try {
+                    if (existing) {
+                        await db
+                            .update(userProfile)
+                            .set({
+                                role: existing.role,
+                                beneficiaryId: existing.beneficiaryId,
+                                updatedAt: new Date(),
+                            })
+                            .where(eq(userProfile.userId, input.userId))
+                    } else {
+                        // We inserted a row that wasn't there — drop it.
+                        await db
+                            .delete(userProfile)
+                            .where(eq(userProfile.userId, input.userId))
+                    }
+                } catch (restoreErr) {
+                    Sentry.captureException(restoreErr, {
+                        tags: {
+                            subsystem: 'setUserRole-rollback',
+                            userId: input.userId,
+                        },
+                    })
+                }
+                throw new TRPCError({
+                    code: 'BAD_REQUEST',
+                    message: `Failed to set role: ${error.message}`,
+                })
             }
 
             await createActivityLog({
