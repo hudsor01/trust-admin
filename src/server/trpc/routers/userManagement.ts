@@ -1,4 +1,5 @@
 /** Owner-only user CRUD via Neon Auth Admin API + userProfile linking. */
+import * as Sentry from '@sentry/nextjs'
 import { TRPCError } from '@trpc/server'
 import { eq } from 'drizzle-orm'
 import { z } from 'zod'
@@ -205,6 +206,11 @@ export const userManagementRouter = createTRPCRouter({
             }
 
             let createdUserId: string
+            // Track whether we created the auth user in this call so the
+            // catch below can clean it up if the downstream tx fails. If
+            // we reused an existing Neon Auth user (exactMatchUser path)
+            // we leave it alone.
+            let authUserCreatedHere = false
 
             const inputEmailLower = input.email.toLowerCase()
             const exactMatchUser = (existingUsers?.users ?? []).find(
@@ -244,6 +250,7 @@ export const userManagementRouter = createTRPCRouter({
                 }
 
                 createdUserId = newUser.user.id
+                authUserCreatedHere = true
             }
 
             // Required: Better Auth returns 403 on sign-in when emailVerified is false
@@ -311,6 +318,25 @@ export const userManagementRouter = createTRPCRouter({
                     `
                 })
             } catch (err) {
+                // Compensate the auth-side write if the DB transaction
+                // rolled back. Otherwise we'd leave a Neon Auth user with
+                // emailVerified=true and no user_profile row, counting
+                // toward the listAllUsers cap and confusing the next admin
+                // to look at the page. Cleanup is best-effort — if it
+                // fails (network, cascading auth issue), the original
+                // error still wins.
+                if (authUserCreatedHere) {
+                    await authServer.admin
+                        .removeUser({ userId: createdUserId })
+                        .catch((cleanupErr) =>
+                            Sentry.captureException(cleanupErr, {
+                                tags: {
+                                    subsystem: 'createPortalAccount-rollback',
+                                    userId: createdUserId,
+                                },
+                            }),
+                        )
+                }
                 if (isBeneficiaryLinkUniqueViolation(err)) {
                     throw new TRPCError({
                         code: 'CONFLICT',
