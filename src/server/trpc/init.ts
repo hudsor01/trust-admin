@@ -10,6 +10,7 @@ import { eq } from 'drizzle-orm'
 import { ZodError } from 'zod'
 import { getPublicDb, setRequestAuthToken } from '@/db'
 import { userProfile } from '@/db/schema'
+import { type AppRole, isTrustAdmin } from '@/lib/auth/roles'
 import { authServer } from '@/lib/auth/server'
 import { env } from '@/lib/env'
 import { clearSentryUser, setSentryUser } from '@/lib/sentry'
@@ -24,7 +25,7 @@ export type AppUser = {
     image?: string | null
     createdAt: Date
     updatedAt: Date
-    role: 'admin' | 'beneficiary' | 'user'
+    role: AppRole
     beneficiaryId: number | null
     forcePasswordChange: boolean
 }
@@ -87,7 +88,7 @@ export async function createContext(_opts: { headers: Headers }) {
         const publicDb = getPublicDb()
         let jwtToken: string | null
         let profileRows: {
-            role: 'admin' | 'beneficiary' | 'user'
+            role: AppRole
             beneficiaryId: number | null
             forcePasswordChange: boolean
         }[]
@@ -133,7 +134,7 @@ export async function createContext(_opts: { headers: Headers }) {
         const [profile] = profileRows
 
         // ADMIN_EMAIL override: owner is always admin regardless of DB state
-        let role: 'admin' | 'beneficiary' | 'user' = 'user'
+        let role: AppRole = 'user'
         if (session.user.email === OWNER_EMAIL) {
             role = 'admin'
         } else if (profile) {
@@ -209,29 +210,52 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
     })
 })
 
-/** Requires admin role. */
+/**
+ * Requires a trust-administrative role: admin, trustee, or arbiter.
+ *
+ * Most domain routers (assets, liabilities, accounting, distributions, …)
+ * use this — trust administration is the shared scope across these roles.
+ * For operations that should be admin-only (user management), use
+ * {@link strictAdminProcedure} or {@link ownerProcedure}.
+ */
 export const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
-    if (ctx.user.role !== 'admin') {
+    if (!isTrustAdmin(ctx.user)) {
         throw new TRPCError({
             code: 'FORBIDDEN',
-            message: 'You must be an admin to perform this action',
+            message: 'You must be a trust administrator to perform this action',
         })
     }
 
     return next({ ctx })
 })
+
+/** Requires the literal 'admin' role — excludes trustee and arbiter. */
+export const strictAdminProcedure = protectedProcedure.use(
+    async ({ ctx, next }) => {
+        if (ctx.user.role !== 'admin') {
+            throw new TRPCError({
+                code: 'FORBIDDEN',
+                message: 'You must be an admin to perform this action',
+            })
+        }
+
+        return next({ ctx })
+    },
+)
 
 /** Requires ADMIN_EMAIL — for sensitive ops like user management. */
-export const ownerProcedure = adminProcedure.use(async ({ ctx, next }) => {
-    if (ctx.user.email !== OWNER_EMAIL) {
-        throw new TRPCError({
-            code: 'FORBIDDEN',
-            message: 'Only the trust owner can perform this action',
-        })
-    }
+export const ownerProcedure = strictAdminProcedure.use(
+    async ({ ctx, next }) => {
+        if (ctx.user.email !== OWNER_EMAIL) {
+            throw new TRPCError({
+                code: 'FORBIDDEN',
+                message: 'Only the trust owner can perform this action',
+            })
+        }
 
-    return next({ ctx })
-})
+        return next({ ctx })
+    },
+)
 
 /** Requires beneficiary role. */
 export const beneficiaryProcedure = protectedProcedure.use(

@@ -253,7 +253,12 @@ export const logAction = pgEnum('LogAction', [
     'FAILED_AUTH',
     'ACCESS_DENIED',
 ])
-export const userRole = pgEnum('UserRole', ['admin', 'beneficiary'])
+export const userRole = pgEnum('UserRole', [
+    'admin',
+    'trustee',
+    'arbiter',
+    'beneficiary',
+])
 
 // ============================================
 // Activity Log (Audit Trail)
@@ -2952,7 +2957,7 @@ export type LogActionEnum =
     | 'SIGN_OUT'
     | 'FAILED_AUTH'
     | 'ACCESS_DENIED'
-export type UserRoleEnum = 'admin' | 'beneficiary'
+export type UserRoleEnum = (typeof userRole.enumValues)[number]
 export type HemsRequestStatusEnum =
     | 'PENDING'
     | 'APPROVED'
@@ -3100,8 +3105,10 @@ export function isAllocationClass(
  * Type guard for UserRole enum
  */
 export function isUserRole(value: unknown): value is UserRoleEnum {
-    const valid: UserRoleEnum[] = ['admin', 'beneficiary']
-    return typeof value === 'string' && valid.includes(value as UserRoleEnum)
+    return (
+        typeof value === 'string' &&
+        (userRole.enumValues as readonly string[]).includes(value)
+    )
 }
 
 /**

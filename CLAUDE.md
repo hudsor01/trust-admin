@@ -2,9 +2,10 @@
 
 A trust administration app for the **Hudson Living Trust** (Texas Irrevocable Trust). Grantor Richard Hudson died 2025-12-28 — this covers estate settlement + ongoing administration.
 
-**Two user types:**
-- **Admin (Trustee):** Manages assets, liabilities, accounting, distributions
-- **Beneficiary:** Views their share, submits HEMS requests via portal
+**Roles** (full matrix in the Auth section):
+- **Admin** — full trust administration + user management
+- **Trustee / Arbiter** — full trust administration, no user management
+- **Beneficiary** — views own share + submits HEMS requests via `/portal`
 
 **Key domain concepts:**
 - **HEMS:** Health, Education, Maintenance, Support — legal standard for discretionary distributions
@@ -149,7 +150,19 @@ src/
 └── app/portal/{layout,change-password/page}.tsx
 ```
 
-`AppUser.role` is `'admin' | 'beneficiary' | 'user'`. **tRPC trusts `user_profile.role`**; layout guards read native `session.user.role`.
+`AppUser.role` is `'admin' | 'trustee' | 'arbiter' | 'beneficiary' | 'user'`. **tRPC and layout guards both trust `user_profile.role`** (Neon Auth's native role only knows admin/user, so trustee + arbiter are mirrored as native `user`).
+
+**Role privileges:**
+
+| Role | Trust admin (assets, accounting, distributions, …) | User management |
+|------|---|---|
+| `admin` | ✅ | ✅ |
+| `trustee` | ✅ | ❌ |
+| `arbiter` | ✅ | ❌ |
+| `beneficiary` | ❌ (own record only via `/portal`) | ❌ |
+| `user` | ❌ | ❌ |
+
+`adminProcedure` admits admin/trustee/arbiter. `strictAdminProcedure` admits only `admin`. `ownerProcedure` adds the `ADMIN_EMAIL` check. RLS's `app.is_admin()` returns true for admin/trustee/arbiter (the function name is preserved for policy compatibility).
 
 ### Sessions
 
@@ -167,7 +180,7 @@ Never `useSession` in layouts (use `authServer`); never `authClient` in Server C
 
 ### Role resolution (`src/server/trpc/init.ts`)
 
-`ADMIN_EMAIL` always wins → else `user_profile.role` → else `'user'`. The resolved role + JWT is cached ~4 minutes per session token. `createContext` calls `setRequestAuthToken(jwt)` so RLS queries run as `authenticated`.
+`ADMIN_EMAIL` always wins (forced to `admin`) → else `user_profile.role` (admin/trustee/arbiter/beneficiary) → else `'user'`. The resolved role + JWT is cached ~4 minutes per session token. `createContext` calls `setRequestAuthToken(jwt)` so RLS queries run as `authenticated`.
 
 ### Proxy (`src/proxy.ts`)
 
@@ -175,7 +188,7 @@ Optimistic — checks `__Secure-neon-auth.session_token` (works on localhost; `_
 
 ### Flows
 
-**Sign-in:** `AuthView` redirects to `/`. Root routes by role → `/dashboard` (admin) or `/portal` (beneficiary, or `/portal/change-password` if `forcePasswordChange=true`).
+**Sign-in:** `AuthView` redirects to `/`. Root routes by role → `/dashboard` (admin/trustee/arbiter) or `/portal` (beneficiary, or `/portal/change-password` if `forcePasswordChange=true`).
 
 **Forgot/reset:** custom forms POST to `/api/auth/custom/{forgot,reset}-password`. Forgot stores a token in `password_reset_token` and POSTs `{ email, name, resetLink }` to `N8N_PASSWORD_RESET_WEBHOOK_URL`. Reset validates the token and calls `authServer.admin.setUserPassword()`.
 

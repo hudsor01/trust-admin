@@ -2,6 +2,17 @@
 
 import { logger } from './logger'
 
+export {
+    type AppRole,
+    isAdmin,
+    isBeneficiary,
+    isTrustAdmin,
+    TRUST_ADMIN_ROLES,
+    type TrustAdminRole,
+} from './auth/roles'
+
+import type { AppRole } from './auth/roles'
+
 const log = logger.auth
 
 // =============================================================================
@@ -35,9 +46,9 @@ export interface NeonAuthUser {
     banExpires?: Date | null
 }
 
-/** Extended with user_profile fields. "user" = fallback when no profile exists. */
+/** Extended with user_profile fields. */
 export type AppUser = NeonAuthUser & {
-    role: 'admin' | 'beneficiary' | 'user'
+    role: AppRole
     beneficiaryId?: number | null
 }
 
@@ -45,20 +56,6 @@ export type AppUser = NeonAuthUser & {
 export type SessionData =
     | { session: NeonAuthSession; user: NeonAuthUser }
     | { session: null; user: null }
-
-// =============================================================================
-// TYPE GUARDS
-// =============================================================================
-
-export function isAdmin(user: AppUser | NeonAuthUser): boolean {
-    return user.role === 'admin'
-}
-
-export function isBeneficiary(
-    user: AppUser | NeonAuthUser,
-): user is AppUser & { beneficiaryId: number } {
-    return user.role === 'beneficiary' && !!(user as AppUser).beneficiaryId
-}
 
 // =============================================================================
 // IP ADDRESS VALIDATION (for audit logging)

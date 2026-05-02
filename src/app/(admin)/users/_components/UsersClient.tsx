@@ -23,10 +23,11 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { userRole } from '@/db/schema'
 import { trpc } from '@/lib/trpc'
 import { formatDate } from '@/utils/formatters'
 import { BanUserDialog } from './BanUserDialog'
-import { ChangeRoleDialog } from './ChangeRoleDialog'
+import { type AppRoleOption, ChangeRoleDialog } from './ChangeRoleDialog'
 import { CreatedCredentialsDialog } from './CreatedCredentialsDialog'
 import { CreatePortalAccountDialog } from './CreatePortalAccountDialog'
 import { EditUserDialog } from './EditUserDialog'
@@ -65,7 +66,7 @@ export function UsersClient() {
     const [editName, setEditName] = useState('')
     const [editEmail, setEditEmail] = useState('')
 
-    const [newRole, setNewRole] = useState<'admin' | 'user'>('user')
+    const [newRole, setNewRole] = useState<AppRoleOption>('beneficiary')
 
     const [newPassword, setNewPassword] = useState('')
     const [showNewPassword, setShowNewPassword] = useState(false)
@@ -197,7 +198,13 @@ export function UsersClient() {
 
     const openRoleDialog = (user: NeonAuthUser) => {
         setSelectedUser(user)
-        setNewRole((user.neonRole as 'admin' | 'user') ?? 'user')
+        const current = user.appRole ?? 'beneficiary'
+        // Validate against the live pgEnum so a future role added to schema.ts
+        // is automatically accepted here without touching this file.
+        const isAssignable = (
+            userRole.enumValues as readonly string[]
+        ).includes(current)
+        setNewRole(isAssignable ? (current as AppRoleOption) : 'beneficiary')
         setRoleDialogOpen(true)
     }
 
@@ -258,13 +265,18 @@ export function UsersClient() {
             id: 'role',
             header: 'Role',
             cell: ({ row }) => {
-                const role = row.original.neonRole
+                const role = row.original.appRole ?? 'user'
+                // admin = filled (highest privilege), trustee/arbiter = outlined
+                // (trust admin without user mgmt), beneficiary/user = muted.
+                const variant: 'default' | 'outline' | 'secondary' =
+                    role === 'admin'
+                        ? 'default'
+                        : role === 'trustee' || role === 'arbiter'
+                          ? 'outline'
+                          : 'secondary'
                 return (
-                    <Badge
-                        variant={role === 'admin' ? 'default' : 'secondary'}
-                        className="capitalize"
-                    >
-                        {role || 'user'}
+                    <Badge variant={variant} className="capitalize">
+                        {role}
                     </Badge>
                 )
             },

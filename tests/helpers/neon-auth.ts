@@ -2,7 +2,12 @@
 
 import { eq } from 'drizzle-orm'
 import { db, getClient } from '@/db'
-import { beneficiary, entity, userProfile } from '@/db/schema'
+import {
+    beneficiary,
+    entity,
+    type UserRoleEnum,
+    userProfile,
+} from '@/db/schema'
 
 // =============================================================================
 // TYPES
@@ -16,7 +21,7 @@ export interface TestUser {
 
 export interface TestUserProfile {
     userId: string
-    role: 'admin' | 'beneficiary'
+    role: UserRoleEnum
     beneficiaryId: number | null
 }
 
@@ -154,7 +159,7 @@ export async function createTestBeneficiary(options: {
 /** In production user_profile is auto-created by trigger; this creates profiles directly for tests. */
 export async function createTestUserProfile(options: {
     userId: string
-    role: 'admin' | 'beneficiary'
+    role: UserRoleEnum
     beneficiaryId?: number | null
 }): Promise<TestUserProfile> {
     const [created] = await db

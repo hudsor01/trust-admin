@@ -1,5 +1,11 @@
 import { ApiError } from './api-error'
-import { type AppUser, authServer, extractClientIP } from './auth'
+import {
+    type AppRole,
+    type AppUser,
+    authServer,
+    extractClientIP,
+    TRUST_ADMIN_ROLES,
+} from './auth'
 import { recordAuthEvent } from './auth-events'
 import { logger } from './logger'
 
@@ -31,7 +37,7 @@ async function getCachedSession(req: Request) {
 /** Validate session and return authenticated user. Throws ApiError.unauthorized() on failure. */
 export async function requireAuth(
     req: Request,
-    allowedRoles?: Array<'admin' | 'beneficiary' | 'user'>,
+    allowedRoles?: Array<AppRole>,
 ): Promise<AppUser> {
     const url = new URL(req.url)
     // VULN-013 FIX: Use validated IP extraction
@@ -97,9 +103,14 @@ export async function requireAuth(
     }
 }
 
-/** Requires admin role. */
+/** Requires the literal 'admin' role — parity with strictAdminProcedure. Use for user-management endpoints. */
 export async function requireAdmin(req: Request): Promise<AppUser> {
     return requireAuth(req, ['admin'])
+}
+
+/** Requires any trust-administrative role (admin, trustee, arbiter). Use for trust-administration endpoints. */
+export async function requireTrustAdmin(req: Request): Promise<AppUser> {
+    return requireAuth(req, [...TRUST_ADMIN_ROLES])
 }
 
 /** Requires beneficiary role. */

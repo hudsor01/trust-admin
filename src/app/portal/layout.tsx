@@ -6,9 +6,13 @@ import { redirect } from 'next/navigation'
 import { AppErrorBoundary } from '@/components/error-boundary'
 import { getPublicDb } from '@/db'
 import { userProfile } from '@/db/schema'
-import { authServer } from '@/lib/auth'
+import { authServer, isTrustAdmin } from '@/lib/auth'
+import { env } from '@/lib/env'
 
-/** Route guard: requires beneficiary role; admins redirect to /dashboard. */
+/**
+ * Route guard: portal is for beneficiaries only.
+ * Trust-administrative roles (admin, trustee, arbiter) redirect to /dashboard.
+ */
 export default async function PortalLayout({
     children,
 }: {
@@ -26,7 +30,7 @@ export default async function PortalLayout({
         redirect('/auth/sign-in')
     }
 
-    if (session.user.role === 'admin') {
+    if (session.user.email === env.ADMIN_EMAIL) {
         redirect('/dashboard')
     }
 
@@ -34,17 +38,25 @@ export default async function PortalLayout({
     const headersList = await headers()
     const pathname = headersList.get('x-pathname') ?? ''
 
-    if (pathname !== '/portal/change-password') {
-        const publicDb = getPublicDb()
-        const [profile] = await publicDb
-            .select({ forcePasswordChange: userProfile.forcePasswordChange })
-            .from(userProfile)
-            .where(eq(userProfile.userId, session.user.id))
-            .limit(1)
+    const publicDb = getPublicDb()
+    const [profile] = await publicDb
+        .select({
+            role: userProfile.role,
+            forcePasswordChange: userProfile.forcePasswordChange,
+        })
+        .from(userProfile)
+        .where(eq(userProfile.userId, session.user.id))
+        .limit(1)
 
-        if (profile?.forcePasswordChange) {
-            redirect('/portal/change-password')
-        }
+    if (profile && isTrustAdmin({ role: profile.role })) {
+        redirect('/dashboard')
+    }
+
+    if (
+        pathname !== '/portal/change-password' &&
+        profile?.forcePasswordChange
+    ) {
+        redirect('/portal/change-password')
     }
 
     return (

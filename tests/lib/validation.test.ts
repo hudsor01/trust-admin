@@ -88,9 +88,19 @@ describe('Update schema non-empty validation', () => {
             }
         })
 
-        it('updateUserProfileSchema accepts { role: "admin" }', () => {
-            const result = updateUserProfileSchema.safeParse({ role: 'admin' })
+        it.each([
+            'admin',
+            'trustee',
+            'arbiter',
+            'beneficiary',
+        ])('updateUserProfileSchema accepts { role: %p }', (role) => {
+            const result = updateUserProfileSchema.safeParse({ role })
             expect(result.success).toBe(true)
+        })
+
+        it('updateUserProfileSchema rejects unknown roles', () => {
+            const result = updateUserProfileSchema.safeParse({ role: 'owner' })
+            expect(result.success).toBe(false)
         })
     })
 

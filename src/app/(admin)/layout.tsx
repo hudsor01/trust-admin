@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic'
 
+import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import { AppSidebar } from '@/components/app-sidebar'
 import { CommandPalette } from '@/components/command-palette'
@@ -10,9 +11,19 @@ import {
     SidebarTrigger,
 } from '@/components/ui/sidebar'
 import { TooltipProvider } from '@/components/ui/tooltip'
-import { authServer } from '@/lib/auth'
+import { getPublicDb } from '@/db'
+import { userProfile } from '@/db/schema'
+import { type AppRole, authServer, isTrustAdmin } from '@/lib/auth'
+import { env } from '@/lib/env'
 
-/** Route guard: requires Neon Auth admin role; non-admins go to /portal. */
+/**
+ * Route guard: requires a trust-administrative role (admin, trustee, or
+ * arbiter) per user_profile. Beneficiaries go to /portal.
+ *
+ * Reads user_profile (not session.user.role) because Neon Auth's native
+ * role only knows 'admin' | 'user' — the app's trustee/arbiter roles are
+ * mirrored as 'user' in Neon Auth and only distinguishable via user_profile.
+ */
 export default async function AdminLayout({
     children,
 }: {
@@ -30,14 +41,16 @@ export default async function AdminLayout({
         redirect('/auth/sign-in')
     }
 
-    if (session.user.role !== 'admin') {
+    const role = await resolveAppRole(session.user.id, session.user.email)
+
+    if (!isTrustAdmin({ role })) {
         redirect('/portal')
     }
 
     return (
         <TooltipProvider>
             <SidebarProvider>
-                <AppSidebar />
+                <AppSidebar role={role} />
                 <SidebarInset>
                     <header className="flex h-14 items-center gap-4 border-b px-6">
                         <SidebarTrigger />
@@ -59,4 +72,20 @@ export default async function AdminLayout({
             </SidebarProvider>
         </TooltipProvider>
     )
+}
+
+async function resolveAppRole(
+    userId: string,
+    email: string | null | undefined,
+): Promise<AppRole> {
+    if (email === env.ADMIN_EMAIL) return 'admin'
+
+    const publicDb = getPublicDb()
+    const [profile] = await publicDb
+        .select({ role: userProfile.role })
+        .from(userProfile)
+        .where(eq(userProfile.userId, userId))
+        .limit(1)
+
+    return profile?.role ?? 'user'
 }

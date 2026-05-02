@@ -3,7 +3,7 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { UTApi } from 'uploadthing/server'
 import { ApiError } from '@/lib/api-error'
 import { logger } from '@/lib/logger'
-import { requireAdmin } from '@/lib/middleware'
+import { requireTrustAdmin } from '@/lib/middleware'
 
 const log = logger.create('Upload')
 const utapi = new UTApi()
@@ -20,7 +20,7 @@ const MAX_FILES = 5
 
 export async function POST(request: NextRequest) {
     try {
-        await requireAdmin(request)
+        await requireTrustAdmin(request)
 
         const formData = await request.formData()
         const files = formData.getAll('photos') as File[]
