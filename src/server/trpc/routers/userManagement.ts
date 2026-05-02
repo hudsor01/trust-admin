@@ -253,40 +253,45 @@ export const userManagementRouter = createTRPCRouter({
                 authUserCreatedHere = true
             }
 
-            // Required: Better Auth returns 403 on sign-in when emailVerified is false
-            await getClient().unsafe(
-                `UPDATE neon_auth."user" SET "emailVerified" = true WHERE id = $1`,
-                [createdUserId],
-            )
-
             let resolvedBeneficiaryId: number | null = null
 
-            // Resolve the primary entity up front so the transaction below
-            // doesn't have to make this call (and so we fail before any
-            // writes if the trust entity isn't there).
-            let primaryEntityId: number | null = null
-            if (input.role === 'beneficiary' && !linkedBeneficiary) {
-                const [primaryEntity] = await db
-                    .select({ id: entity.id })
-                    .from(entity)
-                    .orderBy(entity.id)
-                    .limit(1)
-                if (!primaryEntity) {
-                    throw new TRPCError({
-                        code: 'INTERNAL_SERVER_ERROR',
-                        message: 'No trust entity found',
-                    })
-                }
-                primaryEntityId = primaryEntity.id
-            }
-
-            // Beneficiary insert + user_profile write share a transaction so
-            // a profile-write failure (e.g. the partial unique index firing
-            // on a race) rolls back any beneficiary row we just created —
-            // otherwise the failing call leaves an orphan beneficiary that
-            // resurfaces in the "linkable beneficiaries" picker on the
-            // next dialog open.
+            // Everything from here through the tx covers the auth-cleanup
+            // window: any throw before the tx commits leaves a stranded
+            // Neon Auth user with no user_profile row. The `try` boundary
+            // therefore starts at the emailVerified UPDATE — the first
+            // awaitable after the auth user is created — not at the tx
+            // alone (round-3 fix narrowed the window; round-4 closes it).
             try {
+                // Required: Better Auth returns 403 on sign-in when emailVerified is false
+                await getClient().unsafe(
+                    `UPDATE neon_auth."user" SET "emailVerified" = true WHERE id = $1`,
+                    [createdUserId],
+                )
+
+                // Resolve the primary entity inside the cleanup window so a
+                // missing-entity throw also triggers the auth rollback.
+                let primaryEntityId: number | null = null
+                if (input.role === 'beneficiary' && !linkedBeneficiary) {
+                    const [primaryEntity] = await db
+                        .select({ id: entity.id })
+                        .from(entity)
+                        .orderBy(entity.id)
+                        .limit(1)
+                    if (!primaryEntity) {
+                        throw new TRPCError({
+                            code: 'INTERNAL_SERVER_ERROR',
+                            message: 'No trust entity found',
+                        })
+                    }
+                    primaryEntityId = primaryEntity.id
+                }
+
+                // Beneficiary insert + user_profile write share a transaction
+                // so a profile-write failure (e.g. the partial unique index
+                // firing on a race) rolls back any beneficiary row we just
+                // created — otherwise the failing call leaves an orphan
+                // beneficiary that resurfaces in the "linkable beneficiaries"
+                // picker on the next dialog open.
                 await getClient().begin(async (tx) => {
                     if (input.role === 'beneficiary') {
                         if (linkedBeneficiary) {
