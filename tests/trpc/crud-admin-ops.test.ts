@@ -503,6 +503,116 @@ describe.skipIf(isProductionDb)(
                 },
                 TEST_TIMEOUT,
             )
+
+            test(
+                'createPortalAccount rejects linkToBeneficiaryId when role is not beneficiary',
+                async () => {
+                    const caller = ownerCaller()
+                    try {
+                        await caller.userManagement.createPortalAccount({
+                            firstName: 'Test',
+                            lastName: 'Trustee',
+                            email: `non-ben-link-${TS}@test.com`,
+                            tempPassword: 'Password123!',
+                            role: 'trustee',
+                            linkToBeneficiaryId: testIds.beneficiary1Id!,
+                        })
+                        expect(true).toBe(false)
+                    } catch (error: unknown) {
+                        const e = error as TRPCError
+                        expect(e.code).toBe('BAD_REQUEST')
+                        expect(e.message).toContain('linkToBeneficiaryId')
+                    }
+                },
+                TEST_TIMEOUT,
+            )
+
+            test(
+                'createPortalAccount rejects link to non-existent beneficiary',
+                async () => {
+                    const caller = ownerCaller()
+                    try {
+                        await caller.userManagement.createPortalAccount({
+                            firstName: 'Test',
+                            lastName: 'Ghost',
+                            email: `ghost-link-${TS}@test.com`,
+                            tempPassword: 'Password123!',
+                            role: 'beneficiary',
+                            linkToBeneficiaryId: 999999999,
+                        })
+                        expect(true).toBe(false)
+                    } catch (error: unknown) {
+                        const e = error as TRPCError
+                        expect(e.code).toBe('NOT_FOUND')
+                        expect(e.message).toContain('999999999')
+                    }
+                },
+                TEST_TIMEOUT,
+            )
+
+            test(
+                'createPortalAccount rejects link to already-linked beneficiary',
+                async () => {
+                    // beneficiary2 has a userProfile attached in beforeAll
+                    const caller = ownerCaller()
+                    try {
+                        await caller.userManagement.createPortalAccount({
+                            firstName: 'Test',
+                            lastName: 'Dup',
+                            email: `dup-link-${TS}@test.com`,
+                            tempPassword: 'Password123!',
+                            role: 'beneficiary',
+                            linkToBeneficiaryId: testIds.beneficiary2Id!,
+                        })
+                        expect(true).toBe(false)
+                    } catch (error: unknown) {
+                        const e = error as TRPCError
+                        expect(e.code).toBe('CONFLICT')
+                        expect(e.message).toContain('already linked')
+                    }
+                },
+                TEST_TIMEOUT,
+            )
+
+            test(
+                'setUserRole rejects linkToBeneficiaryId when role is not beneficiary',
+                async () => {
+                    const caller = ownerCaller()
+                    try {
+                        await caller.userManagement.setUserRole({
+                            userId: testIds.userProfileUserId!,
+                            role: 'trustee',
+                            linkToBeneficiaryId: testIds.beneficiary1Id!,
+                        })
+                        expect(true).toBe(false)
+                    } catch (error: unknown) {
+                        const e = error as TRPCError
+                        expect(e.code).toBe('BAD_REQUEST')
+                        expect(e.message).toContain('linkToBeneficiaryId')
+                    }
+                },
+                TEST_TIMEOUT,
+            )
+
+            test(
+                'setUserRole rejects link to non-existent beneficiary',
+                async () => {
+                    const caller = ownerCaller()
+                    try {
+                        await caller.userManagement.setUserRole({
+                            userId: testIds.userProfileUserId!,
+                            role: 'beneficiary',
+                            linkToBeneficiaryId: 999999999,
+                        })
+                        expect(true).toBe(false)
+                    } catch (error: unknown) {
+                        const e = error as TRPCError
+                        expect(e.code).toBe('NOT_FOUND')
+                        expect(e.message).toContain('999999999')
+                    }
+                },
+                TEST_TIMEOUT,
+            )
         })
     },
 )

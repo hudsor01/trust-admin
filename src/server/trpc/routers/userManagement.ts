@@ -103,31 +103,70 @@ export const userManagementRouter = createTRPCRouter({
         })
     }),
 
-    /** Create a portal account (Neon Auth user + userProfile). */
+    /**
+     * Create a portal account (Neon Auth user + user_profile).
+     *
+     * Beneficiary linkage is split out so creating a non-beneficiary user
+     * (admin/trustee/arbiter) does NOT write a stale row to the beneficiary
+     * table, and creating a beneficiary user can either:
+     *   - link to an existing beneficiary record (linkToBeneficiaryId), or
+     *   - create a new one in the primary trust entity (default).
+     */
     createPortalAccount: ownerProcedure
         .input(
-            z.object({
-                firstName: z.string().min(1),
-                lastName: z.string().min(1),
-                email: z.string().email(),
-                tempPassword: z.string().min(8),
-            }),
+            z
+                .object({
+                    firstName: z.string().min(1),
+                    lastName: z.string().min(1),
+                    email: z.string().email(),
+                    tempPassword: z.string().min(8),
+                    role: z.enum(userRole.enumValues).default('beneficiary'),
+                    linkToBeneficiaryId: z.coerce.number().int().optional(),
+                })
+                .refine(
+                    (v) => v.role === 'beneficiary' || !v.linkToBeneficiaryId,
+                    {
+                        message:
+                            'linkToBeneficiaryId only applies when role is beneficiary',
+                        path: ['linkToBeneficiaryId'],
+                    },
+                ),
         )
         .mutation(async ({ input, ctx }) => {
             const fullName = `${input.firstName} ${input.lastName}`
 
-            // Get the primary trust entity for the beneficiary record
-            const [primaryEntity] = await db
-                .select({ id: entity.id })
-                .from(entity)
-                .orderBy(entity.id)
-                .limit(1)
+            // Validate the link target up front so failures surface before
+            // any auth-side state is mutated.
+            let linkedBeneficiary: { id: number } | undefined
+            if (input.linkToBeneficiaryId) {
+                const [found] = await db
+                    .select({ id: beneficiary.id })
+                    .from(beneficiary)
+                    .where(eq(beneficiary.id, input.linkToBeneficiaryId))
+                    .limit(1)
 
-            if (!primaryEntity) {
-                throw new TRPCError({
-                    code: 'INTERNAL_SERVER_ERROR',
-                    message: 'No trust entity found',
-                })
+                if (!found) {
+                    throw new TRPCError({
+                        code: 'NOT_FOUND',
+                        message: `Beneficiary ${input.linkToBeneficiaryId} not found`,
+                    })
+                }
+
+                // Reject double-binding the same beneficiary to multiple users.
+                const [existingLink] = await db
+                    .select({ userId: userProfile.userId })
+                    .from(userProfile)
+                    .where(eq(userProfile.beneficiaryId, found.id))
+                    .limit(1)
+
+                if (existingLink) {
+                    throw new TRPCError({
+                        code: 'CONFLICT',
+                        message: `Beneficiary ${found.id} is already linked to another portal account`,
+                    })
+                }
+
+                linkedBeneficiary = found
             }
 
             const { data: existingUsers, error: listError } =
@@ -174,7 +213,7 @@ export const userManagementRouter = createTRPCRouter({
                         email: input.email,
                         password: input.tempPassword,
                         name: fullName,
-                        role: 'user',
+                        role: input.role === 'admin' ? 'admin' : 'user',
                     })
 
                 if (createError || !newUser) {
@@ -193,32 +232,53 @@ export const userManagementRouter = createTRPCRouter({
                 [createdUserId],
             )
 
-            // Create beneficiary record
-            const [newBeneficiary] = await db
-                .insert(beneficiary)
-                .values({
-                    entityId: primaryEntity.id,
-                    firstName: input.firstName,
-                    lastName: input.lastName,
-                    relationship: 'Beneficiary',
-                    email: input.email,
-                    updatedAt: new Date().toISOString(),
-                })
-                .returning()
+            let resolvedBeneficiaryId: number | null = null
+
+            if (input.role === 'beneficiary') {
+                if (linkedBeneficiary) {
+                    resolvedBeneficiaryId = linkedBeneficiary.id
+                } else {
+                    const [primaryEntity] = await db
+                        .select({ id: entity.id })
+                        .from(entity)
+                        .orderBy(entity.id)
+                        .limit(1)
+
+                    if (!primaryEntity) {
+                        throw new TRPCError({
+                            code: 'INTERNAL_SERVER_ERROR',
+                            message: 'No trust entity found',
+                        })
+                    }
+
+                    const [newBeneficiary] = await db
+                        .insert(beneficiary)
+                        .values({
+                            entityId: primaryEntity.id,
+                            firstName: input.firstName,
+                            lastName: input.lastName,
+                            relationship: 'Beneficiary',
+                            email: input.email,
+                            updatedAt: new Date().toISOString(),
+                        })
+                        .returning()
+                    resolvedBeneficiaryId = newBeneficiary?.id ?? null
+                }
+            }
 
             await db
                 .insert(userProfile)
                 .values({
                     userId: createdUserId,
-                    role: 'beneficiary',
-                    beneficiaryId: newBeneficiary?.id ?? null,
+                    role: input.role,
+                    beneficiaryId: resolvedBeneficiaryId,
                     forcePasswordChange: true,
                 })
                 .onConflictDoUpdate({
                     target: userProfile.userId,
                     set: {
-                        role: 'beneficiary',
-                        beneficiaryId: newBeneficiary?.id ?? null,
+                        role: input.role,
+                        beneficiaryId: resolvedBeneficiaryId,
                         forcePasswordChange: true,
                     },
                 })
@@ -232,12 +292,22 @@ export const userManagementRouter = createTRPCRouter({
                     userId: createdUserId,
                     email: input.email,
                     name: fullName,
-                    beneficiaryId: newBeneficiary?.id,
-                    role: 'beneficiary',
+                    role: input.role,
+                    beneficiaryId: resolvedBeneficiaryId,
+                    linked: linkedBeneficiary
+                        ? 'existing-beneficiary'
+                        : input.role === 'beneficiary'
+                          ? 'new-beneficiary'
+                          : 'none',
                 },
             })
 
-            return { userId: createdUserId, email: input.email }
+            return {
+                userId: createdUserId,
+                email: input.email,
+                role: input.role,
+                beneficiaryId: resolvedBeneficiaryId,
+            }
         }),
 
     /** Update user name or email via raw SQL (Neon Auth admin proxy returns 400). */
@@ -319,10 +389,26 @@ export const userManagementRouter = createTRPCRouter({
      */
     setUserRole: ownerProcedure
         .input(
-            z.object({
-                userId: z.string(),
-                role: z.enum(userRole.enumValues),
-            }),
+            z
+                .object({
+                    userId: z.string(),
+                    role: z.enum(userRole.enumValues),
+                    linkToBeneficiaryId: z.coerce
+                        .number()
+                        .int()
+                        .nullable()
+                        .optional(),
+                })
+                .refine(
+                    (v) =>
+                        v.role === 'beneficiary' ||
+                        v.linkToBeneficiaryId == null,
+                    {
+                        message:
+                            'linkToBeneficiaryId only applies when role is beneficiary',
+                        path: ['linkToBeneficiaryId'],
+                    },
+                ),
         )
         .mutation(async ({ input, ctx }) => {
             if (input.userId === ctx.user.id) {
@@ -330,6 +416,41 @@ export const userManagementRouter = createTRPCRouter({
                     code: 'BAD_REQUEST',
                     message: 'Cannot change your own role',
                 })
+            }
+
+            // Validate the link target up front so failures surface before
+            // the auth-side state is mutated.
+            if (
+                input.role === 'beneficiary' &&
+                typeof input.linkToBeneficiaryId === 'number'
+            ) {
+                const [target] = await db
+                    .select({ id: beneficiary.id })
+                    .from(beneficiary)
+                    .where(eq(beneficiary.id, input.linkToBeneficiaryId))
+                    .limit(1)
+                if (!target) {
+                    throw new TRPCError({
+                        code: 'NOT_FOUND',
+                        message: `Beneficiary ${input.linkToBeneficiaryId} not found`,
+                    })
+                }
+                const [otherLink] = await db
+                    .select({ userId: userProfile.userId })
+                    .from(userProfile)
+                    .where(
+                        eq(
+                            userProfile.beneficiaryId,
+                            input.linkToBeneficiaryId,
+                        ),
+                    )
+                    .limit(1)
+                if (otherLink && otherLink.userId !== input.userId) {
+                    throw new TRPCError({
+                        code: 'CONFLICT',
+                        message: `Beneficiary ${input.linkToBeneficiaryId} is already linked to another portal account`,
+                    })
+                }
             }
 
             const neonRole = input.role === 'admin' ? 'admin' : 'user'
@@ -352,10 +473,18 @@ export const userManagementRouter = createTRPCRouter({
                 .where(eq(userProfile.userId, input.userId))
                 .limit(1)
 
-            const beneficiaryIdForRow = reconcileBeneficiaryId(
-                input.role,
-                existing?.beneficiaryId,
-            )
+            // For non-beneficiary roles, reconcileBeneficiaryId clears the
+            // FK regardless of input. For beneficiary, the explicit link
+            // wins; otherwise preserve whatever was there (matches the
+            // existing reconcileBeneficiaryId rule).
+            const beneficiaryIdForRow =
+                input.role === 'beneficiary' &&
+                typeof input.linkToBeneficiaryId === 'number'
+                    ? input.linkToBeneficiaryId
+                    : reconcileBeneficiaryId(
+                          input.role,
+                          existing?.beneficiaryId,
+                      )
 
             if (existing) {
                 await db
