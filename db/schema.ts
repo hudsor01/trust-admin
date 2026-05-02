@@ -2719,6 +2719,13 @@ export const userProfile = pgTable(
         })
             .onUpdate('cascade')
             .onDelete('set null'),
+        // Partial unique index: a beneficiary record can be attached to at
+        // most one portal account. Closes a TOCTOU window where two
+        // concurrent linkToBeneficiaryId requests could both pass the
+        // application-level preflight and both succeed.
+        uniqueIndex('user_profile_beneficiary_id_uniq')
+            .on(table.beneficiaryId)
+            .where(sql`beneficiary_id IS NOT NULL`),
     ],
 )
 

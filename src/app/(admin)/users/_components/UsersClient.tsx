@@ -10,7 +10,7 @@ import {
     Shield,
     Trash2,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { Badge } from '@/components/ui/badge'
@@ -41,11 +41,35 @@ export function UsersClient() {
     const { data: ownerCheck } = trpc.userManagement.isOwner.useQuery()
     const isOwner = ownerCheck?.isOwner ?? false
 
+    const { data: entities } = trpc.entity.list.useQuery()
+    const entityId = entities?.[0]?.id
+
     const {
         data: allUsers = [],
         isLoading: usersLoading,
         error: usersError,
     } = trpc.userManagement.listAllUsers.useQuery()
+
+    const { data: allBeneficiaries = [] } = trpc.beneficiary.list.useQuery(
+        { entityId: entityId! },
+        { enabled: !!entityId },
+    )
+
+    // Beneficiary records with no current portal-account link — eligible to attach
+    const linkableBeneficiaries = useMemo(() => {
+        const linkedIds = new Set(
+            (allUsers as NeonAuthUser[])
+                .map((u) => u.beneficiaryId)
+                .filter((id): id is number => typeof id === 'number'),
+        )
+        return allBeneficiaries
+            .filter((b) => !linkedIds.has(b.id))
+            .map((b) => ({
+                id: b.id,
+                firstName: b.firstName,
+                lastName: b.lastName,
+            }))
+    }, [allBeneficiaries, allUsers])
 
     const [createDialogOpen, setCreateDialogOpen] = useState(false)
     const [editDialogOpen, setEditDialogOpen] = useState(false)
@@ -62,11 +86,21 @@ export function UsersClient() {
     const [email, setEmail] = useState('')
     const [tempPassword, setTempPassword] = useState('')
     const [showPassword, setShowPassword] = useState(false)
+    const [createRole, setCreateRole] = useState<AppRoleOption>('beneficiary')
+    const [createBeneficiaryMode, setCreateBeneficiaryMode] = useState<
+        'create' | 'link'
+    >('create')
+    const [createLinkBeneficiaryId, setCreateLinkBeneficiaryId] = useState<
+        number | null
+    >(null)
 
     const [editName, setEditName] = useState('')
     const [editEmail, setEditEmail] = useState('')
 
     const [newRole, setNewRole] = useState<AppRoleOption>('beneficiary')
+    const [roleLinkBeneficiaryId, setRoleLinkBeneficiaryId] = useState<
+        number | null
+    >(null)
 
     const [newPassword, setNewPassword] = useState('')
     const [showNewPassword, setShowNewPassword] = useState(false)
@@ -181,11 +215,29 @@ export function UsersClient() {
             tempPassword.length < 8
         )
             return
+        const linkToBeneficiaryId =
+            createRole === 'beneficiary' &&
+            createBeneficiaryMode === 'link' &&
+            createLinkBeneficiaryId
+                ? createLinkBeneficiaryId
+                : undefined
+        if (
+            createRole === 'beneficiary' &&
+            createBeneficiaryMode === 'link' &&
+            !linkToBeneficiaryId
+        ) {
+            // Link mode requires a selected beneficiary; the dialog also
+            // disables submit when this is the case, but guard here too.
+            toast.error('Pick a beneficiary to link to')
+            return
+        }
         createUserMutation.mutate({
             firstName: firstName.trim(),
             lastName: lastName.trim(),
             email,
             tempPassword,
+            role: createRole,
+            ...(linkToBeneficiaryId ? { linkToBeneficiaryId } : {}),
         })
     }
 
@@ -205,6 +257,7 @@ export function UsersClient() {
             userRole.enumValues as readonly string[]
         ).includes(current)
         setNewRole(isAssignable ? (current as AppRoleOption) : 'beneficiary')
+        setRoleLinkBeneficiaryId(null)
         setRoleDialogOpen(true)
     }
 
@@ -428,6 +481,9 @@ export function UsersClient() {
                         setEmail('')
                         setTempPassword('')
                         setShowPassword(false)
+                        setCreateRole('beneficiary')
+                        setCreateBeneficiaryMode('create')
+                        setCreateLinkBeneficiaryId(null)
                     }
                 }}
                 firstName={firstName}
@@ -435,12 +491,28 @@ export function UsersClient() {
                 email={email}
                 tempPassword={tempPassword}
                 showPassword={showPassword}
+                role={createRole}
+                beneficiaryMode={createBeneficiaryMode}
+                linkToBeneficiaryId={createLinkBeneficiaryId}
+                linkableBeneficiaries={linkableBeneficiaries}
                 isPending={createUserMutation.isPending}
                 onFirstNameChange={setFirstName}
                 onLastNameChange={setLastName}
                 onEmailChange={setEmail}
                 onTempPasswordChange={setTempPassword}
                 onShowPasswordToggle={() => setShowPassword((p) => !p)}
+                onRoleChange={(r) => {
+                    setCreateRole(r)
+                    if (r !== 'beneficiary') {
+                        setCreateBeneficiaryMode('create')
+                        setCreateLinkBeneficiaryId(null)
+                    }
+                }}
+                onBeneficiaryModeChange={(m) => {
+                    setCreateBeneficiaryMode(m)
+                    if (m === 'create') setCreateLinkBeneficiaryId(null)
+                }}
+                onLinkToBeneficiaryIdChange={setCreateLinkBeneficiaryId}
                 onSubmit={handleCreateSubmit}
             />
 
@@ -479,17 +551,29 @@ export function UsersClient() {
                 open={roleDialogOpen}
                 onOpenChange={(open) => {
                     setRoleDialogOpen(open)
-                    if (!open) setSelectedUser(null)
+                    if (!open) {
+                        setSelectedUser(null)
+                        setRoleLinkBeneficiaryId(null)
+                    }
                 }}
                 selectedUser={selectedUser}
                 newRole={newRole}
+                linkToBeneficiaryId={roleLinkBeneficiaryId}
+                linkableBeneficiaries={linkableBeneficiaries}
                 isPending={setRoleMutation.isPending}
-                onRoleChange={setNewRole}
+                onRoleChange={(r) => {
+                    setNewRole(r)
+                    if (r !== 'beneficiary') setRoleLinkBeneficiaryId(null)
+                }}
+                onLinkToBeneficiaryIdChange={setRoleLinkBeneficiaryId}
                 onSave={() => {
                     if (!selectedUser) return
                     setRoleMutation.mutate({
                         userId: selectedUser.id,
                         role: newRole,
+                        ...(newRole === 'beneficiary' && roleLinkBeneficiaryId
+                            ? { linkToBeneficiaryId: roleLinkBeneficiaryId }
+                            : {}),
                     })
                 }}
             />

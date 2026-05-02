@@ -17,19 +17,28 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
-import type { UserRoleEnum } from '@/db/schema'
-import type { NeonAuthUser } from './types'
+import {
+    type AppRoleOption,
+    type LinkableBeneficiary,
+    type NeonAuthUser,
+    ROLE_OPTIONS,
+} from './types'
 
-/** Roles assignable from the admin Users page (mirrors db UserRole enum). */
-export type AppRoleOption = UserRoleEnum
+// Re-exported here for backwards compatibility with existing UsersClient imports.
+export { type AppRoleOption, ROLE_OPTIONS } from './types'
 
 type ChangeRoleDialogProps = {
     open: boolean
     onOpenChange: (open: boolean) => void
     selectedUser: NeonAuthUser | null
     newRole: AppRoleOption
+    /** Picker state when promoting to beneficiary. null = preserve existing link (no change). */
+    linkToBeneficiaryId: number | null
+    /** Beneficiaries with no current portal account — eligible to attach to this user. */
+    linkableBeneficiaries: LinkableBeneficiary[]
     isPending: boolean
     onRoleChange: (role: AppRoleOption) => void
+    onLinkToBeneficiaryIdChange: (value: number | null) => void
     onSave: () => void
 }
 
@@ -38,11 +47,25 @@ export function ChangeRoleDialog({
     onOpenChange,
     selectedUser,
     newRole,
+    linkToBeneficiaryId,
+    linkableBeneficiaries,
     isPending,
     onRoleChange,
+    onLinkToBeneficiaryIdChange,
     onSave,
 }: ChangeRoleDialogProps) {
     const displayName = selectedUser?.name || selectedUser?.email || 'this user'
+    const isPromotingToBeneficiary =
+        newRole === 'beneficiary' && selectedUser?.appRole !== 'beneficiary'
+    const currentlyLinkedId =
+        selectedUser?.appRole === 'beneficiary'
+            ? (selectedUser.beneficiaryId ?? null)
+            : null
+    const showPicker = isPromotingToBeneficiary
+    // Submit guard: if promoting to beneficiary and there's no existing link
+    // AND no link is being chosen, the user would land in broken state — but
+    // we don't outright disable since "no link" is occasionally what an
+    // owner wants (placeholder profile they'll attach later).
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -69,21 +92,70 @@ export function ChangeRoleDialog({
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="admin">
-                                    Admin (full access)
-                                </SelectItem>
-                                <SelectItem value="trustee">
-                                    Trustee (trust admin, no user mgmt)
-                                </SelectItem>
-                                <SelectItem value="arbiter">
-                                    Arbiter (trust admin, no user mgmt)
-                                </SelectItem>
-                                <SelectItem value="beneficiary">
-                                    Beneficiary (own info only)
-                                </SelectItem>
+                                {ROLE_OPTIONS.map((opt) => (
+                                    <SelectItem
+                                        key={opt.value}
+                                        value={opt.value}
+                                    >
+                                        {opt.label}
+                                    </SelectItem>
+                                ))}
                             </SelectContent>
                         </Select>
                     </div>
+                    {newRole !== 'beneficiary' &&
+                        currentlyLinkedId !== null && (
+                            <p className="text-xs text-muted-foreground">
+                                The current beneficiary link will be cleared on
+                                save (admin/trustee/arbiter users don't carry a
+                                linked beneficiary record).
+                            </p>
+                        )}
+                    {showPicker && (
+                        <div className="space-y-2 rounded-md border p-3">
+                            <Label className="text-sm">
+                                Link to beneficiary record
+                            </Label>
+                            <Select
+                                value={
+                                    linkToBeneficiaryId
+                                        ? String(linkToBeneficiaryId)
+                                        : ''
+                                }
+                                onValueChange={(v) =>
+                                    onLinkToBeneficiaryIdChange(
+                                        v ? Number(v) : null,
+                                    )
+                                }
+                                disabled={linkableBeneficiaries.length === 0}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue
+                                        placeholder={
+                                            linkableBeneficiaries.length === 0
+                                                ? 'No unlinked beneficiaries available'
+                                                : 'Choose a beneficiary (optional)'
+                                        }
+                                    />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {linkableBeneficiaries.map((b) => (
+                                        <SelectItem
+                                            key={b.id}
+                                            value={String(b.id)}
+                                        >
+                                            {b.firstName} {b.lastName}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <p className="text-xs text-muted-foreground">
+                                Leave blank to skip linking — the user will be a
+                                beneficiary with no record (you can attach one
+                                later).
+                            </p>
+                        </div>
+                    )}
                     <div className="flex justify-end gap-2">
                         <Button
                             variant="outline"

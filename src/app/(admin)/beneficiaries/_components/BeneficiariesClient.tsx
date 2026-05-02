@@ -1,10 +1,14 @@
 'use client'
 
+import { UserPlus } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
 import type { Beneficiary } from '@/db/schema'
 import { sumStrings } from '@/lib/money'
 import { trpc } from '@/lib/trpc'
 import { formatCurrency } from '@/utils/formatters'
+import { AddBeneficiaryDialog } from './AddBeneficiaryDialog'
 import { BeneficiaryDialog } from './BeneficiaryDialog'
 import { BeneficiarySummaryCards } from './BeneficiarySummaryCards'
 import { BeneficiaryTable } from './BeneficiaryTable'
@@ -28,6 +32,52 @@ export function BeneficiariesClient() {
             utils.beneficiary.listWithDistributions.invalidate()
         },
     })
+
+    const [addDialogOpen, setAddDialogOpen] = useState(false)
+    const [addFirstName, setAddFirstName] = useState('')
+    const [addLastName, setAddLastName] = useState('')
+    const [addRelationship, setAddRelationship] = useState('')
+    const [addEmail, setAddEmail] = useState('')
+    const [addSharePercent, setAddSharePercent] = useState('')
+
+    const resetAddForm = () => {
+        setAddFirstName('')
+        setAddLastName('')
+        setAddRelationship('')
+        setAddEmail('')
+        setAddSharePercent('')
+    }
+
+    const createBeneficiaryMutation = trpc.beneficiary.create.useMutation({
+        onSuccess: () => {
+            utils.beneficiary.listWithDistributions.invalidate()
+            utils.beneficiary.list.invalidate()
+            setAddDialogOpen(false)
+            resetAddForm()
+            toast.success('Beneficiary added')
+        },
+        onError: (err) => toast.error(err.message),
+    })
+
+    const handleAddSubmit = () => {
+        if (
+            !entityId ||
+            !addFirstName.trim() ||
+            !addLastName.trim() ||
+            !addRelationship.trim()
+        )
+            return
+        createBeneficiaryMutation.mutate({
+            entityId,
+            firstName: addFirstName.trim(),
+            lastName: addLastName.trim(),
+            relationship: addRelationship.trim(),
+            ...(addEmail.trim() ? { email: addEmail.trim() } : {}),
+            ...(addSharePercent.trim()
+                ? { sharePercent: addSharePercent.trim() }
+                : {}),
+        })
+    }
 
     const updateBeneficiary = async (
         id: number,
@@ -83,6 +133,13 @@ export function BeneficiariesClient() {
                         {formatCurrency(totalDistributed)} distributed
                     </p>
                 </div>
+                <Button
+                    onClick={() => setAddDialogOpen(true)}
+                    disabled={!entityId}
+                >
+                    <UserPlus className="mr-1 h-4 w-4" />
+                    Add Beneficiary
+                </Button>
             </div>
 
             <BeneficiarySummaryCards
@@ -106,6 +163,26 @@ export function BeneficiariesClient() {
                 updateBeneficiary={updateBeneficiary}
                 setSelectedBeneficiary={setSelectedBeneficiary}
                 entityId={entityId!}
+            />
+
+            <AddBeneficiaryDialog
+                open={addDialogOpen}
+                onOpenChange={(open) => {
+                    setAddDialogOpen(open)
+                    if (!open) resetAddForm()
+                }}
+                firstName={addFirstName}
+                lastName={addLastName}
+                relationship={addRelationship}
+                email={addEmail}
+                sharePercent={addSharePercent}
+                isPending={createBeneficiaryMutation.isPending}
+                onFirstNameChange={setAddFirstName}
+                onLastNameChange={setAddLastName}
+                onRelationshipChange={setAddRelationship}
+                onEmailChange={setAddEmail}
+                onSharePercentChange={setAddSharePercent}
+                onSubmit={handleAddSubmit}
             />
         </div>
     )

@@ -50,6 +50,13 @@
       "when": 1777849600000,
       "tag": "0006_rbac_roles",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1777702169921,
+      "tag": "0007_lowly_thing",
+      "breakpoints": true
     }
   ]
 }

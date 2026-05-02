@@ -1,4 +1,5 @@
 /** Owner-only user CRUD via Neon Auth Admin API + userProfile linking. */
+import * as Sentry from '@sentry/nextjs'
 import { TRPCError } from '@trpc/server'
 import { eq } from 'drizzle-orm'
 import { z } from 'zod'
@@ -16,6 +17,26 @@ import {
 } from '../init'
 
 const OWNER_EMAIL = env.ADMIN_EMAIL
+
+/**
+ * Translate the Postgres 23505 (unique_violation) thrown by the partial
+ * unique index on user_profile.beneficiary_id into a tRPC CONFLICT.
+ *
+ * The application-level preflight (SELECT ... WHERE beneficiary_id = ?)
+ * is the friendly path; this catches the race where two concurrent calls
+ * both pass that preflight and both try to write the same FK.
+ */
+function isBeneficiaryLinkUniqueViolation(err: unknown): boolean {
+    return (
+        typeof err === 'object' &&
+        err !== null &&
+        'code' in err &&
+        (err as { code?: string }).code === '23505' &&
+        'constraint' in err &&
+        (err as { constraint?: string }).constraint ===
+            'user_profile_beneficiary_id_uniq'
+    )
+}
 
 export const userManagementRouter = createTRPCRouter({
     /** Used by frontend to gate user management CRUD controls. */
@@ -103,31 +124,70 @@ export const userManagementRouter = createTRPCRouter({
         })
     }),
 
-    /** Create a portal account (Neon Auth user + userProfile). */
+    /**
+     * Create a portal account (Neon Auth user + user_profile).
+     *
+     * Beneficiary linkage is split out so creating a non-beneficiary user
+     * (admin/trustee/arbiter) does NOT write a stale row to the beneficiary
+     * table, and creating a beneficiary user can either:
+     *   - link to an existing beneficiary record (linkToBeneficiaryId), or
+     *   - create a new one in the primary trust entity (default).
+     */
     createPortalAccount: ownerProcedure
         .input(
-            z.object({
-                firstName: z.string().min(1),
-                lastName: z.string().min(1),
-                email: z.string().email(),
-                tempPassword: z.string().min(8),
-            }),
+            z
+                .object({
+                    firstName: z.string().min(1),
+                    lastName: z.string().min(1),
+                    email: z.string().email(),
+                    tempPassword: z.string().min(8),
+                    role: z.enum(userRole.enumValues).default('beneficiary'),
+                    linkToBeneficiaryId: z.coerce.number().int().optional(),
+                })
+                .refine(
+                    (v) => v.role === 'beneficiary' || !v.linkToBeneficiaryId,
+                    {
+                        message:
+                            'linkToBeneficiaryId only applies when role is beneficiary',
+                        path: ['linkToBeneficiaryId'],
+                    },
+                ),
         )
         .mutation(async ({ input, ctx }) => {
             const fullName = `${input.firstName} ${input.lastName}`
 
-            // Get the primary trust entity for the beneficiary record
-            const [primaryEntity] = await db
-                .select({ id: entity.id })
-                .from(entity)
-                .orderBy(entity.id)
-                .limit(1)
+            // Validate the link target up front so failures surface before
+            // any auth-side state is mutated.
+            let linkedBeneficiary: { id: number } | undefined
+            if (input.linkToBeneficiaryId) {
+                const [found] = await db
+                    .select({ id: beneficiary.id })
+                    .from(beneficiary)
+                    .where(eq(beneficiary.id, input.linkToBeneficiaryId))
+                    .limit(1)
 
-            if (!primaryEntity) {
-                throw new TRPCError({
-                    code: 'INTERNAL_SERVER_ERROR',
-                    message: 'No trust entity found',
-                })
+                if (!found) {
+                    throw new TRPCError({
+                        code: 'NOT_FOUND',
+                        message: `Beneficiary ${input.linkToBeneficiaryId} not found`,
+                    })
+                }
+
+                // Reject double-binding the same beneficiary to multiple users.
+                const [existingLink] = await db
+                    .select({ userId: userProfile.userId })
+                    .from(userProfile)
+                    .where(eq(userProfile.beneficiaryId, found.id))
+                    .limit(1)
+
+                if (existingLink) {
+                    throw new TRPCError({
+                        code: 'CONFLICT',
+                        message: `Beneficiary ${found.id} is already linked to another portal account`,
+                    })
+                }
+
+                linkedBeneficiary = found
             }
 
             const { data: existingUsers, error: listError } =
@@ -146,6 +206,11 @@ export const userManagementRouter = createTRPCRouter({
             }
 
             let createdUserId: string
+            // Track whether we created the auth user in this call so the
+            // catch below can clean it up if the downstream tx fails. If
+            // we reused an existing Neon Auth user (exactMatchUser path)
+            // we leave it alone.
+            let authUserCreatedHere = false
 
             const inputEmailLower = input.email.toLowerCase()
             const exactMatchUser = (existingUsers?.users ?? []).find(
@@ -174,7 +239,7 @@ export const userManagementRouter = createTRPCRouter({
                         email: input.email,
                         password: input.tempPassword,
                         name: fullName,
-                        role: 'user',
+                        role: input.role === 'admin' ? 'admin' : 'user',
                     })
 
                 if (createError || !newUser) {
@@ -185,43 +250,106 @@ export const userManagementRouter = createTRPCRouter({
                 }
 
                 createdUserId = newUser.user.id
+                authUserCreatedHere = true
             }
 
-            // Required: Better Auth returns 403 on sign-in when emailVerified is false
-            await getClient().unsafe(
-                `UPDATE neon_auth."user" SET "emailVerified" = true WHERE id = $1`,
-                [createdUserId],
-            )
+            let resolvedBeneficiaryId: number | null = null
 
-            // Create beneficiary record
-            const [newBeneficiary] = await db
-                .insert(beneficiary)
-                .values({
-                    entityId: primaryEntity.id,
-                    firstName: input.firstName,
-                    lastName: input.lastName,
-                    relationship: 'Beneficiary',
-                    email: input.email,
-                    updatedAt: new Date().toISOString(),
-                })
-                .returning()
+            // Everything from here through the tx covers the auth-cleanup
+            // window: any throw before the tx commits leaves a stranded
+            // Neon Auth user with no user_profile row. The `try` boundary
+            // therefore starts at the emailVerified UPDATE — the first
+            // awaitable after the auth user is created — not at the tx
+            // alone (round-3 fix narrowed the window; round-4 closes it).
+            try {
+                // Required: Better Auth returns 403 on sign-in when emailVerified is false
+                await getClient().unsafe(
+                    `UPDATE neon_auth."user" SET "emailVerified" = true WHERE id = $1`,
+                    [createdUserId],
+                )
 
-            await db
-                .insert(userProfile)
-                .values({
-                    userId: createdUserId,
-                    role: 'beneficiary',
-                    beneficiaryId: newBeneficiary?.id ?? null,
-                    forcePasswordChange: true,
+                // Resolve the primary entity inside the cleanup window so a
+                // missing-entity throw also triggers the auth rollback.
+                let primaryEntityId: number | null = null
+                if (input.role === 'beneficiary' && !linkedBeneficiary) {
+                    const [primaryEntity] = await db
+                        .select({ id: entity.id })
+                        .from(entity)
+                        .orderBy(entity.id)
+                        .limit(1)
+                    if (!primaryEntity) {
+                        throw new TRPCError({
+                            code: 'INTERNAL_SERVER_ERROR',
+                            message: 'No trust entity found',
+                        })
+                    }
+                    primaryEntityId = primaryEntity.id
+                }
+
+                // Beneficiary insert + user_profile write share a transaction
+                // so a profile-write failure (e.g. the partial unique index
+                // firing on a race) rolls back any beneficiary row we just
+                // created — otherwise the failing call leaves an orphan
+                // beneficiary that resurfaces in the "linkable beneficiaries"
+                // picker on the next dialog open.
+                await getClient().begin(async (tx) => {
+                    if (input.role === 'beneficiary') {
+                        if (linkedBeneficiary) {
+                            resolvedBeneficiaryId = linkedBeneficiary.id
+                        } else {
+                            const inserted = await tx<{ id: number }[]>`
+                                INSERT INTO public.beneficiary
+                                    ("entityId", "firstName", "lastName", relationship, email, "updatedAt")
+                                VALUES
+                                    (${primaryEntityId!}, ${input.firstName}, ${input.lastName},
+                                     'Beneficiary', ${input.email}, ${new Date().toISOString()})
+                                RETURNING id
+                            `
+                            resolvedBeneficiaryId = inserted[0]?.id ?? null
+                        }
+                    }
+
+                    await tx`
+                        INSERT INTO public.user_profile
+                            (user_id, role, beneficiary_id, force_password_change)
+                        VALUES
+                            (${createdUserId}, ${input.role}::"UserRole",
+                             ${resolvedBeneficiaryId}, ${true})
+                        ON CONFLICT (user_id) DO UPDATE SET
+                            role = EXCLUDED.role,
+                            beneficiary_id = EXCLUDED.beneficiary_id,
+                            force_password_change = EXCLUDED.force_password_change,
+                            updated_at = now()
+                    `
                 })
-                .onConflictDoUpdate({
-                    target: userProfile.userId,
-                    set: {
-                        role: 'beneficiary',
-                        beneficiaryId: newBeneficiary?.id ?? null,
-                        forcePasswordChange: true,
-                    },
-                })
+            } catch (err) {
+                // Compensate the auth-side write if the DB transaction
+                // rolled back. Otherwise we'd leave a Neon Auth user with
+                // emailVerified=true and no user_profile row, counting
+                // toward the listAllUsers cap and confusing the next admin
+                // to look at the page. Cleanup is best-effort — if it
+                // fails (network, cascading auth issue), the original
+                // error still wins.
+                if (authUserCreatedHere) {
+                    await authServer.admin
+                        .removeUser({ userId: createdUserId })
+                        .catch((cleanupErr) =>
+                            Sentry.captureException(cleanupErr, {
+                                tags: {
+                                    subsystem: 'createPortalAccount-rollback',
+                                    userId: createdUserId,
+                                },
+                            }),
+                        )
+                }
+                if (isBeneficiaryLinkUniqueViolation(err)) {
+                    throw new TRPCError({
+                        code: 'CONFLICT',
+                        message: `Beneficiary ${resolvedBeneficiaryId} was just linked to another portal account`,
+                    })
+                }
+                throw err
+            }
 
             await createActivityLog({
                 tableName: 'user_profile',
@@ -232,12 +360,22 @@ export const userManagementRouter = createTRPCRouter({
                     userId: createdUserId,
                     email: input.email,
                     name: fullName,
-                    beneficiaryId: newBeneficiary?.id,
-                    role: 'beneficiary',
+                    role: input.role,
+                    beneficiaryId: resolvedBeneficiaryId,
+                    linked: linkedBeneficiary
+                        ? 'existing-beneficiary'
+                        : input.role === 'beneficiary'
+                          ? 'new-beneficiary'
+                          : 'none',
                 },
             })
 
-            return { userId: createdUserId, email: input.email }
+            return {
+                userId: createdUserId,
+                email: input.email,
+                role: input.role,
+                beneficiaryId: resolvedBeneficiaryId,
+            }
         }),
 
     /** Update user name or email via raw SQL (Neon Auth admin proxy returns 400). */
@@ -319,10 +457,22 @@ export const userManagementRouter = createTRPCRouter({
      */
     setUserRole: ownerProcedure
         .input(
-            z.object({
-                userId: z.string(),
-                role: z.enum(userRole.enumValues),
-            }),
+            z
+                .object({
+                    userId: z.string(),
+                    role: z.enum(userRole.enumValues),
+                    linkToBeneficiaryId: z.coerce.number().int().optional(),
+                })
+                .refine(
+                    (v) =>
+                        v.role === 'beneficiary' ||
+                        v.linkToBeneficiaryId === undefined,
+                    {
+                        message:
+                            'linkToBeneficiaryId only applies when role is beneficiary',
+                        path: ['linkToBeneficiaryId'],
+                    },
+                ),
         )
         .mutation(async ({ input, ctx }) => {
             if (input.userId === ctx.user.id) {
@@ -330,6 +480,41 @@ export const userManagementRouter = createTRPCRouter({
                     code: 'BAD_REQUEST',
                     message: 'Cannot change your own role',
                 })
+            }
+
+            // Validate the link target up front so failures surface before
+            // the auth-side state is mutated.
+            if (
+                input.role === 'beneficiary' &&
+                typeof input.linkToBeneficiaryId === 'number'
+            ) {
+                const [target] = await db
+                    .select({ id: beneficiary.id })
+                    .from(beneficiary)
+                    .where(eq(beneficiary.id, input.linkToBeneficiaryId))
+                    .limit(1)
+                if (!target) {
+                    throw new TRPCError({
+                        code: 'NOT_FOUND',
+                        message: `Beneficiary ${input.linkToBeneficiaryId} not found`,
+                    })
+                }
+                const [otherLink] = await db
+                    .select({ userId: userProfile.userId })
+                    .from(userProfile)
+                    .where(
+                        eq(
+                            userProfile.beneficiaryId,
+                            input.linkToBeneficiaryId,
+                        ),
+                    )
+                    .limit(1)
+                if (otherLink && otherLink.userId !== input.userId) {
+                    throw new TRPCError({
+                        code: 'CONFLICT',
+                        message: `Beneficiary ${input.linkToBeneficiaryId} is already linked to another portal account`,
+                    })
+                }
             }
 
             const neonRole = input.role === 'admin' ? 'admin' : 'user'
@@ -352,27 +537,45 @@ export const userManagementRouter = createTRPCRouter({
                 .where(eq(userProfile.userId, input.userId))
                 .limit(1)
 
-            const beneficiaryIdForRow = reconcileBeneficiaryId(
-                input.role,
-                existing?.beneficiaryId,
-            )
+            // For non-beneficiary roles, reconcileBeneficiaryId clears the
+            // FK regardless of input. For beneficiary, the explicit link
+            // wins; otherwise preserve whatever was there (matches the
+            // existing reconcileBeneficiaryId rule).
+            const beneficiaryIdForRow =
+                input.role === 'beneficiary' &&
+                typeof input.linkToBeneficiaryId === 'number'
+                    ? input.linkToBeneficiaryId
+                    : reconcileBeneficiaryId(
+                          input.role,
+                          existing?.beneficiaryId,
+                      )
 
-            if (existing) {
-                await db
-                    .update(userProfile)
-                    .set({
+            try {
+                if (existing) {
+                    await db
+                        .update(userProfile)
+                        .set({
+                            role: input.role,
+                            beneficiaryId: beneficiaryIdForRow,
+                            updatedAt: new Date(),
+                        })
+                        .where(eq(userProfile.userId, input.userId))
+                } else {
+                    await db.insert(userProfile).values({
+                        userId: input.userId,
                         role: input.role,
                         beneficiaryId: beneficiaryIdForRow,
-                        updatedAt: new Date(),
+                        forcePasswordChange: false,
                     })
-                    .where(eq(userProfile.userId, input.userId))
-            } else {
-                await db.insert(userProfile).values({
-                    userId: input.userId,
-                    role: input.role,
-                    beneficiaryId: beneficiaryIdForRow,
-                    forcePasswordChange: false,
-                })
+                }
+            } catch (err) {
+                if (isBeneficiaryLinkUniqueViolation(err)) {
+                    throw new TRPCError({
+                        code: 'CONFLICT',
+                        message: `Beneficiary ${beneficiaryIdForRow} was just linked to another portal account`,
+                    })
+                }
+                throw err
             }
 
             await createActivityLog({
