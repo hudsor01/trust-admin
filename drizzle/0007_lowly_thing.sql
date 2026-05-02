@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "user_profile_beneficiary_id_uniq" ON "user_profile" USING btree ("beneficiary_id") WHERE beneficiary_id IS NOT NULL;

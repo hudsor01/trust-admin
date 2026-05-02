@@ -17,6 +17,26 @@ import {
 
 const OWNER_EMAIL = env.ADMIN_EMAIL
 
+/**
+ * Translate the Postgres 23505 (unique_violation) thrown by the partial
+ * unique index on user_profile.beneficiary_id into a tRPC CONFLICT.
+ *
+ * The application-level preflight (SELECT ... WHERE beneficiary_id = ?)
+ * is the friendly path; this catches the race where two concurrent calls
+ * both pass that preflight and both try to write the same FK.
+ */
+function isBeneficiaryLinkUniqueViolation(err: unknown): boolean {
+    return (
+        typeof err === 'object' &&
+        err !== null &&
+        'code' in err &&
+        (err as { code?: string }).code === '23505' &&
+        'constraint' in err &&
+        (err as { constraint?: string }).constraint ===
+            'user_profile_beneficiary_id_uniq'
+    )
+}
+
 export const userManagementRouter = createTRPCRouter({
     /** Used by frontend to gate user management CRUD controls. */
     isOwner: strictAdminProcedure.query(async ({ ctx }) => {
@@ -266,22 +286,32 @@ export const userManagementRouter = createTRPCRouter({
                 }
             }
 
-            await db
-                .insert(userProfile)
-                .values({
-                    userId: createdUserId,
-                    role: input.role,
-                    beneficiaryId: resolvedBeneficiaryId,
-                    forcePasswordChange: true,
-                })
-                .onConflictDoUpdate({
-                    target: userProfile.userId,
-                    set: {
+            try {
+                await db
+                    .insert(userProfile)
+                    .values({
+                        userId: createdUserId,
                         role: input.role,
                         beneficiaryId: resolvedBeneficiaryId,
                         forcePasswordChange: true,
-                    },
-                })
+                    })
+                    .onConflictDoUpdate({
+                        target: userProfile.userId,
+                        set: {
+                            role: input.role,
+                            beneficiaryId: resolvedBeneficiaryId,
+                            forcePasswordChange: true,
+                        },
+                    })
+            } catch (err) {
+                if (isBeneficiaryLinkUniqueViolation(err)) {
+                    throw new TRPCError({
+                        code: 'CONFLICT',
+                        message: `Beneficiary ${resolvedBeneficiaryId} was just linked to another portal account`,
+                    })
+                }
+                throw err
+            }
 
             await createActivityLog({
                 tableName: 'user_profile',
@@ -393,16 +423,12 @@ export const userManagementRouter = createTRPCRouter({
                 .object({
                     userId: z.string(),
                     role: z.enum(userRole.enumValues),
-                    linkToBeneficiaryId: z.coerce
-                        .number()
-                        .int()
-                        .nullable()
-                        .optional(),
+                    linkToBeneficiaryId: z.coerce.number().int().optional(),
                 })
                 .refine(
                     (v) =>
                         v.role === 'beneficiary' ||
-                        v.linkToBeneficiaryId == null,
+                        v.linkToBeneficiaryId === undefined,
                     {
                         message:
                             'linkToBeneficiaryId only applies when role is beneficiary',
@@ -486,22 +512,32 @@ export const userManagementRouter = createTRPCRouter({
                           existing?.beneficiaryId,
                       )
 
-            if (existing) {
-                await db
-                    .update(userProfile)
-                    .set({
+            try {
+                if (existing) {
+                    await db
+                        .update(userProfile)
+                        .set({
+                            role: input.role,
+                            beneficiaryId: beneficiaryIdForRow,
+                            updatedAt: new Date(),
+                        })
+                        .where(eq(userProfile.userId, input.userId))
+                } else {
+                    await db.insert(userProfile).values({
+                        userId: input.userId,
                         role: input.role,
                         beneficiaryId: beneficiaryIdForRow,
-                        updatedAt: new Date(),
+                        forcePasswordChange: false,
                     })
-                    .where(eq(userProfile.userId, input.userId))
-            } else {
-                await db.insert(userProfile).values({
-                    userId: input.userId,
-                    role: input.role,
-                    beneficiaryId: beneficiaryIdForRow,
-                    forcePasswordChange: false,
-                })
+                }
+            } catch (err) {
+                if (isBeneficiaryLinkUniqueViolation(err)) {
+                    throw new TRPCError({
+                        code: 'CONFLICT',
+                        message: `Beneficiary ${beneficiaryIdForRow} was just linked to another portal account`,
+                    })
+                }
+                throw err
             }
 
             await createActivityLog({

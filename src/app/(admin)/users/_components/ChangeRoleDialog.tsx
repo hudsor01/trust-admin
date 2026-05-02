@@ -24,6 +24,22 @@ import type { NeonAuthUser } from './types'
 /** Roles assignable from the admin Users page (mirrors db UserRole enum). */
 export type AppRoleOption = UserRoleEnum
 
+/**
+ * Display options for the role <Select> in both Create and Change-Role
+ * dialogs. The label copy can't be derived from the pgEnum (it's
+ * intentional human prose), but having it once keeps the two dialogs
+ * from drifting.
+ */
+export const ROLE_OPTIONS: ReadonlyArray<{
+    value: AppRoleOption
+    label: string
+}> = [
+    { value: 'admin', label: 'Admin (full access)' },
+    { value: 'trustee', label: 'Trustee (trust admin, no user mgmt)' },
+    { value: 'arbiter', label: 'Arbiter (trust admin, no user mgmt)' },
+    { value: 'beneficiary', label: 'Beneficiary (own info only)' },
+]
+
 type ChangeRoleDialogProps = {
     open: boolean
     onOpenChange: (open: boolean) => void
@@ -89,18 +105,14 @@ export function ChangeRoleDialog({
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="admin">
-                                    Admin (full access)
-                                </SelectItem>
-                                <SelectItem value="trustee">
-                                    Trustee (trust admin, no user mgmt)
-                                </SelectItem>
-                                <SelectItem value="arbiter">
-                                    Arbiter (trust admin, no user mgmt)
-                                </SelectItem>
-                                <SelectItem value="beneficiary">
-                                    Beneficiary (own info only)
-                                </SelectItem>
+                                {ROLE_OPTIONS.map((opt) => (
+                                    <SelectItem
+                                        key={opt.value}
+                                        value={opt.value}
+                                    >
+                                        {opt.label}
+                                    </SelectItem>
+                                ))}
                             </SelectContent>
                         </Select>
                     </div>
@@ -124,7 +136,9 @@ export function ChangeRoleDialog({
                                         : ''
                                 }
                                 onValueChange={(v) =>
-                                    onLinkToBeneficiaryIdChange(Number(v))
+                                    onLinkToBeneficiaryIdChange(
+                                        v ? Number(v) : null,
+                                    )
                                 }
                                 disabled={linkableBeneficiaries.length === 0}
                             >

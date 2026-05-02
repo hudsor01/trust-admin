@@ -1,6 +1,6 @@
 'use client'
 
-import { Plus } from 'lucide-react'
+import { UserPlus } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -137,7 +137,7 @@ export function BeneficiariesClient() {
                     onClick={() => setAddDialogOpen(true)}
                     disabled={!entityId}
                 >
-                    <Plus className="mr-1 h-4 w-4" />
+                    <UserPlus className="mr-1 h-4 w-4" />
                     Add Beneficiary
                 </Button>
             </div>

@@ -19,7 +19,7 @@ import {
     SelectValue,
 } from '@/components/ui/select'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import type { AppRoleOption } from './ChangeRoleDialog'
+import { type AppRoleOption, ROLE_OPTIONS } from './ChangeRoleDialog'
 
 export type LinkableBeneficiary = {
     id: number
@@ -179,18 +179,14 @@ export function CreatePortalAccountDialog({
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="admin">
-                                    Admin (full access)
-                                </SelectItem>
-                                <SelectItem value="trustee">
-                                    Trustee (trust admin, no user mgmt)
-                                </SelectItem>
-                                <SelectItem value="arbiter">
-                                    Arbiter (trust admin, no user mgmt)
-                                </SelectItem>
-                                <SelectItem value="beneficiary">
-                                    Beneficiary (own info only)
-                                </SelectItem>
+                                {ROLE_OPTIONS.map((opt) => (
+                                    <SelectItem
+                                        key={opt.value}
+                                        value={opt.value}
+                                    >
+                                        {opt.label}
+                                    </SelectItem>
+                                ))}
                             </SelectContent>
                         </Select>
                     </div>
@@ -229,7 +225,9 @@ export function CreatePortalAccountDialog({
                                             : ''
                                     }
                                     onValueChange={(v) =>
-                                        onLinkToBeneficiaryIdChange(Number(v))
+                                        onLinkToBeneficiaryIdChange(
+                                            v ? Number(v) : null,
+                                        )
                                     }
                                     disabled={
                                         linkableBeneficiaries.length === 0
