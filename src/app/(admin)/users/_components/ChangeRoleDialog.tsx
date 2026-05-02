@@ -17,28 +17,15 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
-import type { UserRoleEnum } from '@/db/schema'
-import type { LinkableBeneficiary } from './CreatePortalAccountDialog'
-import type { NeonAuthUser } from './types'
+import {
+    type AppRoleOption,
+    type LinkableBeneficiary,
+    type NeonAuthUser,
+    ROLE_OPTIONS,
+} from './types'
 
-/** Roles assignable from the admin Users page (mirrors db UserRole enum). */
-export type AppRoleOption = UserRoleEnum
-
-/**
- * Display options for the role <Select> in both Create and Change-Role
- * dialogs. The label copy can't be derived from the pgEnum (it's
- * intentional human prose), but having it once keeps the two dialogs
- * from drifting.
- */
-export const ROLE_OPTIONS: ReadonlyArray<{
-    value: AppRoleOption
-    label: string
-}> = [
-    { value: 'admin', label: 'Admin (full access)' },
-    { value: 'trustee', label: 'Trustee (trust admin, no user mgmt)' },
-    { value: 'arbiter', label: 'Arbiter (trust admin, no user mgmt)' },
-    { value: 'beneficiary', label: 'Beneficiary (own info only)' },
-]
+// Re-exported here for backwards compatibility with existing UsersClient imports.
+export { type AppRoleOption, ROLE_OPTIONS } from './types'
 
 type ChangeRoleDialogProps = {
     open: boolean

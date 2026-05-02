@@ -254,55 +254,62 @@ export const userManagementRouter = createTRPCRouter({
 
             let resolvedBeneficiaryId: number | null = null
 
-            if (input.role === 'beneficiary') {
-                if (linkedBeneficiary) {
-                    resolvedBeneficiaryId = linkedBeneficiary.id
-                } else {
-                    const [primaryEntity] = await db
-                        .select({ id: entity.id })
-                        .from(entity)
-                        .orderBy(entity.id)
-                        .limit(1)
-
-                    if (!primaryEntity) {
-                        throw new TRPCError({
-                            code: 'INTERNAL_SERVER_ERROR',
-                            message: 'No trust entity found',
-                        })
-                    }
-
-                    const [newBeneficiary] = await db
-                        .insert(beneficiary)
-                        .values({
-                            entityId: primaryEntity.id,
-                            firstName: input.firstName,
-                            lastName: input.lastName,
-                            relationship: 'Beneficiary',
-                            email: input.email,
-                            updatedAt: new Date().toISOString(),
-                        })
-                        .returning()
-                    resolvedBeneficiaryId = newBeneficiary?.id ?? null
+            // Resolve the primary entity up front so the transaction below
+            // doesn't have to make this call (and so we fail before any
+            // writes if the trust entity isn't there).
+            let primaryEntityId: number | null = null
+            if (input.role === 'beneficiary' && !linkedBeneficiary) {
+                const [primaryEntity] = await db
+                    .select({ id: entity.id })
+                    .from(entity)
+                    .orderBy(entity.id)
+                    .limit(1)
+                if (!primaryEntity) {
+                    throw new TRPCError({
+                        code: 'INTERNAL_SERVER_ERROR',
+                        message: 'No trust entity found',
+                    })
                 }
+                primaryEntityId = primaryEntity.id
             }
 
+            // Beneficiary insert + user_profile write share a transaction so
+            // a profile-write failure (e.g. the partial unique index firing
+            // on a race) rolls back any beneficiary row we just created —
+            // otherwise the failing call leaves an orphan beneficiary that
+            // resurfaces in the "linkable beneficiaries" picker on the
+            // next dialog open.
             try {
-                await db
-                    .insert(userProfile)
-                    .values({
-                        userId: createdUserId,
-                        role: input.role,
-                        beneficiaryId: resolvedBeneficiaryId,
-                        forcePasswordChange: true,
-                    })
-                    .onConflictDoUpdate({
-                        target: userProfile.userId,
-                        set: {
-                            role: input.role,
-                            beneficiaryId: resolvedBeneficiaryId,
-                            forcePasswordChange: true,
-                        },
-                    })
+                await getClient().begin(async (tx) => {
+                    if (input.role === 'beneficiary') {
+                        if (linkedBeneficiary) {
+                            resolvedBeneficiaryId = linkedBeneficiary.id
+                        } else {
+                            const inserted = await tx<{ id: number }[]>`
+                                INSERT INTO public.beneficiary
+                                    ("entityId", "firstName", "lastName", relationship, email, "updatedAt")
+                                VALUES
+                                    (${primaryEntityId!}, ${input.firstName}, ${input.lastName},
+                                     'Beneficiary', ${input.email}, ${new Date().toISOString()})
+                                RETURNING id
+                            `
+                            resolvedBeneficiaryId = inserted[0]?.id ?? null
+                        }
+                    }
+
+                    await tx`
+                        INSERT INTO public.user_profile
+                            (user_id, role, beneficiary_id, force_password_change)
+                        VALUES
+                            (${createdUserId}, ${input.role}::"UserRole",
+                             ${resolvedBeneficiaryId}, ${true})
+                        ON CONFLICT (user_id) DO UPDATE SET
+                            role = EXCLUDED.role,
+                            beneficiary_id = EXCLUDED.beneficiary_id,
+                            force_password_change = EXCLUDED.force_password_change,
+                            updated_at = now()
+                    `
+                })
             } catch (err) {
                 if (isBeneficiaryLinkUniqueViolation(err)) {
                     throw new TRPCError({

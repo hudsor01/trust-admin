@@ -19,13 +19,14 @@ import {
     SelectValue,
 } from '@/components/ui/select'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { type AppRoleOption, ROLE_OPTIONS } from './ChangeRoleDialog'
+import {
+    type AppRoleOption,
+    type LinkableBeneficiary,
+    ROLE_OPTIONS,
+} from './types'
 
-export type LinkableBeneficiary = {
-    id: number
-    firstName: string
-    lastName: string
-}
+// Re-exported for callers that previously imported LinkableBeneficiary from this module.
+export type { LinkableBeneficiary } from './types'
 
 type CreatePortalAccountDialogProps = {
     open: boolean
