@@ -35,3 +35,20 @@ export function isBeneficiary<
 >(user: T): user is T & { role: 'beneficiary'; beneficiaryId: number } {
     return user.role === 'beneficiary' && !!user.beneficiaryId
 }
+
+/**
+ * Reconciles user_profile.beneficiary_id against a target role.
+ *
+ * The column is only meaningful when role = 'beneficiary' — `app.is_admin()`
+ * is the gate for trust-admin roles, and `app.get_user_beneficiary_id()`
+ * reads this column expecting it to be NULL for anyone who isn't a
+ * beneficiary. Setting a role to admin/trustee/arbiter therefore drops any
+ * pre-existing link; setting it back to beneficiary preserves whatever the
+ * caller passed in.
+ */
+export function reconcileBeneficiaryId(
+    targetRole: AppRole,
+    existingBeneficiaryId: number | null | undefined,
+): number | null {
+    return targetRole === 'beneficiary' ? (existingBeneficiaryId ?? null) : null
+}

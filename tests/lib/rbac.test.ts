@@ -5,6 +5,7 @@ import {
     isAdmin,
     isBeneficiary,
     isTrustAdmin,
+    reconcileBeneficiaryId,
     TRUST_ADMIN_ROLES,
 } from '@/lib/auth/roles'
 
@@ -52,6 +53,40 @@ describe('isBeneficiary', () => {
         expect(isBeneficiary({ role: 'beneficiary' })).toBe(false)
         expect(isBeneficiary({ role: 'admin' })).toBe(false)
         expect(isBeneficiary({ role: 'trustee' })).toBe(false)
+    })
+})
+
+describe('reconcileBeneficiaryId', () => {
+    test('clears beneficiaryId when target role is admin', () => {
+        expect(reconcileBeneficiaryId('admin', 5)).toBe(null)
+    })
+
+    test('clears beneficiaryId when target role is trustee', () => {
+        expect(reconcileBeneficiaryId('trustee', 5)).toBe(null)
+    })
+
+    test('clears beneficiaryId when target role is arbiter', () => {
+        expect(reconcileBeneficiaryId('arbiter', 5)).toBe(null)
+    })
+
+    test('clears beneficiaryId when target role is user', () => {
+        expect(reconcileBeneficiaryId('user', 5)).toBe(null)
+    })
+
+    test('preserves beneficiaryId when target role is beneficiary', () => {
+        expect(reconcileBeneficiaryId('beneficiary', 5)).toBe(5)
+    })
+
+    test('returns null when target is beneficiary and existing is null', () => {
+        expect(reconcileBeneficiaryId('beneficiary', null)).toBe(null)
+    })
+
+    test('returns null when target is beneficiary and existing is undefined', () => {
+        expect(reconcileBeneficiaryId('beneficiary', undefined)).toBe(null)
+    })
+
+    test('returns null when target is non-beneficiary and existing is null', () => {
+        expect(reconcileBeneficiaryId('admin', null)).toBe(null)
     })
 })
 

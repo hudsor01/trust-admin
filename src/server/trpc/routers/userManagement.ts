@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { db, getClient } from '@/db'
 import { createActivityLog } from '@/db/queries'
 import { beneficiary, entity, userProfile, userRole } from '@/db/schema'
+import { reconcileBeneficiaryId } from '@/lib/auth/roles'
 import { authServer } from '@/lib/auth/server'
 import { env } from '@/lib/env'
 import {
@@ -351,14 +352,10 @@ export const userManagementRouter = createTRPCRouter({
                 .where(eq(userProfile.userId, input.userId))
                 .limit(1)
 
-            // Beneficiary linkage is only meaningful for the 'beneficiary' role;
-            // clearing it on transitions keeps user_profile consistent with the
-            // invariant that app.get_user_beneficiary_id() returns NULL for
-            // non-beneficiary users.
-            const beneficiaryIdForRow =
-                input.role === 'beneficiary'
-                    ? (existing?.beneficiaryId ?? null)
-                    : null
+            const beneficiaryIdForRow = reconcileBeneficiaryId(
+                input.role,
+                existing?.beneficiaryId,
+            )
 
             if (existing) {
                 await db

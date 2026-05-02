@@ -17,8 +17,26 @@ DO $$
 DECLARE
     assignments record;
     target_user_id text;
-    placeholder_count int := 0;
+    placeholder_count int;
 BEGIN
+    -- Pre-flight: bail out before any inserts if placeholders remain. The DO
+    -- block is one transaction so a late RAISE EXCEPTION would technically
+    -- roll real inserts back, but the surfaced log would show "assigned …"
+    -- followed by an exception — confusing on read. Scanning first keeps the
+    -- failure mode honest.
+    SELECT count(*) INTO placeholder_count
+    FROM (VALUES
+        ('rhudsontspr@gmail.com'),
+        ('TODO-rick-brown@example.com'),
+        ('TODO-ashley-govea@example.com'),
+        ('TODO-domineek-govea@example.com')
+    ) AS t(email)
+    WHERE email LIKE 'TODO-%';
+
+    IF placeholder_count > 0 THEN
+        RAISE EXCEPTION 'assign-rbac-roles: % TODO placeholder email(s) still present — edit the VALUES list and re-run', placeholder_count;
+    END IF;
+
     FOR assignments IN
         SELECT * FROM (VALUES
             ('rhudsontspr@gmail.com',          'admin'::"UserRole"),
@@ -27,11 +45,6 @@ BEGIN
             ('TODO-domineek-govea@example.com','beneficiary'::"UserRole")
         ) AS t(email, role)
     LOOP
-        IF assignments.email LIKE 'TODO-%' THEN
-            placeholder_count := placeholder_count + 1;
-            CONTINUE;
-        END IF;
-
         SELECT id INTO target_user_id
         FROM neon_auth."user"
         WHERE lower(email) = lower(assignments.email)
@@ -50,8 +63,4 @@ BEGIN
 
         RAISE NOTICE 'assigned %: % -> %', assignments.email, target_user_id, assignments.role;
     END LOOP;
-
-    IF placeholder_count > 0 THEN
-        RAISE EXCEPTION 'assign-rbac-roles: % TODO placeholder email(s) still present — edit the VALUES list and re-run', placeholder_count;
-    END IF;
 END $$;

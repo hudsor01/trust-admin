@@ -23,6 +23,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { userRole } from '@/db/schema'
 import { trpc } from '@/lib/trpc'
 import { formatDate } from '@/utils/formatters'
 import { BanUserDialog } from './BanUserDialog'
@@ -197,14 +198,13 @@ export function UsersClient() {
 
     const openRoleDialog = (user: NeonAuthUser) => {
         setSelectedUser(user)
-        const current = (user.appRole as AppRoleOption | null) ?? 'beneficiary'
-        const allowed: AppRoleOption[] = [
-            'admin',
-            'trustee',
-            'arbiter',
-            'beneficiary',
-        ]
-        setNewRole(allowed.includes(current) ? current : 'beneficiary')
+        const current = user.appRole ?? 'beneficiary'
+        // Validate against the live pgEnum so a future role added to schema.ts
+        // is automatically accepted here without touching this file.
+        const isAssignable = (
+            userRole.enumValues as readonly string[]
+        ).includes(current)
+        setNewRole(isAssignable ? (current as AppRoleOption) : 'beneficiary')
         setRoleDialogOpen(true)
     }
 
