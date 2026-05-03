@@ -21,6 +21,17 @@ COPY . .
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
+# Skip Zod env validation at build time — instrumentation.ts handles strict
+# validation at server startup. Mirror of ci.yml's bun-run-build env block.
+ENV SKIP_ENV_VALIDATION=1
+
+# Neon Auth's @neondatabase/auth requires cookies.secret at module-init time
+# (during next build's page-data collection — not just at request time), so
+# next build fails without it. Mirror of ci.yml's NEON_AUTH_COOKIE_SECRET
+# placeholder. No real cookies are signed at build time; runtime overrides
+# via the ExternalSecret-injected NEON_AUTH_COOKIE_SECRET.
+ENV NEON_AUTH_COOKIE_SECRET=ci-build-placeholder-not-used-for-real-auth-xxxxxx
+
 # Sentry source map upload needs these at build time. Passed via
 # BuildKit secrets so tokens don't leak into image layers:
 #   docker build --secret id=sentry_auth_token,env=SENTRY_AUTH_TOKEN \
