@@ -48,7 +48,12 @@ export function UsersClient() {
         data: allUsers = [],
         isLoading: usersLoading,
         error: usersError,
-    } = trpc.userManagement.listAllUsers.useQuery()
+    } = trpc.userManagement.listAllUsers.useQuery(undefined, {
+        // Don't retry on auth-gated failures — Neon Auth's admin proxy
+        // rejects non-owner admin calls, and retrying just delays the
+        // read-only banner the UI shows on error.
+        retry: false,
+    })
 
     const { data: allBeneficiaries = [] } = trpc.beneficiary.list.useQuery(
         { entityId: entityId! },

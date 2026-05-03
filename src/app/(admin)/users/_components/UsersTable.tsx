@@ -46,15 +46,21 @@ export function UsersTable({
                 )}
             </div>
 
-            {/* Non-owner info banner */}
-            {!isOwner && !loading && (
+            {/* Non-owner info banner — visible once the page has settled
+                (load complete or errored). Suppress during initial load so
+                the banner doesn't flash before we know the user's role.
+                Show on error too because Neon Auth's admin proxy can
+                reject non-owner admin calls — without this, the page would
+                render nothing actionable for those users. */}
+            {!isOwner && (!loading || usersError) && (
                 <div className="rounded-md border border-muted bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
                     User management is restricted to the trust owner. You are
                     viewing provisioned accounts in read-only mode.
                 </div>
             )}
 
-            {/* Error state */}
+            {/* Error state — owner sees the actual error; non-owners get
+                the banner above instead. */}
             {usersError && isOwner && (
                 <div className="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
                     Failed to load users: {usersError.message}
