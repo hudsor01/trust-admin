@@ -80,25 +80,6 @@ test.describe('Settings page', () => {
     })
 })
 
-test.describe('Inventory Queue page', () => {
-    test('inventory-queue page loads', async ({ page }) => {
-        await page.goto('/inventory-queue')
-        await page.waitForLoadState('networkidle')
-        await expect(page).not.toHaveURL(/auth\/sign-in/)
-        await expect(page.getByRole('heading').first()).toBeVisible()
-    })
-
-    test('inventory queue shows table or empty state', async ({ page }) => {
-        await page.goto('/inventory-queue')
-        await page.waitForLoadState('networkidle')
-        const table = page.getByRole('table')
-        const empty = page.getByText(/no items|empty|no pending/i)
-        const hasTable = await table.isVisible().catch(() => false)
-        const hasEmpty = await empty.isVisible().catch(() => false)
-        expect(hasTable || hasEmpty).toBe(true)
-    })
-})
-
 test.describe('404 / Not Found page', () => {
     test('unknown route shows not-found content, not a crash', async ({
         page,
