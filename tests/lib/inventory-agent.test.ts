@@ -23,6 +23,7 @@ const emptyPayload = {
         | 'requires_action'
         | 'retries_exhausted'
         | null,
+    requiresActionEventCount: 0,
 }
 
 describe('toBareDecimal', () => {
@@ -139,9 +140,20 @@ describe('buildNoTextReason', () => {
         const reason = buildNoTextReason({
             ...emptyPayload,
             lastIdleStopReason: 'requires_action',
+            requiresActionEventCount: 1,
         })
         expect(reason).toContain('requires_action')
+        expect(reason).toContain('blocked on 1 event')
         expect(reason).toContain('tool_confirmation')
+    })
+
+    test('requires_action with multiple blocked events pluralizes correctly', () => {
+        const reason = buildNoTextReason({
+            ...emptyPayload,
+            lastIdleStopReason: 'requires_action',
+            requiresActionEventCount: 3,
+        })
+        expect(reason).toContain('blocked on 3 events')
     })
 
     test('retries_exhausted surfaces the iteration-budget case distinctly', () => {

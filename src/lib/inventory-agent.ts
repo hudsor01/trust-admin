@@ -255,6 +255,11 @@ interface SessionPayload {
         | 'requires_action'
         | 'retries_exhausted'
         | null
+    // Count of events the agent is blocked on, captured from the most
+    // recent session.status_idle event whose stop_reason is
+    // requires_action. 0 in every other case. Surfacing it tells triage
+    // whether the agent is stuck on a single tool confirmation or many.
+    requiresActionEventCount: number
 }
 
 async function collectSessionPayload(
@@ -266,6 +271,7 @@ async function collectSessionPayload(
     const errors: Array<{ type: string; message: string }> = []
     let agentMessageCount = 0
     let lastIdleStopReason: SessionPayload['lastIdleStopReason'] = null
+    let requiresActionEventCount = 0
     const events = await client.beta.sessions.events.list(
         sessionId,
         undefined,
@@ -288,6 +294,10 @@ async function collectSessionPayload(
         }
         if (event.type === 'session.status_idle') {
             lastIdleStopReason = event.stop_reason.type
+            requiresActionEventCount =
+                event.stop_reason.type === 'requires_action'
+                    ? event.stop_reason.event_ids.length
+                    : 0
             continue
         }
         const label = toolUseLabel(event)
@@ -299,6 +309,7 @@ async function collectSessionPayload(
         agentMessageCount,
         errors,
         lastIdleStopReason,
+        requiresActionEventCount,
     }
 }
 
@@ -341,7 +352,10 @@ function buildNoTextReason(payload: SessionPayload): string {
             .join('; ')}${stopSuffix}`
     }
     if (lastIdleStopReason === 'requires_action') {
-        return 'Managed agent paused waiting for user input (requires_action) — no agent.message before pause. The session expects a tool_confirmation or custom_tool_result event that the inventory pipeline does not send.'
+        const blocked = payload.requiresActionEventCount
+        return `Managed agent paused waiting for user input (requires_action, blocked on ${blocked} event${
+            blocked === 1 ? '' : 's'
+        }) — no agent.message before pause. The session expects a tool_confirmation or custom_tool_result event that the inventory pipeline does not send.`
     }
     if (lastIdleStopReason === 'retries_exhausted') {
         return 'Managed agent exhausted its retry budget (max_iterations hit or repeated errors). Inspect agent config or recent session.error events.'
