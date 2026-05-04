@@ -35,11 +35,13 @@ CREATE INDEX IF NOT EXISTS "idx_valuation_correction_created_at"
 --> statement-breakpoint
 ALTER TABLE "valuation_correction" ENABLE ROW LEVEL SECURITY;
 --> statement-breakpoint
--- Admin-only — same 4-policy shape as valuation, activity_log, and every
--- other admin-only domain table in db/migrations/add-rls-policies.sql.
+ALTER TABLE "valuation_correction" FORCE ROW LEVEL SECURITY;
+--> statement-breakpoint
+-- Admin-only — 4-policy shape matching valuation, activity_log, and the
+-- other admin-only domain tables in db/migrations/add-rls-policies.sql.
 -- neondb_owner already has BYPASSRLS so it doesn't need its own owner_*
 -- policies; including them only adds inert always-true rows to
--- pg_policies and diverges from the canonical pattern.
+-- pg_policies and diverges from the dominant pattern.
 DROP POLICY IF EXISTS "crud-authenticated-policy-select" ON "valuation_correction";
 --> statement-breakpoint
 CREATE POLICY "crud-authenticated-policy-select" ON "valuation_correction"
