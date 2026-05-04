@@ -25,11 +25,14 @@ const securityHeaders = [
         key: 'Content-Security-Policy',
         value: [
             "default-src 'self'",
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+            // static.cloudflareinsights.com — beacon script for Cloudflare
+            // Web Analytics, auto-injected at the CF edge for trust.thehudsonfam.com.
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com",
             "style-src 'self' 'unsafe-inline'",
             "img-src 'self' data: blob: https://utfs.io https://*.ufs.sh",
             "font-src 'self'",
-            "connect-src 'self' https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.neon.tech wss://*.neon.tech",
+            // cloudflareinsights.com — beacon POSTs analytics events back here.
+            "connect-src 'self' https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.neon.tech wss://*.neon.tech https://cloudflareinsights.com",
             'worker-src blob:',
             "frame-ancestors 'none'",
             "object-src 'none'",
