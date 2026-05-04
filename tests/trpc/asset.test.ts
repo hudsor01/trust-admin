@@ -351,7 +351,12 @@ describe.skipIf(isProductionDb)('asset.listAll aggregator', () => {
             const rows = await adminCaller().asset.listAll({
                 entityId: ids.entityId!,
             })
-            expect(rows.find((r) => r.id === v.id)).toBeUndefined()
+            // Disambiguate by (kind, id) — id sequences aren't shared
+            // across asset tables, so a bankAccount and a vehicle could
+            // legitimately share an id without colliding.
+            expect(
+                rows.find((r) => r.kind === 'vehicle' && r.id === v.id),
+            ).toBeUndefined()
         } finally {
             await db.delete(vehicle).where(eq(vehicle.id, v.id))
             await db.delete(entity).where(eq(entity.id, other.id))

@@ -308,7 +308,7 @@ async function seed() {
         entityId: trustId,
         name: 'Cherry Hill Residence',
         description:
-            "Grantor's primary residence — 1301 Cherry Hill Ln, Lewisville, TX 75067",
+            "Grantor's primary residence - 1301 Cherry Hill Ln, Lewisville, TX 75067",
         streetAddress: '1301 Cherry Hill Ln',
         city: 'Lewisville',
         state: 'Texas',
