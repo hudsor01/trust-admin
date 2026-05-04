@@ -5,7 +5,25 @@
 import { describe, expect, test } from 'bun:test'
 import { _testables } from '@/lib/inventory-agent'
 
-const { sanitizeNumericFields, toBareDecimal } = _testables
+const {
+    sanitizeNumericFields,
+    toBareDecimal,
+    buildFailureReason,
+    buildNoTextReason,
+    toolUseLabel,
+} = _testables
+
+const emptyPayload = {
+    text: '',
+    toolUses: [],
+    agentMessageCount: 0,
+    errors: [],
+    lastIdleStopReason: null as
+        | 'end_turn'
+        | 'requires_action'
+        | 'retries_exhausted'
+        | null,
+}
 
 describe('toBareDecimal', () => {
     test('strips dollar sign prefix (the exact 2026-04-23 field-test bug)', () => {
@@ -84,5 +102,145 @@ describe('sanitizeNumericFields', () => {
         expect(sanitizeNumericFields(null)).toBe(null)
         expect(sanitizeNumericFields('not an object')).toBe('not an object')
         expect(sanitizeNumericFields(undefined)).toBe(undefined)
+    })
+})
+
+describe('buildNoTextReason', () => {
+    test('session.error wins as the primary signal but appends stop_reason as secondary', () => {
+        const reason = buildNoTextReason({
+            ...emptyPayload,
+            agentMessageCount: 2,
+            lastIdleStopReason: 'retries_exhausted',
+            errors: [
+                {
+                    type: 'mcp_authentication_failed_error',
+                    message: 'Airtable token rejected',
+                },
+            ],
+        })
+        expect(reason).toContain('mcp_authentication_failed_error')
+        expect(reason).toContain('Airtable token rejected')
+        // stop_reason: retries_exhausted is appended so triage knows the
+        // error was retried until terminal (vs recoverable).
+        expect(reason).toContain('stop_reason: retries_exhausted')
+    })
+
+    test('session.error with end_turn stop_reason omits the suffix', () => {
+        const reason = buildNoTextReason({
+            ...emptyPayload,
+            lastIdleStopReason: 'end_turn',
+            errors: [{ type: 'unknown_error', message: 'transient' }],
+        })
+        expect(reason).toContain('unknown_error')
+        expect(reason).not.toContain('stop_reason')
+    })
+
+    test('requires_action surfaces the blocking-input case distinctly', () => {
+        const reason = buildNoTextReason({
+            ...emptyPayload,
+            lastIdleStopReason: 'requires_action',
+        })
+        expect(reason).toContain('requires_action')
+        expect(reason).toContain('tool_confirmation')
+    })
+
+    test('retries_exhausted surfaces the iteration-budget case distinctly', () => {
+        const reason = buildNoTextReason({
+            ...emptyPayload,
+            lastIdleStopReason: 'retries_exhausted',
+        })
+        expect(reason).toContain('retry budget')
+    })
+
+    test('zero agent.message events lists the tool calls observed', () => {
+        const reason = buildNoTextReason({
+            ...emptyPayload,
+            toolUses: ['web_search', 'code_execution'],
+        })
+        expect(reason).toContain('without emitting any agent.message')
+        expect(reason).toContain('web_search')
+        expect(reason).toContain('code_execution')
+    })
+
+    test('agent.message present but all text blocks empty', () => {
+        const reason = buildNoTextReason({
+            ...emptyPayload,
+            agentMessageCount: 3,
+        })
+        expect(reason).toContain('3 agent.message event(s)')
+        expect(reason).toContain('every text block was empty')
+    })
+})
+
+describe('toolUseLabel', () => {
+    // toolUseLabel is typed against the full SDK discriminated union; the
+    // tests only need the discriminating fields, so cast partial objects.
+    // biome-ignore lint/suspicious/noExplicitAny: narrow surface for tests
+    const asEvent = (e: object) => e as any
+
+    test('built-in tool returns bare name', () => {
+        expect(
+            toolUseLabel(
+                asEvent({ type: 'agent.tool_use', name: 'web_search' }),
+            ),
+        ).toBe('web_search')
+    })
+
+    test('MCP tool returns mcp:<server>.<name> so triage can spot it', () => {
+        // The Airtable writer is the canonical case — the diagnostic
+        // pipeline that depends on this counter exists specifically to
+        // surface MCP failures (CLAUDE.md "Inventory agent silent fail").
+        expect(
+            toolUseLabel(
+                asEvent({
+                    type: 'agent.mcp_tool_use',
+                    name: 'create_record',
+                    mcp_server_name: 'airtable',
+                }),
+            ),
+        ).toBe('mcp:airtable.create_record')
+    })
+
+    test('custom tool gets a custom: prefix', () => {
+        expect(
+            toolUseLabel(
+                asEvent({ type: 'agent.custom_tool_use', name: 'lookup' }),
+            ),
+        ).toBe('custom:lookup')
+    })
+
+    test('non-tool events return null (filtered out)', () => {
+        expect(toolUseLabel(asEvent({ type: 'agent.message' }))).toBe(null)
+        expect(toolUseLabel(asEvent({ type: 'session.status_idle' }))).toBe(
+            null,
+        )
+        expect(toolUseLabel(asEvent({ type: 'span.model_request_end' }))).toBe(
+            null,
+        )
+    })
+})
+
+describe('buildFailureReason', () => {
+    test('appends errors, stop_reason, and counters to the base reason', () => {
+        const reason = buildFailureReason('Managed agent session terminated', {
+            ...emptyPayload,
+            agentMessageCount: 1,
+            toolUses: ['web_search'],
+            lastIdleStopReason: 'retries_exhausted',
+            errors: [{ type: 'billing_error', message: 'Spend limit reached' }],
+        })
+        expect(reason).toContain('Managed agent session terminated')
+        expect(reason).toContain('billing_error: Spend limit reached')
+        expect(reason).toContain('stop_reason: retries_exhausted')
+        expect(reason).toContain('agent.message events: 1')
+        expect(reason).toContain('tool uses: 1')
+    })
+
+    test('omits stop_reason line when end_turn (not informative)', () => {
+        const reason = buildFailureReason('Managed agent session terminated', {
+            ...emptyPayload,
+            lastIdleStopReason: 'end_turn',
+        })
+        expect(reason).not.toContain('stop_reason')
     })
 })
