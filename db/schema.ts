@@ -1248,7 +1248,10 @@ export const valuationCorrection = pgTable(
         category: t.text().notNull(),
         aiEstimatedValue: t.text().notNull(),
         correctedValue: t.text().notNull(),
-        correctionRatio: t.real().notNull(),
+        // numeric (not real) so the ratio matches money-field precision
+        // conventions on this codebase. Stored as Postgres numeric, read
+        // as a string by Drizzle — parseFloat() on the consuming side.
+        correctionRatio: t.numeric({ precision: 12, scale: 4 }).notNull(),
         notes: t.text(),
         createdAt: t
             .timestamp({ precision: 3, mode: 'string', withTimezone: true })
