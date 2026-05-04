@@ -60,9 +60,7 @@ export function PersonalPropertyTable({
                 <EditableTextCell
                     value={row.original.name}
                     onSave={(val) =>
-                        onInlineUpdate(row.original.id, {
-                            name: (val ?? '').trim() || row.original.name,
-                        })
+                        onInlineUpdate(row.original.id, { name: val ?? '' })
                     }
                     validate={(val) =>
                         val.trim().length === 0 ? 'Name is required' : null

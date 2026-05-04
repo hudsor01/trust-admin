@@ -62,7 +62,7 @@ export function InsuranceDialog({
                                 typeof NameDescriptionFields
                             >[0]['Field']
                         }
-                        idPrefix="ins"
+                        idPrefix="insurance"
                         namePlaceholder="e.g., State Farm Auto"
                     />
                 </div>

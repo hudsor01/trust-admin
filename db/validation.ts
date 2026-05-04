@@ -278,6 +278,7 @@ export const insertPersonalPropertySchema = createInsertSchema(
     {
         createdAt: (schema) => schema.optional(),
         updatedAt: (schema) => schema.optional(),
+        name: (schema) => schema.min(1, 'Name is required'),
     },
 )
 export const selectPersonalPropertySchema = createSelectSchema(personalProperty)

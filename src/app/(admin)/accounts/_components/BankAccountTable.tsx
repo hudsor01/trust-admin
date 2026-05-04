@@ -43,11 +43,9 @@ export function BankAccountTable({
             cell: ({ row }) => (
                 <EditableTextCell
                     value={row.original.name}
-                    onSave={async (val) => {
-                        const v = (val ?? '').trim()
-                        if (!v) return
-                        await onUpdate(row.original.id, { name: v })
-                    }}
+                    onSave={(val) =>
+                        onUpdate(row.original.id, { name: val ?? '' })
+                    }
                     validate={(val) =>
                         val.trim().length === 0 ? 'Name is required' : null
                     }
@@ -221,8 +219,8 @@ export function BankAccountTable({
             <DataTable
                 columns={columns}
                 data={bankAccounts}
-                searchKey="institution"
-                searchPlaceholder="Filter by institution..."
+                searchKey="name"
+                searchPlaceholder="Filter by name..."
                 emptyMessage="No bank accounts found."
                 enableColumnVisibility={true}
                 enablePagination={true}

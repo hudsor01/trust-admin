@@ -12,6 +12,8 @@ const makeInvestmentAccount = (
 ): InvestmentAccount => ({
     id: 1,
     entityId: 1,
+    name: 'Retirement Brokerage',
+    description: null,
     institution: 'Fidelity Investments',
     accountType: 'BROKERAGE',
     accountName: 'Trust Brokerage Account',
@@ -148,9 +150,7 @@ describe('InvestmentAccountTable', () => {
                 onUpdate={mock(() => Promise.resolve())}
             />,
         )
-        expect(
-            screen.getByPlaceholderText('Filter by institution...'),
-        ).toBeTruthy()
+        expect(screen.getByPlaceholderText('Filter by name...')).toBeTruthy()
     })
 
     test('renders column headers', () => {

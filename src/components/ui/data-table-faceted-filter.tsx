@@ -25,8 +25,10 @@ interface DataTableFacetedFilterProps<TData, TValue> {
     column?: Column<TData, TValue>
     title?: string
     /** When omitted, options are derived from the column's faceted unique
-     *  values. Pass an explicit list to override the order or labels. */
-    options?: { label: string; value: string }[]
+     *  values. Pass an explicit list to override the order or labels. The
+     *  optional `count` is rendered as a badge; when omitted the
+     *  component falls back to `column.getFacetedUniqueValues()`. */
+    options?: { label: string; value: string; count?: number }[]
 }
 
 /**
@@ -121,13 +123,7 @@ export function DataTableFacetedFilter<TData, TValue>({
                                     option.value,
                                 )
                                 const count =
-                                    'count' in option
-                                        ? (
-                                              option as {
-                                                  count: number
-                                              }
-                                          ).count
-                                        : facets?.get(option.value)
+                                    option.count ?? facets?.get(option.value)
                                 return (
                                     <CommandItem
                                         key={option.value}

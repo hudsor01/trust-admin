@@ -120,9 +120,11 @@ export function BankAccountDialog({
                     <formInstance.Field name="accountName">
                         {(field) => (
                             <div className="space-y-2 mt-4">
-                                <Label htmlFor="bank-name">Account Name</Label>
+                                <Label htmlFor="bank-account-name">
+                                    Account Name
+                                </Label>
                                 <Input
-                                    id="bank-name"
+                                    id="bank-account-name"
                                     placeholder="e.g., Primary Checking"
                                     value={field.state.value}
                                     onBlur={field.handleBlur}

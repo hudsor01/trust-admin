@@ -51,9 +51,7 @@ export function VehicleTable({
                 <EditableTextCell
                     value={row.original.name}
                     onSave={(val) =>
-                        onInlineUpdate(row.original.id, {
-                            name: (val ?? '').trim() || row.original.name,
-                        })
+                        onInlineUpdate(row.original.id, { name: val ?? '' })
                     }
                     validate={(val) =>
                         val.trim().length === 0 ? 'Name is required' : null
@@ -218,7 +216,7 @@ export function VehicleTable({
         <DataTable
             columns={columns}
             data={vehicles}
-            searchKey="vehicle"
+            searchKey="name"
             searchPlaceholder="Search vehicles..."
             isLoading={isLoading}
             emptyMessage="No vehicles. Click Add Vehicle to create one."

@@ -56,7 +56,7 @@ export function InvestmentAccountDialog({
                                 typeof NameDescriptionFields
                             >[0]['Field']
                         }
-                        idPrefix="invest"
+                        idPrefix="investment"
                         namePlaceholder="e.g., Vanguard Brokerage"
                     />
                 </div>

@@ -237,7 +237,11 @@ export function AppSidebar({ role }: { role: AppRole }) {
                             </SidebarMenuItem>
                         )}
 
-                        {/* Distributions submenu */}
+                        {/* Distributions submenu — uses the whole-row
+                            CollapsibleTrigger pattern instead of option B
+                            because there is no /distributions parent
+                            landing page; clicking the label has no other
+                            action to take, so it just toggles. */}
                         <Collapsible
                             open={distributionsOpen}
                             onOpenChange={setDistributionsOpen}

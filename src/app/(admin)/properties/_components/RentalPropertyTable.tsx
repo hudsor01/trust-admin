@@ -46,13 +46,9 @@ export function RentalPropertyTable({
             cell: ({ row }) => (
                 <EditableTextCell
                     value={row.original.name}
-                    onSave={async (v) => {
-                        const trimmed = (v ?? '').trim()
-                        if (!trimmed) return
-                        await onUpdateRental(row.original.id, {
-                            name: trimmed,
-                        })
-                    }}
+                    onSave={(val) =>
+                        onUpdateRental(row.original.id, { name: val ?? '' })
+                    }
                     validate={(val) =>
                         val.trim().length === 0 ? 'Name is required' : null
                     }

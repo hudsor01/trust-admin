@@ -306,8 +306,9 @@ async function seed() {
     // 6. Create Homestead Property
     await db.insert(homestead).values({
         entityId: trustId,
-        name: '1301 Cherry Hill Ln',
-        description: 'Lewisville, TX 75067',
+        name: 'Cherry Hill Residence',
+        description:
+            "Grantor's primary residence — 1301 Cherry Hill Ln, Lewisville, TX 75067",
         streetAddress: '1301 Cherry Hill Ln',
         city: 'Lewisville',
         state: 'Texas',

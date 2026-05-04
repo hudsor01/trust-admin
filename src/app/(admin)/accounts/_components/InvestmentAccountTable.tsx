@@ -43,11 +43,9 @@ export function InvestmentAccountTable({
             cell: ({ row }) => (
                 <EditableTextCell
                     value={row.original.name}
-                    onSave={async (val) => {
-                        const v = (val ?? '').trim()
-                        if (!v) return
-                        await onUpdate(row.original.id, { name: v })
-                    }}
+                    onSave={(val) =>
+                        onUpdate(row.original.id, { name: val ?? '' })
+                    }
                     validate={(val) =>
                         val.trim().length === 0 ? 'Name is required' : null
                     }
@@ -235,8 +233,8 @@ export function InvestmentAccountTable({
             <DataTable
                 columns={columns}
                 data={investmentAccounts}
-                searchKey="institution"
-                searchPlaceholder="Filter by institution..."
+                searchKey="name"
+                searchPlaceholder="Filter by name..."
                 emptyMessage="No investment accounts found."
                 enableColumnVisibility={true}
                 enablePagination={true}

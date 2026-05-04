@@ -36,9 +36,17 @@ export interface AssetRow {
     /** Human-facing category. Type-name for non-personalProperty rows;
      *  personalProperty rows surface their own subcategory enum. */
     category: string
-    /** Best-effort monetary value (DOD value, coverage amount, balance).
-     *  Stringified Postgres numeric; the client formats. */
+    /** Best-effort monetary value (stringified Postgres numeric — client
+     *  formats). Sourced per kind:
+     *    vehicle/homestead/rentalProperty/personalProperty → dodValue
+     *    bankAccount/investmentAccount → currentBalance ?? dodValue
+     *    insurancePolicy → coverageAmount
+     *  May be null on any kind when the source column is unset. */
     value: string | null
+    /** Per-row status. Different asset tables use different status enums
+     *  (recordStatus vs rentalStatus), so values are heterogeneous — e.g.
+     *  ACTIVE / CLOSED / RENTED / SOLD all coexist in this column. The
+     *  client groups them via the faceted Status filter. */
     status: string
     /** Per-type detail/edit route. Row-click target. */
     href: string

@@ -192,6 +192,27 @@ test.describe('Unified Assets page (/assets)', () => {
         const hasEmpty = await empty.isVisible().catch(() => false)
         expect(hasSearch || hasEmpty).toBe(true)
     })
+
+    test('row click navigates to per-type page (when rows exist)', async ({
+        page,
+    }) => {
+        // Look for a data row in tbody (skips header). Skip when truly
+        // empty — the existing "table or empty state renders" test above
+        // covers the rendering invariant; this test's value is exercising
+        // the navigation handler when there is something to click.
+        const dataRow = page.locator('tbody tr').first()
+        const rowCount = await page.locator('tbody tr').count()
+        if (rowCount === 0) {
+            test.skip()
+            return
+        }
+        await expect(dataRow).toBeVisible({ timeout: 15000 })
+        await dataRow.click()
+        await expect(page).toHaveURL(
+            /\/(vehicles|properties|accounts|personal-property|artwork|insurance)/,
+            { timeout: 5000 },
+        )
+    })
 })
 
 test.describe('Sidebar Assets link (option B)', () => {

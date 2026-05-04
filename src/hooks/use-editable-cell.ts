@@ -67,8 +67,10 @@ export function useEditableCell<T>(
             return
         }
 
-        // Run validation before persisting (empty strings bypass — clearing a field is always allowed)
-        if (validate && editValue) {
+        // Run validation before persisting. The validator decides whether
+        // empty input is allowed — required fields reject it, optional ones
+        // accept it. Don't shortcut here.
+        if (validate) {
             const error = validate(editValue)
             if (error) {
                 toast.error(error)

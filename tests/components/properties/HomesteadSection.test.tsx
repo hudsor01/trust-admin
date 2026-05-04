@@ -10,6 +10,8 @@ import { HomesteadSection } from '../../../src/app/(admin)/properties/_component
 const makeHomestead = (overrides: Partial<Homestead> = {}): Homestead => ({
     id: 1,
     entityId: 1,
+    name: '123 Main St',
+    description: null,
     streetAddress: '123 Main St',
     city: 'Austin',
     state: 'TX',

@@ -9,7 +9,7 @@ import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import { DataTableFacetedFilter } from '@/components/ui/data-table-faceted-filter'
 import { STATUS_VARIANTS } from '@/lib/constants'
 import { trpc } from '@/lib/trpc'
-import type { AssetRow } from '@/server/trpc/routers/asset'
+import type { AssetKind, AssetRow } from '@/server/trpc/routers/asset'
 import { formatCurrency } from '@/utils/formatters'
 
 const includesArrayFilter = <T,>(
@@ -20,6 +20,18 @@ const includesArrayFilter = <T,>(
     Array.isArray(value) && value.length > 0
         ? value.includes(row.getValue(id))
         : true
+
+// Display labels for the AssetKind discriminator. The same values that
+// asset.listAll emits, mapped to friendly strings for the Type filter.
+const KIND_LABELS: Record<AssetKind, string> = {
+    vehicle: 'Vehicle',
+    homestead: 'Homestead',
+    rentalProperty: 'Rental Property',
+    bankAccount: 'Bank Account',
+    investmentAccount: 'Investment',
+    personalProperty: 'Personal Property',
+    insurancePolicy: 'Insurance',
+}
 
 export function AssetsClient() {
     const router = useRouter()
@@ -67,6 +79,18 @@ export function AssetsClient() {
                 filterFn: 'includesString',
             },
             {
+                accessorKey: 'kind',
+                header: ({ column }) => (
+                    <DataTableColumnHeader column={column} title="Type" />
+                ),
+                cell: ({ row }) => (
+                    <span className="text-sm text-muted-foreground">
+                        {KIND_LABELS[row.original.kind]}
+                    </span>
+                ),
+                filterFn: includesArrayFilter,
+            },
+            {
                 accessorKey: 'category',
                 header: ({ column }) => (
                     <DataTableColumnHeader column={column} title="Category" />
@@ -91,10 +115,17 @@ export function AssetsClient() {
                             —
                         </span>
                     ),
+                // Custom sort: push null values to the end regardless of
+                // direction so unvalued rows don't blend with $0. (TanStack's
+                // sortUndefined doesn't apply since `value` is `string | null`,
+                // not `string | undefined` — handle null explicitly here.)
                 sortingFn: (a, b) => {
-                    const av = parseFloat(a.original.value ?? '0')
-                    const bv = parseFloat(b.original.value ?? '0')
-                    return av - bv
+                    const av = a.original.value
+                    const bv = b.original.value
+                    if (av == null && bv == null) return 0
+                    if (av == null) return 1
+                    if (bv == null) return -1
+                    return parseFloat(av) - parseFloat(bv)
                 },
             },
             {
@@ -119,18 +150,29 @@ export function AssetsClient() {
 
     // Derive filter option lists from the full row set so de-selecting an
     // option doesn't make it disappear (TanStack's getFacetedUniqueValues
-    // only sees post-filter rows).
+    // only sees post-filter rows). Sort with localeCompare so case folds
+    // and the order is stable across locales. Deriving from rows (rather
+    // than the static KIND_LABELS map) means the Type filter only lists
+    // kinds that actually exist in this entity's data — empty filters
+    // never appear.
+    const kindOptions = useMemo(
+        () =>
+            Array.from(new Set(rows.map((r) => r.kind)))
+                .sort((a, b) => KIND_LABELS[a].localeCompare(KIND_LABELS[b]))
+                .map((v) => ({ label: KIND_LABELS[v], value: v })),
+        [rows],
+    )
     const categoryOptions = useMemo(
         () =>
             Array.from(new Set(rows.map((r) => r.category)))
-                .sort()
+                .sort((a, b) => a.localeCompare(b))
                 .map((v) => ({ label: v, value: v })),
         [rows],
     )
     const statusOptions = useMemo(
         () =>
             Array.from(new Set(rows.map((r) => r.status)))
-                .sort()
+                .sort((a, b) => a.localeCompare(b))
                 .map((v) => ({ label: v, value: v })),
         [rows],
     )
@@ -158,6 +200,11 @@ export function AssetsClient() {
                 onRowClick={(row) => router.push(row.href)}
                 toolbar={(table) => (
                     <>
+                        <DataTableFacetedFilter
+                            column={table.getColumn('kind')}
+                            title="Type"
+                            options={kindOptions}
+                        />
                         <DataTableFacetedFilter
                             column={table.getColumn('category')}
                             title="Category"

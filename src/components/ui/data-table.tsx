@@ -189,15 +189,55 @@ export function DataTable<TData, TValue>({
                                     data-state={
                                         row.getIsSelected() && 'selected'
                                     }
+                                    role={onRowClick ? 'button' : undefined}
+                                    tabIndex={onRowClick ? 0 : undefined}
                                     className={
                                         onRowClick
-                                            ? 'cursor-pointer'
+                                            ? 'cursor-pointer focus:outline-none focus-visible:bg-muted/50'
                                             : undefined
                                     }
                                     onClick={
                                         onRowClick
-                                            ? () =>
+                                            ? (e) => {
+                                                  // Don't navigate when the
+                                                  // click landed on a child
+                                                  // interactive element (a
+                                                  // button, link, input, …).
+                                                  // The row itself carries
+                                                  // role="button" for a11y,
+                                                  // so exclude that match
+                                                  // via currentTarget.
+                                                  const target =
+                                                      e.target as HTMLElement
+                                                  const interactive =
+                                                      target.closest(
+                                                          'button, a, input, select, textarea, [role="button"], [role="checkbox"], [role="menuitem"]',
+                                                      )
+                                                  if (
+                                                      interactive &&
+                                                      interactive !==
+                                                          e.currentTarget
+                                                  ) {
+                                                      return
+                                                  }
                                                   onRowClick(row.original, row)
+                                              }
+                                            : undefined
+                                    }
+                                    onKeyDown={
+                                        onRowClick
+                                            ? (e) => {
+                                                  if (
+                                                      e.key === 'Enter' ||
+                                                      e.key === ' '
+                                                  ) {
+                                                      e.preventDefault()
+                                                      onRowClick(
+                                                          row.original,
+                                                          row,
+                                                      )
+                                                  }
+                                              }
                                             : undefined
                                     }
                                 >
