@@ -1,5 +1,6 @@
 'use client'
 
+import { NameDescriptionFields } from '@/components/forms/NameDescriptionFields'
 import { ResourceDialog } from '@/components/resource-dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -42,6 +43,19 @@ export function HomesteadDialog({
             isLoading={isSubmitting}
         >
             <div className="space-y-6">
+                <div>
+                    <h4 className="mb-3 text-sm font-medium">Identity</h4>
+                    <NameDescriptionFields
+                        Field={
+                            formInstance.Field as unknown as Parameters<
+                                typeof NameDescriptionFields
+                            >[0]['Field']
+                        }
+                        idPrefix="homestead"
+                        namePlaceholder="e.g., Lake House"
+                    />
+                </div>
+
                 <div>
                     <h4 className="mb-3 text-sm font-medium">Address</h4>
                     <div className="space-y-3">

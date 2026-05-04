@@ -46,11 +46,36 @@ export function RentalPropertyTable({
             cell: ({ row }) => (
                 <EditableTextCell
                     value={row.original.name}
-                    onSave={async (v) =>
-                        onUpdateRental(row.original.id, { name: v as string })
+                    onSave={async (v) => {
+                        const trimmed = (v ?? '').trim()
+                        if (!trimmed) return
+                        await onUpdateRental(row.original.id, {
+                            name: trimmed,
+                        })
+                    }}
+                    validate={(val) =>
+                        val.trim().length === 0 ? 'Name is required' : null
                     }
+                    placeholder="Add name"
                 />
             ),
+            filterFn: 'includesString',
+        },
+        {
+            accessorKey: 'description',
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title="Description" />
+            ),
+            cell: ({ row }) => (
+                <EditableTextCell
+                    value={row.original.description}
+                    onSave={(val) =>
+                        onUpdateRental(row.original.id, { description: val })
+                    }
+                    placeholder="Add description"
+                />
+            ),
+            filterFn: 'includesString',
         },
         {
             accessorKey: 'streetAddress',

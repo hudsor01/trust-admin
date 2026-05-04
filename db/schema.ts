@@ -415,6 +415,8 @@ export const vehicle = pgTable(
     (t) => ({
         id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
         entityId: bigint({ mode: 'number' }).notNull(),
+        name: t.text().notNull(),
+        description: t.text(),
         year: t.integer().notNull(),
         make: t.text().notNull(),
         model: t.text().notNull(),
@@ -497,6 +499,8 @@ export const homestead = pgTable(
     (t) => ({
         id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
         entityId: bigint({ mode: 'number' }).notNull(),
+        name: t.text().notNull(),
+        description: t.text(),
         streetAddress: t.text().notNull(),
         city: t.text().notNull(),
         state: t.text().notNull(),
@@ -588,6 +592,7 @@ export const rentalProperty = pgTable(
         id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
         entityId: bigint({ mode: 'number' }).notNull(),
         name: t.text().notNull(),
+        description: t.text(),
         streetAddress: t.text().notNull(),
         city: t.text().notNull(),
         state: t.text().notNull(),
@@ -690,6 +695,8 @@ export const bankAccount = pgTable(
     (t) => ({
         id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
         entityId: bigint({ mode: 'number' }).notNull(),
+        name: t.text().notNull(),
+        description: t.text(),
         institution: t.text().notNull(),
         accountType: t.text().notNull(), // Converted from enum - 'CHECKING', 'SAVINGS', 'CD', 'MONEY_MARKET', etc.
         accountName: t.text(),
@@ -764,6 +771,8 @@ export const investmentAccount = pgTable(
     (t) => ({
         id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
         entityId: bigint({ mode: 'number' }).notNull(),
+        name: t.text().notNull(),
+        description: t.text(),
         institution: t.text().notNull(),
         accountType: t.text().notNull(), // Converted from enum - 'BROKERAGE', 'IRA_TRADITIONAL', 'IRA_ROTH', etc.
         accountName: t.text(),
@@ -838,6 +847,8 @@ export const insurancePolicy = pgTable(
     (t) => ({
         id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
         entityId: bigint({ mode: 'number' }).notNull(),
+        name: t.text().notNull(),
+        description: t.text(),
         policyType: insurancePolicyType().notNull(),
         carrier: t.text().notNull(),
         policyNumber: t.text().notNull(),

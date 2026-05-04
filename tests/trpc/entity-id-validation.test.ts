@@ -81,6 +81,7 @@ describe.skipIf(isProductionDb)('EntityId Validation', () => {
             .insert(bankAccount)
             .values({
                 entityId: testData.entityId1,
+                name: 'Bank of Entity1',
                 institution: 'Bank of Entity1',
                 accountType: 'CHECKING',
                 accountNumber: `1111${ts}`,
@@ -95,6 +96,7 @@ describe.skipIf(isProductionDb)('EntityId Validation', () => {
             .insert(bankAccount)
             .values({
                 entityId: testData.entityId2,
+                name: 'Bank of Entity2',
                 institution: 'Bank of Entity2',
                 accountType: 'CHECKING',
                 accountNumber: `2222${ts}`,

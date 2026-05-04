@@ -75,6 +75,7 @@ describe.skipIf(isProductionDb)('Business Logic', () => {
             .insert(bankAccount)
             .values({
                 entityId: testData.entityId,
+                name: 'BizLogic Test Bank',
                 institution: 'BizLogic Test Bank',
                 accountType: 'CHECKING',
                 accountNumber: `BIZ${ts}`,

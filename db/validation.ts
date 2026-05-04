@@ -140,6 +140,7 @@ export const selectActivityLogSchema = createSelectSchema(activityLog)
 export const insertBankAccountSchema = createInsertSchema(bankAccount, {
     createdAt: (schema) => schema.optional(),
     updatedAt: (schema) => schema.optional(),
+    name: (schema) => schema.min(1, 'Name is required'),
 })
 export const selectBankAccountSchema = createSelectSchema(bankAccount)
 
@@ -216,12 +217,14 @@ export const insertHomesteadSchema = createInsertSchema(homestead, {
     zip: () => requiredZipValidation,
     acquisitionCost: () => positiveNumberValidation,
     dodValue: () => positiveNumberValidation,
+    name: (schema) => schema.min(1, 'Name is required'),
 })
 export const selectHomesteadSchema = createSelectSchema(homestead)
 
 export const insertInsurancePolicySchema = createInsertSchema(insurancePolicy, {
     createdAt: (schema) => schema.optional(),
     updatedAt: (schema) => schema.optional(),
+    name: (schema) => schema.min(1, 'Name is required'),
 })
 export const selectInsurancePolicySchema = createSelectSchema(insurancePolicy)
 
@@ -230,6 +233,7 @@ export const insertInvestmentAccountSchema = createInsertSchema(
     {
         createdAt: (schema) => schema.optional(),
         updatedAt: (schema) => schema.optional(),
+        name: (schema) => schema.min(1, 'Name is required'),
     },
 )
 export const selectInvestmentAccountSchema =
@@ -286,6 +290,7 @@ export const insertRentalPropertySchema = createInsertSchema(rentalProperty, {
     dodValue: () => positiveNumberValidation,
     monthlyRent: () => positiveNumberValidation,
     mortgageBalance: () => positiveNumberValidation,
+    name: (schema) => schema.min(1, 'Name is required'),
 })
 export const selectRentalPropertySchema = createSelectSchema(rentalProperty)
 
@@ -359,6 +364,7 @@ export const insertVehicleSchema = createInsertSchema(vehicle, {
     vin: () => vinValidation,
     acquisitionCost: () => positiveNumberValidation,
     dodValue: () => positiveNumberValidation,
+    name: (schema) => schema.min(1, 'Name is required'),
 })
 export const selectVehicleSchema = createSelectSchema(vehicle)
 

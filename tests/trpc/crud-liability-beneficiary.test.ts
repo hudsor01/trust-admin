@@ -81,6 +81,7 @@ describe.skipIf(isProductionDb)(
                 .insert(bankAccount)
                 .values({
                     entityId: testEntity.id,
+                    name: `LiaBen Test Bank ${TS}`,
                     institution: `LiaBen Test Bank ${TS}`,
                     accountType: 'CHECKING',
                     accountNumber: `LB${TS}`,

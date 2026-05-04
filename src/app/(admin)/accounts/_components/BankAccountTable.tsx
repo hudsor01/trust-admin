@@ -36,6 +36,43 @@ export function BankAccountTable({
 }: BankAccountTableProps) {
     const columns: ColumnDef<BankAccount>[] = [
         {
+            accessorKey: 'name',
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title="Name" />
+            ),
+            cell: ({ row }) => (
+                <EditableTextCell
+                    value={row.original.name}
+                    onSave={async (val) => {
+                        const v = (val ?? '').trim()
+                        if (!v) return
+                        await onUpdate(row.original.id, { name: v })
+                    }}
+                    validate={(val) =>
+                        val.trim().length === 0 ? 'Name is required' : null
+                    }
+                    placeholder="Add name"
+                />
+            ),
+            filterFn: 'includesString',
+        },
+        {
+            accessorKey: 'description',
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title="Description" />
+            ),
+            cell: ({ row }) => (
+                <EditableTextCell
+                    value={row.original.description}
+                    onSave={(val) =>
+                        onUpdate(row.original.id, { description: val })
+                    }
+                    placeholder="Add description"
+                />
+            ),
+            filterFn: 'includesString',
+        },
+        {
             accessorKey: 'institution',
             header: ({ column }) => (
                 <DataTableColumnHeader column={column} title="Institution" />

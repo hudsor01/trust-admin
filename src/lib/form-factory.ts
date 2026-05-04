@@ -59,6 +59,8 @@ export function emptyToNull(value: string | null | undefined): string | null {
 // =============================================================================
 
 export const vehicleFormDefaults = createFormDefaults({
+    name: '',
+    description: '',
     year: () => new Date().getFullYear(),
     make: '',
     model: '',
@@ -78,6 +80,8 @@ export const vehicleFormDefaults = createFormDefaults({
 })
 
 export const bankAccountFormDefaults = createFormDefaults({
+    name: '',
+    description: '',
     institution: '',
     accountType: 'CHECKING',
     accountName: '',
@@ -91,6 +95,8 @@ export const bankAccountFormDefaults = createFormDefaults({
 })
 
 export const investmentAccountFormDefaults = createFormDefaults({
+    name: '',
+    description: '',
     institution: '',
     accountType: 'BROKERAGE',
     accountName: '',
@@ -104,6 +110,8 @@ export const investmentAccountFormDefaults = createFormDefaults({
 })
 
 export const homesteadFormDefaults = createFormDefaults({
+    name: '',
+    description: '',
     streetAddress: '',
     city: '',
     state: '',
@@ -125,6 +133,7 @@ export const homesteadFormDefaults = createFormDefaults({
 
 export const rentalPropertyFormDefaults = createFormDefaults({
     name: '',
+    description: '',
     streetAddress: '',
     city: '',
     state: '',
@@ -199,6 +208,8 @@ export const personalPropertyFormDefaults = createFormDefaults({
 })
 
 export const insurancePolicyFormDefaults = createFormDefaults({
+    name: '',
+    description: '',
     policyType: 'LIFE',
     carrier: '',
     policyNumber: '',

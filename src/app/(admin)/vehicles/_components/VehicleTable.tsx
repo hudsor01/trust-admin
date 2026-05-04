@@ -43,6 +43,43 @@ export function VehicleTable({
 }: VehicleTableProps) {
     const columns: ColumnDef<Vehicle>[] = [
         {
+            accessorKey: 'name',
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title="Name" />
+            ),
+            cell: ({ row }) => (
+                <EditableTextCell
+                    value={row.original.name}
+                    onSave={(val) =>
+                        onInlineUpdate(row.original.id, {
+                            name: (val ?? '').trim() || row.original.name,
+                        })
+                    }
+                    validate={(val) =>
+                        val.trim().length === 0 ? 'Name is required' : null
+                    }
+                    placeholder="Add name"
+                />
+            ),
+            filterFn: 'includesString',
+        },
+        {
+            accessorKey: 'description',
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title="Description" />
+            ),
+            cell: ({ row }) => (
+                <EditableTextCell
+                    value={row.original.description}
+                    onSave={(val) =>
+                        onInlineUpdate(row.original.id, { description: val })
+                    }
+                    placeholder="Add description"
+                />
+            ),
+            filterFn: 'includesString',
+        },
+        {
             id: 'vehicle',
             accessorFn: (row) =>
                 `${row.year} ${row.make} ${row.model}`.toLowerCase(),

@@ -5,6 +5,8 @@ export const ASSET_STATUS = enumToOptions(RECORD_STATUS_VALUES, (v) =>
 )
 
 export interface HomesteadFormData {
+    name: string
+    description: string
     streetAddress: string
     city: string
     state: string
@@ -20,6 +22,7 @@ export interface HomesteadFormData {
 
 export interface RentalFormData {
     name: string
+    description: string
     streetAddress: string
     city: string
     state: string

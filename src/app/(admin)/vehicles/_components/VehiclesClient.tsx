@@ -72,6 +72,8 @@ export function VehiclesClient() {
         onSubmit: async (data) => {
             const payload = {
                 entityId: entityId!,
+                name: data.name,
+                description: data.description || null,
                 year: data.year,
                 make: data.make,
                 model: data.model,
@@ -111,6 +113,7 @@ export function VehiclesClient() {
         (v: Vehicle) => {
             vehicleForm.handleEdit({
                 ...v,
+                description: v.description || '',
                 color: v.color || '',
                 licensePlate: v.licensePlate || '',
                 acquisitionDate: toDateInput(v.acquisitionDate),

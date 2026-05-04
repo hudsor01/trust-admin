@@ -137,3 +137,71 @@ test.describe('Bequests page (/bequests)', () => {
         await expect(page.getByRole('heading').first()).toBeVisible()
     })
 })
+
+test.describe('Unified Assets page (/assets)', () => {
+    test.beforeEach(async ({ page }) => {
+        await page.goto('/assets')
+        await page.waitForLoadState('networkidle')
+        // The page fans out 7 parallel queries; wait for spinner to clear.
+        await page
+            .waitForSelector('.animate-spin', {
+                state: 'hidden',
+                timeout: 15000,
+            })
+            .catch(() => null)
+    })
+
+    test('loads without redirect', async ({ page }) => {
+        await expect(page).toHaveURL(/\/assets/)
+        await expect(page).not.toHaveURL(/auth\/sign-in/)
+    })
+
+    test('page has the All Assets heading', async ({ page }) => {
+        await expect(
+            page.getByRole('heading', { name: /all assets/i }),
+        ).toBeVisible({ timeout: 15000 })
+    })
+
+    test('table or empty state renders', async ({ page }) => {
+        const table = page.getByRole('table')
+        const empty = page.getByText(/no assets recorded/i)
+        const hasTable = await table.isVisible().catch(() => false)
+        const hasEmpty = await empty.isVisible().catch(() => false)
+        expect(hasTable || hasEmpty).toBe(true)
+    })
+
+    test('Category faceted filter trigger is visible', async ({ page }) => {
+        // The faceted filter renders a Popover trigger button labeled "Category".
+        // Don't open it (would require populated rows to be useful) — just
+        // confirm the toolbar is present.
+        const trigger = page.getByRole('button', { name: /category/i })
+        const hasTrigger = await trigger
+            .first()
+            .isVisible()
+            .catch(() => false)
+        const empty = page.getByText(/no assets recorded/i)
+        const hasEmpty = await empty.isVisible().catch(() => false)
+        // If table is empty, toolbar may suppress filter; either path is valid.
+        expect(hasTrigger || hasEmpty).toBe(true)
+    })
+
+    test('Name search input is present', async ({ page }) => {
+        const search = page.getByPlaceholder(/search by name/i)
+        const empty = page.getByText(/no assets recorded/i)
+        const hasSearch = await search.isVisible().catch(() => false)
+        const hasEmpty = await empty.isVisible().catch(() => false)
+        expect(hasSearch || hasEmpty).toBe(true)
+    })
+})
+
+test.describe('Sidebar Assets link (option B)', () => {
+    test('Assets parent label navigates to /assets', async ({ page }) => {
+        await page.goto('/dashboard')
+        await page.waitForLoadState('networkidle')
+        // The parent SidebarMenuButton is a Link to /assets. Clicking the
+        // label (not the chevron) should navigate.
+        const assetsLink = page.getByRole('link', { name: /^assets$/i })
+        await assetsLink.first().click()
+        await expect(page).toHaveURL(/\/assets/)
+    })
+})

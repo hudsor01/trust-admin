@@ -1,5 +1,6 @@
 'use client'
 
+import { NameDescriptionFields } from '@/components/forms/NameDescriptionFields'
 import { ResourceDialog } from '@/components/resource-dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -47,26 +48,21 @@ export function RentalPropertyDialog({
         >
             <div className="space-y-6">
                 <div>
+                    <h4 className="mb-3 text-sm font-medium">Identity</h4>
+                    <NameDescriptionFields
+                        Field={
+                            formInstance.Field as unknown as Parameters<
+                                typeof NameDescriptionFields
+                            >[0]['Field']
+                        }
+                        idPrefix="rental"
+                        namePlaceholder="e.g., Oak Street Duplex"
+                    />
+                </div>
+
+                <div>
                     <h4 className="mb-3 text-sm font-medium">Property Info</h4>
                     <div className="space-y-3">
-                        <formInstance.Field name="name">
-                            {(field) => (
-                                <div className="space-y-2">
-                                    <Label htmlFor="r-name">
-                                        Property Name
-                                    </Label>
-                                    <Input
-                                        id="r-name"
-                                        value={field.state.value}
-                                        onBlur={field.handleBlur}
-                                        onChange={(e) =>
-                                            field.handleChange(e.target.value)
-                                        }
-                                        placeholder="e.g., Oak Street Duplex"
-                                    />
-                                </div>
-                            )}
-                        </formInstance.Field>
                         <formInstance.Field name="streetAddress">
                             {(field) => (
                                 <div className="space-y-2">
