@@ -1266,6 +1266,37 @@ export const valuationCorrection = pgTable(
         })
             .onUpdate('cascade')
             .onDelete('restrict'),
+        // Admin-only RLS — see migration 0009. Mirrors valuation's policy
+        // declarations but adds the using/withCheck clauses missing on the
+        // sibling table so the snapshot faithfully encodes the live DB's
+        // gating instead of the empty-clause shape that allowed the
+        // valuation table's policies to be regenerated without an admin
+        // gate.
+        pgPolicy('crud-authenticated-policy-select', {
+            as: 'permissive',
+            for: 'select',
+            to: ['authenticated'],
+            using: sql`( SELECT app.is_admin() AS is_admin)`,
+        }),
+        pgPolicy('crud-authenticated-policy-insert', {
+            as: 'permissive',
+            for: 'insert',
+            to: ['authenticated'],
+            withCheck: sql`( SELECT app.is_admin() AS is_admin)`,
+        }),
+        pgPolicy('crud-authenticated-policy-update', {
+            as: 'permissive',
+            for: 'update',
+            to: ['authenticated'],
+            using: sql`( SELECT app.is_admin() AS is_admin)`,
+            withCheck: sql`( SELECT app.is_admin() AS is_admin)`,
+        }),
+        pgPolicy('crud-authenticated-policy-delete', {
+            as: 'permissive',
+            for: 'delete',
+            to: ['authenticated'],
+            using: sql`( SELECT app.is_admin() AS is_admin)`,
+        }),
     ],
 ).enableRLS()
 

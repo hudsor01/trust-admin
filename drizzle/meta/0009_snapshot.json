@@ -1,5 +1,5 @@
 {
-  "id": "68853d91-15c4-4bcf-b1a2-22e4cd81dd6a",
+  "id": "4fa059c4-ce00-44a0-bbe9-08f1395647d5",
   "prevId": "5f30a76e-f738-443b-b9fa-135da8b29e70",
   "version": "7",
   "dialect": "postgresql",
@@ -6772,7 +6772,45 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "policies": {},
+      "policies": {
+        "crud-authenticated-policy-select": {
+          "name": "crud-authenticated-policy-select",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "( SELECT app.is_admin() AS is_admin)"
+        },
+        "crud-authenticated-policy-insert": {
+          "name": "crud-authenticated-policy-insert",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "( SELECT app.is_admin() AS is_admin)"
+        },
+        "crud-authenticated-policy-update": {
+          "name": "crud-authenticated-policy-update",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "( SELECT app.is_admin() AS is_admin)",
+          "withCheck": "( SELECT app.is_admin() AS is_admin)"
+        },
+        "crud-authenticated-policy-delete": {
+          "name": "crud-authenticated-policy-delete",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "( SELECT app.is_admin() AS is_admin)"
+        }
+      },
       "checkConstraints": {},
       "isRLSEnabled": true
     },

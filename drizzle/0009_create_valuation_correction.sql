@@ -1,23 +1,13 @@
--- Creates the `valuation_correction` table that the inventory analyze
--- route queries for the admin-correction feedback loop fed to Opus.
+-- Creates `valuation_correction`. The table has been declared in
+-- db/schema.ts since 2026-02 but no CREATE TABLE migration was emitted —
+-- the live DB has nothing while the snapshot claimed otherwise. See
+-- PR #58 for full context.
 --
--- The table has been declared in db/schema.ts since 2026-02 but no
--- CREATE TABLE migration was ever emitted — the drizzle-kit generate
--- output got hand-edited away during an earlier migration cycle, so the
--- snapshot in drizzle/meta/ claims the table exists while the live DB
--- has nothing. Result: Sentry TRUST-ADMIN-Y fires on every analyze call
--- because the route's `SELECT FROM valuation_correction` errors with
--- `relation "valuation_correction" does not exist`. The route swallows
--- the error and continues with empty feedback (non-blocking), but Opus
--- runs without its designed admin-correction feedback loop.
+-- Idempotent: CREATE TABLE / INDEX use IF NOT EXISTS, and each CREATE
+-- POLICY is preceded by DROP POLICY IF EXISTS (Postgres does not support
+-- IF NOT EXISTS on CREATE POLICY directly).
 --
--- IF NOT EXISTS on every statement so re-running is a no-op. RLS
--- policies match the canonical 8-policy pattern used by every other
--- domain table (see db/migrations/add-rls-policies.sql).
---
--- NB: column names are camelCase to match this codebase's Postgres
--- convention — Drizzle's auto-generated DDL would have emitted
--- snake_case identifiers, which don't match the schema definitions.
+-- camelCase column identifiers match this codebase's Postgres convention.
 
 CREATE TABLE IF NOT EXISTS "valuation_correction" (
     "id" bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
@@ -45,32 +35,43 @@ CREATE INDEX IF NOT EXISTS "idx_valuation_correction_created_at"
 --> statement-breakpoint
 ALTER TABLE "valuation_correction" ENABLE ROW LEVEL SECURITY;
 --> statement-breakpoint
+-- Admin-only — same 4-policy shape as valuation, activity_log, and every
+-- other admin-only domain table in db/migrations/add-rls-policies.sql.
+-- neondb_owner already has BYPASSRLS so it doesn't need its own owner_*
+-- policies; including them only adds inert always-true rows to
+-- pg_policies and diverges from the canonical pattern.
+DROP POLICY IF EXISTS "crud-authenticated-policy-select" ON "valuation_correction";
+--> statement-breakpoint
 CREATE POLICY "crud-authenticated-policy-select" ON "valuation_correction"
     AS PERMISSIVE FOR SELECT TO authenticated
     USING ((SELECT app.is_admin() AS is_admin));
 --> statement-breakpoint
+DROP POLICY IF EXISTS "crud-authenticated-policy-insert" ON "valuation_correction";
+--> statement-breakpoint
 CREATE POLICY "crud-authenticated-policy-insert" ON "valuation_correction"
     AS PERMISSIVE FOR INSERT TO authenticated
     WITH CHECK ((SELECT app.is_admin() AS is_admin));
+--> statement-breakpoint
+DROP POLICY IF EXISTS "crud-authenticated-policy-update" ON "valuation_correction";
 --> statement-breakpoint
 CREATE POLICY "crud-authenticated-policy-update" ON "valuation_correction"
     AS PERMISSIVE FOR UPDATE TO authenticated
     USING ((SELECT app.is_admin() AS is_admin))
     WITH CHECK ((SELECT app.is_admin() AS is_admin));
 --> statement-breakpoint
+DROP POLICY IF EXISTS "crud-authenticated-policy-delete" ON "valuation_correction";
+--> statement-breakpoint
 CREATE POLICY "crud-authenticated-policy-delete" ON "valuation_correction"
     AS PERMISSIVE FOR DELETE TO authenticated
     USING ((SELECT app.is_admin() AS is_admin));
 --> statement-breakpoint
-CREATE POLICY "owner_select" ON "valuation_correction"
-    AS PERMISSIVE FOR SELECT TO neondb_owner USING (true);
+-- Drop the inert owner_* policies if a previous attempt of this migration
+-- created them. neondb_owner has BYPASSRLS; explicit owner policies
+-- diverged from the canonical admin-only pattern.
+DROP POLICY IF EXISTS "owner_select" ON "valuation_correction";
 --> statement-breakpoint
-CREATE POLICY "owner_insert" ON "valuation_correction"
-    AS PERMISSIVE FOR INSERT TO neondb_owner WITH CHECK (true);
+DROP POLICY IF EXISTS "owner_insert" ON "valuation_correction";
 --> statement-breakpoint
-CREATE POLICY "owner_update" ON "valuation_correction"
-    AS PERMISSIVE FOR UPDATE TO neondb_owner
-    USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "owner_update" ON "valuation_correction";
 --> statement-breakpoint
-CREATE POLICY "owner_delete" ON "valuation_correction"
-    AS PERMISSIVE FOR DELETE TO neondb_owner USING (true);
+DROP POLICY IF EXISTS "owner_delete" ON "valuation_correction";
