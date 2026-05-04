@@ -17,6 +17,7 @@ import {
     SidebarGroupLabel,
     SidebarHeader,
     SidebarMenu,
+    SidebarMenuAction,
     SidebarMenuButton,
     SidebarMenuItem,
     SidebarMenuSub,
@@ -41,15 +42,6 @@ export function AppSidebar({ role }: { role: AppRole }) {
     const isInDistributions = ['/hems', '/hems-queue', '/bequests'].includes(
         pathname,
     )
-    const isInAssets = [
-        '/properties',
-        '/accounts',
-        '/vehicles',
-        '/personal-property',
-        '/artwork',
-        '/insurance',
-    ].includes(pathname)
-
     const prefetch = {
         dashboard: () => {
             utils.dashboard.summary.prefetch({ entityId })
@@ -82,6 +74,10 @@ export function AppSidebar({ role }: { role: AppRole }) {
         accounting: () => {
             utils.trustAccounting.list.prefetch({ entityId })
             utils.bankAccount.list.prefetch({ entityId })
+            utils.entity.list.prefetch()
+        },
+        assets: () => {
+            utils.asset.listAll.prefetch({ entityId })
             utils.entity.list.prefetch()
         },
         properties: () => {
@@ -241,7 +237,11 @@ export function AppSidebar({ role }: { role: AppRole }) {
                             </SidebarMenuItem>
                         )}
 
-                        {/* Distributions submenu */}
+                        {/* Distributions submenu — uses the whole-row
+                            CollapsibleTrigger pattern instead of option B
+                            because there is no /distributions parent
+                            landing page; clicking the label has no other
+                            action to take, so it just toggles. */}
                         <Collapsible
                             open={distributionsOpen}
                             onOpenChange={setDistributionsOpen}
@@ -339,21 +339,41 @@ export function AppSidebar({ role }: { role: AppRole }) {
                             </SidebarMenuButton>
                         </SidebarMenuItem>
 
-                        {/* Assets submenu */}
+                        {/* Assets submenu — option B: parent label is a link
+                            to the unified /assets table; a separate chevron
+                            toggles the per-type submenu. SidebarMenuAction is
+                            absolutely-positioned to the right of the row, so
+                            the Link covers the rest of the click target.
+                            Pattern adapted from shadcn-ui sidebar-08 block. */}
                         <Collapsible
                             open={assetsOpen}
                             onOpenChange={setAssetsOpen}
                             className="group/collapsible"
                         >
                             <SidebarMenuItem>
-                                <CollapsibleTrigger asChild>
-                                    <SidebarMenuButton
-                                        tooltip="Assets"
-                                        isActive={isInAssets && !assetsOpen}
+                                <SidebarMenuButton
+                                    asChild
+                                    tooltip="Assets"
+                                    isActive={pathname === '/assets'}
+                                >
+                                    <Link
+                                        href="/assets"
+                                        onMouseEnter={prefetch.assets}
                                     >
                                         <span>Assets</span>
-                                        <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                                    </SidebarMenuButton>
+                                    </Link>
+                                </SidebarMenuButton>
+                                <CollapsibleTrigger asChild>
+                                    <SidebarMenuAction
+                                        aria-label={
+                                            assetsOpen
+                                                ? 'Hide asset categories'
+                                                : 'Show asset categories'
+                                        }
+                                        className="data-[state=open]:rotate-90 transition-transform duration-200"
+                                    >
+                                        <ChevronRight />
+                                    </SidebarMenuAction>
                                 </CollapsibleTrigger>
                                 <CollapsibleContent>
                                     <SidebarMenuSub>

@@ -52,24 +52,37 @@ export function PersonalPropertyTable({
 }: PersonalPropertyTableProps) {
     const columns: ColumnDef<PersonalProperty>[] = [
         {
-            id: 'item',
-            accessorFn: (row) =>
-                `${row.name} ${row.description ?? ''}`.toLowerCase(),
+            accessorKey: 'name',
             header: ({ column }) => (
-                <DataTableColumnHeader
-                    column={column}
-                    title="Name / Description"
-                />
+                <DataTableColumnHeader column={column} title="Name" />
             ),
             cell: ({ row }) => (
-                <div>
-                    <p className="font-medium">{row.original.name}</p>
-                    {row.original.description && (
-                        <p className="text-xs text-muted-foreground">
-                            {row.original.description}
-                        </p>
-                    )}
-                </div>
+                <EditableTextCell
+                    value={row.original.name}
+                    onSave={(val) =>
+                        onInlineUpdate(row.original.id, { name: val ?? '' })
+                    }
+                    validate={(val) =>
+                        val.trim().length === 0 ? 'Name is required' : null
+                    }
+                    placeholder="Add name"
+                />
+            ),
+            filterFn: 'includesString',
+        },
+        {
+            accessorKey: 'description',
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title="Description" />
+            ),
+            cell: ({ row }) => (
+                <EditableTextCell
+                    value={row.original.description}
+                    onSave={(val) =>
+                        onInlineUpdate(row.original.id, { description: val })
+                    }
+                    placeholder="Add description"
+                />
             ),
             filterFn: 'includesString',
         },
@@ -178,7 +191,7 @@ export function PersonalPropertyTable({
         <DataTable
             columns={columns}
             data={items}
-            searchKey="item"
+            searchKey="name"
             searchPlaceholder={searchPlaceholder}
             isLoading={isLoading}
             emptyMessage={emptyMessage}

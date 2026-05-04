@@ -100,6 +100,7 @@ describe.skipIf(isProductionDb)('CRUD Operations - Remaining Routers', () => {
             .insert(vehicle)
             .values({
                 entityId: testData.entityId,
+                name: '2023 Ford F-150',
                 year: 2023,
                 make: 'Ford',
                 model: 'F-150',

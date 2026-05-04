@@ -1,5 +1,6 @@
 'use client'
 
+import { NameDescriptionFields } from '@/components/forms/NameDescriptionFields'
 import { ResourceDialog } from '@/components/resource-dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -47,6 +48,19 @@ export function InvestmentAccountDialog({
             isLoading={isSubmitting}
         >
             <div className="space-y-6">
+                <div>
+                    <h4 className="text-sm font-medium mb-3">Identity</h4>
+                    <NameDescriptionFields
+                        Field={
+                            formInstance.Field as unknown as Parameters<
+                                typeof NameDescriptionFields
+                            >[0]['Field']
+                        }
+                        idPrefix="investment"
+                        namePlaceholder="e.g., Vanguard Brokerage"
+                    />
+                </div>
+
                 <div>
                     <h4 className="text-sm font-medium mb-3">
                         Account Information

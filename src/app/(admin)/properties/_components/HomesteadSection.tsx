@@ -47,9 +47,16 @@ export function HomesteadSection({
         <Card>
             <CardContent className="pt-6">
                 <div className="mb-4 flex items-center justify-between">
-                    <h3 className="text-lg font-semibold">
-                        {homestead.streetAddress}
-                    </h3>
+                    <div>
+                        <h3 className="text-lg font-semibold">
+                            {homestead.name}
+                        </h3>
+                        {homestead.description && (
+                            <p className="text-sm text-muted-foreground">
+                                {homestead.description}
+                            </p>
+                        )}
+                    </div>
                     <div className="flex items-center gap-2">
                         <Badge
                             variant={STATUS_VARIANTS[homestead.transferStatus]}

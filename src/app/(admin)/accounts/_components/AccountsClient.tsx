@@ -104,6 +104,8 @@ export function AccountsClient() {
         onSubmit: async (data) => {
             const payload = {
                 entityId: entityId!,
+                name: data.name,
+                description: data.description || null,
                 institution: data.institution,
                 accountType: data.accountType,
                 accountName: data.accountName,
@@ -137,6 +139,8 @@ export function AccountsClient() {
         onSubmit: async (data) => {
             const payload = {
                 entityId: entityId!,
+                name: data.name,
+                description: data.description || null,
                 institution: data.institution,
                 accountType: data.accountType,
                 accountName: data.accountName,
@@ -171,6 +175,8 @@ export function AccountsClient() {
     const handleEditBank = (bank: BankAccount) => {
         setEditingBankId(bank.id)
         bankForm.handleEdit({
+            name: bank.name,
+            description: bank.description || '',
             institution: bank.institution,
             accountType: bank.accountType,
             accountName: bank.accountName || '',
@@ -187,6 +193,8 @@ export function AccountsClient() {
     const handleEditInvestment = (investment: InvestmentAccount) => {
         setEditingInvestmentId(investment.id)
         investmentForm.handleEdit({
+            name: investment.name,
+            description: investment.description || '',
             institution: investment.institution,
             accountType: investment.accountType,
             accountName: investment.accountName || '',

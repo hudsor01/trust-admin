@@ -1,6 +1,7 @@
 import { createTRPCRouter } from './init'
 
 import { activityLogRouter } from './routers/activityLog'
+import { assetRouter } from './routers/asset'
 import { bankAccountRouter } from './routers/bankAccount'
 import { beneficiaryRouter } from './routers/beneficiary'
 import { contactRouter } from './routers/contact'
@@ -65,6 +66,7 @@ export const appRouter = createTRPCRouter({
 
     // Aggregate queries
     dashboard: dashboardRouter,
+    asset: assetRouter,
 })
 
 export type AppRouter = typeof appRouter

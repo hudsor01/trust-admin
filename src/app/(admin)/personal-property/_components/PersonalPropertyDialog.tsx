@@ -1,5 +1,6 @@
 'use client'
 
+import { NameDescriptionFields } from '@/components/forms/NameDescriptionFields'
 import { ResourceDialog } from '@/components/resource-dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -51,34 +52,20 @@ export function PersonalPropertyDialog({
             isLoading={isSubmitting}
         >
             <div className="space-y-6">
-                {/* Item Information */}
+                {/* Identity */}
                 <div>
-                    <h4 className="text-sm font-medium mb-3">
-                        Item Information
-                    </h4>
-                    <div className="grid grid-cols-2 gap-4">
-                        <formInstance.Field name="name">
-                            {(field) => (
-                                <div className="space-y-2">
-                                    <Label htmlFor="name">Name *</Label>
-                                    <Input
-                                        id="name"
-                                        placeholder="e.g., Diamond Ring, Rolex Watch"
-                                        value={field.state.value || ''}
-                                        onChange={(e) =>
-                                            field.handleChange(e.target.value)
-                                        }
-                                        onBlur={field.handleBlur}
-                                    />
-                                    {field.state.meta.errors &&
-                                        field.state.meta.errors.length > 0 && (
-                                            <p className="text-sm text-red-500">
-                                                {getFieldError(field)}
-                                            </p>
-                                        )}
-                                </div>
-                            )}
-                        </formInstance.Field>
+                    <h4 className="text-sm font-medium mb-3">Identity</h4>
+                    <NameDescriptionFields
+                        Field={
+                            formInstance.Field as unknown as Parameters<
+                                typeof NameDescriptionFields
+                            >[0]['Field']
+                        }
+                        idPrefix="personal-property"
+                        namePlaceholder="e.g., Diamond Ring, Rolex Watch"
+                        descriptionPlaceholder="Brief description of the item"
+                    />
+                    <div className="mt-4">
                         <formInstance.Field name="category">
                             {(field) => (
                                 <div className="space-y-2">
@@ -101,33 +88,6 @@ export function PersonalPropertyDialog({
                                             ))}
                                         </SelectContent>
                                     </Select>
-                                    {field.state.meta.errors &&
-                                        field.state.meta.errors.length > 0 && (
-                                            <p className="text-sm text-red-500">
-                                                {getFieldError(field)}
-                                            </p>
-                                        )}
-                                </div>
-                            )}
-                        </formInstance.Field>
-                    </div>
-                    <div className="mt-4">
-                        <formInstance.Field name="description">
-                            {(field) => (
-                                <div className="space-y-2">
-                                    <Label htmlFor="description">
-                                        Description
-                                    </Label>
-                                    <Textarea
-                                        id="description"
-                                        placeholder="Brief description of the item"
-                                        value={field.state.value || ''}
-                                        onChange={(e) =>
-                                            field.handleChange(e.target.value)
-                                        }
-                                        onBlur={field.handleBlur}
-                                        rows={2}
-                                    />
                                     {field.state.meta.errors &&
                                         field.state.meta.errors.length > 0 && (
                                             <p className="text-sm text-red-500">

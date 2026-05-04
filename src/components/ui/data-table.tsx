@@ -5,10 +5,14 @@ import {
     type ColumnFiltersState,
     flexRender,
     getCoreRowModel,
+    getFacetedRowModel,
+    getFacetedUniqueValues,
     getFilteredRowModel,
     getPaginationRowModel,
     getSortedRowModel,
+    type Row,
     type SortingState,
+    type Table as TanStackTable,
     useReactTable,
     type VisibilityState,
 } from '@tanstack/react-table'
@@ -38,8 +42,13 @@ interface DataTableProps<TData, TValue> {
     enablePagination?: boolean
     /** Columns hidden by default (user can toggle via column visibility menu) */
     initialColumnVisibility?: VisibilityState
-    /** Rendered before the column visibility toggle */
-    toolbar?: React.ReactNode
+    /** Rendered before the column visibility toggle. Pass a callback to
+     *  receive the table instance for faceted filters / column refs. */
+    toolbar?:
+        | React.ReactNode
+        | ((table: TanStackTable<TData>) => React.ReactNode)
+    /** Click handler for table body rows. Wires up cursor: pointer when set. */
+    onRowClick?: (row: TData, ctx: Row<TData>) => void
 }
 
 export function DataTable<TData, TValue>({
@@ -54,6 +63,7 @@ export function DataTable<TData, TValue>({
     enablePagination = true,
     initialColumnVisibility,
     toolbar,
+    onRowClick,
 }: DataTableProps<TData, TValue>) {
     const [sorting, setSorting] = React.useState<SortingState>([])
     const [columnFilters, setColumnFilters] =
@@ -73,6 +83,9 @@ export function DataTable<TData, TValue>({
             : undefined,
         getSortedRowModel: getSortedRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
+        // Required by DataTableFacetedFilter; no-op when no facets are read.
+        getFacetedRowModel: getFacetedRowModel(),
+        getFacetedUniqueValues: getFacetedUniqueValues(),
         onColumnVisibilityChange: setColumnVisibility,
         onRowSelectionChange: enableRowSelection ? setRowSelection : undefined,
         state: {
@@ -143,7 +156,7 @@ export function DataTable<TData, TValue>({
                         className="max-w-sm"
                     />
                 )}
-                {toolbar}
+                {typeof toolbar === 'function' ? toolbar(table) : toolbar}
                 {enableColumnVisibility && (
                     <DataTableViewOptions table={table} />
                 )}
@@ -175,6 +188,57 @@ export function DataTable<TData, TValue>({
                                     key={row.id}
                                     data-state={
                                         row.getIsSelected() && 'selected'
+                                    }
+                                    role={onRowClick ? 'button' : undefined}
+                                    tabIndex={onRowClick ? 0 : undefined}
+                                    className={
+                                        onRowClick
+                                            ? 'cursor-pointer focus:outline-none focus-visible:bg-muted/50'
+                                            : undefined
+                                    }
+                                    onClick={
+                                        onRowClick
+                                            ? (e) => {
+                                                  // Don't navigate when the
+                                                  // click landed on a child
+                                                  // interactive element (a
+                                                  // button, link, input, …).
+                                                  // The row itself carries
+                                                  // role="button" for a11y,
+                                                  // so exclude that match
+                                                  // via currentTarget.
+                                                  const target =
+                                                      e.target as HTMLElement
+                                                  const interactive =
+                                                      target.closest(
+                                                          'button, a, input, select, textarea, [role="button"], [role="checkbox"], [role="menuitem"]',
+                                                      )
+                                                  if (
+                                                      interactive &&
+                                                      interactive !==
+                                                          e.currentTarget
+                                                  ) {
+                                                      return
+                                                  }
+                                                  onRowClick(row.original, row)
+                                              }
+                                            : undefined
+                                    }
+                                    onKeyDown={
+                                        onRowClick
+                                            ? (e) => {
+                                                  if (
+                                                      e.key === 'Enter' ||
+                                                      e.key === ' '
+                                                  ) {
+                                                      e.preventDefault()
+                                                      onRowClick(
+                                                          row.original,
+                                                          row,
+                                                      )
+                                                  }
+                                              }
+                                            : undefined
                                     }
                                 >
                                     {row.getVisibleCells().map((cell) => (

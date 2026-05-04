@@ -57,6 +57,13 @@
       "when": 1777702169921,
       "tag": "0007_lowly_thing",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1777871913831,
+      "tag": "0008_add_name_description_to_assets",
+      "breakpoints": true
     }
   ]
 }

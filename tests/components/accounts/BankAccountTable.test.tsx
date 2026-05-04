@@ -12,6 +12,8 @@ const makeBankAccount = (
 ): BankAccount => ({
     id: 1,
     entityId: 1,
+    name: 'Joint Checking',
+    description: null,
     institution: 'First National Bank',
     accountType: 'CHECKING',
     accountName: 'Trust Checking Account',
@@ -148,9 +150,7 @@ describe('BankAccountTable', () => {
                 onUpdate={mock(() => Promise.resolve())}
             />,
         )
-        expect(
-            screen.getByPlaceholderText('Filter by institution...'),
-        ).toBeTruthy()
+        expect(screen.getByPlaceholderText('Filter by name...')).toBeTruthy()
     })
 
     test('renders column headers', () => {

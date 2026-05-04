@@ -25,6 +25,8 @@ import { RentalPropertyTable } from './RentalPropertyTable'
 const log = logger.create('Properties')
 
 const defaultHomesteadForm: HomesteadFormData = {
+    name: '',
+    description: '',
     streetAddress: '',
     city: '',
     state: 'TX',
@@ -40,6 +42,7 @@ const defaultHomesteadForm: HomesteadFormData = {
 
 const defaultRentalForm: RentalFormData = {
     name: '',
+    description: '',
     streetAddress: '',
     city: '',
     state: 'TX',
@@ -114,6 +117,8 @@ export function PropertiesClient() {
         onSubmit: async (data) => {
             const payload = {
                 entityId: entityId!,
+                name: data.name,
+                description: data.description || null,
                 streetAddress: data.streetAddress,
                 city: data.city,
                 state: data.state,
@@ -146,6 +151,8 @@ export function PropertiesClient() {
     const handleEditHomestead = (h: Homestead) => {
         setEditingHomesteadId(h.id)
         homesteadForm.handleEdit({
+            name: h.name,
+            description: h.description || '',
             streetAddress: h.streetAddress,
             city: h.city,
             state: h.state,
@@ -166,6 +173,7 @@ export function PropertiesClient() {
             const payload = {
                 entityId: entityId!,
                 name: data.name,
+                description: data.description || null,
                 streetAddress: data.streetAddress,
                 city: data.city,
                 state: data.state,
@@ -204,6 +212,7 @@ export function PropertiesClient() {
         setEditingRentalId(r.id)
         rentalForm.handleEdit({
             name: r.name || '',
+            description: r.description || '',
             streetAddress: r.streetAddress,
             city: r.city,
             state: r.state,

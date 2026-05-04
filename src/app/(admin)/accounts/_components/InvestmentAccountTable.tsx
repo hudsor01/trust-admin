@@ -36,6 +36,41 @@ export function InvestmentAccountTable({
 }: InvestmentAccountTableProps) {
     const columns: ColumnDef<InvestmentAccount>[] = [
         {
+            accessorKey: 'name',
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title="Name" />
+            ),
+            cell: ({ row }) => (
+                <EditableTextCell
+                    value={row.original.name}
+                    onSave={(val) =>
+                        onUpdate(row.original.id, { name: val ?? '' })
+                    }
+                    validate={(val) =>
+                        val.trim().length === 0 ? 'Name is required' : null
+                    }
+                    placeholder="Add name"
+                />
+            ),
+            filterFn: 'includesString',
+        },
+        {
+            accessorKey: 'description',
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title="Description" />
+            ),
+            cell: ({ row }) => (
+                <EditableTextCell
+                    value={row.original.description}
+                    onSave={(val) =>
+                        onUpdate(row.original.id, { description: val })
+                    }
+                    placeholder="Add description"
+                />
+            ),
+            filterFn: 'includesString',
+        },
+        {
             accessorKey: 'institution',
             header: ({ column }) => (
                 <DataTableColumnHeader column={column} title="Institution" />
@@ -198,8 +233,8 @@ export function InvestmentAccountTable({
             <DataTable
                 columns={columns}
                 data={investmentAccounts}
-                searchKey="institution"
-                searchPlaceholder="Filter by institution..."
+                searchKey="name"
+                searchPlaceholder="Filter by name..."
                 emptyMessage="No investment accounts found."
                 enableColumnVisibility={true}
                 enablePagination={true}

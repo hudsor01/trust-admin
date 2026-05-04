@@ -33,6 +33,8 @@ export function maskAccountNumber(num: string | null): string {
 }
 
 export interface BankFormData {
+    name: string
+    description: string
     institution: string
     accountType: string
     accountName: string
@@ -46,6 +48,8 @@ export interface BankFormData {
 }
 
 export interface InvestmentFormData {
+    name: string
+    description: string
     institution: string
     accountType: string
     accountName: string

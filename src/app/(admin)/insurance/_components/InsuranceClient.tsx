@@ -75,6 +75,8 @@ export function InsuranceClient() {
         onSubmit: async (data) => {
             const payload = {
                 entityId: entityId!,
+                name: data.name,
+                description: data.description || null,
                 policyType: asInsurancePolicyType(data.policyType),
                 carrier: data.carrier,
                 policyNumber: data.policyNumber,
@@ -112,6 +114,7 @@ export function InsuranceClient() {
         (p: InsurancePolicy) => {
             policyForm.handleEdit({
                 ...p,
+                description: p.description || '',
                 carrier: p.carrier || '',
                 policyNumber: p.policyNumber || '',
                 coverageAmount: p.coverageAmount || '',

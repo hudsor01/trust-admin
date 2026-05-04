@@ -10,6 +10,8 @@ import { VehicleTable } from '../../../src/app/(admin)/vehicles/_components/Vehi
 const makeVehicle = (overrides: Partial<Vehicle> = {}): Vehicle => ({
     id: 1,
     entityId: 1,
+    name: "Dad's truck",
+    description: null,
     year: 2020,
     make: 'Ford',
     model: 'F-150',

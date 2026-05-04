@@ -5,6 +5,7 @@ import { Pencil, Trash2 } from 'lucide-react'
 import {
     EditableCurrencyCell,
     EditableSelectCell,
+    EditableTextCell,
 } from '@/components/editable-cells'
 import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/ui/data-table'
@@ -46,6 +47,41 @@ export function InsuranceTable({
     onInlineUpdate,
 }: InsuranceTableProps) {
     const columns: ColumnDef<InsurancePolicy>[] = [
+        {
+            accessorKey: 'name',
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title="Name" />
+            ),
+            cell: ({ row }) => (
+                <EditableTextCell
+                    value={row.original.name}
+                    onSave={(val) =>
+                        onInlineUpdate(row.original.id, { name: val ?? '' })
+                    }
+                    validate={(val) =>
+                        val.trim().length === 0 ? 'Name is required' : null
+                    }
+                    placeholder="Add name"
+                />
+            ),
+            filterFn: 'includesString',
+        },
+        {
+            accessorKey: 'description',
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title="Description" />
+            ),
+            cell: ({ row }) => (
+                <EditableTextCell
+                    value={row.original.description}
+                    onSave={(val) =>
+                        onInlineUpdate(row.original.id, { description: val })
+                    }
+                    placeholder="Add description"
+                />
+            ),
+            filterFn: 'includesString',
+        },
         {
             id: 'policy',
             accessorFn: (row) =>
@@ -172,7 +208,7 @@ export function InsuranceTable({
         <DataTable
             columns={columns}
             data={policies}
-            searchKey="policy"
+            searchKey="name"
             searchPlaceholder="Search policies..."
             isLoading={isLoading}
             emptyMessage="No insurance policies. Click Add Policy to create one."
