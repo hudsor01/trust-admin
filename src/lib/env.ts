@@ -49,14 +49,23 @@ export const env = createEnv({
         // → "Valuations" rows). Without this, the agent runs successfully
         // but the MCP write fails silently.
         ANTHROPIC_AGENT_VAULT_IDS: z.string().optional(),
-        // .trim() before .min(1) so a paste-from-Vercel value with a
-        // trailing \n doesn't silently fail constantTimeCompare against
-        // trimmed user input (length mismatch → always-false branch in
-        // verifyAccessCode). Matches the .trim() treatment on DATABASE_URL
-        // / NEON_AUTH_BASE_URL / ADMIN_EMAIL. min(1) keeps the original
-        // fail-closed semantic — an accidentally-empty value still
-        // behaves like unset.
-        INVENTORY_ACCESS_CODE: z.string().trim().min(1).optional(),
+        // .trim() so a paste-from-Vercel value with a trailing \n
+        // doesn't silently fail constantTimeCompare against trimmed user
+        // input (length mismatch → always-false branch in the
+        // verifyAccessCode action in src/app/forms/_actions/verifyAccess.ts).
+        // Matches the .trim() treatment on DATABASE_URL / NEON_AUTH_BASE_URL
+        // / ADMIN_EMAIL.
+        //
+        // The z.preprocess wrap mirrors optionalUrl() above — coerces an
+        // all-whitespace value to undefined so the schema treats it as
+        // unset (which falls through to the fail-closed-in-prod path in
+        // hasInventoryAccess). Without the preprocess a whitespace-only
+        // value would post-trim to "" and fail .min(1), throwing at boot
+        // — louder than necessary for a "treat as unset" intent.
+        INVENTORY_ACCESS_CODE: z.preprocess(
+            (v) => (typeof v === 'string' && v.trim() === '' ? undefined : v),
+            z.string().trim().min(1).optional(),
+        ),
         UPLOADTHING_TOKEN: z.string().optional(),
 
         SENTRY_DSN: optionalUrl(),
