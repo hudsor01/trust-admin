@@ -4,7 +4,17 @@
 # this image (from CI or a dev machine) — drizzle-kit is a devDep and
 # db/migrations/ is not copied into the runtime.
 
-FROM --platform=linux/amd64 oven/bun:1 AS base
+# Platform is set by the build invocation, not pinned in the Dockerfile.
+# - CI deploy.yml passes `platforms: linux/amd64` to buildx, which sets
+#   TARGETPLATFORM and produces an amd64 image for the deploy targets.
+# - Local Apple Silicon devs who want to test the production-equivalent
+#   image must run `docker buildx build --platform linux/amd64 .`.
+# Hardcoding `--platform=linux/amd64` on FROM trips BuildKit's
+# FromPlatformFlagConstDisallowed lint; using `$TARGETPLATFORM` trips
+# RedundantTargetPlatform. Letting buildx do its job is the only
+# warning-free shape — and it's what Docker's multi-platform docs
+# recommend.
+FROM oven/bun:1 AS base
 
 # Dependencies
 FROM base AS deps
@@ -21,17 +31,6 @@ COPY . .
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Skip Zod env validation at build time — instrumentation.ts handles strict
-# validation at server startup. Mirror of ci.yml's bun-run-build env block.
-ENV SKIP_ENV_VALIDATION=1
-
-# Neon Auth's @neondatabase/auth requires cookies.secret at module-init time
-# (during next build's page-data collection — not just at request time), so
-# next build fails without it. Mirror of ci.yml's NEON_AUTH_COOKIE_SECRET
-# placeholder. No real cookies are signed at build time; runtime overrides
-# via the ExternalSecret-injected NEON_AUTH_COOKIE_SECRET.
-ENV NEON_AUTH_COOKIE_SECRET=ci-build-placeholder-not-used-for-real-auth-xxxxxx
-
 # Sentry source map upload needs these at build time. Passed via
 # BuildKit secrets so tokens don't leak into image layers:
 #   docker build --secret id=sentry_auth_token,env=SENTRY_AUTH_TOKEN \
@@ -40,14 +39,28 @@ ARG SENTRY_ORG
 ARG SENTRY_PROJECT
 ENV SENTRY_ORG=$SENTRY_ORG
 ENV SENTRY_PROJECT=$SENTRY_PROJECT
+
+# Build-time-only env vars are set inline on the RUN command so they
+# never persist as ENV directives in any image layer:
+# - SKIP_ENV_VALIDATION=1 — skip Zod env validation; instrumentation.ts
+#   handles strict validation at server startup. Mirrors ci.yml.
+# - NEON_AUTH_COOKIE_SECRET — @neondatabase/auth requires cookies.secret
+#   at module-init time (during next build's page-data collection, not
+#   just at request time), so next build fails without it. The fixed
+#   placeholder below is never used to sign real cookies; runtime
+#   overrides via the ExternalSecret-injected secret. Inlining (vs ENV)
+#   satisfies BuildKit's SecretsUsedInArgOrEnv lint, which flags any
+#   ENV/ARG whose name suggests it carries a secret.
 RUN --mount=type=secret,id=sentry_auth_token,env=SENTRY_AUTH_TOKEN \
+    SKIP_ENV_VALIDATION=1 \
+    NEON_AUTH_COOKIE_SECRET=ci-build-placeholder-not-used-for-real-auth-xxxxxx \
     bun run build
 
-# Production runtime — pinned to linux/amd64 so local builds on Apple
-# Silicon produce an image that runs on the deploy targets, and so the
-# narrow outputFileTracingIncludes glob in next.config.ts (which names
-# sharp-linux-x64 specifically) always resolves.
-FROM --platform=linux/amd64 node:22-slim AS runner
+# Production runtime. Platform comes from the buildx invocation (see
+# the base-stage comment) — the deploy.yml passes linux/amd64, which is
+# also what next.config.ts's narrow outputFileTracingIncludes glob
+# (`sharp-linux-x64`) requires.
+FROM node:22-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
