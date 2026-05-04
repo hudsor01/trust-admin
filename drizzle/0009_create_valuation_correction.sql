@@ -46,26 +46,26 @@ DROP POLICY IF EXISTS "crud-authenticated-policy-select" ON "valuation_correctio
 --> statement-breakpoint
 CREATE POLICY "crud-authenticated-policy-select" ON "valuation_correction"
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING ((SELECT app.is_admin() AS is_admin));
+    USING (( SELECT app.is_admin() AS is_admin));
 --> statement-breakpoint
 DROP POLICY IF EXISTS "crud-authenticated-policy-insert" ON "valuation_correction";
 --> statement-breakpoint
 CREATE POLICY "crud-authenticated-policy-insert" ON "valuation_correction"
     AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK ((SELECT app.is_admin() AS is_admin));
+    WITH CHECK (( SELECT app.is_admin() AS is_admin));
 --> statement-breakpoint
 DROP POLICY IF EXISTS "crud-authenticated-policy-update" ON "valuation_correction";
 --> statement-breakpoint
 CREATE POLICY "crud-authenticated-policy-update" ON "valuation_correction"
     AS PERMISSIVE FOR UPDATE TO authenticated
-    USING ((SELECT app.is_admin() AS is_admin))
-    WITH CHECK ((SELECT app.is_admin() AS is_admin));
+    USING (( SELECT app.is_admin() AS is_admin))
+    WITH CHECK (( SELECT app.is_admin() AS is_admin));
 --> statement-breakpoint
 DROP POLICY IF EXISTS "crud-authenticated-policy-delete" ON "valuation_correction";
 --> statement-breakpoint
 CREATE POLICY "crud-authenticated-policy-delete" ON "valuation_correction"
     AS PERMISSIVE FOR DELETE TO authenticated
-    USING ((SELECT app.is_admin() AS is_admin));
+    USING (( SELECT app.is_admin() AS is_admin));
 --> statement-breakpoint
 -- Drop the inert owner_* policies if a previous attempt of this migration
 -- created them. neondb_owner has BYPASSRLS; explicit owner policies
