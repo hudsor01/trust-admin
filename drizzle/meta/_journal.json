@@ -54,7 +54,7 @@
     {
       "idx": 7,
       "version": "7",
-      "when": 1777702169921,
+      "when": 1777850000000,
       "tag": "0007_lowly_thing",
       "breakpoints": true
     },
@@ -70,6 +70,13 @@
       "version": "7",
       "when": 1777923844974,
       "tag": "0009_create_valuation_correction",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1777926286949,
+      "tag": "0010_correction_ratio_numeric",
       "breakpoints": true
     }
   ]

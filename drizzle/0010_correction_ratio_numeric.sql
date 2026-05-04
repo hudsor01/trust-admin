@@ -1,0 +1,1 @@
+ALTER TABLE "valuation_correction" ALTER COLUMN "correctionRatio" SET DATA TYPE numeric(12, 4);
