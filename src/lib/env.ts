@@ -49,10 +49,14 @@ export const env = createEnv({
         // → "Valuations" rows). Without this, the agent runs successfully
         // but the MCP write fails silently.
         ANTHROPIC_AGENT_VAULT_IDS: z.string().optional(),
-        // min(1) so an accidentally-empty value in Vercel doesn't behave
-        // differently from an unset one — both now surface the same fail-
-        // closed-in-prod path in hasInventoryAccess().
-        INVENTORY_ACCESS_CODE: z.string().min(1).optional(),
+        // .trim() before .min(1) so a paste-from-Vercel value with a
+        // trailing \n doesn't silently fail constantTimeCompare against
+        // trimmed user input (length mismatch → always-false branch in
+        // verifyAccessCode). Matches the .trim() treatment on DATABASE_URL
+        // / NEON_AUTH_BASE_URL / ADMIN_EMAIL. min(1) keeps the original
+        // fail-closed semantic — an accidentally-empty value still
+        // behaves like unset.
+        INVENTORY_ACCESS_CODE: z.string().trim().min(1).optional(),
         UPLOADTHING_TOKEN: z.string().optional(),
 
         SENTRY_DSN: optionalUrl(),
