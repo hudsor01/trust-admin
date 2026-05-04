@@ -874,6 +874,7 @@ describe.skipIf(isProductionDb)('Row-Level Security', () => {
             'transaction',
             'activity_log',
             'specific_bequest',
+            'valuation_correction',
             // Auth / session / profile tables — RLS required so a captured
             // access-code cookie can't query another user's session or
             // profile.

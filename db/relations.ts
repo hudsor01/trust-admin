@@ -22,6 +22,7 @@ import {
     trusteeFeeEntry,
     trusteeFeeSchedule,
     valuation,
+    valuationCorrection,
     vehicle,
     withdrawalRecord,
 } from './schema'
@@ -181,6 +182,16 @@ export const valuationRelations = relations(valuation, ({ one }) => ({
         references: [personalProperty.id],
     }),
 }))
+
+export const valuationCorrectionRelations = relations(
+    valuationCorrection,
+    ({ one }) => ({
+        entity: one(entity, {
+            fields: [valuationCorrection.entityId],
+            references: [entity.id],
+        }),
+    }),
+)
 
 export const personalPropertyRelations = relations(
     personalProperty,

@@ -169,6 +169,13 @@ CREATE POLICY "crud-authenticated-policy-insert" ON valuation AS PERMISSIVE FOR 
 CREATE POLICY "crud-authenticated-policy-update" ON valuation AS PERMISSIVE FOR UPDATE TO authenticated USING (( SELECT app.is_admin() AS is_admin)) WITH CHECK (( SELECT app.is_admin() AS is_admin));
 CREATE POLICY "crud-authenticated-policy-delete" ON valuation AS PERMISSIVE FOR DELETE TO authenticated USING (( SELECT app.is_admin() AS is_admin));
 
+ALTER TABLE valuation_correction ENABLE ROW LEVEL SECURITY;
+ALTER TABLE valuation_correction FORCE ROW LEVEL SECURITY;
+CREATE POLICY "crud-authenticated-policy-select" ON valuation_correction AS PERMISSIVE FOR SELECT TO authenticated USING (( SELECT app.is_admin() AS is_admin));
+CREATE POLICY "crud-authenticated-policy-insert" ON valuation_correction AS PERMISSIVE FOR INSERT TO authenticated WITH CHECK (( SELECT app.is_admin() AS is_admin));
+CREATE POLICY "crud-authenticated-policy-update" ON valuation_correction AS PERMISSIVE FOR UPDATE TO authenticated USING (( SELECT app.is_admin() AS is_admin)) WITH CHECK (( SELECT app.is_admin() AS is_admin));
+CREATE POLICY "crud-authenticated-policy-delete" ON valuation_correction AS PERMISSIVE FOR DELETE TO authenticated USING (( SELECT app.is_admin() AS is_admin));
+
 ALTER TABLE vehicle ENABLE ROW LEVEL SECURITY;
 ALTER TABLE vehicle FORCE ROW LEVEL SECURITY;
 CREATE POLICY "crud-authenticated-policy-select" ON vehicle AS PERMISSIVE FOR SELECT TO authenticated USING (( SELECT app.is_admin() AS is_admin));
