@@ -115,11 +115,7 @@ export const beneficiaryRouter = createTRPCRouter({
     updateMyContact: beneficiaryProcedure
         .input(
             z.object({
-                email: z
-                    .string()
-                    .email('Invalid email format')
-                    .optional()
-                    .nullable(),
+                email: z.email('Invalid email format').optional().nullable(),
                 phone: z.string().optional().nullable(),
                 streetAddress: z
                     .string()

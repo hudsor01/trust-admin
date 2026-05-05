@@ -10,7 +10,7 @@ import { z } from 'zod'
 const optionalUrl = () =>
     z.preprocess(
         (v) => (typeof v === 'string' && v.trim() === '' ? undefined : v),
-        z.string().trim().url().optional(),
+        z.string().trim().pipe(z.url()).optional(),
     )
 export const env = createEnv({
     server: {

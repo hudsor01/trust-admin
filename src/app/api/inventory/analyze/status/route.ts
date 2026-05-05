@@ -19,7 +19,7 @@ import { logger } from '@/lib/logger'
 export const maxDuration = 60
 
 const StatusQuerySchema = z.object({
-    analysisId: z.string().uuid(),
+    analysisId: z.uuid(),
 })
 
 interface StatusRunningResponse {
