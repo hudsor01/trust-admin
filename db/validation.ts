@@ -65,6 +65,26 @@ const phoneValidation = z
 /** Rejects NaN, Infinity, and scientific notation bypass (VULN-009). */
 const MAX_CURRENCY_VALUE = 999_999_999_999.99
 
+/**
+ * Required (non-nullable) money string. Anchored shape regex first — that
+ * rejects "abc", "", "1e9" (scientific notation bypass), "NaN", "Infinity",
+ * "+5", "5.", ".5", whitespace — before any parseFloat math gets a chance
+ * to hide a NaN. Magnitude bound keeps callers within the numeric(12,2)
+ * column. Use this for tRPC inputs where the field MUST have a real value;
+ * for createInsertSchema overrides on nullable columns, use
+ * positiveNumberValidation below (which adds .nullable().optional()).
+ */
+export const requiredCurrencyAmount = z
+    .string()
+    .regex(
+        /^\d+(\.\d{1,2})?$/,
+        'Must be a non-negative number with at most 2 decimal places',
+    )
+    .refine(
+        (val) => parseFloat(val) <= MAX_CURRENCY_VALUE,
+        `Must be at most ${MAX_CURRENCY_VALUE.toLocaleString()}`,
+    )
+
 const positiveNumberValidation = z
     .string()
     .refine((val) => {

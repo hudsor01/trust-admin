@@ -2,13 +2,8 @@ import { desc, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '@/db'
 import { valuationCorrection } from '@/db/schema'
+import { requiredCurrencyAmount } from '@/db/validation'
 import { adminProcedure, createTRPCRouter } from '../init'
-
-// Decimal money literal: optional sign, digits, optional decimal portion.
-// Rejects "abc", "", "1e9", "NaN" — all of which parseFloat would coerce
-// into NaN or a value that toFixed(4) stringifies as "NaN", which
-// Postgres accepts as a valid 'NaN'::numeric. We never want that row.
-const MONEY_REGEX = /^-?\d+(\.\d+)?$/
 
 export const valuationCorrectionRouter = createTRPCRouter({
     record: adminProcedure
@@ -17,8 +12,12 @@ export const valuationCorrectionRouter = createTRPCRouter({
                 entityId: z.coerce.number(),
                 itemName: z.string(),
                 category: z.string(),
-                aiEstimatedValue: z.string().regex(MONEY_REGEX),
-                correctedValue: z.string().regex(MONEY_REGEX),
+                // requiredCurrencyAmount enforces the same shape, 2-decimal,
+                // magnitude bound used by the asset DOD-value columns.
+                // Without it, parseFloat("abc") → NaN → toFixed(4) → "NaN"
+                // → Postgres accepts 'NaN'::numeric and the row goes in.
+                aiEstimatedValue: requiredCurrencyAmount,
+                correctedValue: requiredCurrencyAmount,
                 notes: z.string().optional(),
             }),
         )
@@ -27,8 +26,9 @@ export const valuationCorrectionRouter = createTRPCRouter({
             const correctedVal = parseFloat(input.correctedValue)
             // Stored for potential future trend analysis (e.g. systematic
             // over/under-valuation). Drizzle reads numeric columns as
-            // string per the codebase convention — toFixed(4) matches
-            // the column's scale.
+            // string per the codebase convention — toFixed(4) matches the
+            // column's scale. Number.isFinite belt-and-suspenders so a
+            // future schema relaxation can't silently put NaN in the DB.
             const ratio =
                 aiVal > 0 && Number.isFinite(correctedVal)
                     ? correctedVal / aiVal

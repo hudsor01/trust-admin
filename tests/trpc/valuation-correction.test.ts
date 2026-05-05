@@ -61,4 +61,44 @@ describe('valuationCorrection.record input validation', () => {
     test('rejects whitespace', async () => {
         await expectZodReject({ ...baseInput, aiEstimatedValue: ' 5.00 ' })
     })
+
+    test('rejects negatives (estate property values are non-negative)', async () => {
+        await expectZodReject({ ...baseInput, aiEstimatedValue: '-100.00' })
+    })
+
+    test('rejects more than 2 decimal places (DB column is numeric(12,2))', async () => {
+        await expectZodReject({ ...baseInput, correctedValue: '100.123' })
+    })
+
+    test('rejects values exceeding MAX_CURRENCY_VALUE', async () => {
+        // MAX is 999_999_999_999.99; one trillion blows the bound + the
+        // numeric(12,2) column.
+        await expectZodReject({
+            ...baseInput,
+            aiEstimatedValue: '1000000000000.00',
+        })
+    })
+
+    test('accepts integer form (no decimals)', async () => {
+        // Sanity: the regex permits "100" without the .XX suffix. The
+        // mutation likely throws downstream (no real DB in this suite) —
+        // but it must NOT be a BAD_REQUEST from Zod with a "decimal" message.
+        let zodRejected = false
+        try {
+            await caller.valuationCorrection.record({
+                ...baseInput,
+                aiEstimatedValue: '100',
+                correctedValue: '120',
+            })
+        } catch (err) {
+            if (
+                err instanceof TRPCError &&
+                err.code === 'BAD_REQUEST' &&
+                /decimal/i.test(err.message)
+            ) {
+                zodRejected = true
+            }
+        }
+        expect(zodRejected).toBe(false)
+    })
 })
