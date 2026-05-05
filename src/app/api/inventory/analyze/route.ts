@@ -84,9 +84,23 @@ export async function POST(
             )
         }
 
+        // Read as text and shape-check before JSON.parse. Probe traffic
+        // sometimes POSTs raw base64 image bytes (e.g. "/9j/2wBDAA…") with
+        // Content-Type: application/json — request.json() throws a
+        // SyntaxError that Sentry's auto-instrumentation captures as
+        // noise (TRUST-ADMIN-W). A trim-then-startsWith('{') gate rejects
+        // those before we ever invoke the parser, so the SyntaxError path
+        // only fires for genuine malformed-JSON-from-our-client.
+        const rawBody = await request.text()
+        if (!rawBody.trimStart().startsWith('{')) {
+            return NextResponse.json(
+                { success: false, error: 'Body must be a JSON object' },
+                { status: 400 },
+            )
+        }
         let body: unknown
         try {
-            body = await request.json()
+            body = JSON.parse(rawBody)
         } catch {
             return NextResponse.json(
                 { success: false, error: 'Invalid JSON body' },
