@@ -142,6 +142,23 @@ describe('POST /api/inventory/analyze (async kick-off)', () => {
         expect(res.status).toBe(400)
     })
 
+    test('400 on raw base64 image body (probe traffic) — short-circuits before JSON.parse', async () => {
+        // Real probe traffic from prod sends raw base64 JPEG starting "/9j/…"
+        // with Content-Type: application/json. Goal: reject WITHOUT invoking
+        // JSON.parse so the SyntaxError path doesn't get auto-captured by
+        // Sentry as TRUST-ADMIN-W noise. Body shape gate (`startsWith('{')`)
+        // does this — we get the 400 from the shape error, not the parse error.
+        const req = new Request('http://test/api/inventory/analyze', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: `/9j/2wBDAA${'A'.repeat(50)}`,
+        }) as unknown as Parameters<typeof mod.POST>[0]
+        const res = await mod.POST(req)
+        expect(res.status).toBe(400)
+        const body = (await res.json()) as { error: string }
+        expect(body.error).toBe('Body must be a JSON object')
+    })
+
     test('400 on schema validation failure (no images)', async () => {
         const res = await mod.POST(jsonRequest({ images: [] }))
         expect(res.status).toBe(400)
