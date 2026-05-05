@@ -7,6 +7,13 @@ export const metadata = {
     description: 'Submit personal property items for the trust inventory',
 }
 
+// hasInventoryAccess short-circuits on env.INVENTORY_ACCESS_CODE before
+// touching cookies(). When the env var is unset at build time, Next.js
+// observes no dynamic dependency and prerenders this page as the gate.
+// The cached HTML is then served forever (s-maxage=31536000) regardless
+// of the actual access cookie — every authenticated user sees the gate.
+export const dynamic = 'force-dynamic'
+
 export default async function InventoryFormPage() {
     const hasAccess = await hasInventoryAccess()
 
