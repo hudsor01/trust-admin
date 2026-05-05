@@ -31,12 +31,17 @@ COPY . .
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Sentry source map upload needs these at build time. Passed via
-# BuildKit secrets so tokens don't leak into image layers:
-#   docker build --secret id=sentry_auth_token,env=SENTRY_AUTH_TOKEN \
-#                --build-arg SENTRY_ORG=... --build-arg SENTRY_PROJECT=... .
+# Sentry source map upload needs these at build time. SENTRY_AUTH_TOKEN
+# is passed as a build-arg (NOT a BuildKit secret mount) because the
+# canonical build path is buildah-via-Woodpecker, and buildah doesn't
+# implement --mount=type=secret. The ARG only exists during the builder
+# stage's RUN — it doesn't carry into the runtime image.
+#   buildah build --build-arg SENTRY_ORG=... \
+#                 --build-arg SENTRY_PROJECT=... \
+#                 --build-arg SENTRY_AUTH_TOKEN=... .
 ARG SENTRY_ORG
 ARG SENTRY_PROJECT
+ARG SENTRY_AUTH_TOKEN
 ENV SENTRY_ORG=$SENTRY_ORG
 ENV SENTRY_PROJECT=$SENTRY_PROJECT
 
@@ -51,9 +56,13 @@ ENV SENTRY_PROJECT=$SENTRY_PROJECT
 #   overrides via the ExternalSecret-injected secret. Inlining (vs ENV)
 #   satisfies BuildKit's SecretsUsedInArgOrEnv lint, which flags any
 #   ENV/ARG whose name suggests it carries a secret.
-RUN --mount=type=secret,id=sentry_auth_token,env=SENTRY_AUTH_TOKEN \
+# - SENTRY_AUTH_TOKEN — withSentryConfig in next.config.ts reads it
+#   during `bun run build` to upload source maps. Inline-scoped so it
+#   doesn't bake into image layers via ENV.
+RUN \
     SKIP_ENV_VALIDATION=1 \
     NEON_AUTH_COOKIE_SECRET=ci-build-placeholder-not-used-for-real-auth-xxxxxx \
+    SENTRY_AUTH_TOKEN=$SENTRY_AUTH_TOKEN \
     bun run build
 
 # Production runtime. Platform comes from the buildx invocation (see
