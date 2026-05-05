@@ -5,8 +5,9 @@
 # db/migrations/ is not copied into the runtime.
 
 # Platform is set by the build invocation, not pinned in the Dockerfile.
-# - CI deploy.yml passes `platforms: linux/amd64` to buildx, which sets
-#   TARGETPLATFORM and produces an amd64 image for the deploy targets.
+# - The Woodpecker pipeline (.woodpecker.yml) runs buildah on the k3s
+#   worker node, which is linux/amd64 — buildah inherits the host arch
+#   and produces an amd64 image for the deploy targets.
 # - Local Apple Silicon devs who want to test the production-equivalent
 #   image must run `docker buildx build --platform linux/amd64 .`.
 # Hardcoding `--platform=linux/amd64` on FROM trips BuildKit's
@@ -65,10 +66,10 @@ RUN \
     SENTRY_AUTH_TOKEN=$SENTRY_AUTH_TOKEN \
     bun run build
 
-# Production runtime. Platform comes from the buildx invocation (see
-# the base-stage comment) — the deploy.yml passes linux/amd64, which is
-# also what next.config.ts's narrow outputFileTracingIncludes glob
-# (`sharp-linux-x64`) requires.
+# Production runtime. Platform comes from the build invocation (see the
+# base-stage comment) — buildah on the linux/amd64 k3s worker produces
+# an amd64 image, which is also what next.config.ts's narrow
+# outputFileTracingIncludes glob (`sharp-linux-x64`) requires.
 FROM node:22-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production
