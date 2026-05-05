@@ -4,6 +4,12 @@ import { db } from '@/db'
 import { valuationCorrection } from '@/db/schema'
 import { adminProcedure, createTRPCRouter } from '../init'
 
+// Decimal money literal: optional sign, digits, optional decimal portion.
+// Rejects "abc", "", "1e9", "NaN" — all of which parseFloat would coerce
+// into NaN or a value that toFixed(4) stringifies as "NaN", which
+// Postgres accepts as a valid 'NaN'::numeric. We never want that row.
+const MONEY_REGEX = /^-?\d+(\.\d+)?$/
+
 export const valuationCorrectionRouter = createTRPCRouter({
     record: adminProcedure
         .input(
@@ -11,8 +17,8 @@ export const valuationCorrectionRouter = createTRPCRouter({
                 entityId: z.coerce.number(),
                 itemName: z.string(),
                 category: z.string(),
-                aiEstimatedValue: z.string(),
-                correctedValue: z.string(),
+                aiEstimatedValue: z.string().regex(MONEY_REGEX),
+                correctedValue: z.string().regex(MONEY_REGEX),
                 notes: z.string().optional(),
             }),
         )
@@ -23,8 +29,12 @@ export const valuationCorrectionRouter = createTRPCRouter({
             // over/under-valuation). Drizzle reads numeric columns as
             // string per the codebase convention — toFixed(4) matches
             // the column's scale.
+            const ratio =
+                aiVal > 0 && Number.isFinite(correctedVal)
+                    ? correctedVal / aiVal
+                    : 1.0
             const correctionRatio = (
-                aiVal > 0 ? correctedVal / aiVal : 1.0
+                Number.isFinite(ratio) ? ratio : 1.0
             ).toFixed(4)
             await db.insert(valuationCorrection).values({
                 ...input,
