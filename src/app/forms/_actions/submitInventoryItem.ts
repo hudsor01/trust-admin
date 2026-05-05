@@ -35,7 +35,7 @@ const formSchema = z.object({
     // server uses the cached analysis as the source of truth for
     // guardrail checks — client-submitted aiReviewStatus / estimatedValue
     // / valuationRationale are NOT trusted for override decisions.
-    analysisId: z.string().uuid().optional(),
+    analysisId: z.uuid().optional(),
     aiReviewStatus: z
         .enum([
             'inventory_ready',

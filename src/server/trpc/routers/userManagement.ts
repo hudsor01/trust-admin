@@ -139,7 +139,7 @@ export const userManagementRouter = createTRPCRouter({
                 .object({
                     firstName: z.string().min(1),
                     lastName: z.string().min(1),
-                    email: z.string().email(),
+                    email: z.email(),
                     tempPassword: z.string().min(8),
                     role: z.enum(userRole.enumValues).default('beneficiary'),
                     linkToBeneficiaryId: z.coerce.number().int().optional(),
@@ -384,7 +384,7 @@ export const userManagementRouter = createTRPCRouter({
             z.object({
                 userId: z.string(),
                 name: z.string().min(1).optional(),
-                email: z.string().email().optional(),
+                email: z.email().optional(),
             }),
         )
         .mutation(async ({ input, ctx }) => {
