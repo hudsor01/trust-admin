@@ -22,13 +22,22 @@ export async function verifyAccessCode(
     const code = formData.get('accessCode')?.toString().trim().toLowerCase()
     const expectedCode = env.INVENTORY_ACCESS_CODE?.toLowerCase()
 
-    // If no access code configured, allow access (dev convenience;
-    // hasInventoryAccess fails closed in production when this is unset).
+    // No access code configured. Must mirror hasInventoryAccess in
+    // src/lib/inventory-access.ts — fail closed in production, grant in
+    // dev/test. If these two diverge (this branch granting + cookie set,
+    // hasInventoryAccess still returning false), the form re-renders the
+    // gate after every successful submit and the user infinite-loops.
     if (!expectedCode) {
+        if (env.NODE_ENV === 'production') {
+            return {
+                success: false,
+                error: 'Inventory submissions are not currently configured',
+            }
+        }
         const cookieStore = await cookies()
         cookieStore.set(ACCESS_COOKIE_NAME, ACCESS_COOKIE_VALUE, {
             httpOnly: true,
-            secure: env.NODE_ENV === 'production',
+            secure: false,
             sameSite: 'lax',
             maxAge: ACCESS_COOKIE_MAX_AGE,
         })
