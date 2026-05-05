@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod'
+import type { BetaManagedAgentsSessionEvent } from '@anthropic-ai/sdk/resources/beta/sessions/events'
 import { env } from '@/lib/env'
 import {
     type CompressedImage,
@@ -163,21 +164,27 @@ export async function fetchAgentSessionState(sessionId: string): Promise<
             toolUses: await collectToolUses(sessionId),
         }
     }
+
+    // idle or terminated → drain every event to harvest the prose AND any
+    // diagnostic signals we'll need if there's no prose to extract.
+    const payload = await collectSessionPayload(sessionId)
+    const { text, toolUses } = payload
+
     if (session.status === 'terminated') {
         return {
             status: 'failed',
-            reason: 'Managed agent session terminated',
-            toolUses: await collectToolUses(sessionId),
+            reason: buildFailureReason(
+                'Managed agent session terminated',
+                payload,
+            ),
+            toolUses,
         }
     }
 
-    // idle → agent turn complete. Drain every event, collect prose + tools,
-    // run structured extraction, archive session.
-    const { text, toolUses } = await collectSessionPayload(sessionId)
     if (!text.trim()) {
         return {
             status: 'failed',
-            reason: 'Managed agent returned no text in agent.message events',
+            reason: buildNoTextReason(payload),
             toolUses,
         }
     }
@@ -217,17 +224,54 @@ async function collectToolUses(sessionId: string): Promise<string[]> {
         { headers: { 'anthropic-beta': MANAGED_AGENTS_BETA } },
     )
     for await (const event of events) {
-        if (event.type === 'agent.tool_use') toolUses.push(event.name)
+        const label = toolUseLabel(event)
+        if (label !== null) toolUses.push(label)
     }
     return toolUses
 }
 
+// Three distinct tool-use event types in the SDK union: agent.tool_use
+// (built-in tools like web_search, code_execution), agent.mcp_tool_use
+// (e.g. the Airtable writer attached via vault credentials), and
+// agent.custom_tool_use (client-provided custom tools). MCP gets a
+// `mcp:<server>.<tool>` prefix so triage can distinguish a failing
+// MCP call from a built-in.
+function toolUseLabel(event: BetaManagedAgentsSessionEvent): string | null {
+    if (event.type === 'agent.tool_use') return event.name
+    if (event.type === 'agent.mcp_tool_use') {
+        return `mcp:${event.mcp_server_name}.${event.name}`
+    }
+    if (event.type === 'agent.custom_tool_use') return `custom:${event.name}`
+    return null
+}
+
+interface SessionPayload {
+    text: string
+    toolUses: string[]
+    agentMessageCount: number
+    errors: Array<{ type: string; message: string }>
+    lastIdleStopReason:
+        | 'end_turn'
+        | 'requires_action'
+        | 'retries_exhausted'
+        | null
+    // Count of events the agent is blocked on, captured from the most
+    // recent session.status_idle event whose stop_reason is
+    // requires_action. 0 in every other case. Surfacing it tells triage
+    // whether the agent is stuck on a single tool confirmation or many.
+    requiresActionEventCount: number
+}
+
 async function collectSessionPayload(
     sessionId: string,
-): Promise<{ text: string; toolUses: string[] }> {
+): Promise<SessionPayload> {
     const client = getClient()
     const textParts: string[] = []
     const toolUses: string[] = []
+    const errors: Array<{ type: string; message: string }> = []
+    let agentMessageCount = 0
+    let lastIdleStopReason: SessionPayload['lastIdleStopReason'] = null
+    let requiresActionEventCount = 0
     const events = await client.beta.sessions.events.list(
         sessionId,
         undefined,
@@ -235,14 +279,93 @@ async function collectSessionPayload(
     )
     for await (const event of events) {
         if (event.type === 'agent.message') {
+            agentMessageCount += 1
             for (const block of event.content) {
                 if (block.type === 'text') textParts.push(block.text)
             }
-        } else if (event.type === 'agent.tool_use') {
-            toolUses.push(event.name)
+            continue
         }
+        if (event.type === 'session.error') {
+            errors.push({
+                type: event.error.type,
+                message: event.error.message,
+            })
+            continue
+        }
+        if (event.type === 'session.status_idle') {
+            lastIdleStopReason = event.stop_reason.type
+            requiresActionEventCount =
+                event.stop_reason.type === 'requires_action'
+                    ? event.stop_reason.event_ids.length
+                    : 0
+            continue
+        }
+        const label = toolUseLabel(event)
+        if (label !== null) toolUses.push(label)
     }
-    return { text: textParts.join('\n').trim(), toolUses }
+    return {
+        text: textParts.join('\n').trim(),
+        toolUses,
+        agentMessageCount,
+        errors,
+        lastIdleStopReason,
+        requiresActionEventCount,
+    }
+}
+
+function buildFailureReason(
+    base: string,
+    { errors, lastIdleStopReason, agentMessageCount, toolUses }: SessionPayload,
+): string {
+    const parts: string[] = [base]
+    if (errors.length > 0) {
+        parts.push(
+            `errors: ${errors
+                .map((e) => `${e.type}: ${e.message}`)
+                .join('; ')}`,
+        )
+    }
+    if (lastIdleStopReason && lastIdleStopReason !== 'end_turn') {
+        parts.push(`stop_reason: ${lastIdleStopReason}`)
+    }
+    parts.push(`agent.message events: ${agentMessageCount}`)
+    parts.push(`tool uses: ${toolUses.length}`)
+    return parts.join(' | ')
+}
+
+// Surface the most actionable signal we have so the UI / Sentry breadcrumb
+// names the root cause instead of a generic "no text". Priority: explicit
+// session.error → blocking requires_action → retries_exhausted → no
+// agent.message at all → agent.message present but text blocks empty.
+function buildNoTextReason(payload: SessionPayload): string {
+    const { errors, lastIdleStopReason, agentMessageCount, toolUses } = payload
+    if (errors.length > 0) {
+        // When an error coexists with a non-end_turn stop_reason, the
+        // stop_reason tells triage whether the error was retried and
+        // ultimately terminal (retries_exhausted) or recoverable.
+        const stopSuffix =
+            lastIdleStopReason && lastIdleStopReason !== 'end_turn'
+                ? ` (stop_reason: ${lastIdleStopReason})`
+                : ''
+        return `Managed agent emitted session.error: ${errors
+            .map((e) => `${e.type}: ${e.message}`)
+            .join('; ')}${stopSuffix}`
+    }
+    if (lastIdleStopReason === 'requires_action') {
+        const blocked = payload.requiresActionEventCount
+        return `Managed agent paused waiting for user input (requires_action, blocked on ${blocked} event${
+            blocked === 1 ? '' : 's'
+        }) — no agent.message before pause. The session expects a tool_confirmation or custom_tool_result event that the inventory pipeline does not send.`
+    }
+    if (lastIdleStopReason === 'retries_exhausted') {
+        return 'Managed agent exhausted its retry budget (max_iterations hit or repeated errors). Inspect agent config or recent session.error events.'
+    }
+    if (agentMessageCount === 0) {
+        return `Managed agent finished its turn without emitting any agent.message events (${toolUses.length} tool uses observed${
+            toolUses.length > 0 ? `: ${toolUses.join(', ')}` : ''
+        }).`
+    }
+    return `Managed agent emitted ${agentMessageCount} agent.message event(s) but every text block was empty.`
 }
 
 function buildUserPrompt(imageCount: number): string {
@@ -330,6 +453,9 @@ export const _testables = {
     EXTRACTION_SYSTEM,
     sanitizeNumericFields,
     toBareDecimal,
+    buildFailureReason,
+    buildNoTextReason,
+    toolUseLabel,
 }
 
 export type { InventoryAnalysisResult }
