@@ -73,7 +73,7 @@
     "@radix-ui/react-switch": "1.2.6",
     "@radix-ui/react-tabs": "1.1.13",
     "@radix-ui/react-tooltip": "1.2.8",
-    "@sentry/nextjs": "10.51.0",
+    "@sentry/nextjs": "10.52.0",
     "@t3-oss/env-nextjs": "0.13.11",
     "@tanstack/query-sync-storage-persister": "5.100.9",
     "@tanstack/react-form": "1.29.1",
