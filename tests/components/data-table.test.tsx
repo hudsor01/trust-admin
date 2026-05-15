@@ -1,12 +1,20 @@
 /** DataTable component tests — sorting, filtering, pagination, column visibility, loading/empty states. */
 
 import '../setup'
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test'
 import type { Column, ColumnDef } from '@tanstack/react-table'
-import { act, cleanup, render, screen, within } from '@testing-library/react'
+import {
+    act,
+    cleanup,
+    fireEvent,
+    render,
+    screen,
+    within,
+} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { DataTable } from '../../src/components/ui/data-table'
 import { DataTableColumnHeader } from '../../src/components/ui/data-table-column-header'
+import * as persistence from '../../src/lib/data-table-persistence'
 import { PERSIST_DEBOUNCE_MS } from '../../src/lib/data-table-persistence'
 
 const FLUSH_MS = PERSIST_DEBOUNCE_MS + 200
@@ -534,6 +542,69 @@ describe('DataTable', () => {
             })[0]
             // Falls back to default size 150.
             expect(Number(handle?.getAttribute('aria-valuenow'))).toBe(150)
+        })
+
+        test('rapid keystrokes coalesce to a single debounced write', async () => {
+            // Spy on our own persistence module — happy-dom's Storage
+            // instance methods aren't configurable so spying on
+            // `window.localStorage.setItem` is a no-op.
+            const saveSpy = spyOn(persistence, 'saveColumnSizing')
+            try {
+                render(
+                    <DataTable
+                        columns={columns}
+                        data={testData}
+                        tableId="t-storm"
+                    />,
+                )
+                const handle = screen.getAllByRole('separator', {
+                    name: /resize name column/i,
+                })[0]
+                if (!handle) throw new Error('handle missing')
+                saveSpy.mockClear()
+                // Fire 10 synchronous keydown events. `userEvent.keyboard`
+                // awaits microtasks between presses and on slow CI can
+                // exceed the 150ms debounce, allowing the timer to fire
+                // between keystrokes (defeating what this test asserts).
+                for (let i = 0; i < 10; i++) {
+                    fireEvent.keyDown(handle, { key: 'ArrowRight' })
+                }
+                await new Promise((r) => setTimeout(r, FLUSH_MS))
+                // All 10 keystrokes must collapse to exactly one
+                // `saveColumnSizing` call — the debounce promise.
+                expect(saveSpy.mock.calls.length).toBe(1)
+            } finally {
+                saveSpy.mockRestore()
+            }
+        })
+
+        test('unmount within debounce window flushes pending write', async () => {
+            const user = userEvent.setup()
+            const { unmount } = render(
+                <DataTable
+                    columns={columns}
+                    data={testData}
+                    tableId="t-unmount"
+                />,
+            )
+            const handle = screen.getAllByRole('separator', {
+                name: /resize name column/i,
+            })[0]
+            handle?.focus()
+            await user.keyboard('{ArrowRight}')
+            const after = Number(
+                screen
+                    .getAllByRole('separator', {
+                        name: /resize name column/i,
+                    })[0]
+                    ?.getAttribute('aria-valuenow'),
+            )
+            // Unmount BEFORE the debounce flushes — the cleanup path
+            // must synchronously persist the pending payload.
+            unmount()
+            const raw = window.localStorage.getItem('dt:t-unmount:sizing')
+            expect(raw).not.toBeNull()
+            expect(JSON.parse(raw ?? 'null').name).toBe(after)
         })
 
         test('Reset column widths menu item clears persisted state and resets visible column', async () => {

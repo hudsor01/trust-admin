@@ -101,47 +101,68 @@ export function DataTable<TData, TValue>({
             startOffset: null,
             startSize: null,
         })
-    // Initialise the dedup ref once (the `if (=== undefined)` gate keeps
-    // `JSON.stringify` off the re-render hot path).
-    const lastPersisted = React.useRef<string | undefined>(undefined)
-    if (lastPersisted.current === undefined) {
-        lastPersisted.current = JSON.stringify(initialColumnSizing)
-    }
-    // When `tableId` changes (consumer swapped tables in place), reset
-    // BOTH the visible sizing state and the dedup ref so the new table
-    // doesn't inherit the prior table's widths or persist them under the
-    // new key.
+    // Dedup ref. `useRef`'s init expression evaluates every render, but
+    // its value is discarded after the first commit — running
+    // `JSON.stringify({})` on a no-op render is sub-microsecond and not
+    // worth a guard-and-conditional pattern.
+    const lastPersisted = React.useRef(JSON.stringify(initialColumnSizing))
+    // Holds the most-recent unflushed write for the unmount-flush effect.
+    // Set by the debounce timer's schedule path; cleared by its commit.
+    const pendingWrite = React.useRef<{
+        tableId: string
+        sizing: ColumnSizingState
+    } | null>(null)
+    // Reset sizing state when `tableId` actually transitions. Guarding on
+    // the previous tableId (vs. re-running on every `initialColumnSizing`
+    // identity churn) avoids the "sync prop to state" anti-pattern that
+    // could stomp in-session user resizes if React ever drops the
+    // `useMemo` cache for `initialColumnSizing`.
+    const prevTableIdRef = React.useRef(tableId)
     React.useEffect(() => {
+        if (prevTableIdRef.current === tableId) return
+        prevTableIdRef.current = tableId
         setColumnSizing(initialColumnSizing)
         lastPersisted.current = JSON.stringify(initialColumnSizing)
-    }, [initialColumnSizing])
+    }, [tableId, initialColumnSizing])
 
-    // Persist column widths per table. Two guards layered:
+    // Persist column widths per table. Three guards layered:
     // 1. Skip while a mouse/touch drag is in progress (TanStack fires one
     //    setColumnSizing per pixel under `columnResizeMode: 'onChange'`).
     // 2. Debounce so a held keyboard arrow doesn't trigger one synchronous
     //    localStorage write per repeat tick.
-    // On unmount within the debounce window, the cleanup flushes any
-    // pending write synchronously — otherwise a quick "resize → navigate"
-    // would silently drop the change.
+    // 3. Dedup against the last serialised payload so renders that don't
+    //    change sizing don't write.
+    // The cleanup ONLY clears the timer — it does NOT call
+    // `saveColumnSizing`. Cleanups run on every dep change, so writing
+    // synchronously here would defeat the debounce (every keystroke would
+    // flush the previous interim value). The unmount-flush lives in the
+    // mount-only effect below.
     React.useEffect(() => {
         if (!tableId) return
         if (columnSizingInfo.isResizingColumn) return
+        const serialized = JSON.stringify(columnSizing)
+        if (lastPersisted.current === serialized) return
+        pendingWrite.current = { tableId, sizing: columnSizing }
         const t = window.setTimeout(() => {
-            const serialized = JSON.stringify(columnSizing)
-            if (lastPersisted.current === serialized) return
             lastPersisted.current = serialized
             saveColumnSizing(tableId, columnSizing)
+            pendingWrite.current = null
         }, PERSIST_DEBOUNCE_MS)
+        return () => window.clearTimeout(t)
+    }, [tableId, columnSizing, columnSizingInfo.isResizingColumn])
+
+    // Mount-only unmount-flush. The cleanup of an effect with empty
+    // deps fires exactly once, on unmount, so a pending payload that
+    // hasn't yet flushed gets a synchronous final write here.
+    React.useEffect(() => {
         return () => {
-            window.clearTimeout(t)
-            const serialized = JSON.stringify(columnSizing)
-            if (lastPersisted.current !== serialized) {
-                lastPersisted.current = serialized
-                saveColumnSizing(tableId, columnSizing)
+            const pending = pendingWrite.current
+            if (pending) {
+                saveColumnSizing(pending.tableId, pending.sizing)
+                pendingWrite.current = null
             }
         }
-    }, [tableId, columnSizing, columnSizingInfo.isResizingColumn])
+    }, [])
 
     const table = useReactTable({
         data,

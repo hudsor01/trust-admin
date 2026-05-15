@@ -70,37 +70,49 @@ export function VirtualizedTable<T>({
             startSize: null,
         })
     const parentRef = useRef<HTMLDivElement>(null)
-    // One-time init keeps `JSON.stringify` off the re-render hot path.
-    const lastPersisted = useRef<string | undefined>(undefined)
-    if (lastPersisted.current === undefined) {
-        lastPersisted.current = JSON.stringify(initialColumnSizing)
-    }
-
-    // Reset both sizing state and dedup ref when `tableId` changes.
+    // Dedup ref. `useRef`'s init runs every render but the value is
+    // discarded after first commit; `JSON.stringify({})` is sub-microsecond.
+    const lastPersisted = useRef(JSON.stringify(initialColumnSizing))
+    // Pending unflushed write, for the unmount-flush effect.
+    const pendingWrite = useRef<{
+        tableId: string
+        sizing: ColumnSizingState
+    } | null>(null)
+    // Only reset state when `tableId` actually transitions.
+    const prevTableIdRef = useRef(tableId)
     useEffect(() => {
+        if (prevTableIdRef.current === tableId) return
+        prevTableIdRef.current = tableId
         setColumnSizing(initialColumnSizing)
         lastPersisted.current = JSON.stringify(initialColumnSizing)
-    }, [initialColumnSizing])
-    // Persist with the same drag-gate + debounce + flush-on-unmount
-    // protocol as DataTable.
+    }, [tableId, initialColumnSizing])
+
+    // Persist with debounce + drag-gate + dedup. Cleanup only clears the
+    // timer; the unmount-flush lives in the mount-only effect below.
     useEffect(() => {
         if (!tableId) return
         if (columnSizingInfo.isResizingColumn) return
+        const serialized = JSON.stringify(columnSizing)
+        if (lastPersisted.current === serialized) return
+        pendingWrite.current = { tableId, sizing: columnSizing }
         const t = window.setTimeout(() => {
-            const serialized = JSON.stringify(columnSizing)
-            if (lastPersisted.current === serialized) return
             lastPersisted.current = serialized
             saveColumnSizing(tableId, columnSizing)
+            pendingWrite.current = null
         }, PERSIST_DEBOUNCE_MS)
+        return () => window.clearTimeout(t)
+    }, [tableId, columnSizing, columnSizingInfo.isResizingColumn])
+
+    // Mount-only unmount-flush.
+    useEffect(() => {
         return () => {
-            window.clearTimeout(t)
-            const serialized = JSON.stringify(columnSizing)
-            if (lastPersisted.current !== serialized) {
-                lastPersisted.current = serialized
-                saveColumnSizing(tableId, columnSizing)
+            const pending = pendingWrite.current
+            if (pending) {
+                saveColumnSizing(pending.tableId, pending.sizing)
+                pendingWrite.current = null
             }
         }
-    }, [tableId, columnSizing, columnSizingInfo.isResizingColumn])
+    }, [])
 
     const table = useReactTable({
         data,
