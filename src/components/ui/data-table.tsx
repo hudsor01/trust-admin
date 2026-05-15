@@ -28,6 +28,8 @@ import {
     TableRow,
 } from '@/components/ui/table'
 import {
+    COLUMN_WIDTH_MAX,
+    COLUMN_WIDTH_MIN,
     loadColumnSizing,
     PERSIST_DEBOUNCE_MS,
     saveColumnSizing,
@@ -148,7 +150,16 @@ export function DataTable<TData, TValue>({
     // mount-only effect below.
     React.useEffect(() => {
         if (!tableId) return
-        if (columnSizingInfo.isResizingColumn) return
+        // During an in-progress drag, defer the debounced write until
+        // the drag finishes — TanStack fires one setColumnSizing per
+        // mousemove pixel. BUT capture the latest sizing into the
+        // pending-ref anyway, so an unmount mid-drag (rare: browser
+        // back during drag, modal close, etc.) flushes the live drag
+        // delta rather than a pre-drag snapshot.
+        if (columnSizingInfo.isResizingColumn) {
+            pendingWrite.current = { tableId, sizing: columnSizing }
+            return
+        }
         const serialized = JSON.stringify(columnSizing)
         if (lastPersisted.current === serialized) return
         pendingWrite.current = { tableId, sizing: columnSizing }
@@ -178,6 +189,14 @@ export function DataTable<TData, TValue>({
         columns,
         columnResizeMode: 'onChange',
         enableColumnResizing: true,
+        // Bound mouse-drag widths to the same [min, max] range the
+        // keyboard handler and persistence validator enforce. Without
+        // this, drag can produce values > COLUMN_WIDTH_MAX which
+        // load-time validation later silently drops.
+        defaultColumn: {
+            minSize: COLUMN_WIDTH_MIN,
+            maxSize: COLUMN_WIDTH_MAX,
+        },
         onSortingChange: setSorting,
         onColumnFiltersChange: setColumnFilters,
         onColumnSizingChange: setColumnSizing,

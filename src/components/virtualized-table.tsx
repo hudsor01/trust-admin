@@ -23,6 +23,8 @@ import {
     TableRow,
 } from '@/components/ui/table'
 import {
+    COLUMN_WIDTH_MAX,
+    COLUMN_WIDTH_MIN,
     loadColumnSizing,
     PERSIST_DEBOUNCE_MS,
     saveColumnSizing,
@@ -97,7 +99,13 @@ export function VirtualizedTable<T>({
     // timer; the unmount-flush lives in the mount-only effect below.
     useEffect(() => {
         if (!tableId) return
-        if (columnSizingInfo.isResizingColumn) return
+        if (columnSizingInfo.isResizingColumn) {
+            // Capture live drag sizing so unmount mid-drag isn't a
+            // pre-drag snapshot. The debounced write itself still waits
+            // until the drag finishes.
+            pendingWrite.current = { tableId, sizing: columnSizing }
+            return
+        }
         const serialized = JSON.stringify(columnSizing)
         if (lastPersisted.current === serialized) return
         pendingWrite.current = { tableId, sizing: columnSizing }
@@ -125,6 +133,12 @@ export function VirtualizedTable<T>({
         columns,
         columnResizeMode: 'onChange',
         enableColumnResizing: true,
+        // Mirror DataTable: clamp mouse-drag widths to the persistence
+        // validator's bounds.
+        defaultColumn: {
+            minSize: COLUMN_WIDTH_MIN,
+            maxSize: COLUMN_WIDTH_MAX,
+        },
         getCoreRowModel: getCoreRowModel(),
         getSortedRowModel: getSortedRowModel(),
         state: { sorting, columnSizing, columnSizingInfo },

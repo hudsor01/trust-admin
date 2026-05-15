@@ -20,6 +20,8 @@ interface DataTableViewOptionsProps<TData> {
 export function DataTableViewOptions<TData>({
     table,
 }: DataTableViewOptionsProps<TData>) {
+    const hasResizedColumns =
+        Object.keys(table.getState().columnSizing).length > 0
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -56,10 +58,16 @@ export function DataTableViewOptions<TData>({
                             </DropdownMenuCheckboxItem>
                         )
                     })}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={() => table.resetColumnSizing()}>
-                    Reset column widths
-                </DropdownMenuItem>
+                {hasResizedColumns && (
+                    <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                            onSelect={() => table.resetColumnSizing()}
+                        >
+                            Reset column widths
+                        </DropdownMenuItem>
+                    </>
+                )}
             </DropdownMenuContent>
         </DropdownMenu>
     )

@@ -2,8 +2,17 @@ import type { ColumnSizingState } from '@tanstack/react-table'
 
 const STORAGE_PREFIX = 'dt:'
 const STORAGE_SUFFIX = ':sizing'
-const MIN_COLUMN_WIDTH = 20
-const MAX_COLUMN_WIDTH = 2000
+
+/**
+ * Hard bounds for column width in pixels. Used in three places that
+ * must stay consistent:
+ *   - `useReactTable` `defaultColumn` config (clamps mouse-drag widths)
+ *   - `ResizeHandle` keyboard handlers (clamps arrow-key nudges)
+ *   - `loadColumnSizing` (rejects out-of-bounds persisted values)
+ * Exported so the consumer modules import from a single source of truth.
+ */
+export const COLUMN_WIDTH_MIN = 20
+export const COLUMN_WIDTH_MAX = 2000
 
 /**
  * Debounce window (ms) between the last column-sizing change and the
@@ -35,8 +44,8 @@ export function loadColumnSizing(
             if (
                 typeof v === 'number' &&
                 Number.isFinite(v) &&
-                v >= MIN_COLUMN_WIDTH &&
-                v <= MAX_COLUMN_WIDTH
+                v >= COLUMN_WIDTH_MIN &&
+                v <= COLUMN_WIDTH_MAX
             ) {
                 result[k] = v
             } else {

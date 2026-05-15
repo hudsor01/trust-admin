@@ -3,7 +3,7 @@
 import '../setup'
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import type { ColumnDef } from '@tanstack/react-table'
-import { cleanup, render, screen, within } from '@testing-library/react'
+import { act, cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { VirtualizedTable } from '../../src/components/virtualized-table'
 import { PERSIST_DEBOUNCE_MS } from '../../src/lib/data-table-persistence'
@@ -273,7 +273,9 @@ describe('VirtualizedTable', () => {
                     data={testLogs.slice(0, 5)}
                 />,
             )
-            await new Promise((r) => setTimeout(r, FLUSH_MS))
+            await act(async () => {
+                await new Promise((r) => setTimeout(r, FLUSH_MS))
+            })
             expect(window.localStorage.length).toBe(0)
         })
 
@@ -285,7 +287,9 @@ describe('VirtualizedTable', () => {
                     tableId="vt-1"
                 />,
             )
-            await new Promise((r) => setTimeout(r, FLUSH_MS))
+            await act(async () => {
+                await new Promise((r) => setTimeout(r, FLUSH_MS))
+            })
             expect(window.localStorage.getItem('dt:vt-1:sizing')).toBeNull()
         })
 
@@ -343,7 +347,9 @@ describe('VirtualizedTable', () => {
                     ?.getAttribute('aria-valuenow'),
             )
             expect(after).toBeGreaterThan(before)
-            await new Promise((r) => setTimeout(r, FLUSH_MS))
+            await act(async () => {
+                await new Promise((r) => setTimeout(r, FLUSH_MS))
+            })
             const persisted = JSON.parse(
                 window.localStorage.getItem('dt:vt-keyb:sizing') ?? '{}',
             )
@@ -376,6 +382,9 @@ describe('VirtualizedTable', () => {
                 name: /reset column widths/i,
             })
             await user.click(resetButton)
+            await act(async () => {
+                await new Promise((r) => setTimeout(r, FLUSH_MS))
+            })
 
             // Column visually reset.
             expect(
@@ -388,13 +397,15 @@ describe('VirtualizedTable', () => {
                 ),
             ).toBe(150)
             // Reset button hides again.
-            rerender(
-                <VirtualizedTable
-                    columns={columns}
-                    data={testLogs.slice(0, 5)}
-                    tableId="vt-reset"
-                />,
-            )
+            await act(async () => {
+                rerender(
+                    <VirtualizedTable
+                        columns={columns}
+                        data={testLogs.slice(0, 5)}
+                        tableId="vt-reset"
+                    />,
+                )
+            })
             expect(
                 screen.queryByRole('button', { name: /reset column widths/i }),
             ).toBeNull()

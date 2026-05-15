@@ -1,10 +1,13 @@
 'use client'
 
 import type { Header, Table as TanStackTable } from '@tanstack/react-table'
+import {
+    COLUMN_WIDTH_MAX as RESIZE_MAX,
+    COLUMN_WIDTH_MIN as RESIZE_MIN,
+} from '@/lib/data-table-persistence'
 import { cn } from '@/lib/utils'
 
-export const RESIZE_MIN = 20
-export const RESIZE_MAX = 2000
+export { RESIZE_MAX, RESIZE_MIN }
 
 /**
  * Keyboard- and pointer-driven column resize affordance.
