@@ -12,6 +12,7 @@ import {
     within,
 } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import * as React from 'react'
 import { DataTable } from '../../src/components/ui/data-table'
 import { DataTableColumnHeader } from '../../src/components/ui/data-table-column-header'
 import * as persistence from '../../src/lib/data-table-persistence'
@@ -576,6 +577,46 @@ describe('DataTable', () => {
             } finally {
                 saveSpy.mockRestore()
             }
+        })
+
+        test('tableId swap before debounce flushes preserves write under old key, not new', () => {
+            function Harness() {
+                const [tid, setTid] = React.useState('swap-a')
+                return (
+                    <>
+                        <button
+                            type="button"
+                            data-testid="swap"
+                            onClick={() => setTid('swap-b')}
+                        >
+                            swap
+                        </button>
+                        <DataTable
+                            columns={columns}
+                            data={testData}
+                            tableId={tid}
+                        />
+                    </>
+                )
+            }
+            const { unmount } = render(<Harness />)
+            const handle = screen.getAllByRole('separator', {
+                name: /resize name column/i,
+            })[0]
+            if (!handle) throw new Error('handle missing')
+            // Resize one step under tableId="swap-a".
+            fireEvent.keyDown(handle, { key: 'ArrowRight' })
+            // Swap to tableId="swap-b" BEFORE the debounce flushes.
+            fireEvent.click(screen.getByTestId('swap'))
+            // Unmount before any debounce timer for "swap-b" could fire.
+            unmount()
+            // A's resize MUST flush under A's key (transition-flush).
+            const a = window.localStorage.getItem('dt:swap-a:sizing')
+            expect(a).not.toBeNull()
+            expect(JSON.parse(a ?? '{}').name).toBeGreaterThan(150)
+            // B's storage must remain untouched (the bug we're guarding
+            // against wrote A's sizing under B's key).
+            expect(window.localStorage.getItem('dt:swap-b:sizing')).toBeNull()
         })
 
         test('unmount within debounce window flushes pending write', async () => {

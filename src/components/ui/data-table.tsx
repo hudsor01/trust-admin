@@ -112,18 +112,27 @@ export function DataTable<TData, TValue>({
         tableId: string
         sizing: ColumnSizingState
     } | null>(null)
-    // Reset sizing state when `tableId` actually transitions. Guarding on
-    // the previous tableId (vs. re-running on every `initialColumnSizing`
-    // identity churn) avoids the "sync prop to state" anti-pattern that
-    // could stomp in-session user resizes if React ever drops the
-    // `useMemo` cache for `initialColumnSizing`.
+    // Reset sizing state when `tableId` actually transitions, using the
+    // canonical React "store information from previous renders" pattern
+    // (https://react.dev/reference/react/useState#storing-information-from-previous-renders).
+    // Render-time derivation (rather than an effect) guarantees the
+    // persist effect below never sees a transitional render where
+    // `tableId` is the NEW value but `columnSizing` is still the OLD —
+    // React discards the current render output and re-renders with the
+    // reset state. Before clearing, flush any unflushed pending write
+    // under the PRIOR tableId so a "resize → swap tables" sequence
+    // doesn't silently lose the resize OR leak it under the new key.
     const prevTableIdRef = React.useRef(tableId)
-    React.useEffect(() => {
-        if (prevTableIdRef.current === tableId) return
+    if (prevTableIdRef.current !== tableId) {
+        const pending = pendingWrite.current
+        if (pending && pending.tableId === prevTableIdRef.current) {
+            saveColumnSizing(pending.tableId, pending.sizing)
+        }
         prevTableIdRef.current = tableId
         setColumnSizing(initialColumnSizing)
         lastPersisted.current = JSON.stringify(initialColumnSizing)
-    }, [tableId, initialColumnSizing])
+        pendingWrite.current = null
+    }
 
     // Persist column widths per table. Three guards layered:
     // 1. Skip while a mouse/touch drag is in progress (TanStack fires one

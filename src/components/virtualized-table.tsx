@@ -78,14 +78,20 @@ export function VirtualizedTable<T>({
         tableId: string
         sizing: ColumnSizingState
     } | null>(null)
-    // Only reset state when `tableId` actually transitions.
+    // Render-time derivation (React canonical pattern) — see DataTable
+    // for the rationale. Flush prior tableId's pending write before
+    // clearing.
     const prevTableIdRef = useRef(tableId)
-    useEffect(() => {
-        if (prevTableIdRef.current === tableId) return
+    if (prevTableIdRef.current !== tableId) {
+        const pending = pendingWrite.current
+        if (pending && pending.tableId === prevTableIdRef.current) {
+            saveColumnSizing(pending.tableId, pending.sizing)
+        }
         prevTableIdRef.current = tableId
         setColumnSizing(initialColumnSizing)
         lastPersisted.current = JSON.stringify(initialColumnSizing)
-    }, [tableId, initialColumnSizing])
+        pendingWrite.current = null
+    }
 
     // Persist with debounce + drag-gate + dedup. Cleanup only clears the
     // timer; the unmount-flush lives in the mount-only effect below.
