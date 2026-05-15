@@ -148,6 +148,7 @@ export function HemsTable({
                 </CardHeader>
                 <CardContent>
                     <DataTable
+                        tableId="hems"
                         data={hemsDistributions.slice(0, 10)}
                         columns={hemsColumns}
                         isLoading={isLoading}

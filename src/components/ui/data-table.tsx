@@ -3,6 +3,8 @@
 import {
     type ColumnDef,
     type ColumnFiltersState,
+    type ColumnSizingInfoState,
+    type ColumnSizingState,
     flexRender,
     getCoreRowModel,
     getFacetedRowModel,
@@ -25,7 +27,16 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table'
+import {
+    COLUMN_WIDTH_MAX,
+    COLUMN_WIDTH_MIN,
+    clampColumnSizing,
+    loadColumnSizing,
+    PERSIST_DEBOUNCE_MS,
+    saveColumnSizing,
+} from '@/lib/data-table-persistence'
 import { DataTablePagination } from './data-table-pagination'
+import { ResizeHandle } from './data-table-resize-handle'
 import { DataTableViewOptions } from './data-table-view-options'
 import { Input } from './input'
 import { Skeleton } from './skeleton'
@@ -42,6 +53,8 @@ interface DataTableProps<TData, TValue> {
     enablePagination?: boolean
     /** Columns hidden by default (user can toggle via column visibility menu) */
     initialColumnVisibility?: VisibilityState
+    /** When set, column widths persist to localStorage under `dt:${tableId}:sizing`. */
+    tableId?: string
     /** Rendered before the column visibility toggle. Pass a callback to
      *  receive the table instance for faceted filters / column refs. */
     toolbar?:
@@ -62,6 +75,7 @@ export function DataTable<TData, TValue>({
     enableColumnVisibility = true,
     enablePagination = true,
     initialColumnVisibility,
+    tableId,
     toolbar,
     onRowClick,
 }: DataTableProps<TData, TValue>) {
@@ -71,12 +85,134 @@ export function DataTable<TData, TValue>({
     const [columnVisibility, setColumnVisibility] =
         React.useState<VisibilityState>(initialColumnVisibility ?? {})
     const [rowSelection, setRowSelection] = React.useState({})
+    // Lazy-init both the state AND the dedup ref from the same loaded
+    // value, so the first effect run early-returns and we don't dirty
+    // localStorage with an `{}` write on every fresh mount.
+    const initialColumnSizing = React.useMemo(
+        () => loadColumnSizing(tableId),
+        [tableId],
+    )
+    const [columnSizing, setColumnSizing] = React.useState<ColumnSizingState>(
+        () => initialColumnSizing,
+    )
+    const [columnSizingInfo, setColumnSizingInfo] =
+        React.useState<ColumnSizingInfoState>({
+            columnSizingStart: [],
+            deltaOffset: null,
+            deltaPercentage: null,
+            isResizingColumn: false,
+            startOffset: null,
+            startSize: null,
+        })
+    // Dedup ref. `useRef`'s init expression evaluates every render, but
+    // its value is discarded after the first commit — running
+    // `JSON.stringify({})` on a no-op render is sub-microsecond and not
+    // worth a guard-and-conditional pattern.
+    const lastPersisted = React.useRef(JSON.stringify(initialColumnSizing))
+    // Holds the most-recent unflushed write for the unmount-flush effect.
+    // Set by the debounce timer's schedule path; cleared by its commit.
+    const pendingWrite = React.useRef<{
+        tableId: string
+        sizing: ColumnSizingState
+    } | null>(null)
+    // Reset sizing state when `tableId` actually transitions, using the
+    // canonical React "store information from previous renders" pattern
+    // (https://react.dev/reference/react/useState#storing-information-from-previous-renders).
+    // Render-time derivation (rather than an effect) guarantees the
+    // persist effect below never sees a transitional render where
+    // `tableId` is the NEW value but `columnSizing` is still the OLD —
+    // React discards the current render output and re-renders with the
+    // reset state. Before clearing, flush any unflushed pending write
+    // under the PRIOR tableId so a "resize → swap tables" sequence
+    // doesn't silently lose the resize OR leak it under the new key.
+    const prevTableIdRef = React.useRef(tableId)
+    if (prevTableIdRef.current !== tableId) {
+        const pending = pendingWrite.current
+        if (pending && pending.tableId === prevTableIdRef.current) {
+            saveColumnSizing(pending.tableId, pending.sizing)
+        }
+        prevTableIdRef.current = tableId
+        setColumnSizing(initialColumnSizing)
+        lastPersisted.current = JSON.stringify(initialColumnSizing)
+        pendingWrite.current = null
+    }
+
+    // Persist column widths per table. Three guards layered:
+    // 1. Skip while a mouse/touch drag is in progress (TanStack fires one
+    //    setColumnSizing per pixel under `columnResizeMode: 'onChange'`).
+    // 2. Debounce so a held keyboard arrow doesn't trigger one synchronous
+    //    localStorage write per repeat tick.
+    // 3. Dedup against the last serialised payload so renders that don't
+    //    change sizing don't write.
+    // The cleanup ONLY clears the timer — it does NOT call
+    // `saveColumnSizing`. Cleanups run on every dep change, so writing
+    // synchronously here would defeat the debounce (every keystroke would
+    // flush the previous interim value). The unmount-flush lives in the
+    // mount-only effect below.
+    React.useEffect(() => {
+        if (!tableId) return
+        // During an in-progress drag, defer the debounced write until
+        // the drag finishes — TanStack fires one setColumnSizing per
+        // mousemove pixel. BUT capture the latest sizing into the
+        // pending-ref anyway, so an unmount mid-drag (rare: browser
+        // back during drag, modal close, etc.) flushes the live drag
+        // delta rather than a pre-drag snapshot.
+        if (columnSizingInfo.isResizingColumn) {
+            pendingWrite.current = { tableId, sizing: columnSizing }
+            return
+        }
+        const serialized = JSON.stringify(columnSizing)
+        if (lastPersisted.current === serialized) return
+        pendingWrite.current = { tableId, sizing: columnSizing }
+        const t = window.setTimeout(() => {
+            lastPersisted.current = serialized
+            saveColumnSizing(tableId, columnSizing)
+            pendingWrite.current = null
+        }, PERSIST_DEBOUNCE_MS)
+        return () => window.clearTimeout(t)
+    }, [tableId, columnSizing, columnSizingInfo.isResizingColumn])
+
+    // Mount-only unmount-flush. The cleanup of an effect with empty
+    // deps fires exactly once, on unmount, so a pending payload that
+    // hasn't yet flushed gets a synchronous final write here.
+    React.useEffect(() => {
+        return () => {
+            const pending = pendingWrite.current
+            if (pending) {
+                saveColumnSizing(pending.tableId, pending.sizing)
+                pendingWrite.current = null
+            }
+        }
+    }, [])
 
     const table = useReactTable({
         data,
         columns,
+        columnResizeMode: 'onChange',
+        enableColumnResizing: true,
+        // Bound mouse-drag widths to the same [min, max] range the
+        // keyboard handler and persistence validator enforce. Without
+        // this, drag can produce values > COLUMN_WIDTH_MAX which
+        // load-time validation later silently drops.
+        defaultColumn: {
+            minSize: COLUMN_WIDTH_MIN,
+            maxSize: COLUMN_WIDTH_MAX,
+        },
         onSortingChange: setSorting,
         onColumnFiltersChange: setColumnFilters,
+        // Clamp at the state-write boundary. TanStack's
+        // `defaultColumn.maxSize` only clamps `getSize()` (the read);
+        // raw drag writes go straight into `columnSizing` unbounded.
+        // Without this wrap, a drag past MAX would persist out-of-range
+        // values that the load-time validator silently drops on the next
+        // mount.
+        onColumnSizingChange: (updater) =>
+            setColumnSizing((old) =>
+                clampColumnSizing(
+                    typeof updater === 'function' ? updater(old) : updater,
+                ),
+            ),
+        onColumnSizingInfoChange: setColumnSizingInfo,
         getCoreRowModel: getCoreRowModel(),
         getPaginationRowModel: enablePagination
             ? getPaginationRowModel()
@@ -92,6 +228,8 @@ export function DataTable<TData, TValue>({
             sorting,
             columnFilters,
             columnVisibility,
+            columnSizing,
+            columnSizingInfo,
             rowSelection,
         },
     })
@@ -141,6 +279,8 @@ export function DataTable<TData, TValue>({
         )
     }
 
+    const totalSize = table.getTotalSize()
+
     return (
         <div className="w-full">
             <div className="flex items-center py-4 gap-2">
@@ -162,22 +302,52 @@ export function DataTable<TData, TValue>({
                 )}
             </div>
 
-            <div className="overflow-hidden rounded-md border">
-                <Table>
+            {/* `width: 100%` + `minWidth: totalSize` keeps narrow tables flush
+                with the container while letting wide / user-resized tables
+                exceed it and engage the wrapper's horizontal scroll.
+                `tableLayout: fixed` makes per-column width hints exact. */}
+            <div className="rounded-md border overflow-x-auto">
+                <Table
+                    style={{
+                        tableLayout: 'fixed',
+                        width: '100%',
+                        minWidth: totalSize,
+                    }}
+                >
                     <TableHeader>
                         {table.getHeaderGroups().map((headerGroup) => (
                             <TableRow key={headerGroup.id}>
-                                {headerGroup.headers.map((header) => (
-                                    <TableHead key={header.id}>
-                                        {header.isPlaceholder
-                                            ? null
-                                            : flexRender(
-                                                  header.column.columnDef
-                                                      .header,
-                                                  header.getContext(),
-                                              )}
-                                    </TableHead>
-                                ))}
+                                {headerGroup.headers.map((header) => {
+                                    const canResize =
+                                        header.column.getCanResize()
+                                    return (
+                                        <TableHead
+                                            key={header.id}
+                                            colSpan={header.colSpan}
+                                            style={{
+                                                width: header.getSize(),
+                                                position: 'relative',
+                                            }}
+                                            className={
+                                                canResize ? 'pr-3' : undefined
+                                            }
+                                        >
+                                            {header.isPlaceholder
+                                                ? null
+                                                : flexRender(
+                                                      header.column.columnDef
+                                                          .header,
+                                                      header.getContext(),
+                                                  )}
+                                            {canResize && (
+                                                <ResizeHandle
+                                                    header={header}
+                                                    table={table}
+                                                />
+                                            )}
+                                        </TableHead>
+                                    )
+                                })}
                             </TableRow>
                         ))}
                     </TableHeader>
@@ -242,7 +412,13 @@ export function DataTable<TData, TValue>({
                                     }
                                 >
                                     {row.getVisibleCells().map((cell) => (
-                                        <TableCell key={cell.id}>
+                                        <TableCell
+                                            key={cell.id}
+                                            style={{
+                                                width: cell.column.getSize(),
+                                            }}
+                                            className="overflow-hidden"
+                                        >
                                             {flexRender(
                                                 cell.column.columnDef.cell,
                                                 cell.getContext(),

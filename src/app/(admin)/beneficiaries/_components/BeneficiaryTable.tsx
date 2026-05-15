@@ -285,6 +285,7 @@ export function BeneficiaryTable({
         <Card>
             <CardContent className="pt-6">
                 <DataTable
+                    tableId="beneficiaries"
                     data={beneficiaries}
                     columns={columns}
                     searchKey="firstName"

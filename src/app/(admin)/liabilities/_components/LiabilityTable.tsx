@@ -306,6 +306,7 @@ export function LiabilityTable({
             {/* Table */}
             {!bulkMode && (
                 <DataTable
+                    tableId="liabilities"
                     columns={columns}
                     data={liabilities}
                     searchKey="creditor"

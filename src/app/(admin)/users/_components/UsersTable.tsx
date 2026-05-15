@@ -71,6 +71,7 @@ export function UsersTable({
             <Card>
                 <CardContent className="pt-6">
                     <DataTable
+                        tableId="users"
                         data={tableData}
                         columns={columns}
                         searchKey="name"

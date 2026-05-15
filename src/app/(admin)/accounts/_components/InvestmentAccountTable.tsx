@@ -231,6 +231,7 @@ export function InvestmentAccountTable({
             </div>
 
             <DataTable
+                tableId="investment-accounts"
                 columns={columns}
                 data={investmentAccounts}
                 searchKey="name"

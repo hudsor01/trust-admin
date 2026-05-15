@@ -266,6 +266,7 @@ export function ActivityLogClient() {
             </div>
 
             <VirtualizedTable
+                tableId="activity-log"
                 columns={columns}
                 data={filteredLogs}
                 isLoading={isLoading}

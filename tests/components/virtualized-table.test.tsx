@@ -1,10 +1,14 @@
 /** VirtualizedTable tests — virtualized rendering for large datasets like the activity log. */
 
 import '../setup'
-import { afterEach, describe, expect, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import type { ColumnDef } from '@tanstack/react-table'
-import { cleanup, render, screen, within } from '@testing-library/react'
+import { act, cleanup, render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { VirtualizedTable } from '../../src/components/virtualized-table'
+import { PERSIST_DEBOUNCE_MS } from '../../src/lib/data-table-persistence'
+
+const FLUSH_MS = PERSIST_DEBOUNCE_MS + 200
 
 interface TestLog {
     id: number
@@ -234,6 +238,177 @@ describe('VirtualizedTable', () => {
             const table = screen.getByRole('table')
             const headerRow = within(table).getAllByRole('row')[0]
             expect(headerRow).toBeTruthy()
+        })
+    })
+
+    describe('column resizing', () => {
+        beforeEach(() => {
+            window.localStorage.clear()
+        })
+        afterEach(() => {
+            window.localStorage.clear()
+        })
+
+        test('renders a resize handle per resizable header', () => {
+            render(
+                <VirtualizedTable
+                    columns={columns}
+                    data={testLogs.slice(0, 5)}
+                />,
+            )
+            const separators = screen.getAllByRole('separator', {
+                name: /resize .* column/i,
+            })
+            expect(separators.length).toBe(columns.length)
+            for (const sep of separators) {
+                expect(sep.getAttribute('aria-orientation')).toBe('vertical')
+                expect(sep.getAttribute('tabindex')).toBe('0')
+            }
+        })
+
+        test('does not write to localStorage when tableId is absent', async () => {
+            render(
+                <VirtualizedTable
+                    columns={columns}
+                    data={testLogs.slice(0, 5)}
+                />,
+            )
+            await act(async () => {
+                await new Promise((r) => setTimeout(r, FLUSH_MS))
+            })
+            expect(window.localStorage.length).toBe(0)
+        })
+
+        test('does not write on fresh mount when sizing is empty', async () => {
+            render(
+                <VirtualizedTable
+                    columns={columns}
+                    data={testLogs.slice(0, 5)}
+                    tableId="vt-1"
+                />,
+            )
+            await act(async () => {
+                await new Promise((r) => setTimeout(r, FLUSH_MS))
+            })
+            expect(window.localStorage.getItem('dt:vt-1:sizing')).toBeNull()
+        })
+
+        test('loads persisted sizing on mount and reflects it on the handle', () => {
+            window.localStorage.setItem(
+                'dt:vt-load:sizing',
+                JSON.stringify({ action: 240 }),
+            )
+            render(
+                <VirtualizedTable
+                    columns={columns}
+                    data={testLogs.slice(0, 5)}
+                    tableId="vt-load"
+                />,
+            )
+            const handle = screen.getAllByRole('separator', {
+                name: /resize action column/i,
+            })[0]
+            expect(Number(handle?.getAttribute('aria-valuenow'))).toBe(240)
+        })
+
+        test('ignores malformed persisted sizing without throwing', () => {
+            window.localStorage.setItem('dt:vt-bad:sizing', 'not-json')
+            expect(() =>
+                render(
+                    <VirtualizedTable
+                        columns={columns}
+                        data={testLogs.slice(0, 5)}
+                        tableId="vt-bad"
+                    />,
+                ),
+            ).not.toThrow()
+        })
+
+        test('keyboard ArrowRight widens the column and persists after debounce', async () => {
+            const user = userEvent.setup()
+            render(
+                <VirtualizedTable
+                    columns={columns}
+                    data={testLogs.slice(0, 5)}
+                    tableId="vt-keyb"
+                />,
+            )
+            const handle = screen.getAllByRole('separator', {
+                name: /resize action column/i,
+            })[0]
+            const before = Number(handle?.getAttribute('aria-valuenow'))
+            handle?.focus()
+            await user.keyboard('{ArrowRight}')
+            const after = Number(
+                screen
+                    .getAllByRole('separator', {
+                        name: /resize action column/i,
+                    })[0]
+                    ?.getAttribute('aria-valuenow'),
+            )
+            expect(after).toBeGreaterThan(before)
+            await act(async () => {
+                await new Promise((r) => setTimeout(r, FLUSH_MS))
+            })
+            const persisted = JSON.parse(
+                window.localStorage.getItem('dt:vt-keyb:sizing') ?? '{}',
+            )
+            expect(persisted.action).toBe(after)
+        })
+
+        test('shows Reset column widths button only when columns have been resized', async () => {
+            const user = userEvent.setup()
+            const { rerender } = render(
+                <VirtualizedTable
+                    columns={columns}
+                    data={testLogs.slice(0, 5)}
+                    tableId="vt-reset"
+                />,
+            )
+            // Initially nothing resized: no Reset button.
+            expect(
+                screen.queryByRole('button', { name: /reset column widths/i }),
+            ).toBeNull()
+
+            // Resize a column via keyboard.
+            const handle = screen.getAllByRole('separator', {
+                name: /resize action column/i,
+            })[0]
+            handle?.focus()
+            await user.keyboard('{ArrowRight}')
+
+            // Reset button appears.
+            const resetButton = screen.getByRole('button', {
+                name: /reset column widths/i,
+            })
+            await user.click(resetButton)
+            await act(async () => {
+                await new Promise((r) => setTimeout(r, FLUSH_MS))
+            })
+
+            // Column visually reset.
+            expect(
+                Number(
+                    screen
+                        .getAllByRole('separator', {
+                            name: /resize action column/i,
+                        })[0]
+                        ?.getAttribute('aria-valuenow'),
+                ),
+            ).toBe(150)
+            // Reset button hides again.
+            await act(async () => {
+                rerender(
+                    <VirtualizedTable
+                        columns={columns}
+                        data={testLogs.slice(0, 5)}
+                        tableId="vt-reset"
+                    />,
+                )
+            })
+            expect(
+                screen.queryByRole('button', { name: /reset column widths/i }),
+            ).toBeNull()
         })
     })
 })

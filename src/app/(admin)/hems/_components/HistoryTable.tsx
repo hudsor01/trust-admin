@@ -109,6 +109,7 @@ export function HistoryTable({
             </CardHeader>
             <CardContent>
                 <DataTable
+                    tableId="hems-history"
                     data={distributions}
                     columns={historyColumns}
                     isLoading={isLoading}

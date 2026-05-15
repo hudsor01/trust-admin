@@ -109,7 +109,7 @@ describe('VehicleTable', () => {
         expect(screen.getByText('45,000 miles')).toBeTruthy()
     })
 
-    test('displays truncated VIN (last 6 chars)', () => {
+    test('displays full VIN', () => {
         const vehicle = makeVehicle({ vin: '1FTFW1ET0LKD12345' })
 
         render(
@@ -122,8 +122,7 @@ describe('VehicleTable', () => {
             />,
         )
 
-        // VIN is sliced to last 6 chars: "12345" → actually last 6 = "D12345"
-        expect(screen.getByText('D12345')).toBeTruthy()
+        expect(screen.getByText('1FTFW1ET0LKD12345')).toBeTruthy()
     })
 
     test('calls onEdit when edit button clicked', async () => {

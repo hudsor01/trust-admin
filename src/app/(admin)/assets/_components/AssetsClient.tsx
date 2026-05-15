@@ -191,6 +191,7 @@ export function AssetsClient() {
             </div>
 
             <DataTable
+                tableId="assets"
                 columns={columns}
                 data={rows}
                 isLoading={isLoading || !entityId}

@@ -104,11 +104,14 @@ export function VehicleTable({
         },
         {
             accessorKey: 'vin',
+            size: 200,
             header: ({ column }) => (
                 <DataTableColumnHeader column={column} title="VIN" />
             ),
             cell: ({ row }) => (
-                <code className="text-xs">{row.original.vin.slice(-6)}</code>
+                <div className="truncate" title={row.original.vin}>
+                    <code className="text-xs">{row.original.vin}</code>
+                </div>
             ),
         },
         {
@@ -214,6 +217,7 @@ export function VehicleTable({
 
     return (
         <DataTable
+            tableId="vehicles"
             columns={columns}
             data={vehicles}
             searchKey="name"
