@@ -1,7 +1,7 @@
 'use client'
 
 import type { Table } from '@tanstack/react-table'
-import { SlidersHorizontal } from 'lucide-react'
+import { Columns3 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
     DropdownMenu,
@@ -28,12 +28,12 @@ export function DataTableViewOptions<TData>({
                     size="sm"
                     className="ml-auto hidden h-8 lg:flex"
                 >
-                    <SlidersHorizontal className="mr-2 h-4 w-4" />
-                    View
+                    <Columns3 className="mr-2 h-4 w-4" />
+                    Columns
                 </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-[150px]">
-                <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
+            <DropdownMenuContent align="end" className="w-[180px]">
+                <DropdownMenuLabel>Visibility</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 {table
                     .getAllColumns()

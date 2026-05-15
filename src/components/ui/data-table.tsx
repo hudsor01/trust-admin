@@ -3,6 +3,7 @@
 import {
     type ColumnDef,
     type ColumnFiltersState,
+    type ColumnSizingInfoState,
     type ColumnSizingState,
     flexRender,
     getCoreRowModel,
@@ -11,6 +12,7 @@ import {
     getFilteredRowModel,
     getPaginationRowModel,
     getSortedRowModel,
+    type Header,
     type Row,
     type SortingState,
     type Table as TanStackTable,
@@ -26,10 +28,18 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table'
+import {
+    loadColumnSizing,
+    saveColumnSizing,
+} from '@/lib/data-table-persistence'
+import { cn } from '@/lib/utils'
 import { DataTablePagination } from './data-table-pagination'
 import { DataTableViewOptions } from './data-table-view-options'
 import { Input } from './input'
 import { Skeleton } from './skeleton'
+
+const RESIZE_MIN = 20
+const RESIZE_MAX = 2000
 
 interface DataTableProps<TData, TValue> {
     columns: ColumnDef<TData, TValue>[]
@@ -54,14 +64,54 @@ interface DataTableProps<TData, TValue> {
     onRowClick?: (row: TData, ctx: Row<TData>) => void
 }
 
-function loadColumnSizing(tableId: string | undefined): ColumnSizingState {
-    if (!tableId || typeof window === 'undefined') return {}
-    try {
-        const raw = window.localStorage.getItem(`dt:${tableId}:sizing`)
-        return raw ? (JSON.parse(raw) as ColumnSizingState) : {}
-    } catch {
-        return {}
+function ResizeHandle<TData, TValue>({
+    header,
+    table,
+}: {
+    header: Header<TData, TValue>
+    table: TanStackTable<TData>
+}) {
+    const currentSize = header.getSize()
+    const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+        const step = e.shiftKey ? 16 : 4
+        if (e.key === 'ArrowLeft') {
+            e.preventDefault()
+            table.setColumnSizing((old) => ({
+                ...old,
+                [header.column.id]: Math.max(RESIZE_MIN, currentSize - step),
+            }))
+        } else if (e.key === 'ArrowRight') {
+            e.preventDefault()
+            table.setColumnSizing((old) => ({
+                ...old,
+                [header.column.id]: Math.min(RESIZE_MAX, currentSize + step),
+            }))
+        } else if (e.key === 'Home' || e.key === 'Escape') {
+            e.preventDefault()
+            header.column.resetSize()
+        }
     }
+    return (
+        <div
+            role="separator"
+            aria-orientation="vertical"
+            aria-valuenow={Math.round(currentSize)}
+            aria-valuemin={RESIZE_MIN}
+            aria-valuemax={RESIZE_MAX}
+            aria-label={`Resize ${String(header.column.id)} column`}
+            tabIndex={0}
+            onMouseDown={header.getResizeHandler()}
+            onTouchStart={header.getResizeHandler()}
+            onDoubleClick={() => header.column.resetSize()}
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={onKeyDown}
+            title="Drag, double-click, or arrow keys to resize — Home/Esc to reset"
+            className={cn(
+                "absolute top-0 right-0 h-full w-px cursor-col-resize touch-none select-none bg-border/60 transition-colors before:absolute before:inset-y-0 before:-left-1.5 before:-right-1.5 before:content-[''] hover:bg-primary/60 focus-visible:bg-primary focus-visible:outline-none",
+                header.column.getIsResizing() && 'bg-primary w-0.5',
+            )}
+        />
+    )
 }
 
 export function DataTable<TData, TValue>({
@@ -88,19 +138,29 @@ export function DataTable<TData, TValue>({
     const [columnSizing, setColumnSizing] = React.useState<ColumnSizingState>(
         () => loadColumnSizing(tableId),
     )
+    const [columnSizingInfo, setColumnSizingInfo] =
+        React.useState<ColumnSizingInfoState>({
+            columnSizingStart: [],
+            deltaOffset: null,
+            deltaPercentage: null,
+            isResizingColumn: false,
+            startOffset: null,
+            startSize: null,
+        })
 
-    // Persist column widths per table. Skipped on SSR + when tableId is unset.
+    // Persist column widths per table. Only writes when a drag is NOT in
+    // progress (avoids one synchronous localStorage write per pixel of drag,
+    // which costs frames on long-row tables). A ref de-dupes identical
+    // serializations so re-renders that don't change sizing don't write.
+    const lastPersisted = React.useRef<string | null>(null)
     React.useEffect(() => {
-        if (!tableId || typeof window === 'undefined') return
-        try {
-            window.localStorage.setItem(
-                `dt:${tableId}:sizing`,
-                JSON.stringify(columnSizing),
-            )
-        } catch {
-            // ignore quota / privacy-mode failures
-        }
-    }, [tableId, columnSizing])
+        if (!tableId) return
+        if (columnSizingInfo.isResizingColumn) return
+        const serialized = JSON.stringify(columnSizing)
+        if (lastPersisted.current === serialized) return
+        lastPersisted.current = serialized
+        saveColumnSizing(tableId, columnSizing)
+    }, [tableId, columnSizing, columnSizingInfo.isResizingColumn])
 
     const table = useReactTable({
         data,
@@ -110,6 +170,7 @@ export function DataTable<TData, TValue>({
         onSortingChange: setSorting,
         onColumnFiltersChange: setColumnFilters,
         onColumnSizingChange: setColumnSizing,
+        onColumnSizingInfoChange: setColumnSizingInfo,
         getCoreRowModel: getCoreRowModel(),
         getPaginationRowModel: enablePagination
             ? getPaginationRowModel()
@@ -126,6 +187,7 @@ export function DataTable<TData, TValue>({
             columnFilters,
             columnVisibility,
             columnSizing,
+            columnSizingInfo,
             rowSelection,
         },
     })
@@ -175,6 +237,8 @@ export function DataTable<TData, TValue>({
         )
     }
 
+    const totalSize = table.getTotalSize()
+
     return (
         <div className="w-full">
             <div className="flex items-center py-4 gap-2">
@@ -196,8 +260,18 @@ export function DataTable<TData, TValue>({
                 )}
             </div>
 
-            <div className="overflow-hidden rounded-md border">
-                <Table style={{ tableLayout: 'fixed', width: '100%' }}>
+            {/* `width: 100%` + `minWidth: totalSize` keeps narrow tables flush
+                with the container while letting wide / user-resized tables
+                exceed it and engage the wrapper's horizontal scroll.
+                `tableLayout: fixed` makes per-column width hints exact. */}
+            <div className="rounded-md border">
+                <Table
+                    style={{
+                        tableLayout: 'fixed',
+                        width: '100%',
+                        minWidth: totalSize,
+                    }}
+                >
                     <TableHeader>
                         {table.getHeaderGroups().map((headerGroup) => (
                             <TableRow key={headerGroup.id}>
@@ -209,6 +283,7 @@ export function DataTable<TData, TValue>({
                                             width: header.getSize(),
                                             position: 'relative',
                                         }}
+                                        className="pr-3"
                                     >
                                         {header.isPlaceholder
                                             ? null
@@ -218,23 +293,9 @@ export function DataTable<TData, TValue>({
                                                   header.getContext(),
                                               )}
                                         {header.column.getCanResize() && (
-                                            <div
-                                                onMouseDown={header.getResizeHandler()}
-                                                onTouchStart={header.getResizeHandler()}
-                                                onDoubleClick={() =>
-                                                    header.column.resetSize()
-                                                }
-                                                onClick={(e) =>
-                                                    e.stopPropagation()
-                                                }
-                                                aria-hidden="true"
-                                                title="Drag to resize · Double-click to reset"
-                                                className={
-                                                    'absolute top-0 right-0 h-full w-1.5 cursor-col-resize touch-none select-none bg-transparent hover:bg-border ' +
-                                                    (header.column.getIsResizing()
-                                                        ? 'bg-primary'
-                                                        : '')
-                                                }
+                                            <ResizeHandle
+                                                header={header}
+                                                table={table}
                                             />
                                         )}
                                     </TableHead>

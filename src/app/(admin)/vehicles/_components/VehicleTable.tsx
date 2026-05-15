@@ -104,11 +104,17 @@ export function VehicleTable({
         },
         {
             accessorKey: 'vin',
+            size: 200,
             header: ({ column }) => (
                 <DataTableColumnHeader column={column} title="VIN" />
             ),
             cell: ({ row }) => (
-                <code className="text-xs">{row.original.vin}</code>
+                <code
+                    className="text-xs whitespace-nowrap"
+                    title={row.original.vin}
+                >
+                    {row.original.vin}
+                </code>
             ),
         },
         {
