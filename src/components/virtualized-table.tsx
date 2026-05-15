@@ -11,6 +11,7 @@ import {
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { Loader2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Button } from '@/components/ui/button'
 import { ResizeHandle } from '@/components/ui/data-table-resize-handle'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
@@ -23,10 +24,9 @@ import {
 } from '@/components/ui/table'
 import {
     loadColumnSizing,
+    PERSIST_DEBOUNCE_MS,
     saveColumnSizing,
 } from '@/lib/data-table-persistence'
-
-const PERSIST_DEBOUNCE_MS = 150
 
 export interface VirtualizedTableProps<T> {
     data: T[]
@@ -57,8 +57,9 @@ export function VirtualizedTable<T>({
         () => loadColumnSizing(tableId),
         [tableId],
     )
-    const [columnSizing, setColumnSizing] =
-        useState<ColumnSizingState>(initialColumnSizing)
+    const [columnSizing, setColumnSizing] = useState<ColumnSizingState>(
+        () => initialColumnSizing,
+    )
     const [columnSizingInfo, setColumnSizingInfo] =
         useState<ColumnSizingInfoState>({
             columnSizingStart: [],
@@ -69,11 +70,19 @@ export function VirtualizedTable<T>({
             startSize: null,
         })
     const parentRef = useRef<HTMLDivElement>(null)
-    const lastPersisted = useRef<string>(JSON.stringify(initialColumnSizing))
+    // One-time init keeps `JSON.stringify` off the re-render hot path.
+    const lastPersisted = useRef<string | undefined>(undefined)
+    if (lastPersisted.current === undefined) {
+        lastPersisted.current = JSON.stringify(initialColumnSizing)
+    }
 
+    // Reset both sizing state and dedup ref when `tableId` changes.
     useEffect(() => {
+        setColumnSizing(initialColumnSizing)
         lastPersisted.current = JSON.stringify(initialColumnSizing)
     }, [initialColumnSizing])
+    // Persist with the same drag-gate + debounce + flush-on-unmount
+    // protocol as DataTable.
     useEffect(() => {
         if (!tableId) return
         if (columnSizingInfo.isResizingColumn) return
@@ -83,7 +92,14 @@ export function VirtualizedTable<T>({
             lastPersisted.current = serialized
             saveColumnSizing(tableId, columnSizing)
         }, PERSIST_DEBOUNCE_MS)
-        return () => window.clearTimeout(t)
+        return () => {
+            window.clearTimeout(t)
+            const serialized = JSON.stringify(columnSizing)
+            if (lastPersisted.current !== serialized) {
+                lastPersisted.current = serialized
+                saveColumnSizing(tableId, columnSizing)
+            }
+        }
     }, [tableId, columnSizing, columnSizingInfo.isResizingColumn])
 
     const table = useReactTable({
@@ -158,8 +174,22 @@ export function VirtualizedTable<T>({
     // body so their columns always align under horizontal scroll. The inner
     // `<div style={{ minWidth }}>` is what actually grows wider than the
     // viewport; both tables hang off it and so share the same parent width.
+    const hasResizedColumns = Object.keys(columnSizing).length > 0
+
     return (
         <div className="space-y-4">
+            {hasResizedColumns && (
+                <div className="flex justify-end">
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => table.resetColumnSizing()}
+                    >
+                        Reset column widths
+                    </Button>
+                </div>
+            )}
             <div className="rounded-md border overflow-x-auto">
                 <div style={{ minWidth: totalSize }}>
                     <Table

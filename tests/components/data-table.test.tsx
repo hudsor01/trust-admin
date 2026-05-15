@@ -7,6 +7,9 @@ import { act, cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { DataTable } from '../../src/components/ui/data-table'
 import { DataTableColumnHeader } from '../../src/components/ui/data-table-column-header'
+import { PERSIST_DEBOUNCE_MS } from '../../src/lib/data-table-persistence'
+
+const FLUSH_MS = PERSIST_DEBOUNCE_MS + 200
 
 // Test data type
 interface TestPerson {
@@ -374,7 +377,7 @@ describe('DataTable', () => {
                 <DataTable columns={columns} data={testData} tableId="t-1" />,
             )
             // Give the debounced persist effect time to NOT fire.
-            await new Promise((r) => setTimeout(r, 250))
+            await new Promise((r) => setTimeout(r, FLUSH_MS))
             expect(window.localStorage.getItem('dt:t-1:sizing')).toBeNull()
         })
 
@@ -403,7 +406,7 @@ describe('DataTable', () => {
             )
             expect(after).toBeGreaterThan(before)
             // Persisted value reflects new size (after debounce flush).
-            await new Promise((r) => setTimeout(r, 250))
+            await new Promise((r) => setTimeout(r, FLUSH_MS))
             const persisted = JSON.parse(
                 window.localStorage.getItem('dt:t-keyb:sizing') ?? '{}',
             )
@@ -559,7 +562,7 @@ describe('DataTable', () => {
             await user.click(screen.getByRole('button', { name: /columns/i }))
             await user.click(screen.getByText('Reset column widths'))
             await act(async () => {
-                await new Promise((r) => setTimeout(r, 250))
+                await new Promise((r) => setTimeout(r, FLUSH_MS))
             })
             // Visible column reset to TanStack default.
             expect(

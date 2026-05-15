@@ -5,6 +5,13 @@ const STORAGE_SUFFIX = ':sizing'
 const MIN_COLUMN_WIDTH = 20
 const MAX_COLUMN_WIDTH = 2000
 
+/**
+ * Debounce window (ms) between the last column-sizing change and the
+ * synchronous localStorage write. Exposed so tests can compute a
+ * sufficient `setTimeout` buffer (`PERSIST_DEBOUNCE_MS + headroom`).
+ */
+export const PERSIST_DEBOUNCE_MS = 150
+
 export function columnSizingStorageKey(tableId: string): string {
     return `${STORAGE_PREFIX}${tableId}${STORAGE_SUFFIX}`
 }

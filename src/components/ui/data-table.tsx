@@ -29,6 +29,7 @@ import {
 } from '@/components/ui/table'
 import {
     loadColumnSizing,
+    PERSIST_DEBOUNCE_MS,
     saveColumnSizing,
 } from '@/lib/data-table-persistence'
 import { DataTablePagination } from './data-table-pagination'
@@ -36,8 +37,6 @@ import { ResizeHandle } from './data-table-resize-handle'
 import { DataTableViewOptions } from './data-table-view-options'
 import { Input } from './input'
 import { Skeleton } from './skeleton'
-
-const PERSIST_DEBOUNCE_MS = 150
 
 interface DataTableProps<TData, TValue> {
     columns: ColumnDef<TData, TValue>[]
@@ -90,8 +89,9 @@ export function DataTable<TData, TValue>({
         () => loadColumnSizing(tableId),
         [tableId],
     )
-    const [columnSizing, setColumnSizing] =
-        React.useState<ColumnSizingState>(initialColumnSizing)
+    const [columnSizing, setColumnSizing] = React.useState<ColumnSizingState>(
+        () => initialColumnSizing,
+    )
     const [columnSizingInfo, setColumnSizingInfo] =
         React.useState<ColumnSizingInfoState>({
             columnSizingStart: [],
@@ -101,21 +101,29 @@ export function DataTable<TData, TValue>({
             startOffset: null,
             startSize: null,
         })
+    // Initialise the dedup ref once (the `if (=== undefined)` gate keeps
+    // `JSON.stringify` off the re-render hot path).
+    const lastPersisted = React.useRef<string | undefined>(undefined)
+    if (lastPersisted.current === undefined) {
+        lastPersisted.current = JSON.stringify(initialColumnSizing)
+    }
+    // When `tableId` changes (consumer swapped tables in place), reset
+    // BOTH the visible sizing state and the dedup ref so the new table
+    // doesn't inherit the prior table's widths or persist them under the
+    // new key.
+    React.useEffect(() => {
+        setColumnSizing(initialColumnSizing)
+        lastPersisted.current = JSON.stringify(initialColumnSizing)
+    }, [initialColumnSizing])
 
     // Persist column widths per table. Two guards layered:
     // 1. Skip while a mouse/touch drag is in progress (TanStack fires one
     //    setColumnSizing per pixel under `columnResizeMode: 'onChange'`).
-    // 2. Debounce by 150ms so a held keyboard arrow doesn't trigger one
-    //    synchronous localStorage write per repeat tick.
-    // A ref dedupes identical serializations across renders. The ref is
-    // re-initialized to the loaded value on every tableId change so
-    // remounting a different table doesn't compare against stale state.
-    const lastPersisted = React.useRef<string>(
-        JSON.stringify(initialColumnSizing),
-    )
-    React.useEffect(() => {
-        lastPersisted.current = JSON.stringify(initialColumnSizing)
-    }, [initialColumnSizing])
+    // 2. Debounce so a held keyboard arrow doesn't trigger one synchronous
+    //    localStorage write per repeat tick.
+    // On unmount within the debounce window, the cleanup flushes any
+    // pending write synchronously — otherwise a quick "resize → navigate"
+    // would silently drop the change.
     React.useEffect(() => {
         if (!tableId) return
         if (columnSizingInfo.isResizingColumn) return
@@ -125,7 +133,14 @@ export function DataTable<TData, TValue>({
             lastPersisted.current = serialized
             saveColumnSizing(tableId, columnSizing)
         }, PERSIST_DEBOUNCE_MS)
-        return () => window.clearTimeout(t)
+        return () => {
+            window.clearTimeout(t)
+            const serialized = JSON.stringify(columnSizing)
+            if (lastPersisted.current !== serialized) {
+                lastPersisted.current = serialized
+                saveColumnSizing(tableId, columnSizing)
+            }
+        }
     }, [tableId, columnSizing, columnSizingInfo.isResizingColumn])
 
     const table = useReactTable({

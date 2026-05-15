@@ -1,7 +1,7 @@
 /** loadColumnSizing — strict shape validation against malformed localStorage. */
 
 import '../setup'
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test'
 import {
     columnSizingStorageKey,
     loadColumnSizing,
@@ -47,15 +47,22 @@ describe('loadColumnSizing', () => {
         expect(loadColumnSizing('arr')).toEqual({})
     })
 
-    test('drops string-typed values', () => {
+    test('drops string-typed values and warns', () => {
+        const warnSpy = spyOn(console, 'warn').mockImplementation(() => {})
         window.localStorage.setItem(
             columnSizingStorageKey('strv'),
             '{"name":"200","vin":300}',
         )
         expect(loadColumnSizing('strv')).toEqual({ vin: 300 })
+        expect(warnSpy).toHaveBeenCalledWith(
+            expect.stringContaining('strv'),
+            expect.arrayContaining(['name']),
+        )
+        warnSpy.mockRestore()
     })
 
-    test('drops NaN / Infinity / negative / out-of-bounds values', () => {
+    test('drops NaN / Infinity / negative / out-of-bounds values and warns', () => {
+        const warnSpy = spyOn(console, 'warn').mockImplementation(() => {})
         window.localStorage.setItem(
             columnSizingStorageKey('bounds'),
             JSON.stringify({
@@ -68,6 +75,11 @@ describe('loadColumnSizing', () => {
             }),
         )
         expect(loadColumnSizing('bounds')).toEqual({ d: 50, e: 2000 })
+        expect(warnSpy).toHaveBeenCalledWith(
+            expect.stringContaining('bounds'),
+            expect.arrayContaining(['a', 'b', 'c', 'f']),
+        )
+        warnSpy.mockRestore()
     })
 
     test('preserves the explicit storage key shape', () => {
