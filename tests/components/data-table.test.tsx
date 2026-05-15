@@ -592,10 +592,10 @@ describe('DataTable', () => {
             })[0]
             if (!handle) throw new Error('handle missing')
             handle.focus()
-            // Press ArrowRight enough times to drive over MAX (2000)
-            // even though each keystroke is only +4px. That gives us a
-            // realistic drag-equivalent sequence that exercises the
-            // `onColumnSizingChange` clamp boundary.
+            // Drive past MAX (2000) using Shift+ArrowRight (+16px each
+            // per the keyboard handler's `step = e.shiftKey ? 16 : 4`).
+            // 600 × 16 = 9600 target, which would overflow MAX 4.8x
+            // without the clamp — well past any reasonable boundary.
             for (let i = 0; i < 600; i++) {
                 fireEvent.keyDown(handle, {
                     key: 'ArrowRight',
