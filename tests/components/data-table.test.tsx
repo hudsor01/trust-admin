@@ -579,6 +579,49 @@ describe('DataTable', () => {
             }
         })
 
+        test('over-MAX programmatic resize is clamped on write — persistence stays lossless', async () => {
+            render(
+                <DataTable
+                    columns={columns}
+                    data={testData}
+                    tableId="t-clamp"
+                />,
+            )
+            const handle = screen.getAllByRole('separator', {
+                name: /resize name column/i,
+            })[0]
+            if (!handle) throw new Error('handle missing')
+            handle.focus()
+            // Press ArrowRight enough times to drive over MAX (2000)
+            // even though each keystroke is only +4px. That gives us a
+            // realistic drag-equivalent sequence that exercises the
+            // `onColumnSizingChange` clamp boundary.
+            for (let i = 0; i < 600; i++) {
+                fireEvent.keyDown(handle, {
+                    key: 'ArrowRight',
+                    shiftKey: true,
+                })
+            }
+            await new Promise((r) => setTimeout(r, FLUSH_MS))
+            // Visible value must be at the cap, not beyond it.
+            const valuenow = Number(
+                screen
+                    .getAllByRole('separator', {
+                        name: /resize name column/i,
+                    })[0]
+                    ?.getAttribute('aria-valuenow'),
+            )
+            expect(valuenow).toBe(2000)
+            // Persisted value must be in-range so load-time validation
+            // doesn't silently drop it on the next mount.
+            const persisted = JSON.parse(
+                window.localStorage.getItem('dt:t-clamp:sizing') ?? '{}',
+            )
+            expect(persisted.name).toBe(2000)
+            expect(persisted.name).toBeLessThanOrEqual(2000)
+            expect(persisted.name).toBeGreaterThanOrEqual(20)
+        })
+
         test('tableId swap before debounce flushes preserves write under old key, not new', () => {
             function Harness() {
                 const [tid, setTid] = React.useState('swap-a')

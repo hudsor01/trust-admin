@@ -25,6 +25,7 @@ import {
 import {
     COLUMN_WIDTH_MAX,
     COLUMN_WIDTH_MIN,
+    clampColumnSizing,
     loadColumnSizing,
     PERSIST_DEBOUNCE_MS,
     saveColumnSizing,
@@ -143,7 +144,13 @@ export function VirtualizedTable<T>({
         getSortedRowModel: getSortedRowModel(),
         state: { sorting, columnSizing, columnSizingInfo },
         onSortingChange: setSorting,
-        onColumnSizingChange: setColumnSizing,
+        // Clamp drag writes — mirrors DataTable; see its comment.
+        onColumnSizingChange: (updater) =>
+            setColumnSizing((old) =>
+                clampColumnSizing(
+                    typeof updater === 'function' ? updater(old) : updater,
+                ),
+            ),
         onColumnSizingInfoChange: setColumnSizingInfo,
     })
 

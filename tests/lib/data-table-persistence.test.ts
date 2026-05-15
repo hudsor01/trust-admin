@@ -3,6 +3,7 @@
 import '../setup'
 import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test'
 import {
+    clampColumnSizing,
     columnSizingStorageKey,
     loadColumnSizing,
     saveColumnSizing,
@@ -84,6 +85,47 @@ describe('loadColumnSizing', () => {
 
     test('preserves the explicit storage key shape', () => {
         expect(columnSizingStorageKey('vehicles')).toBe('dt:vehicles:sizing')
+    })
+})
+
+describe('clampColumnSizing', () => {
+    test('returns {} for empty input', () => {
+        expect(clampColumnSizing({})).toEqual({})
+    })
+
+    test('passes through values inside [MIN, MAX]', () => {
+        expect(clampColumnSizing({ a: 100, b: 500, c: 2000, d: 20 })).toEqual({
+            a: 100,
+            b: 500,
+            c: 2000,
+            d: 20,
+        })
+    })
+
+    test('clamps values above MAX down to MAX', () => {
+        expect(clampColumnSizing({ wide: 3300 })).toEqual({ wide: 2000 })
+    })
+
+    test('clamps values below MIN up to MIN', () => {
+        expect(clampColumnSizing({ tiny: 5 })).toEqual({ tiny: 20 })
+    })
+
+    test('clamps a mixed payload key by key', () => {
+        expect(
+            clampColumnSizing({
+                tooSmall: 0,
+                ok: 200,
+                tooBig: 9999,
+                boundaryMin: 20,
+                boundaryMax: 2000,
+            }),
+        ).toEqual({
+            tooSmall: 20,
+            ok: 200,
+            tooBig: 2000,
+            boundaryMin: 20,
+            boundaryMax: 2000,
+        })
     })
 })
 

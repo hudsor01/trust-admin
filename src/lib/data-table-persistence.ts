@@ -25,6 +25,24 @@ export function columnSizingStorageKey(tableId: string): string {
     return `${STORAGE_PREFIX}${tableId}${STORAGE_SUFFIX}`
 }
 
+/**
+ * Clamp every entry in a column-sizing state to [COLUMN_WIDTH_MIN,
+ * COLUMN_WIDTH_MAX]. Used to wrap `onColumnSizingChange` so TanStack's
+ * raw drag writes (which honor minSize/maxSize on reads only) never
+ * pollute `columnSizing` with out-of-bounds values — otherwise a drag
+ * past MAX would persist 2500+px, then load-time validation would
+ * silently drop the entry on next mount.
+ */
+export function clampColumnSizing(
+    sizing: ColumnSizingState,
+): ColumnSizingState {
+    const out: ColumnSizingState = {}
+    for (const [k, v] of Object.entries(sizing)) {
+        out[k] = Math.min(COLUMN_WIDTH_MAX, Math.max(COLUMN_WIDTH_MIN, v))
+    }
+    return out
+}
+
 export function loadColumnSizing(
     tableId: string | undefined,
 ): ColumnSizingState {

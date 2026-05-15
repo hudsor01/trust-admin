@@ -30,6 +30,7 @@ import {
 import {
     COLUMN_WIDTH_MAX,
     COLUMN_WIDTH_MIN,
+    clampColumnSizing,
     loadColumnSizing,
     PERSIST_DEBOUNCE_MS,
     saveColumnSizing,
@@ -199,7 +200,18 @@ export function DataTable<TData, TValue>({
         },
         onSortingChange: setSorting,
         onColumnFiltersChange: setColumnFilters,
-        onColumnSizingChange: setColumnSizing,
+        // Clamp at the state-write boundary. TanStack's
+        // `defaultColumn.maxSize` only clamps `getSize()` (the read);
+        // raw drag writes go straight into `columnSizing` unbounded.
+        // Without this wrap, a drag past MAX would persist out-of-range
+        // values that the load-time validator silently drops on the next
+        // mount.
+        onColumnSizingChange: (updater) =>
+            setColumnSizing((old) =>
+                clampColumnSizing(
+                    typeof updater === 'function' ? updater(old) : updater,
+                ),
+            ),
         onColumnSizingInfoChange: setColumnSizingInfo,
         getCoreRowModel: getCoreRowModel(),
         getPaginationRowModel: enablePagination
