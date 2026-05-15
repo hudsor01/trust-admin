@@ -200,6 +200,7 @@ export function RentalPropertyTable({
             <Card>
                 <CardContent className="pt-6">
                     <DataTable
+                        tableId="properties"
                         data={rentals}
                         columns={columns}
                         searchKey="name"

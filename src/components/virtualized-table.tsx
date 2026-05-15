@@ -1,5 +1,6 @@
 import {
     type ColumnDef,
+    type ColumnSizingState,
     flexRender,
     getCoreRowModel,
     getSortedRowModel,
@@ -8,7 +9,7 @@ import {
 } from '@tanstack/react-table'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { Loader2 } from 'lucide-react'
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
     Table,
@@ -28,6 +29,18 @@ export interface VirtualizedTableProps<T> {
     maxHeight?: number
     /** Rows rendered outside visible area to reduce flicker during fast scroll. */
     overscan?: number
+    /** When set, column widths persist to localStorage under `dt:${tableId}:sizing`. */
+    tableId?: string
+}
+
+function loadColumnSizing(tableId: string | undefined): ColumnSizingState {
+    if (!tableId || typeof window === 'undefined') return {}
+    try {
+        const raw = window.localStorage.getItem(`dt:${tableId}:sizing`)
+        return raw ? (JSON.parse(raw) as ColumnSizingState) : {}
+    } catch {
+        return {}
+    }
 }
 
 /** PERF: Only renders visible rows via @tanstack/react-virtual. Same ColumnDef API as DataTable. */
@@ -39,17 +52,36 @@ export function VirtualizedTable<T>({
     rowHeight = 53,
     maxHeight = 600,
     overscan = 5,
+    tableId,
 }: VirtualizedTableProps<T>) {
     const [sorting, setSorting] = useState<SortingState>([])
+    const [columnSizing, setColumnSizing] = useState<ColumnSizingState>(() =>
+        loadColumnSizing(tableId),
+    )
     const parentRef = useRef<HTMLDivElement>(null)
+
+    useEffect(() => {
+        if (!tableId || typeof window === 'undefined') return
+        try {
+            window.localStorage.setItem(
+                `dt:${tableId}:sizing`,
+                JSON.stringify(columnSizing),
+            )
+        } catch {
+            // ignore quota / privacy-mode failures
+        }
+    }, [tableId, columnSizing])
 
     const table = useReactTable({
         data,
         columns,
+        columnResizeMode: 'onChange',
+        enableColumnResizing: true,
         getCoreRowModel: getCoreRowModel(),
         getSortedRowModel: getSortedRowModel(),
-        state: { sorting },
+        state: { sorting, columnSizing },
         onSortingChange: setSorting,
+        onColumnSizingChange: setColumnSizing,
     })
 
     const { rows } = table.getRowModel()
@@ -108,12 +140,19 @@ export function VirtualizedTable<T>({
     return (
         <div className="space-y-4">
             <div className="rounded-md border">
-                <Table>
+                <Table style={{ tableLayout: 'fixed', width: '100%' }}>
                     <TableHeader>
                         {table.getHeaderGroups().map((headerGroup) => (
                             <TableRow key={headerGroup.id}>
                                 {headerGroup.headers.map((header) => (
-                                    <TableHead key={header.id}>
+                                    <TableHead
+                                        key={header.id}
+                                        colSpan={header.colSpan}
+                                        style={{
+                                            width: header.getSize(),
+                                            position: 'relative',
+                                        }}
+                                    >
                                         {header.isPlaceholder
                                             ? null
                                             : flexRender(
@@ -121,6 +160,26 @@ export function VirtualizedTable<T>({
                                                       .header,
                                                   header.getContext(),
                                               )}
+                                        {header.column.getCanResize() && (
+                                            <div
+                                                onMouseDown={header.getResizeHandler()}
+                                                onTouchStart={header.getResizeHandler()}
+                                                onDoubleClick={() =>
+                                                    header.column.resetSize()
+                                                }
+                                                onClick={(e) =>
+                                                    e.stopPropagation()
+                                                }
+                                                aria-hidden="true"
+                                                title="Drag to resize · Double-click to reset"
+                                                className={
+                                                    'absolute top-0 right-0 h-full w-1.5 cursor-col-resize touch-none select-none bg-transparent hover:bg-border ' +
+                                                    (header.column.getIsResizing()
+                                                        ? 'bg-primary'
+                                                        : '')
+                                                }
+                                            />
+                                        )}
                                     </TableHead>
                                 ))}
                             </TableRow>
@@ -155,7 +214,12 @@ export function VirtualizedTable<T>({
                                         transform: `translateY(${virtualRow.start}px)`,
                                     }}
                                 >
-                                    <Table>
+                                    <Table
+                                        style={{
+                                            tableLayout: 'fixed',
+                                            width: '100%',
+                                        }}
+                                    >
                                         <TableBody>
                                             <TableRow>
                                                 {row
@@ -163,6 +227,10 @@ export function VirtualizedTable<T>({
                                                     .map((cell) => (
                                                         <TableCell
                                                             key={cell.id}
+                                                            style={{
+                                                                width: cell.column.getSize(),
+                                                            }}
+                                                            className="overflow-hidden"
                                                         >
                                                             {flexRender(
                                                                 cell.column

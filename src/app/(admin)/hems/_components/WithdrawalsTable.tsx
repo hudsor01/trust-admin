@@ -204,6 +204,7 @@ export function WithdrawalsTable({
             </CardHeader>
             <CardContent>
                 <DataTable
+                    tableId="hems-withdrawals"
                     data={grandchildrenWithdrawals}
                     columns={withdrawalColumns}
                     isLoading={isLoading}

@@ -392,6 +392,7 @@ export function HemsQueueClient() {
                         </Card>
                     ) : (
                         <DataTable
+                            tableId="hems-queue"
                             data={displayedRequests}
                             columns={columns}
                             searchKey="category"

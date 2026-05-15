@@ -3,6 +3,7 @@
 import {
     type ColumnDef,
     type ColumnFiltersState,
+    type ColumnSizingState,
     flexRender,
     getCoreRowModel,
     getFacetedRowModel,
@@ -42,6 +43,8 @@ interface DataTableProps<TData, TValue> {
     enablePagination?: boolean
     /** Columns hidden by default (user can toggle via column visibility menu) */
     initialColumnVisibility?: VisibilityState
+    /** When set, column widths persist to localStorage under `dt:${tableId}:sizing`. */
+    tableId?: string
     /** Rendered before the column visibility toggle. Pass a callback to
      *  receive the table instance for faceted filters / column refs. */
     toolbar?:
@@ -49,6 +52,16 @@ interface DataTableProps<TData, TValue> {
         | ((table: TanStackTable<TData>) => React.ReactNode)
     /** Click handler for table body rows. Wires up cursor: pointer when set. */
     onRowClick?: (row: TData, ctx: Row<TData>) => void
+}
+
+function loadColumnSizing(tableId: string | undefined): ColumnSizingState {
+    if (!tableId || typeof window === 'undefined') return {}
+    try {
+        const raw = window.localStorage.getItem(`dt:${tableId}:sizing`)
+        return raw ? (JSON.parse(raw) as ColumnSizingState) : {}
+    } catch {
+        return {}
+    }
 }
 
 export function DataTable<TData, TValue>({
@@ -62,6 +75,7 @@ export function DataTable<TData, TValue>({
     enableColumnVisibility = true,
     enablePagination = true,
     initialColumnVisibility,
+    tableId,
     toolbar,
     onRowClick,
 }: DataTableProps<TData, TValue>) {
@@ -71,12 +85,31 @@ export function DataTable<TData, TValue>({
     const [columnVisibility, setColumnVisibility] =
         React.useState<VisibilityState>(initialColumnVisibility ?? {})
     const [rowSelection, setRowSelection] = React.useState({})
+    const [columnSizing, setColumnSizing] = React.useState<ColumnSizingState>(
+        () => loadColumnSizing(tableId),
+    )
+
+    // Persist column widths per table. Skipped on SSR + when tableId is unset.
+    React.useEffect(() => {
+        if (!tableId || typeof window === 'undefined') return
+        try {
+            window.localStorage.setItem(
+                `dt:${tableId}:sizing`,
+                JSON.stringify(columnSizing),
+            )
+        } catch {
+            // ignore quota / privacy-mode failures
+        }
+    }, [tableId, columnSizing])
 
     const table = useReactTable({
         data,
         columns,
+        columnResizeMode: 'onChange',
+        enableColumnResizing: true,
         onSortingChange: setSorting,
         onColumnFiltersChange: setColumnFilters,
+        onColumnSizingChange: setColumnSizing,
         getCoreRowModel: getCoreRowModel(),
         getPaginationRowModel: enablePagination
             ? getPaginationRowModel()
@@ -92,6 +125,7 @@ export function DataTable<TData, TValue>({
             sorting,
             columnFilters,
             columnVisibility,
+            columnSizing,
             rowSelection,
         },
     })
@@ -163,12 +197,19 @@ export function DataTable<TData, TValue>({
             </div>
 
             <div className="overflow-hidden rounded-md border">
-                <Table>
+                <Table style={{ tableLayout: 'fixed', width: '100%' }}>
                     <TableHeader>
                         {table.getHeaderGroups().map((headerGroup) => (
                             <TableRow key={headerGroup.id}>
                                 {headerGroup.headers.map((header) => (
-                                    <TableHead key={header.id}>
+                                    <TableHead
+                                        key={header.id}
+                                        colSpan={header.colSpan}
+                                        style={{
+                                            width: header.getSize(),
+                                            position: 'relative',
+                                        }}
+                                    >
                                         {header.isPlaceholder
                                             ? null
                                             : flexRender(
@@ -176,6 +217,26 @@ export function DataTable<TData, TValue>({
                                                       .header,
                                                   header.getContext(),
                                               )}
+                                        {header.column.getCanResize() && (
+                                            <div
+                                                onMouseDown={header.getResizeHandler()}
+                                                onTouchStart={header.getResizeHandler()}
+                                                onDoubleClick={() =>
+                                                    header.column.resetSize()
+                                                }
+                                                onClick={(e) =>
+                                                    e.stopPropagation()
+                                                }
+                                                aria-hidden="true"
+                                                title="Drag to resize · Double-click to reset"
+                                                className={
+                                                    'absolute top-0 right-0 h-full w-1.5 cursor-col-resize touch-none select-none bg-transparent hover:bg-border ' +
+                                                    (header.column.getIsResizing()
+                                                        ? 'bg-primary'
+                                                        : '')
+                                                }
+                                            />
+                                        )}
                                     </TableHead>
                                 ))}
                             </TableRow>
@@ -242,7 +303,13 @@ export function DataTable<TData, TValue>({
                                     }
                                 >
                                     {row.getVisibleCells().map((cell) => (
-                                        <TableCell key={cell.id}>
+                                        <TableCell
+                                            key={cell.id}
+                                            style={{
+                                                width: cell.column.getSize(),
+                                            }}
+                                            className="overflow-hidden"
+                                        >
                                             {flexRender(
                                                 cell.column.columnDef.cell,
                                                 cell.getContext(),

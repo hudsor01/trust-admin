@@ -206,6 +206,7 @@ export function InsuranceTable({
 
     return (
         <DataTable
+            tableId="insurance"
             columns={columns}
             data={policies}
             searchKey="name"

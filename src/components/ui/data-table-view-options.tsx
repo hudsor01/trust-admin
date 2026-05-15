@@ -7,6 +7,7 @@ import {
     DropdownMenu,
     DropdownMenuCheckboxItem,
     DropdownMenuContent,
+    DropdownMenuItem,
     DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
@@ -55,6 +56,10 @@ export function DataTableViewOptions<TData>({
                             </DropdownMenuCheckboxItem>
                         )
                     })}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => table.resetColumnSizing()}>
+                    Reset column widths
+                </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
     )

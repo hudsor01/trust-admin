@@ -189,6 +189,7 @@ export function PersonalPropertyTable({
 
     return (
         <DataTable
+            tableId="personal-property"
             columns={columns}
             data={items}
             searchKey="name"

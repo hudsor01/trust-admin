@@ -113,6 +113,7 @@ export function WithdrawalsPanel({ withdrawalData }: WithdrawalsPanelProps) {
             </div>
 
             <DataTable
+                tableId="dashboard-withdrawals"
                 data={withdrawalData}
                 columns={withdrawalColumns}
                 emptyMessage="No grandchild beneficiaries with withdrawal schedules found."

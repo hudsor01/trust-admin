@@ -238,6 +238,7 @@ export function AccountingTable({
                 <TabsContent value={activeTab} className="m-0">
                     <CardContent className="pt-4">
                         <DataTable
+                            tableId="accounting"
                             columns={accountingColumns}
                             data={data}
                             searchKey="description"
