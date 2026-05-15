@@ -5,14 +5,13 @@ import {
     flexRender,
     getCoreRowModel,
     getSortedRowModel,
-    type Header,
     type SortingState,
-    type Table as TanStackTable,
     useReactTable,
 } from '@tanstack/react-table'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { Loader2 } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { ResizeHandle } from '@/components/ui/data-table-resize-handle'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
     Table,
@@ -26,10 +25,8 @@ import {
     loadColumnSizing,
     saveColumnSizing,
 } from '@/lib/data-table-persistence'
-import { cn } from '@/lib/utils'
 
-const RESIZE_MIN = 20
-const RESIZE_MAX = 2000
+const PERSIST_DEBOUNCE_MS = 150
 
 export interface VirtualizedTableProps<T> {
     data: T[]
@@ -44,56 +41,6 @@ export interface VirtualizedTableProps<T> {
     tableId?: string
 }
 
-function ResizeHandle<T>({
-    header,
-    table,
-}: {
-    header: Header<T, unknown>
-    table: TanStackTable<T>
-}) {
-    const currentSize = header.getSize()
-    const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-        const step = e.shiftKey ? 16 : 4
-        if (e.key === 'ArrowLeft') {
-            e.preventDefault()
-            table.setColumnSizing((old) => ({
-                ...old,
-                [header.column.id]: Math.max(RESIZE_MIN, currentSize - step),
-            }))
-        } else if (e.key === 'ArrowRight') {
-            e.preventDefault()
-            table.setColumnSizing((old) => ({
-                ...old,
-                [header.column.id]: Math.min(RESIZE_MAX, currentSize + step),
-            }))
-        } else if (e.key === 'Home' || e.key === 'Escape') {
-            e.preventDefault()
-            header.column.resetSize()
-        }
-    }
-    return (
-        <div
-            role="separator"
-            aria-orientation="vertical"
-            aria-valuenow={Math.round(currentSize)}
-            aria-valuemin={RESIZE_MIN}
-            aria-valuemax={RESIZE_MAX}
-            aria-label={`Resize ${String(header.column.id)} column`}
-            tabIndex={0}
-            onMouseDown={header.getResizeHandler()}
-            onTouchStart={header.getResizeHandler()}
-            onDoubleClick={() => header.column.resetSize()}
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={onKeyDown}
-            title="Drag, double-click, or arrow keys to resize — Home/Esc to reset"
-            className={cn(
-                "absolute top-0 right-0 h-full w-px cursor-col-resize touch-none select-none bg-border/60 transition-colors before:absolute before:inset-y-0 before:-left-1.5 before:-right-1.5 before:content-[''] hover:bg-primary/60 focus-visible:bg-primary focus-visible:outline-none",
-                header.column.getIsResizing() && 'bg-primary w-0.5',
-            )}
-        />
-    )
-}
-
 /** PERF: Only renders visible rows via @tanstack/react-virtual. Same ColumnDef API as DataTable. */
 export function VirtualizedTable<T>({
     data,
@@ -106,9 +53,12 @@ export function VirtualizedTable<T>({
     tableId,
 }: VirtualizedTableProps<T>) {
     const [sorting, setSorting] = useState<SortingState>([])
-    const [columnSizing, setColumnSizing] = useState<ColumnSizingState>(() =>
-        loadColumnSizing(tableId),
+    const initialColumnSizing = useMemo(
+        () => loadColumnSizing(tableId),
+        [tableId],
     )
+    const [columnSizing, setColumnSizing] =
+        useState<ColumnSizingState>(initialColumnSizing)
     const [columnSizingInfo, setColumnSizingInfo] =
         useState<ColumnSizingInfoState>({
             columnSizingStart: [],
@@ -119,15 +69,21 @@ export function VirtualizedTable<T>({
             startSize: null,
         })
     const parentRef = useRef<HTMLDivElement>(null)
-    const lastPersisted = useRef<string | null>(null)
+    const lastPersisted = useRef<string>(JSON.stringify(initialColumnSizing))
 
+    useEffect(() => {
+        lastPersisted.current = JSON.stringify(initialColumnSizing)
+    }, [initialColumnSizing])
     useEffect(() => {
         if (!tableId) return
         if (columnSizingInfo.isResizingColumn) return
-        const serialized = JSON.stringify(columnSizing)
-        if (lastPersisted.current === serialized) return
-        lastPersisted.current = serialized
-        saveColumnSizing(tableId, columnSizing)
+        const t = window.setTimeout(() => {
+            const serialized = JSON.stringify(columnSizing)
+            if (lastPersisted.current === serialized) return
+            lastPersisted.current = serialized
+            saveColumnSizing(tableId, columnSizing)
+        }, PERSIST_DEBOUNCE_MS)
+        return () => window.clearTimeout(t)
     }, [tableId, columnSizing, columnSizingInfo.isResizingColumn])
 
     const table = useReactTable({
@@ -215,31 +171,39 @@ export function VirtualizedTable<T>({
                         <TableHeader>
                             {table.getHeaderGroups().map((headerGroup) => (
                                 <TableRow key={headerGroup.id}>
-                                    {headerGroup.headers.map((header) => (
-                                        <TableHead
-                                            key={header.id}
-                                            colSpan={header.colSpan}
-                                            style={{
-                                                width: header.getSize(),
-                                                position: 'relative',
-                                            }}
-                                            className="pr-3"
-                                        >
-                                            {header.isPlaceholder
-                                                ? null
-                                                : flexRender(
-                                                      header.column.columnDef
-                                                          .header,
-                                                      header.getContext(),
-                                                  )}
-                                            {header.column.getCanResize() && (
-                                                <ResizeHandle
-                                                    header={header}
-                                                    table={table}
-                                                />
-                                            )}
-                                        </TableHead>
-                                    ))}
+                                    {headerGroup.headers.map((header) => {
+                                        const canResize =
+                                            header.column.getCanResize()
+                                        return (
+                                            <TableHead
+                                                key={header.id}
+                                                colSpan={header.colSpan}
+                                                style={{
+                                                    width: header.getSize(),
+                                                    position: 'relative',
+                                                }}
+                                                className={
+                                                    canResize
+                                                        ? 'pr-3'
+                                                        : undefined
+                                                }
+                                            >
+                                                {header.isPlaceholder
+                                                    ? null
+                                                    : flexRender(
+                                                          header.column
+                                                              .columnDef.header,
+                                                          header.getContext(),
+                                                      )}
+                                                {canResize && (
+                                                    <ResizeHandle
+                                                        header={header}
+                                                        table={table}
+                                                    />
+                                                )}
+                                            </TableHead>
+                                        )
+                                    })}
                                 </TableRow>
                             ))}
                         </TableHeader>

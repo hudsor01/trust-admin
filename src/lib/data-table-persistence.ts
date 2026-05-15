@@ -21,6 +21,7 @@ export function loadColumnSizing(
             return {}
         }
         const result: ColumnSizingState = {}
+        const dropped: string[] = []
         for (const [k, v] of Object.entries(
             parsed as Record<string, unknown>,
         )) {
@@ -31,7 +32,15 @@ export function loadColumnSizing(
                 v <= MAX_COLUMN_WIDTH
             ) {
                 result[k] = v
+            } else {
+                dropped.push(k)
             }
+        }
+        if (dropped.length > 0) {
+            console.warn(
+                `[data-table] Dropped invalid column sizing for table "${tableId}":`,
+                dropped,
+            )
         }
         return result
     } catch {

@@ -367,16 +367,15 @@ describe('DataTable', () => {
             expect(window.localStorage.length).toBe(0)
         })
 
-        test('writes current sizing under the tableId localStorage key on mount', async () => {
+        test('does not write to localStorage on fresh mount when sizing is empty', async () => {
+            // First-time mount with no prior data and no user resize should
+            // NOT pollute localStorage with `{}`.
             render(
                 <DataTable columns={columns} data={testData} tableId="t-1" />,
             )
-            // The persist effect runs on mount with the current (empty) state.
-            // We assert the key is written and the value is the canonical shape.
-            await Promise.resolve()
-            const raw = window.localStorage.getItem('dt:t-1:sizing')
-            expect(raw).not.toBeNull()
-            expect(JSON.parse(raw ?? 'null')).toEqual({})
+            // Give the debounced persist effect time to NOT fire.
+            await new Promise((r) => setTimeout(r, 250))
+            expect(window.localStorage.getItem('dt:t-1:sizing')).toBeNull()
         })
 
         test('keyboard ArrowRight on resize handle widens the column and persists', async () => {
@@ -403,12 +402,65 @@ describe('DataTable', () => {
                     ?.getAttribute('aria-valuenow'),
             )
             expect(after).toBeGreaterThan(before)
-            // Persisted value reflects new size.
-            await Promise.resolve()
+            // Persisted value reflects new size (after debounce flush).
+            await new Promise((r) => setTimeout(r, 250))
             const persisted = JSON.parse(
                 window.localStorage.getItem('dt:t-keyb:sizing') ?? '{}',
             )
             expect(persisted.name).toBe(after)
+        })
+
+        test('keyboard ArrowLeft on resize handle narrows the column', async () => {
+            const user = userEvent.setup()
+            render(
+                <DataTable
+                    columns={columns}
+                    data={testData}
+                    tableId="t-left"
+                />,
+            )
+            const handle = screen.getAllByRole('separator', {
+                name: /resize name column/i,
+            })[0]
+            const before = Number(handle?.getAttribute('aria-valuenow'))
+            handle?.focus()
+            await user.keyboard('{ArrowLeft}')
+            const after = Number(
+                screen
+                    .getAllByRole('separator', {
+                        name: /resize name column/i,
+                    })[0]
+                    ?.getAttribute('aria-valuenow'),
+            )
+            expect(after).toBeLessThan(before)
+        })
+
+        test('Escape on resize handle does NOT reset (would bubble to dialog dismiss)', async () => {
+            const user = userEvent.setup()
+            render(<DataTable columns={columns} data={testData} />)
+            const handle = screen.getAllByRole('separator', {
+                name: /resize name column/i,
+            })[0]
+            handle?.focus()
+            await user.keyboard('{ArrowRight>3/}')
+            const widened = Number(
+                screen
+                    .getAllByRole('separator', {
+                        name: /resize name column/i,
+                    })[0]
+                    ?.getAttribute('aria-valuenow'),
+            )
+            expect(widened).toBeGreaterThan(150)
+            await user.keyboard('{Escape}')
+            const afterEscape = Number(
+                screen
+                    .getAllByRole('separator', {
+                        name: /resize name column/i,
+                    })[0]
+                    ?.getAttribute('aria-valuenow'),
+            )
+            // Escape is intentionally unbound — column stays widened.
+            expect(afterEscape).toBe(widened)
         })
 
         test('keyboard Home on resize handle resets the column size', async () => {
@@ -481,7 +533,7 @@ describe('DataTable', () => {
             expect(Number(handle?.getAttribute('aria-valuenow'))).toBe(150)
         })
 
-        test('Reset column widths menu item clears persisted state', async () => {
+        test('Reset column widths menu item clears persisted state and resets visible column', async () => {
             const user = userEvent.setup()
             window.localStorage.setItem(
                 'dt:t-mreset:sizing',
@@ -494,11 +546,32 @@ describe('DataTable', () => {
                     tableId="t-mreset"
                 />,
             )
+            // Persisted size hydrates into the handle on mount.
+            expect(
+                Number(
+                    screen
+                        .getAllByRole('separator', {
+                            name: /resize name column/i,
+                        })[0]
+                        ?.getAttribute('aria-valuenow'),
+                ),
+            ).toBe(300)
             await user.click(screen.getByRole('button', { name: /columns/i }))
             await user.click(screen.getByText('Reset column widths'))
             await act(async () => {
-                await Promise.resolve()
+                await new Promise((r) => setTimeout(r, 250))
             })
+            // Visible column reset to TanStack default.
+            expect(
+                Number(
+                    screen
+                        .getAllByRole('separator', {
+                            name: /resize name column/i,
+                        })[0]
+                        ?.getAttribute('aria-valuenow'),
+                ),
+            ).toBe(150)
+            // Persisted state cleared.
             expect(
                 JSON.parse(
                     window.localStorage.getItem('dt:t-mreset:sizing') ?? '{}',

@@ -109,12 +109,9 @@ export function VehicleTable({
                 <DataTableColumnHeader column={column} title="VIN" />
             ),
             cell: ({ row }) => (
-                <code
-                    className="text-xs whitespace-nowrap"
-                    title={row.original.vin}
-                >
-                    {row.original.vin}
-                </code>
+                <div className="truncate" title={row.original.vin}>
+                    <code className="text-xs">{row.original.vin}</code>
+                </div>
             ),
         },
         {
