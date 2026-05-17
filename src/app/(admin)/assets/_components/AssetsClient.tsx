@@ -9,8 +9,10 @@ import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import { DataTableFacetedFilter } from '@/components/ui/data-table-faceted-filter'
 import { STATUS_VARIANTS } from '@/lib/constants'
 import { trpc } from '@/lib/trpc'
-import type { AssetKind, AssetRow } from '@/server/trpc/routers/asset'
+import type { AssetRow } from '@/server/trpc/routers/asset'
 import { formatCurrency } from '@/utils/formatters'
+import { KIND_LABELS } from './_labels'
+import { ExportAssetsButton } from './ExportAssetsButton'
 
 const includesArrayFilter = <T,>(
     row: { getValue: (id: string) => T },
@@ -20,18 +22,6 @@ const includesArrayFilter = <T,>(
     Array.isArray(value) && value.length > 0
         ? value.includes(row.getValue(id))
         : true
-
-// Display labels for the AssetKind discriminator. The same values that
-// asset.listAll emits, mapped to friendly strings for the Type filter.
-const KIND_LABELS: Record<AssetKind, string> = {
-    vehicle: 'Vehicle',
-    homestead: 'Homestead',
-    rentalProperty: 'Rental Property',
-    bankAccount: 'Bank Account',
-    investmentAccount: 'Investment',
-    personalProperty: 'Personal Property',
-    insurancePolicy: 'Insurance',
-}
 
 export function AssetsClient() {
     const router = useRouter()
@@ -216,6 +206,7 @@ export function AssetsClient() {
                             title="Status"
                             options={statusOptions}
                         />
+                        <ExportAssetsButton table={table} />
                     </>
                 )}
             />
