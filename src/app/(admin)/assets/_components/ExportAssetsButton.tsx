@@ -50,7 +50,7 @@ export function ExportAssetsButton({ table }: { table: Table<AssetRow> }) {
             onClick={() => {
                 const today = new Date().toISOString().slice(0, 10)
                 exportRowsToCsv(
-                    HEADERS as unknown as string[],
+                    HEADERS,
                     rows.map((r) => toRow(r.original)),
                     `hudson-trust-assets-${today}.csv`,
                 )

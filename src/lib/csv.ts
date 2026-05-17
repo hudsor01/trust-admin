@@ -133,7 +133,7 @@ function coerceCell(value: unknown): string {
  * can be unit-tested without a browser shim.
  */
 export function buildCsvText(
-    headers: string[],
+    headers: readonly string[],
     rows: ReadonlyArray<ReadonlyArray<unknown>>,
 ): string {
     const allRows: string[][] = [
@@ -150,7 +150,7 @@ export function buildCsvText(
  * injection. For DOM-table scrapes, see `exportTablesInContainer`.
  */
 export function exportRowsToCsv(
-    headers: string[],
+    headers: readonly string[],
     rows: ReadonlyArray<ReadonlyArray<unknown>>,
     filename: string,
 ): void {
