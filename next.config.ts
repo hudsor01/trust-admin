@@ -51,7 +51,6 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 const nextConfig: NextConfig = {
-    output: 'standalone',
     reactStrictMode: true,
 
     // Don't leak "x-powered-by: Next.js" on every response.
