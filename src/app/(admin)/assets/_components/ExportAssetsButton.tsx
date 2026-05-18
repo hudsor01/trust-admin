@@ -2,6 +2,7 @@
 
 import type { Table } from '@tanstack/react-table'
 import { Download } from 'lucide-react'
+import { useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { exportRowsToCsv } from '@/lib/csv'
 import type { AssetRow } from '@/server/trpc/routers/asset'
@@ -45,25 +46,23 @@ function todayLocalIso(): string {
 }
 
 export function ExportAssetsButton({ table }: { table: Table<AssetRow> }) {
-    // Explicit reads of state slices so React reconciler treats this
-    // render as state-dependent. Without these reads, browser-tested
-    // observation has shown the `disabled` prop staying false on a
-    // filter-narrowed-to-zero state — even though the table body
-    // correctly shows the empty state and the click-time read returns
-    // zero rows. The pattern is a TanStack memo-ordering edge case
-    // where the row-model cache is stale at render time but fresh by
-    // click time. Reading these state slices forces a recompute on
-    // every render whose state changed.
-    const state = table.getState()
-    void state.columnFilters
-    void state.globalFilter
-    void state.sorting
-
-    // Use `getFilteredRowModel` (filter only, no sort cache layer) for
-    // the disabled check — it's the row count that semantically drives
-    // disabled state, and going through fewer memo layers reduces the
-    // window where the cache can be stale relative to current state.
-    const filteredRowCount = table.getFilteredRowModel().rows.length
+    // Destructure the state slices the disabled prop depends on. Browser-
+    // tested observation: when the filter narrowed the table to zero rows,
+    // the table body correctly showed the empty state and the click-time
+    // row-model read returned zero, but the render-time read returned a
+    // stale non-zero count — leaving `disabled` false. The pattern is a
+    // TanStack v8 memo-ordering edge case where the row-model getter
+    // returns a cached value tied to the prior render's state. Driving
+    // the disabled count through a useMemo whose deps are explicit state
+    // slices forces a recompute on every render where filter/sort state
+    // changed, sidestepping the stale-cache window. `getFilteredRowModel`
+    // is preferred over `getSortedRowModel` here — fewer memo layers
+    // between state and row count.
+    const { columnFilters, globalFilter, sorting } = table.getState()
+    const filteredRowCount = useMemo(
+        () => table.getFilteredRowModel().rows.length,
+        [table, columnFilters, globalFilter, sorting],
+    )
     const disabled = filteredRowCount === 0
 
     return (

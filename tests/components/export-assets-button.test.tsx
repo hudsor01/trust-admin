@@ -308,6 +308,15 @@ describe('ExportAssetsButton', () => {
     // production failed. This test bypasses the settle-between-renders
     // contract by driving `setFilterValue` directly and asserting state
     // BEFORE awaiting the next paint.
+    //
+    // KNOWN LIMITATION: the underlying bug only manifested in real
+    // React/browser (likely a TanStack memo-cache ordering issue
+    // sensitive to render scheduling specifics that JSDOM doesn't
+    // model). This test passed with both the old buggy code AND the
+    // fixed code locally — it documents intent and guards against
+    // future regressions, but is not a tight guard for the original
+    // production failure. End-to-end verification on a real bundle
+    // (BROWSER-TEST-CSV-EXPORT.md step 6) is the canonical signal.
     test('search to zero — disabled reflects post-filter row count without explicit settle', async () => {
         let capturedTable:
             | import('@tanstack/react-table').Table<AssetRow>
