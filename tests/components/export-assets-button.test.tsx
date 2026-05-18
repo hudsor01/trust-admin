@@ -301,6 +301,58 @@ describe('ExportAssetsButton', () => {
         ).toBe(true)
     })
 
+    // Reproduces a production-only failure mode: rapid sequential
+    // setFilterValue calls (multi-keystroke typing) followed by
+    // immediate inspection. The original FAILURE #7 test types one
+    // string and lets React settle — that passed locally even when
+    // production failed. This test bypasses the settle-between-renders
+    // contract by driving `setFilterValue` directly and asserting state
+    // BEFORE awaiting the next paint.
+    //
+    // KNOWN LIMITATION: the underlying bug only manifested in real
+    // React/browser (likely a TanStack memo-cache ordering issue
+    // sensitive to render scheduling specifics that JSDOM doesn't
+    // model). This test passed with both the old buggy code AND the
+    // fixed code locally — it documents intent and guards against
+    // future regressions, but is not a tight guard for the original
+    // production failure. End-to-end verification on a real bundle
+    // (BROWSER-TEST-CSV-EXPORT.md step 6) is the canonical signal.
+    test('search to zero — disabled reflects post-filter row count without explicit settle', async () => {
+        let capturedTable:
+            | import('@tanstack/react-table').Table<AssetRow>
+            | null = null
+        render(
+            <DataTable
+                columns={columns}
+                data={assets}
+                searchKey="name"
+                toolbar={(table) => {
+                    capturedTable = table
+                    return <ExportAssetsButton table={table} />
+                }}
+            />,
+        )
+        // biome-ignore lint/style/noNonNullAssertion: render is sync
+        const table =
+            capturedTable! as unknown as import('@tanstack/react-table').Table<AssetRow>
+
+        // Drive filter directly — this is what the search input does
+        // under the hood, but without React-Testing-Library's settle
+        // semantics in between keystrokes.
+        await import('@testing-library/react').then(({ act }) =>
+            act(() => {
+                table.getColumn('name')!.setFilterValue('NonexistentXYZ')
+            }),
+        )
+        // After the act() commit, the button MUST reflect filtered = 0
+        const btn = screen.getByRole('button', { name: /export csv/i })
+        expect(btn.hasAttribute('disabled')).toBe(true)
+        // Also assert the underlying row model agrees — sanity check
+        // that this isn't just a render-pass-only artifact.
+        expect(table.getFilteredRowModel().rows.length).toBe(0)
+        expect(table.getSortedRowModel().rows.length).toBe(0)
+    })
+
     test('filename uses local-time YYYY-MM-DD, not UTC', async () => {
         const user = userEvent.setup()
         render(
