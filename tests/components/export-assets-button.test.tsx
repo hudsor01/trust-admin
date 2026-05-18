@@ -309,14 +309,17 @@ describe('ExportAssetsButton', () => {
     // contract by driving `setFilterValue` directly and asserting state
     // BEFORE awaiting the next paint.
     //
-    // KNOWN LIMITATION: the underlying bug only manifested in real
-    // React/browser (likely a TanStack memo-cache ordering issue
-    // sensitive to render scheduling specifics that JSDOM doesn't
-    // model). This test passed with both the old buggy code AND the
-    // fixed code locally — it documents intent and guards against
-    // future regressions, but is not a tight guard for the original
-    // production failure. End-to-end verification on a real bundle
-    // (BROWSER-TEST-CSV-EXPORT.md step 6) is the canonical signal.
+    // KNOWN LIMITATION: the production bug this test was meant to guard
+    // against turned out to be a React Compiler interaction (Compiler
+    // memoizes ExportAssetsButton based on its reference-stable `table`
+    // prop and skips re-running the body when TanStack state mutates).
+    // bun:test doesn't run the Compiler, so every iteration of this test
+    // has passed — even versions of the code that failed in production.
+    // The component now has a `'use no memo'` directive (PR #87) to opt
+    // out of the Compiler. This test still has value as a regression
+    // guard against the non-Compiler path, but end-to-end verification
+    // on a real production bundle (BROWSER-TEST-CSV-EXPORT.md step 6)
+    // is the canonical signal for Compiler-interaction bugs.
     test('search to zero — disabled reflects post-filter row count without explicit settle', async () => {
         let capturedTable:
             | import('@tanstack/react-table').Table<AssetRow>
