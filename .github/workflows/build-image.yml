@@ -1,0 +1,127 @@
+# Build & push container image to the Forgejo registry on merge to main.
+#
+# Pre-existing manual flow was: build via buildah on the k3s worker, push
+# to git.thehudsonfam.com/dev-projects/trust-admin:<timestamp>. The cluster
+# then pulls the new tag (FluxCD/Argo polls the registry every ~minute).
+#
+# This workflow automates that step so every merge to main produces a
+# fresh image, eliminating the "PR merged but prod is stale" failure mode
+# that surfaced after PR #77.
+#
+# Required GitHub repo secrets:
+#   FORGEJO_USERNAME    Forgejo user/bot with write:package on dev-projects/trust-admin
+#   FORGEJO_TOKEN       Forgejo PAT (settings -> applications -> generate token)
+#
+# Optional repo secrets (only needed for Sentry source-map upload at build):
+#   SENTRY_ORG          Sentry org slug (URL-safe, e.g. "hudsor01")
+#   SENTRY_PROJECT      Sentry project slug ("trust-admin")
+#   SENTRY_AUTH_TOKEN   Sentry auth token with project:write
+#
+# Image tags produced (mirrors the existing manual convention):
+#   :<YYYYMMDDHHMMSS>   UTC timestamp - matches the in-cluster ImagePolicy regex
+#   :sha-<short>        Git short SHA - pinnable for rollbacks
+#   :latest             Floating - for manifests pinned at :latest
+#
+# Security note: this workflow does NOT consume any user-controlled inputs
+# (no issue/PR title/body/branch-name interpolation in run: scripts). All
+# variables in run: blocks come from `date`, `git rev-parse`, and the
+# trusted `secrets.*` context, so no command-injection surface exists.
+
+name: Build & Push Image
+
+on:
+  push:
+    branches: [main]
+    # Mirrors ci.yml - docs/planning churn doesn't ship a new image.
+    paths-ignore:
+      - '**/*.md'
+      - '.planning/**'
+      - 'LICENSE'
+  workflow_dispatch: {}
+
+# Don't cancel an in-progress image build - the tag scheme is per-commit
+# and the cluster may already be reconciling against the in-flight tag.
+# Queue subsequent runs instead.
+concurrency:
+  group: build-image-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # buildx writes the GHA cache via the Actions API; without
+      # `actions: write` the cache-to step silently fails and every
+      # subsequent build runs cold.
+      actions: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compute image tags
+        id: tags
+        run: |
+          TS=$(date -u +%Y%m%d%H%M%S)
+          TS_ISO=$(date -u +%FT%TZ)
+          SHA=$(git rev-parse --short HEAD)
+          REPO="git.thehudsonfam.com/dev-projects/trust-admin"
+          {
+            echo "ts=${TS}"
+            echo "ts_iso=${TS_ISO}"
+            echo "sha=${SHA}"
+            echo "repo=${REPO}"
+          } >> "$GITHUB_OUTPUT"
+          {
+            echo "## Image tags"
+            echo "- \`${REPO}:${TS}\`"
+            echo "- \`${REPO}:sha-${SHA}\`"
+            echo "- \`${REPO}:latest\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Login to Forgejo container registry
+        uses: docker/login-action@v3
+        with:
+          registry: git.thehudsonfam.com
+          username: ${{ secrets.FORGEJO_USERNAME }}
+          password: ${{ secrets.FORGEJO_TOKEN }}
+
+      - name: Build & push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          # Match the existing manual path - the in-cluster runner is amd64
+          # and next.config.ts's outputFileTracingIncludes references
+          # sharp-linux-x64 specifically.
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ steps.tags.outputs.repo }}:${{ steps.tags.outputs.ts }}
+            ${{ steps.tags.outputs.repo }}:sha-${{ steps.tags.outputs.sha }}
+            ${{ steps.tags.outputs.repo }}:latest
+          # OCI image labels - ties a running container back to its source
+          # commit and CI run via `docker inspect`. Standard org.opencontainers
+          # spec; consumed by ops tooling (lens, k9s) for traceability.
+          labels: |
+            org.opencontainers.image.title=trust-admin
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.ref.name=${{ github.ref_name }}
+            org.opencontainers.image.created=${{ steps.tags.outputs.ts_iso }}
+          # Sentry source-map upload happens inside `bun run build` via
+          # withSentryConfig - these args mirror the existing buildah
+          # invocation. NEXT_PUBLIC_* are NOT passed because the current
+          # Dockerfile doesn't accept them (proven by the live site
+          # functioning without them); add them later if a NEXT_PUBLIC
+          # value needs to differ between environments.
+          build-args: |
+            SENTRY_ORG=${{ secrets.SENTRY_ORG }}
+            SENTRY_PROJECT=${{ secrets.SENTRY_PROJECT }}
+            SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
+          # GitHub Actions cache for buildx - first build is full-cost,
+          # subsequent builds reuse npm/bun and Next.js intermediate
+          # artifacts. mode=max caches all layers, not just the final.
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
