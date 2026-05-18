@@ -80,6 +80,50 @@ jobs:
 
       - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
 
+      # TEMPORARY diagnostic — pre-Login probe to localize the 403 source.
+      # Captures response headers from /v2/ and from the token endpoint so
+      # we can tell whether the 403 originates at Cloudflare's edge (cf-ray
+      # present, no docker-distribution-api-version, possible HTML body) or
+      # at Forgejo origin (docker-distribution-api-version header, JSON
+      # body). Decodes the bearer JWT to confirm scope claims.
+      # Remove after the pipeline is verified working.
+      - name: Diagnose 403 (temporary)
+        env:
+          FORGEJO_USERNAME: ${{ secrets.FORGEJO_USERNAME }}
+          FORGEJO_TOKEN: ${{ secrets.FORGEJO_TOKEN }}
+        run: |
+          set +e
+          echo "=== 1. anon GET /v2/ — should be 401 with bearer challenge"
+          curl -si "https://git.thehudsonfam.com/v2/" \
+            | head -25
+          echo
+          echo "=== 2. token endpoint with creds — should be 200 + JWT"
+          TOKEN_RESP=$(curl -si -u "${FORGEJO_USERNAME}:${FORGEJO_TOKEN}" \
+            "https://git.thehudsonfam.com/v2/token?service=container_registry&scope=repository:${FORGEJO_USERNAME}/trust-admin:push,pull")
+          echo "${TOKEN_RESP}" | head -25
+          echo
+          echo "=== 3. decode JWT claims (if token endpoint returned one)"
+          JWT=$(echo "${TOKEN_RESP}" | tail -1 \
+            | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('token',''))" 2>/dev/null)
+          if [ -n "${JWT}" ]; then
+            PAYLOAD=$(echo "${JWT}" | cut -d. -f2)
+            # base64 padding fix for python b64decode
+            PAYLOAD_PADDED="${PAYLOAD}$(printf '=%.0s' $(seq 1 $((4 - ${#PAYLOAD} % 4))))"
+            echo "${PAYLOAD_PADDED}" | python3 -c "import base64,json,sys; print(json.dumps(json.loads(base64.urlsafe_b64decode(sys.stdin.read())), indent=2))" 2>&1
+          else
+            echo "(no JWT in token-endpoint response — auth failed at token exchange)"
+          fi
+          echo
+          echo "=== 4. GET /v2/ with the bearer token — this is where docker login gets 403"
+          if [ -n "${JWT}" ]; then
+            curl -si -H "Authorization: Bearer ${JWT}" "https://git.thehudsonfam.com/v2/" \
+              | head -25
+          else
+            echo "(skipped — no JWT to test with)"
+          fi
+          # Never fail the job from this diagnostic; let docker login run after.
+          exit 0
+
       - name: Login to Forgejo container registry
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
