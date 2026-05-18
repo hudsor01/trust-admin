@@ -62,10 +62,12 @@ jobs:
         id: tags
         run: |
           TS=$(date -u +%Y%m%d%H%M%S)
+          TS_ISO=$(date -u +%FT%TZ)
           SHA=$(git rev-parse --short HEAD)
           REPO="git.thehudsonfam.com/dev-projects/trust-admin"
           {
             echo "ts=${TS}"
+            echo "ts_iso=${TS_ISO}"
             echo "sha=${SHA}"
             echo "repo=${REPO}"
           } >> "$GITHUB_OUTPUT"
@@ -107,7 +109,7 @@ jobs:
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.ref.name=${{ github.ref_name }}
-            org.opencontainers.image.created=${{ github.event.head_commit.timestamp }}
+            org.opencontainers.image.created=${{ steps.tags.outputs.ts_iso }}
           # Sentry source-map upload happens inside `bun run build` via
           # withSentryConfig - these args mirror the existing buildah
           # invocation. NEXT_PUBLIC_* are NOT passed because the current
