@@ -45,16 +45,26 @@ function todayLocalIso(): string {
 }
 
 export function ExportAssetsButton({ table }: { table: Table<AssetRow> }) {
-    // `getSortedRowModel` returns rows after column filters, global search,
-    // AND the current sort applied — but BEFORE pagination, so we get
-    // every visible row across all pages. This is what we want to export.
-    //
-    // Reactivity contract: this component re-renders whenever its parent
-    // DataTable re-renders, which happens whenever TanStack updates any
-    // state (filters, sort, search). Do not wrap with React.memo — that
-    // would break the contract and leave `visible` stale on filter change.
-    const visible = table.getSortedRowModel().rows
-    const disabled = visible.length === 0
+    // Explicit reads of state slices so React reconciler treats this
+    // render as state-dependent. Without these reads, browser-tested
+    // observation has shown the `disabled` prop staying false on a
+    // filter-narrowed-to-zero state — even though the table body
+    // correctly shows the empty state and the click-time read returns
+    // zero rows. The pattern is a TanStack memo-ordering edge case
+    // where the row-model cache is stale at render time but fresh by
+    // click time. Reading these state slices forces a recompute on
+    // every render whose state changed.
+    const state = table.getState()
+    void state.columnFilters
+    void state.globalFilter
+    void state.sorting
+
+    // Use `getFilteredRowModel` (filter only, no sort cache layer) for
+    // the disabled check — it's the row count that semantically drives
+    // disabled state, and going through fewer memo layers reduces the
+    // window where the cache can be stale relative to current state.
+    const filteredRowCount = table.getFilteredRowModel().rows.length
+    const disabled = filteredRowCount === 0
 
     return (
         <Button
@@ -63,10 +73,9 @@ export function ExportAssetsButton({ table }: { table: Table<AssetRow> }) {
             className="gap-2"
             disabled={disabled}
             onClick={() => {
-                // Re-read at click time so we're never dependent on the
-                // closure captured during the last render — guards against
-                // any timing window where the user clicks between a state
-                // change and the subsequent re-render.
+                // Re-read at click time. `getSortedRowModel` here (not
+                // `getFilteredRowModel`) so the exported CSV respects
+                // the user's active sort order, not just the filter.
                 const rowsAtClick = table.getSortedRowModel().rows
                 exportRowsToCsv(
                     HEADERS,

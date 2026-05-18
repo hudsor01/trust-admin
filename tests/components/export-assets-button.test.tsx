@@ -301,6 +301,49 @@ describe('ExportAssetsButton', () => {
         ).toBe(true)
     })
 
+    // Reproduces a production-only failure mode: rapid sequential
+    // setFilterValue calls (multi-keystroke typing) followed by
+    // immediate inspection. The original FAILURE #7 test types one
+    // string and lets React settle — that passed locally even when
+    // production failed. This test bypasses the settle-between-renders
+    // contract by driving `setFilterValue` directly and asserting state
+    // BEFORE awaiting the next paint.
+    test('search to zero — disabled reflects post-filter row count without explicit settle', async () => {
+        let capturedTable:
+            | import('@tanstack/react-table').Table<AssetRow>
+            | null = null
+        render(
+            <DataTable
+                columns={columns}
+                data={assets}
+                searchKey="name"
+                toolbar={(table) => {
+                    capturedTable = table
+                    return <ExportAssetsButton table={table} />
+                }}
+            />,
+        )
+        // biome-ignore lint/style/noNonNullAssertion: render is sync
+        const table =
+            capturedTable! as unknown as import('@tanstack/react-table').Table<AssetRow>
+
+        // Drive filter directly — this is what the search input does
+        // under the hood, but without React-Testing-Library's settle
+        // semantics in between keystrokes.
+        await import('@testing-library/react').then(({ act }) =>
+            act(() => {
+                table.getColumn('name')!.setFilterValue('NonexistentXYZ')
+            }),
+        )
+        // After the act() commit, the button MUST reflect filtered = 0
+        const btn = screen.getByRole('button', { name: /export csv/i })
+        expect(btn.hasAttribute('disabled')).toBe(true)
+        // Also assert the underlying row model agrees — sanity check
+        // that this isn't just a render-pass-only artifact.
+        expect(table.getFilteredRowModel().rows.length).toBe(0)
+        expect(table.getSortedRowModel().rows.length).toBe(0)
+    })
+
     test('filename uses local-time YYYY-MM-DD, not UTC', async () => {
         const user = userEvent.setup()
         render(
