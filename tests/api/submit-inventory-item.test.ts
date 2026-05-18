@@ -17,19 +17,12 @@ mock.module('../../src/lib/env', () => ({
 // Pass-through mock for the inventory-analysis module so sibling test
 // files' mocks don't leak across file boundaries (bun mock.module is
 // global per process).
-const mockApplyReviewStatusOverrides = mock(
-    (analysis: Record<string, unknown>) => ({
-        analysis,
-        overrideReasons: [] as string[],
-    }),
-)
 const mockMapToDbCategory = mock((_c: string) => 'OTHER' as const)
 const mockSchemaParse = mock((input: unknown) => ({
     success: true,
     data: input as Record<string, unknown>,
 }))
 mock.module('../../src/lib/inventory-analysis', () => ({
-    applyReviewStatusOverrides: mockApplyReviewStatusOverrides,
     mapToDbCategory: mockMapToDbCategory,
     InventoryAnalysisSchema: { safeParse: mockSchemaParse },
 }))
@@ -142,11 +135,6 @@ describe('submitInventoryItem — direct insert into personal_property', () => {
         mockFrom.mockClear()
         mockWhere.mockClear()
         mockLimit.mockClear()
-        mockApplyReviewStatusOverrides.mockClear()
-        mockApplyReviewStatusOverrides.mockImplementation((analysis) => ({
-            analysis,
-            overrideReasons: [],
-        }))
         mockSchemaParse.mockClear()
         mockSchemaParse.mockImplementation((input) => ({
             success: true,
@@ -183,7 +171,6 @@ describe('submitInventoryItem — direct insert into personal_property', () => {
         // managed-agent swap (see commit swap-to-managed-agent). The stored
         // reviewStatus from the cached analysis is written directly to the
         // aiConfidence column — client-submitted aiReviewStatus is ignored.
-        expect(mockApplyReviewStatusOverrides).not.toHaveBeenCalled()
         expect(capturedInsertValues?.aiConfidence).toBe(
             'needs_professional_appraisal',
         )
@@ -226,7 +213,6 @@ describe('submitInventoryItem — direct insert into personal_property', () => {
         })
         const result = await submitInventoryItem({ success: false }, fd)
         expect(result.success).toBe(true)
-        expect(mockApplyReviewStatusOverrides).not.toHaveBeenCalled()
         expect(capturedInsertValues?.aiConfidence).toBeNull()
         expect(capturedInsertValues?.aiServerOverrideReasons).toBeNull()
         expect(capturedInsertValues?.aiSuggested).toBe(false)
@@ -244,7 +230,6 @@ describe('submitInventoryItem — direct insert into personal_property', () => {
         })
         const result = await submitInventoryItem({ success: false }, fd)
         expect(result.success).toBe(true)
-        expect(mockApplyReviewStatusOverrides).not.toHaveBeenCalled()
         expect(capturedInsertValues?.aiConfidence).toBeNull()
     })
 
@@ -263,7 +248,6 @@ describe('submitInventoryItem — direct insert into personal_property', () => {
         })
         const result = await submitInventoryItem({ success: false }, fd)
         expect(result.success).toBe(true)
-        expect(mockApplyReviewStatusOverrides).not.toHaveBeenCalled()
         expect(capturedInsertValues?.aiConfidence).toBeNull()
     })
 })
