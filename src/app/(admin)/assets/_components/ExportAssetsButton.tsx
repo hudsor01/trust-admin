@@ -45,21 +45,13 @@ function todayLocalIso(): string {
 }
 
 export function ExportAssetsButton({ table }: { table: Table<AssetRow> }) {
-    // Opt out of the React Compiler for this component. With reactCompiler
-    // enabled in next.config.ts, the Compiler memoizes this function based
-    // on its `table` prop — which is reference-stable across DataTable
-    // renders even as TanStack's internal state mutates. The Compiler
-    // therefore skips re-running the body when filters/sort change, so
-    // `disabled` reflects whatever the row count was on first render. The
-    // table BODY updates fine (it lives inside DataTable, where the
-    // Compiler can prove the state slice it reads), but this child
-    // component's row-model read is stale. Two prior fix attempts (the
-    // useMemo + state-slice deps approach, the direct getSortedRowModel
-    // read) both passed local tests — bun:test doesn't run the Compiler
-    // — and both failed in production. The escape-hatch directive forces
-    // vanilla React rendering for this function: re-run on every parent
-    // render, no Compiler-inserted memoization.
     'use no memo'
+    // React Compiler opt-out: the `table` prop is reference-stable across
+    // DataTable renders even as TanStack's internal state mutates. Without
+    // this directive the Compiler caches our first render and `disabled`
+    // freezes when filters change. Prior fixes (useMemo + state-slice deps
+    // in PR #85, direct row-model read in PR #77) both passed bun:test
+    // (which doesn't run the Compiler) and both failed in production.
     const filteredRowCount = table.getFilteredRowModel().rows.length
     const disabled = filteredRowCount === 0
 
