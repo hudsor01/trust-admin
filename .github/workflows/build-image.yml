@@ -1,7 +1,7 @@
 # Build & push container image to the Forgejo registry on merge to main.
 #
 # Pre-existing manual flow was: build via buildah on the k3s worker, push
-# to git.thehudsonfam.com/dev-projects/trust-admin:<timestamp>. The cluster
+# to git.thehudsonfam.com/dev-server/trust-admin:<timestamp>. The cluster
 # then pulls the new tag (FluxCD/Argo polls the registry every ~minute).
 #
 # This workflow automates that step so every merge to main produces a
@@ -9,7 +9,7 @@
 # that surfaced after PR #77.
 #
 # Required GitHub repo secrets:
-#   FORGEJO_USERNAME    Forgejo user/bot with write:package on dev-projects/trust-admin
+#   FORGEJO_USERNAME    Forgejo user/bot with write:package on dev-server/trust-admin
 #   FORGEJO_TOKEN       Forgejo PAT (settings -> applications -> generate token)
 #
 # Optional repo secrets (only needed for Sentry source-map upload at build):
@@ -64,7 +64,7 @@ jobs:
           TS=$(date -u +%Y%m%d%H%M%S)
           TS_ISO=$(date -u +%FT%TZ)
           SHA=$(git rev-parse --short HEAD)
-          REPO="git.thehudsonfam.com/dev-projects/trust-admin"
+          REPO="git.thehudsonfam.com/dev-server/trust-admin"
           {
             echo "ts=${TS}"
             echo "ts_iso=${TS_ISO}"
