@@ -1,9 +1,10 @@
-/** Reproduction test for the assets CSV-export bug: confirms that
- *  `table.getFilteredRowModel().rows` accessed from inside a DataTable's
- *  toolbar render-prop reflects the current search/filter state. If this
- *  test passes locally but production exports unfiltered rows, the bug is
- *  in deployment (stale bundle/CDN cache); if it fails, the bug is in our
- *  wiring. */
+/** Documents the reactivity contract ExportAssetsButton depends on:
+ *  `table.getFilteredRowModel().rows` and `table.getSortedRowModel().rows`
+ *  accessed from inside a DataTable toolbar render-prop reflect the
+ *  current search / column-filter / sort state. If these tests pass
+ *  locally but production exports unfiltered rows, the bug is in
+ *  deployment (stale bundle / CDN cache); if they fail, the bug is in
+ *  our wiring. */
 
 import '../setup'
 import { afterEach, describe, expect, test } from 'bun:test'
