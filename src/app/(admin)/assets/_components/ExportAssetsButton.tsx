@@ -2,7 +2,6 @@
 
 import type { Table } from '@tanstack/react-table'
 import { Download } from 'lucide-react'
-import { useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { exportRowsToCsv } from '@/lib/csv'
 import type { AssetRow } from '@/server/trpc/routers/asset'
@@ -46,23 +45,22 @@ function todayLocalIso(): string {
 }
 
 export function ExportAssetsButton({ table }: { table: Table<AssetRow> }) {
-    // Destructure the state slices the disabled prop depends on. Browser-
-    // tested observation: when the filter narrowed the table to zero rows,
-    // the table body correctly showed the empty state and the click-time
-    // row-model read returned zero, but the render-time read returned a
-    // stale non-zero count — leaving `disabled` false. The pattern is a
-    // TanStack v8 memo-ordering edge case where the row-model getter
-    // returns a cached value tied to the prior render's state. Driving
-    // the disabled count through a useMemo whose deps are explicit state
-    // slices forces a recompute on every render where filter/sort state
-    // changed, sidestepping the stale-cache window. `getFilteredRowModel`
-    // is preferred over `getSortedRowModel` here — fewer memo layers
-    // between state and row count.
-    const { columnFilters, globalFilter, sorting } = table.getState()
-    const filteredRowCount = useMemo(
-        () => table.getFilteredRowModel().rows.length,
-        [table, columnFilters, globalFilter, sorting],
-    )
+    // Opt out of the React Compiler for this component. With reactCompiler
+    // enabled in next.config.ts, the Compiler memoizes this function based
+    // on its `table` prop — which is reference-stable across DataTable
+    // renders even as TanStack's internal state mutates. The Compiler
+    // therefore skips re-running the body when filters/sort change, so
+    // `disabled` reflects whatever the row count was on first render. The
+    // table BODY updates fine (it lives inside DataTable, where the
+    // Compiler can prove the state slice it reads), but this child
+    // component's row-model read is stale. Two prior fix attempts (the
+    // useMemo + state-slice deps approach, the direct getSortedRowModel
+    // read) both passed local tests — bun:test doesn't run the Compiler
+    // — and both failed in production. The escape-hatch directive forces
+    // vanilla React rendering for this function: re-run on every parent
+    // render, no Compiler-inserted memoization.
+    'use no memo'
+    const filteredRowCount = table.getFilteredRowModel().rows.length
     const disabled = filteredRowCount === 0
 
     return (
