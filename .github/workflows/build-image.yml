@@ -51,6 +51,10 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      # buildx writes the GHA cache via the Actions API; without
+      # `actions: write` the cache-to step silently fails and every
+      # subsequent build runs cold.
+      actions: write
     steps:
       - uses: actions/checkout@v4
 
@@ -95,6 +99,15 @@ jobs:
             ${{ steps.tags.outputs.repo }}:${{ steps.tags.outputs.ts }}
             ${{ steps.tags.outputs.repo }}:sha-${{ steps.tags.outputs.sha }}
             ${{ steps.tags.outputs.repo }}:latest
+          # OCI image labels - ties a running container back to its source
+          # commit and CI run via `docker inspect`. Standard org.opencontainers
+          # spec; consumed by ops tooling (lens, k9s) for traceability.
+          labels: |
+            org.opencontainers.image.title=trust-admin
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.ref.name=${{ github.ref_name }}
+            org.opencontainers.image.created=${{ github.event.head_commit.timestamp }}
           # Sentry source-map upload happens inside `bun run build` via
           # withSentryConfig - these args mirror the existing buildah
           # invocation. NEXT_PUBLIC_* are NOT passed because the current
