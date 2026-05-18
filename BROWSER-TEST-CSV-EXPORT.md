@@ -24,7 +24,7 @@ You are a browser-driving agent. Your job is to verify the **Export CSV** featur
 ## Unfiltered export check
 
 8. Make sure no filters are active (clear them all). Note the number of rows visible in the table — call this `N`.
-9. Click **Export CSV**. The browser should immediately download a file. The filename should match the pattern `hudson-trust-assets-YYYY-MM-DD.csv`, where `YYYY-MM-DD` is today's UTC date.
+9. Click **Export CSV**. The browser should immediately download a file. The filename should match the pattern `hudson-trust-assets-YYYY-MM-DD.csv`, where `YYYY-MM-DD` is today's date in **your local timezone** (e.g. a 10 PM Central click should still produce that day's date, not tomorrow's UTC date).
 10. Open the downloaded file in a text viewer (do **not** open in Excel for this check — you want the raw bytes). The first line should be exactly:
     ```
     ID,Name,Description,Type,Category,Value,Status,Updated

@@ -45,16 +45,14 @@ function todayLocalIso(): string {
 }
 
 export function ExportAssetsButton({ table }: { table: Table<AssetRow> }) {
-    // Touch state so this component re-renders whenever filters, sort, or
-    // global search change. Without an explicit state read, React would
-    // still re-render via the parent DataTable, but a render-bailout
-    // upstream (memo, identical-children pruning) could leave us stale.
-    // Reading state subscribes us directly to the underlying store.
-    table.getState()
-
     // `getSortedRowModel` returns rows after column filters, global search,
     // AND the current sort applied — but BEFORE pagination, so we get
     // every visible row across all pages. This is what we want to export.
+    //
+    // Reactivity contract: this component re-renders whenever its parent
+    // DataTable re-renders, which happens whenever TanStack updates any
+    // state (filters, sort, search). Do not wrap with React.memo — that
+    // would break the contract and leave `visible` stale on filter change.
     const visible = table.getSortedRowModel().rows
     const disabled = visible.length === 0
 

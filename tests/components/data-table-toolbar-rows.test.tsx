@@ -86,27 +86,37 @@ describe('DataTable toolbar render-prop receives reactive row models', () => {
         )
     })
 
-    test('after column filter narrows to a subset, probe reflects the filter', async () => {
-        // Apply a column filter declaratively by mounting with a state-driven
-        // table — emulated here by passing through user-typed search since
-        // DataTable doesn't expose `setColumnFilters` directly to the
-        // outside. We instead use the `name` search filter which routes
-        // through the same `getFilteredRowModel` pipeline.
+    test('after a column filter is set, probe reflects the column filter', async () => {
+        // Set the column filter declaratively from a toolbar button so we
+        // test the column-filter pipeline directly (not just search).
         const user = userEvent.setup()
         render(
             <DataTable
                 columns={columns}
                 data={data}
                 searchKey="name"
-                searchPlaceholder="Search…"
-                toolbar={(table) => <RowProbe table={table} />}
+                toolbar={(table) => (
+                    <>
+                        <button
+                            type="button"
+                            data-testid="filter-vehicle"
+                            onClick={() =>
+                                table
+                                    .getColumn('kind')!
+                                    .setFilterValue('vehicle')
+                            }
+                        >
+                            filter
+                        </button>
+                        <RowProbe table={table} />
+                    </>
+                )}
             />,
         )
-        // Substring matching two rows: "a" appears in Alpha, Bravo, Charlie,
-        // Delta — all four. Narrow with "Ch" → Charlie only.
-        await user.type(screen.getByPlaceholderText('Search…'), 'Ch')
+        await user.click(screen.getByTestId('filter-vehicle'))
+        // Alpha and Charlie are the two vehicles in the dataset.
         expect(screen.getByTestId('probe').textContent).toBe(
-            'filtered=1|sorted=1|first=Charlie',
+            'filtered=2|sorted=2|first=Alpha',
         )
     })
 })
