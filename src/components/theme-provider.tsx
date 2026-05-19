@@ -26,9 +26,22 @@ export function ThemeProvider({
     storageKey = 'trust-admin-theme',
     ...props
 }: ThemeProviderProps) {
-    const [theme, setTheme] = useState<Theme>(
-        () => (localStorage.getItem(storageKey) as Theme) || defaultTheme,
-    )
+    // Initialize with the default so SSR and client first-render are
+    // byte-identical. The stored theme (if any) loads from localStorage
+    // in the mount effect below, after hydration commits — eliminates
+    // React #418 mismatches that would otherwise fire when a user has
+    // a non-default theme persisted.
+    const [theme, setTheme] = useState<Theme>(defaultTheme)
+
+    // Mount-only effect: load the persisted theme (if any) AFTER
+    // hydration commits. Intentionally has empty deps — re-running on
+    // `storageKey` or `theme` changes is wrong (the wrapped setter
+    // below is the canonical writer; this effect is read-only at mount).
+    // biome-ignore lint/correctness/useExhaustiveDependencies: mount-only by design
+    useEffect(() => {
+        const stored = localStorage.getItem(storageKey) as Theme | null
+        if (stored && stored !== theme) setTheme(stored)
+    }, [])
 
     useEffect(() => {
         const root = window.document.documentElement

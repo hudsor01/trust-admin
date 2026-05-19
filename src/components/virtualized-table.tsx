@@ -10,7 +10,7 @@ import {
 } from '@tanstack/react-table'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { Loader2 } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { ResizeHandle } from '@/components/ui/data-table-resize-handle'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -56,13 +56,12 @@ export function VirtualizedTable<T>({
     tableId,
 }: VirtualizedTableProps<T>) {
     const [sorting, setSorting] = useState<SortingState>([])
-    const initialColumnSizing = useMemo(
-        () => loadColumnSizing(tableId),
-        [tableId],
-    )
-    const [columnSizing, setColumnSizing] = useState<ColumnSizingState>(
-        () => initialColumnSizing,
-    )
+    // Always initialize with empty sizing so SSR HTML matches the
+    // client's first-render HTML byte-for-byte (React #418 hydration
+    // safety). Persisted widths get applied via the mount/tableId
+    // effect below, after the initial hydration commits. See
+    // src/components/ui/data-table.tsx for the full rationale.
+    const [columnSizing, setColumnSizing] = useState<ColumnSizingState>({})
     const [columnSizingInfo, setColumnSizingInfo] =
         useState<ColumnSizingInfoState>({
             columnSizingStart: [],
@@ -73,28 +72,46 @@ export function VirtualizedTable<T>({
             startSize: null,
         })
     const parentRef = useRef<HTMLDivElement>(null)
-    // Dedup ref. `useRef`'s init runs every render but the value is
-    // discarded after first commit; `JSON.stringify({})` is sub-microsecond.
-    const lastPersisted = useRef(JSON.stringify(initialColumnSizing))
+    // Dedup ref. Tracks the last value we've written to localStorage so
+    // a no-op render doesn't issue a redundant write. Starts at the
+    // SSR-safe `'{}'` and is updated whenever persisted sizing loads or
+    // is written through.
+    const lastPersisted = useRef('{}')
     // Pending unflushed write, for the unmount-flush effect.
     const pendingWrite = useRef<{
         tableId: string
         sizing: ColumnSizingState
     } | null>(null)
-    // Render-time derivation (React canonical pattern) — see DataTable
-    // for the rationale. Flush prior tableId's pending write before
-    // clearing.
-    const prevTableIdRef = useRef(tableId)
-    if (prevTableIdRef.current !== tableId) {
+    const prevTableIdRef = useRef<string | undefined>(undefined)
+    const hasMountedRef = useRef(false)
+
+    // Render-time tableId transition (post-mount only). Mirrors the
+    // pattern in `src/components/ui/data-table.tsx` — see that file for
+    // the canonical comment. Skipped on the first render so SSR HTML
+    // and client first-render HTML stay byte-identical; persisted
+    // widths apply through the mount effect below.
+    if (hasMountedRef.current && prevTableIdRef.current !== tableId) {
         const pending = pendingWrite.current
         if (pending && pending.tableId === prevTableIdRef.current) {
             saveColumnSizing(pending.tableId, pending.sizing)
         }
         prevTableIdRef.current = tableId
-        setColumnSizing(initialColumnSizing)
-        lastPersisted.current = JSON.stringify(initialColumnSizing)
+        const loaded = tableId ? loadColumnSizing(tableId) : {}
+        setColumnSizing(loaded)
+        lastPersisted.current = JSON.stringify(loaded)
         pendingWrite.current = null
     }
+
+    // Mount-only effect: load persisted sizing AFTER hydration commits.
+    // biome-ignore lint/correctness/useExhaustiveDependencies: mount-only by design — tableId changes are handled by the render-time block above.
+    useEffect(() => {
+        hasMountedRef.current = true
+        if (!tableId) return
+        prevTableIdRef.current = tableId
+        const loaded = loadColumnSizing(tableId)
+        setColumnSizing(loaded)
+        lastPersisted.current = JSON.stringify(loaded)
+    }, [])
 
     // Persist with debounce + drag-gate + dedup. Cleanup only clears the
     // timer; the unmount-flush lives in the mount-only effect below.
