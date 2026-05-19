@@ -199,7 +199,6 @@ export async function submitInventoryItem(
                 // shows as "not AI-suggested" rather than silently inheriting
                 // any client-claimed status.
                 aiConfidence: cachedReviewStatus,
-                aiServerOverrideReasons: null,
                 aiSuggested: cachedReviewStatus !== null,
                 aiBrand: result.data.aiBrand || null,
                 aiModel: result.data.aiModel || null,

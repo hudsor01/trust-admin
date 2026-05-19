@@ -55,3 +55,9 @@ playwright-results
 
 # Runtime uploads — local dev only; prod writes go to UploadThing
 public/uploads/
+
+# Local artwork valuation workspace (raw images + research outputs)
+# Contains private estate property photos and draft FMV reports; not for
+# the repo. Outputs land in personal_property via reviewed insert.sql.
+valuations/
+.env*.local

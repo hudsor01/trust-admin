@@ -335,7 +335,6 @@ describe('ExportAssetsButton', () => {
                 }}
             />,
         )
-        // biome-ignore lint/style/noNonNullAssertion: render is sync
         const table =
             capturedTable! as unknown as import('@tanstack/react-table').Table<AssetRow>
 

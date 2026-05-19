@@ -1349,7 +1349,6 @@ export const personalProperty = pgTable(
         // historical continuity with the pre-simplification schema.
         aiSuggested: t.boolean().default(false).notNull(),
         aiConfidence: t.text(),
-        aiServerOverrideReasons: t.text(),
         aiBrand: t.text(),
         aiModel: t.text(),
         aiEra: t.text(),
@@ -1407,20 +1406,25 @@ export type InsertPersonalProperty = typeof personalProperty.$inferInsert
 // Inventory Analysis Cache
 // ============================================
 //
-// Server-side persistence of Opus 4.7 analyze output, keyed by UUID and
-// short-lived (24h TTL). Purpose: close the trust-boundary gap where
-// submitInventoryItem would otherwise re-derive reviewStatus overrides
-// from *client-submitted* form data — which a motivated submitter could
-// tamper with in the DOM between analyze and submit.
+// Server-side persistence of managed-agent analyze output, keyed by UUID
+// and short-lived (24h TTL). Purpose: close the trust-boundary gap where
+// submitInventoryItem would otherwise trust the reviewStatus posted by
+// the form — which a motivated submitter could tamper with in the DOM
+// between analyze and submit.
 //
 // Flow:
-//   1. /api/inventory/analyze runs Opus, writes row, returns id.
-//   2. Form stores id in a hidden input, lets user edit display fields.
-//   3. submitInventoryItem looks up by id, runs applyReviewStatusOverrides
-//      on the STORED analysis. User's form edits (name, estimatedValue,
-//      etc.) still flow into pending_inventory_item so the admin sees the
-//      user's intended values, but aiConfidence + aiServerOverrideReasons
-//      reflect the true AI output, immune to DOM tampering.
+//   1. /api/inventory/analyze kicks off a managed-agent session, inserts
+//      a row keyed by sessionId, returns id (analysisId).
+//   2. /api/inventory/analyze/status polls the session; on idle it runs
+//      the structured-extraction pass and writes the InventoryAnalysis
+//      JSON into analysisJson.
+//   3. Form stores id in a hidden input, lets user edit display fields.
+//   4. submitInventoryItem looks up by id and uses the cached
+//      reviewStatus as the source of truth — client-submitted
+//      aiReviewStatus is ignored. User's form edits (name,
+//      estimatedValue, etc.) still flow into personal_property so the
+//      admin sees the user's intended values, but aiConfidence reflects
+//      the true AI output, immune to DOM tampering.
 
 export const inventoryAnalysisCache = pgTable(
     'inventory_analysis_cache',

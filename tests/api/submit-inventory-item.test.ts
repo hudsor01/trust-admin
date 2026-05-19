@@ -16,26 +16,19 @@ mock.module('../../src/lib/env', () => ({
 
 // Pass-through mock for the inventory-analysis module so sibling test
 // files' mocks don't leak across file boundaries (bun mock.module is
-// global per process).
-const mockApplyReviewStatusOverrides = mock(
-    (analysis: Record<string, unknown>) => ({
-        analysis,
-        overrideReasons: [] as string[],
-    }),
-)
-const mockMapToDbCategory = mock((_c: string) => 'OTHER' as const)
+// global per process). submitInventoryItem only imports
+// InventoryAnalysisSchema from this module today.
 const mockSchemaParse = mock((input: unknown) => ({
     success: true,
     data: input as Record<string, unknown>,
 }))
 mock.module('../../src/lib/inventory-analysis', () => ({
-    applyReviewStatusOverrides: mockApplyReviewStatusOverrides,
-    mapToDbCategory: mockMapToDbCategory,
     InventoryAnalysisSchema: { safeParse: mockSchemaParse },
 }))
 
-// Capture insert.values(...) so we can assert the server re-derived
-// reviewStatus / override reasons from CACHED analysis, not form data.
+// Capture insert.values(...) so we can assert the server reads
+// reviewStatus from CACHED analysis (not form data) — the trust boundary
+// for the analyze→submit flow.
 let capturedInsertValues: Record<string, unknown> | null = null
 const mockReturning = mock(() => Promise.resolve([{ id: 123 }]))
 const mockValues = mock((v: Record<string, unknown>) => {
@@ -142,11 +135,6 @@ describe('submitInventoryItem — direct insert into personal_property', () => {
         mockFrom.mockClear()
         mockWhere.mockClear()
         mockLimit.mockClear()
-        mockApplyReviewStatusOverrides.mockClear()
-        mockApplyReviewStatusOverrides.mockImplementation((analysis) => ({
-            analysis,
-            overrideReasons: [],
-        }))
         mockSchemaParse.mockClear()
         mockSchemaParse.mockImplementation((input) => ({
             success: true,
@@ -179,23 +167,21 @@ describe('submitInventoryItem — direct insert into personal_property', () => {
         const result = await submitInventoryItem({ success: false }, fd)
 
         expect(result.success).toBe(true)
-        // Estate-tax override guardrails were removed alongside the
-        // managed-agent swap (see commit swap-to-managed-agent). The stored
-        // reviewStatus from the cached analysis is written directly to the
-        // aiConfidence column — client-submitted aiReviewStatus is ignored.
-        expect(mockApplyReviewStatusOverrides).not.toHaveBeenCalled()
+        // The stored reviewStatus from the cached analysis is written
+        // directly to aiConfidence — client-submitted aiReviewStatus is
+        // ignored. (Deterministic override guardrails and the
+        // aiServerOverrideReasons column were dropped when the inventory
+        // pipeline simplified.)
         expect(capturedInsertValues?.aiConfidence).toBe(
             'needs_professional_appraisal',
         )
-        // With overrides removed, aiServerOverrideReasons is always null.
-        expect(capturedInsertValues?.aiServerOverrideReasons).toBeNull()
         // Form display values still flow through (dodValue = estimatedValue)
         expect(capturedInsertValues?.name).toBe('Cheap print')
         expect(capturedInsertValues?.dodValue).toBe('500.00')
         expect(capturedInsertValues?.entityId).toBe(1)
     })
 
-    test('clean cached analysis → aiConfidence=inventory_ready, no override reasons', async () => {
+    test('clean cached analysis → aiConfidence=inventory_ready, aiSuggested=true', async () => {
         cachedAnalysis = freshCachedAnalysis({
             estimatedValue: '35.00',
             valueRangeLow: '25.00',
@@ -212,7 +198,6 @@ describe('submitInventoryItem — direct insert into personal_property', () => {
         const result = await submitInventoryItem({ success: false }, fd)
         expect(result.success).toBe(true)
         expect(capturedInsertValues?.aiConfidence).toBe('inventory_ready')
-        expect(capturedInsertValues?.aiServerOverrideReasons).toBeNull()
         expect(capturedInsertValues?.aiSuggested).toBe(true)
     })
 
@@ -226,9 +211,7 @@ describe('submitInventoryItem — direct insert into personal_property', () => {
         })
         const result = await submitInventoryItem({ success: false }, fd)
         expect(result.success).toBe(true)
-        expect(mockApplyReviewStatusOverrides).not.toHaveBeenCalled()
         expect(capturedInsertValues?.aiConfidence).toBeNull()
-        expect(capturedInsertValues?.aiServerOverrideReasons).toBeNull()
         expect(capturedInsertValues?.aiSuggested).toBe(false)
     })
 
@@ -244,7 +227,6 @@ describe('submitInventoryItem — direct insert into personal_property', () => {
         })
         const result = await submitInventoryItem({ success: false }, fd)
         expect(result.success).toBe(true)
-        expect(mockApplyReviewStatusOverrides).not.toHaveBeenCalled()
         expect(capturedInsertValues?.aiConfidence).toBeNull()
     })
 
@@ -263,7 +245,6 @@ describe('submitInventoryItem — direct insert into personal_property', () => {
         })
         const result = await submitInventoryItem({ success: false }, fd)
         expect(result.success).toBe(true)
-        expect(mockApplyReviewStatusOverrides).not.toHaveBeenCalled()
         expect(capturedInsertValues?.aiConfidence).toBeNull()
     })
 })
