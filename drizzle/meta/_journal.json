@@ -78,6 +78,13 @@
       "when": 1777926286949,
       "tag": "0010_correction_ratio_numeric",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1779200414868,
+      "tag": "0011_ordinary_sasquatch",
+      "breakpoints": true
     }
   ]
 }

@@ -1,0 +1,1 @@
+ALTER TABLE "personal_property" DROP COLUMN "aiServerOverrideReasons";

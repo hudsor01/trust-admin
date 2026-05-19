@@ -169,20 +169,19 @@ describe('submitInventoryItem — direct insert into personal_property', () => {
         expect(result.success).toBe(true)
         // The stored reviewStatus from the cached analysis is written
         // directly to aiConfidence — client-submitted aiReviewStatus is
-        // ignored. (Deterministic override guardrails were dropped when
-        // the inventory pipeline simplified; aiServerOverrideReasons is
-        // a vestigial column kept for forward compatibility, always null.)
+        // ignored. (Deterministic override guardrails and the
+        // aiServerOverrideReasons column were dropped when the inventory
+        // pipeline simplified.)
         expect(capturedInsertValues?.aiConfidence).toBe(
             'needs_professional_appraisal',
         )
-        expect(capturedInsertValues?.aiServerOverrideReasons).toBeNull()
         // Form display values still flow through (dodValue = estimatedValue)
         expect(capturedInsertValues?.name).toBe('Cheap print')
         expect(capturedInsertValues?.dodValue).toBe('500.00')
         expect(capturedInsertValues?.entityId).toBe(1)
     })
 
-    test('clean cached analysis → aiConfidence=inventory_ready, no override reasons', async () => {
+    test('clean cached analysis → aiConfidence=inventory_ready, aiSuggested=true', async () => {
         cachedAnalysis = freshCachedAnalysis({
             estimatedValue: '35.00',
             valueRangeLow: '25.00',
@@ -199,7 +198,6 @@ describe('submitInventoryItem — direct insert into personal_property', () => {
         const result = await submitInventoryItem({ success: false }, fd)
         expect(result.success).toBe(true)
         expect(capturedInsertValues?.aiConfidence).toBe('inventory_ready')
-        expect(capturedInsertValues?.aiServerOverrideReasons).toBeNull()
         expect(capturedInsertValues?.aiSuggested).toBe(true)
     })
 
@@ -214,7 +212,6 @@ describe('submitInventoryItem — direct insert into personal_property', () => {
         const result = await submitInventoryItem({ success: false }, fd)
         expect(result.success).toBe(true)
         expect(capturedInsertValues?.aiConfidence).toBeNull()
-        expect(capturedInsertValues?.aiServerOverrideReasons).toBeNull()
         expect(capturedInsertValues?.aiSuggested).toBe(false)
     })
 

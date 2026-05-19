@@ -1349,7 +1349,6 @@ export const personalProperty = pgTable(
         // historical continuity with the pre-simplification schema.
         aiSuggested: t.boolean().default(false).notNull(),
         aiConfidence: t.text(),
-        aiServerOverrideReasons: t.text(),
         aiBrand: t.text(),
         aiModel: t.text(),
         aiEra: t.text(),

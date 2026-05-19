@@ -60,3 +60,4 @@ public/uploads/
 # Contains private estate property photos and draft FMV reports; not for
 # the repo. Outputs land in personal_property via reviewed insert.sql.
 valuations/
+.env*.local
