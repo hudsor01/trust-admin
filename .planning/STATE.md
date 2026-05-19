@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Production Hardening & Completeness
 status: completed
-stopped_at: Completed 22-01-PLAN.md
-last_updated: "2026-03-11T14:38:47.648Z"
+stopped_at: Phase 23 UI-SPEC approved
+last_updated: "2026-05-19T22:28:15.612Z"
 last_activity: "2026-03-11 -- Completed 22-01 dead code removal: 110 dead exports removed from db/queries.ts, date-utils.ts deleted, TxSql consolidated (CLEAN-01, CLEAN-02, CLEAN-06)"
 progress:
-  total_phases: 8
+  total_phases: 9
   completed_phases: 8
-  total_plans: 19
+  total_plans: 24
   completed_plans: 19
-  percent: 100
+  percent: 79
 ---
 
 # State: Trust Admin
@@ -130,9 +130,12 @@ const rows = await sql`SELECT id, name, email FROM neon_auth."user" WHERE lower(
 - 2026-02-22: v3.0 shipped -- Email/Password Auth Migration (phases 9-14)
 - 2026-02-24: Forgot-password flow built outside GSD (unplanned)
 - 2026-03-08: v4.0 roadmap created -- Production Hardening & Completeness (phases 15-22)
+- 2026-05-19: Phase 23 added -- Shadcn registry adoption and dashboard UX revamp (full revamp per approved plan at ~/.claude/plans/yes-i-would-live-bright-pumpkin.md; 5 sub-PRs covering registry foundation, headline page redesigns, and DataTable/settings polish)
 
 ## Session Continuity
 
-Last session: 2026-03-11T14:33:08Z
-Stopped at: Completed 22-01-PLAN.md
-Resume file: None
+Last session: --stopped-at
+Stopped at: Phase 23 UI-SPEC approved
+Resume file: --resume-file
+
+**Planned Phase:** 23 (Shadcn registry adoption and dashboard UX revamp) — 5 plans — 2026-05-19T22:28:15.607Z

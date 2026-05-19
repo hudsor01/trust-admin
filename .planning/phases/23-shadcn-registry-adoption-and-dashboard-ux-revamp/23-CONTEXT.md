@@ -46,7 +46,7 @@ The phase delivers in 5 PRs (foundation → headline redesigns wave A → headli
 - `/activity-log` → install `@kibo-ui/contribution-graph` + hand-roll the Timeline component (UI-SPEC § Timeline) using existing Card/Badge/Separator primitives. Tabs: "Timeline" (default, grouped by day, color-coded dots for INSERT/UPDATE/DELETE), "Heatmap" (30-day, keyed by `action_user_id`), "Raw" (existing table).
 - `/liabilities` → install `@kibo-ui/gantt`. Adds KPI strip + Gantt timeline + debt-to-equity donut (recharts).
 - `/beneficiaries` → install `@kibo-ui/avatar-stack` + reuse `@kibo-ui/gantt`. Per-beneficiary share donuts (recharts) + milestone Gantt.
-- KPI strip rolled onto `/accounts`, `/assets`, `/properties`, `/vehicles`, `/insurance`, `/trustees`, `/bequests`, `/personal-property`, `/contacts`, `/artwork`.
+- KPI strip rolled onto `/dashboard`, `/accounts`, `/assets`, `/properties`, `/vehicles`, `/insurance`, `/trustees`, `/bequests`, `/personal-property`, `/contacts`, `/artwork`.
 
 ### Phase 3 polish (locked)
 
