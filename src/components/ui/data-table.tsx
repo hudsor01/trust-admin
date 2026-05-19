@@ -85,15 +85,15 @@ export function DataTable<TData, TValue>({
     const [columnVisibility, setColumnVisibility] =
         React.useState<VisibilityState>(initialColumnVisibility ?? {})
     const [rowSelection, setRowSelection] = React.useState({})
-    // Lazy-init both the state AND the dedup ref from the same loaded
-    // value, so the first effect run early-returns and we don't dirty
-    // localStorage with an `{}` write on every fresh mount.
-    const initialColumnSizing = React.useMemo(
-        () => loadColumnSizing(tableId),
-        [tableId],
-    )
+    // Always initialize with empty sizing so SSR HTML (where
+    // `loadColumnSizing` returns `{}` because `window` is undefined)
+    // matches the client's first-render HTML byte-for-byte. Persisted
+    // widths get applied via the mount/tableId effect below, after
+    // React commits the initial hydration — eliminates React #418
+    // hydration mismatches when a user with persisted column widths
+    // (re)visits a page rendered through `HydrationBoundary`.
     const [columnSizing, setColumnSizing] = React.useState<ColumnSizingState>(
-        () => initialColumnSizing,
+        {},
     )
     const [columnSizingInfo, setColumnSizingInfo] =
         React.useState<ColumnSizingInfoState>({
@@ -104,38 +104,64 @@ export function DataTable<TData, TValue>({
             startOffset: null,
             startSize: null,
         })
-    // Dedup ref. `useRef`'s init expression evaluates every render, but
-    // its value is discarded after the first commit — running
-    // `JSON.stringify({})` on a no-op render is sub-microsecond and not
-    // worth a guard-and-conditional pattern.
-    const lastPersisted = React.useRef(JSON.stringify(initialColumnSizing))
+    // Dedup ref. Tracks the last value we've written to localStorage so
+    // a no-op render doesn't issue a redundant write. Starts at the
+    // SSR-safe `'{}'` and is updated whenever persisted sizing loads or
+    // is written through.
+    const lastPersisted = React.useRef('{}')
     // Holds the most-recent unflushed write for the unmount-flush effect.
     // Set by the debounce timer's schedule path; cleared by its commit.
     const pendingWrite = React.useRef<{
         tableId: string
         sizing: ColumnSizingState
     } | null>(null)
-    // Reset sizing state when `tableId` actually transitions, using the
-    // canonical React "store information from previous renders" pattern
-    // (https://react.dev/reference/react/useState#storing-information-from-previous-renders).
-    // Render-time derivation (rather than an effect) guarantees the
-    // persist effect below never sees a transitional render where
-    // `tableId` is the NEW value but `columnSizing` is still the OLD —
+    // Tracks the previous tableId across renders so the render-time
+    // transition handler can detect swaps and flush a pending write
+    // under the prior tableId before resetting.
+    const prevTableIdRef = React.useRef<string | undefined>(undefined)
+    // Distinguishes "first render after mount" from later renders. The
+    // initial render must NOT read localStorage (would mismatch SSR's
+    // `{}` and trigger React #418), but later tableId transitions need
+    // the render-time reset pattern to avoid a stale-sizing-under-new-key
+    // window between effect-driven `setColumnSizing({})` and re-render.
+    const hasMountedRef = React.useRef(false)
+
+    // Render-time tableId transition (post-mount only). Uses the
+    // canonical "store information from previous renders" pattern:
     // React discards the current render output and re-renders with the
-    // reset state. Before clearing, flush any unflushed pending write
-    // under the PRIOR tableId so a "resize → swap tables" sequence
-    // doesn't silently lose the resize OR leak it under the new key.
-    const prevTableIdRef = React.useRef(tableId)
-    if (prevTableIdRef.current !== tableId) {
+    // reset state, so the persist effect never observes a transitional
+    // render where `tableId` is NEW but `columnSizing` is OLD. Skipped
+    // on the very first render so SSR HTML and client first-render HTML
+    // stay byte-identical — the initial load happens in the mount
+    // effect below, after hydration commits.
+    if (hasMountedRef.current && prevTableIdRef.current !== tableId) {
         const pending = pendingWrite.current
         if (pending && pending.tableId === prevTableIdRef.current) {
             saveColumnSizing(pending.tableId, pending.sizing)
         }
         prevTableIdRef.current = tableId
-        setColumnSizing(initialColumnSizing)
-        lastPersisted.current = JSON.stringify(initialColumnSizing)
+        const loaded = tableId ? loadColumnSizing(tableId) : {}
+        setColumnSizing(loaded)
+        lastPersisted.current = JSON.stringify(loaded)
         pendingWrite.current = null
     }
+
+    // Mount-only effect: load persisted sizing AFTER hydration commits.
+    // Empty deps so it fires exactly once on mount and never on later
+    // tableId changes (those go through the render-time handler above).
+    // Without this gating, `loadColumnSizing` running on the very first
+    // render would return persisted widths client-side but `{}` on the
+    // server, producing the React #418 hydration mismatch this whole
+    // file is shaped to avoid.
+    // biome-ignore lint/correctness/useExhaustiveDependencies: mount-only by design — tableId changes are handled by the render-time block above.
+    React.useEffect(() => {
+        hasMountedRef.current = true
+        if (!tableId) return
+        prevTableIdRef.current = tableId
+        const loaded = loadColumnSizing(tableId)
+        setColumnSizing(loaded)
+        lastPersisted.current = JSON.stringify(loaded)
+    }, [])
 
     // Persist column widths per table. Three guards layered:
     // 1. Skip while a mouse/touch drag is in progress (TanStack fires one
