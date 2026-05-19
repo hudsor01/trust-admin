@@ -218,6 +218,7 @@ Phases execute in numeric order: 15 -> 16 -> 17 -> 18 -> 19 -> 20 -> 21 -> 22
 | 20. beneficiary-distribution-features | v4.0 | 2/2 | Complete | 2026-03-10 |
 | 21. admin-feature-completeness | v4.0 | 1/1 | Complete | 2026-03-11 |
 | 22. code-quality-cleanup | 3/3 | Complete    | 2026-03-11 | - |
+| 23. shadcn-registry-adoption-and-dashboard-ux-revamp | v4.0 | 1/4 | In progress | — |
 
 ### Phase 23: Shadcn registry adoption and dashboard UX revamp
 
@@ -227,7 +228,7 @@ Phases execute in numeric order: 15 -> 16 -> 17 -> 18 -> 19 -> 20 -> 21 -> 22
 **Plans:** 5 plans (4 active + 1 deferred)
 
 Plans:
-- [ ] 23-01-foundation-PLAN.md — components.json registries wiring (Kibo + Dice; Origin UI deferred per UI-SPEC rev 1); install 5 Dice primitives + Kibo dropzone + shadcn-official context-menu; hand-roll Kbd; patch SummaryCard (text-success/destructive + accessory prop + tabular-nums); build PageHeader + KpiStrip compositions
+- [x] 23-01-foundation-PLAN.md — components.json registries wiring (Kibo + Dice; Origin UI deferred per UI-SPEC rev 1); install 5 Dice primitives + Kibo dropzone + shadcn-official context-menu; hand-roll Kbd; patch SummaryCard (text-success/destructive + accessory prop + tabular-nums); build PageHeader + KpiStrip compositions ✅ 2026-05-19
 - [ ] 23-02-hems-kanban-and-activity-log-PLAN.md — add trpc.hemsRequest.markDistributed; install @kibo-ui/kanban + @kibo-ui/contribution-graph; hand-roll ActivityTimeline; build HemsQueueBoard (drag PENDING→APPROVED with ConfirmDialog, APPROVED→DISTRIBUTED without); build ActivityHeatmap (chart-2 opacity scale, day-click→timeline filter); wire Tabs into /hems-queue and /activity-log
 - [ ] 23-03-liabilities-beneficiaries-kpi-rollout-PLAN.md — add trpc.liability.payoffProjections batched query; install @kibo-ui/gantt + @kibo-ui/avatar-stack; build LiabilityKpiStrip (sumStrings + invertDelta) + LiabilityGantt + DebtToEquityDonut; build BeneficiaryShareDonuts (chart-1..5 cycling + greyed-out empty state) + BeneficiaryAvatarStack + WithdrawalMilestoneGantt; roll KpiStrip onto 10 list pages per UI-SPEC §2 per-page columns table
 - [ ] 23-04-datatable-and-settings-polish-PLAN.md — extend DataTable with bulkActions/exportable/getRowDetail props (ConfirmDialog for destructive, getFilteredRowModel+getVisibleLeafColumns for CSV, /accounts as first row-expansion consumer); install Dice sortable; build PreferenceRow; refactor /settings into 4 Card groups (Trust info/Notifications/Roles&access/Inventory access); [BLOCKING] Drizzle migration 0012 (beneficiary.sortIndex + composite indexes, camelCase columns, bun run db:deploy); add trpc.trustee.reorder + trpc.beneficiary.reorder mutations; build TrusteeSortableList + BeneficiarySortableList consumers

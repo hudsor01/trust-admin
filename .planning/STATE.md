@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Production Hardening & Completeness
-status: completed
-stopped_at: Phase 23 UI-SPEC approved
-last_updated: "2026-05-19T22:28:15.612Z"
-last_activity: "2026-03-11 -- Completed 22-01 dead code removal: 110 dead exports removed from db/queries.ts, date-utils.ts deleted, TxSql consolidated (CLEAN-01, CLEAN-02, CLEAN-06)"
+status: executing
+stopped_at: Phase 23 plan 01-foundation complete
+last_updated: "2026-05-19T23:45:00.000Z"
+last_activity: 2026-05-19 -- Phase 23 plan 01-foundation executed
 progress:
   total_phases: 9
   completed_phases: 8
   total_plans: 24
-  completed_plans: 19
-  percent: 79
+  completed_plans: 20
+  percent: 83
 ---
 
 # State: Trust Admin
@@ -19,12 +19,12 @@ progress:
 ## Current Position
 
 Milestone: v4.0 Production Hardening & Completeness
-Phase: 22 of 22 (code-quality-cleanup)
-Plan: 3 of 3 completed in current phase
-Status: Phase complete
-Last activity: 2026-03-11 -- Completed 22-01 dead code removal: 110 dead exports removed from db/queries.ts, date-utils.ts deleted, TxSql consolidated (CLEAN-01, CLEAN-02, CLEAN-06)
+Phase: 23-shadcn-registry-adoption-and-dashboard-ux-revamp — EXECUTING
+Plan: 2 of 4 (Wave 1 complete — PR-1 foundation shipped on feat/23-01-foundation)
+Status: Executing Phase 23 (next: 23-02-hems-kanban-and-activity-log)
+Last activity: 2026-05-19 -- Phase 23 plan 01-foundation complete (commits d406184 + edc00f4)
 
-Progress: [██████████] 100%
+Progress: [██████████] 83%
 
 ## Accumulated Context
 
@@ -92,6 +92,15 @@ Progress: [██████████] 100%
 - [v4.0] TxSql type defined once in db/index.ts -- imported by db/queries.ts and contact.ts (no duplicate definitions)
 - [v4.0] Internal CRUD helpers in db/queries.ts made private -- only exported via CRUD object aggregations
 - [v4.0] date-fns removed (unused) -- date-utils.ts had zero imports across codebase
+- [Phase 23] components.json registries block uses @kibo-ui + @diceui only -- Origin UI excluded per UI-SPEC rev 1 safety gate (date-range covered by calendar mode='range', switch already present)
+- [Phase 23] Kbd hand-rolled at src/components/ui/kbd.tsx (UI-SPEC §14 verbatim) -- @diceui/kbd returns HTTP 404
+- [Phase 23] shadcn-official context-menu installed in PR-1 (not PR-B) -- prefetched as @kibo-ui/gantt regDep for PR-C
+- [Phase 23] SummaryCard delta colors use text-success / text-destructive tokens (NOT text-green-600 / text-red-600) per UI-SPEC §Color
+- [Phase 23] SummaryCard value uses font-semibold tabular-nums (NOT font-bold) per UI-SPEC §Typography Display
+- [Phase 23] SummaryCard exports accessory?: ReactNode prop -- top-3 right-3 absolute slot for sparklines / status badges
+- [Phase 23] KpiStripItem.invertDelta convention: caller marks 'down is good' (liabilities, expenses); zero treated as positive in both modes
+- [Phase 23] KpiStrip sparkline uses inline recharts <LineChart> stroke=var(--primary) with isAnimationActive=false to avoid React Compiler bailout from reconciliation churn
+- [Phase 23] PageHeader composition (h1 + breadcrumb + actions) lives in src/components/ (NOT src/components/ui/) -- app-specific composition vs generic primitive
 
 ### Auth API Patterns That Work
 
@@ -134,8 +143,15 @@ const rows = await sql`SELECT id, name, email FROM neon_auth."user" WHERE lower(
 
 ## Session Continuity
 
-Last session: --stopped-at
-Stopped at: Phase 23 UI-SPEC approved
-Resume file: --resume-file
+Last session: 2026-05-19T23:45:00Z
+Stopped at: Phase 23 plan 01-foundation complete on feat/23-01-foundation (commits d406184 + edc00f4)
+Resume file: .planning/phases/23-shadcn-registry-adoption-and-dashboard-ux-revamp/23-02-hems-kanban-and-activity-log-PLAN.md
 
 **Planned Phase:** 23 (Shadcn registry adoption and dashboard UX revamp) — 5 plans — 2026-05-19T22:28:15.607Z
+
+**Phase 23 progress:**
+- [x] 23-01-foundation (Wave 1 / PR-1) — registries wired, 6 primitives + Kbd installed, SummaryCard patched, PageHeader + KpiStrip built, 12 Wave-0 tests passing — 2026-05-19
+- [ ] 23-02-hems-kanban-and-activity-log (Wave 2 / PR-2)
+- [ ] 23-03-liabilities-beneficiaries-kpi-rollout (Wave 3 / PR-3)
+- [ ] 23-04-datatable-and-settings-polish (Wave 4 / PR-4)
+- [ ] 23-05-asset-wizard (DEFERRED)
