@@ -5,6 +5,7 @@ status: draft
 shadcn_initialized: true
 preset: existing slate base (components.json)
 created: 2026-05-19
+revised: 2026-05-19 (rev 1 — typography scale + kanban badge + origin safety gate)
 ---
 
 # Phase 23 — UI Design Contract
@@ -21,7 +22,7 @@ created: 2026-05-19
 |----------|-------|
 | Tool | shadcn (already initialized, `components.json` present) |
 | Preset | Existing slate base + OKLCH tokens in `src/app/globals.css` — **DO NOT regenerate** |
-| Component library | Radix UI primitives via shadcn/ui (39 primitives installed) + Kibo UI + Origin UI (legacy) + Dice UI |
+| Component library | Radix UI primitives via shadcn/ui (39 primitives installed) + Kibo UI + Dice UI |
 | Icon library | `lucide-react` (already configured, `iconLibrary: "lucide"` in components.json) |
 | Font | Geist Sans (body) + Geist Mono (numeric/code) — already mounted via `--font-geist-sans` / `--font-geist-mono` |
 | Chart primitive | Recharts via `src/components/ui/chart.tsx` wrapper — **DO NOT install Tremor** |
@@ -32,17 +33,15 @@ created: 2026-05-19
 // components.json delta — add this block, leave everything else alone
 "registries": {
   "@kibo-ui":  "https://www.kibo-ui.com/r/{name}.json",
-  "@originui": "https://originui.com/r/legacy/{name}.json",
   "@diceui":   "https://www.diceui.com/r/{name}.json"
 }
 ```
 
-> Origin URL is `/r/legacy/{name}.json` (Origin UI was acquired by Cal.com → legacy snapshot). Verified in RESEARCH.md.
+> Origin UI removed from this phase per revision 1 safety gate (see Registry Safety §). The existing shadcn-official `calendar` and `switch` primitives cover the use cases.
 
 **Install destinations (verified by registry JSON inspection):**
 
 - Kibo UI primitives → `src/components/kibo-ui/<slug>/index.tsx` (NOT `src/components/ui/` — registry hardcodes `target`)
-- Origin UI primitives → `src/components/ui/<slug>.tsx`
 - Dice UI primitives → `src/components/ui/<slug>.tsx`
 
 ---
@@ -81,39 +80,46 @@ Declared values (Tailwind 4 default scale, multiples of 4 only):
 
 ## Typography
 
-Base scale (4 sizes + 2 weights — already in use across the codebase, do NOT add new sizes):
+Base scale — **4 sizes, 2 weights** (collapsed per revision 1):
 
 | Role | Size | Tailwind | Weight | Line height | Usage |
 |------|------|----------|--------|-------------|-------|
-| Display | 24px | `text-2xl`  | 700 `font-bold`     | 1.2 (`leading-tight`)   | KPI strip values, page H1 |
-| Heading | 20px | `text-xl`   | 600 `font-semibold` | 1.3 (`leading-snug`)    | Section H2 (settings card titles, kanban column header) |
-| Subheading | 16px | `text-base` | 500 `font-medium` | 1.5 (`leading-normal`)  | Card titles, PreferenceRow title |
-| Body | 14px | `text-sm`   | 400 `font-normal`   | 1.5 (`leading-normal`)  | **Default text** — table cells, form labels, descriptions |
-| Caption | 12px | `text-xs`   | 400 `font-normal`   | 1.4 (`leading-snug`)    | Metadata, table column headers, timeline timestamps, sparkline labels |
+| Display | 24px | `text-2xl` | 600 `font-semibold` | 1.2 (`leading-tight`) | KPI strip values, page H1 |
+| Heading | 20px | `text-xl` | 600 `font-semibold` | 1.3 (`leading-snug`) | Section H2 — settings card titles, kanban column header, card titles, PreferenceRow title |
+| Body | 14px | `text-sm` | 400 `font-normal` | 1.5 (`leading-normal`) | **Default text** — table cells, form labels, descriptions, kanban card title |
+| Caption | 12px | `text-xs` | 400 `font-normal` | 1.4 (`leading-snug`) | Metadata, table column headers, timeline timestamps, sparkline labels, HEMS category label |
 
-**Per-component typography rules:**
+**Only 2 weights allowed across the phase:** `font-normal` (400) for body, `font-semibold` (600) for emphasis and headings. **`font-medium` (500) and `font-bold` (700) are banned from this phase.** Any prior reference in earlier specs has been promoted/demoted to `font-semibold`.
+
+**Per-component typography rules (after revision 1 sweep):**
 
 - **PageHeader:**
-  - Title: `text-2xl font-bold leading-tight` (24px / 700 / 1.2)
+  - Title: `text-2xl font-semibold leading-tight` (24px / 600 / 1.2)
   - Description: `text-sm text-muted-foreground` (14px / 400 / muted)
   - Breadcrumb: `text-xs text-muted-foreground` (12px / 400 / muted), separator `/` rendered as a `lucide-react ChevronRight` icon at `h-3 w-3` for visual lightness
-- **KpiStrip card:** title `text-sm text-muted-foreground`, value `text-2xl font-bold`, delta `text-xs`
-- **Kanban card title:** `text-sm font-medium` (14px / 500); body metadata `text-xs text-muted-foreground`
-- **Kanban column header:** `text-sm font-semibold uppercase tracking-wide` (matches existing financial table thead style)
-- **Timeline day header:** `text-sm font-medium text-muted-foreground`
-- **Timeline row body:** `text-sm` actor + verb, `text-xs font-mono text-muted-foreground` for `tableName#recordId`
-- **Heatmap tooltip:** `text-xs` count + ISO date
-- **Gantt axis ticks:** `text-xs text-muted-foreground`
-- **Gantt bar label:** `text-xs font-medium` inside the bar (truncate at bar width)
-- **Donut center label:** `text-sm font-medium`
-- **Donut value below center:** `text-xs text-muted-foreground`
-- **PreferenceRow title:** `text-base font-medium`
-- **PreferenceRow description:** `text-sm text-muted-foreground`
-- **Stepper step number:** `text-xs font-semibold` inside step circle
-- **Stepper step title:** `text-sm font-medium`
+- **KpiStrip card:**
+  - Title (label): `text-sm text-muted-foreground` (14px / 400 / muted)
+  - Value: `text-2xl font-semibold tabular-nums` (24px / 600)
+  - Delta: `text-xs` (12px / 400) — color via invertible rule
+- **Kanban card title (beneficiary name):** `text-sm font-semibold` (14px / 600); body metadata `text-xs text-muted-foreground`
+- **Kanban column header:** `text-sm font-semibold uppercase tracking-wide` (14px / 600 — matches existing financial table thead style)
+- **Kanban HEMS category label:** `text-xs font-semibold uppercase tracking-wide text-muted-foreground` — rendered as plain `<span>`, NOT a `<Badge>` (see §3 + Implementation Note 15)
+- **Timeline day header:** `text-sm font-semibold text-muted-foreground` (14px / 600)
+- **Timeline row body:** `text-sm` (14px / 400) actor + verb; `text-xs font-mono text-muted-foreground` for `tableName#recordId`
+- **Heatmap tooltip:** `text-xs` (12px / 400) count + ISO date
+- **Gantt axis ticks:** `text-xs text-muted-foreground` (12px / 400)
+- **Gantt bar label:** `text-xs font-semibold` (12px / 600) inside the bar (truncate at bar width)
+- **Gantt today-line "Today" label:** `text-xs font-semibold text-primary` (12px / 600)
+- **Donut center label:** `text-xl font-semibold` (20px / 600) — promoted from prior 16px tier
+- **Donut value below center:** `text-xs text-muted-foreground` (12px / 400)
+- **PreferenceRow title:** `text-xl font-semibold` (20px / 600) — promoted from prior 16px tier
+- **PreferenceRow description:** `text-sm text-muted-foreground` (14px / 400)
+- **Stepper step number:** `text-xs font-semibold` (12px / 600) inside step circle
+- **Stepper step title:** `text-sm font-semibold` (14px / 600) — was `font-medium`, now collapsed
+- **DataTable bulk-action selection count:** `text-sm font-semibold` (14px / 600) — was `font-medium`, now collapsed
+- **Activity timeline expand chevron region (JSON diff):** `text-xs font-mono` (12px / 400)
+- **CardTitle (settings card groups):** `text-xl font-semibold` (20px / 600)
 - **Money values everywhere:** `font-mono tabular-nums` — already enforced via `.table-financial .numeric` rule; reapply via `tabular-nums` className on every new component that renders currency or percentages
-
-**Font weights — only 2 weights allowed across the phase:** `font-normal` (400) and `font-semibold` (600). `font-bold` (700) reserved for KPI display values and page H1 only. `font-medium` (500) used for emphasis within body text (subheadings, card titles). **Do not introduce new weights.**
 
 ---
 
@@ -142,7 +148,7 @@ All colors are CSS variable references against the existing OKLCH theme in `src/
 - Focus ring (`ring-ring`, which aliases `--primary`)
 - Drag-hover indicator on kanban drop zones (`ring-2 ring-primary`)
 
-**Accent is NOT used for:** secondary buttons, table headers, status badges (except those explicitly mapped to primary in STATUS_VARIANTS), card borders, breadcrumb separators, or general decoration.
+**Accent is NOT used for:** secondary buttons, table headers, status badges (except those explicitly mapped to primary in STATUS_VARIANTS), card borders, breadcrumb separators, HEMS category labels, or general decoration.
 
 ### Status colors (do NOT override; reuse `STATUS_VARIANTS` from `src/lib/constants.ts`)
 
@@ -162,6 +168,8 @@ All colors are CSS variable references against the existing OKLCH theme in `src/
 | DISTRIBUTED | `outline` | Terminal — paid out |
 | DENIED | `destructive` | Terminal — denied |
 | CANCELLED | `outline` | Terminal — withdrawn |
+
+**HEMS categories are NOT badges.** The enum values HEALTH, EDUCATION, MAINTENANCE, SUPPORT are descriptive, not status. They render as plain `<span>` text (see §3 + Implementation Note 15) — using `Badge` would either fall through to the default variant (burning the reserved accent) or require polluting `STATUS_VARIANTS` with non-status keys.
 
 ### Semantic feedback colors
 
@@ -257,7 +265,7 @@ interface PageHeaderProps {
 - Outer: `<header className="flex flex-col gap-2 pb-6 border-b border-border">`
 - Top row: breadcrumb (if any) — `<nav>` with separators
 - Middle row: `flex items-start justify-between gap-4`
-  - Left: title (`text-2xl font-bold leading-tight`) + description (`text-sm text-muted-foreground mt-1`)
+  - Left: title (`text-2xl font-semibold leading-tight`) + description (`text-sm text-muted-foreground mt-1`)
   - Right: `actions` slot (flex gap-2)
 - **Mobile collapse (`< md`, 768px):** actions wrap below title; description shows full width
 
@@ -298,8 +306,8 @@ interface KpiStripProps {
 
 **Card composition (each item):**
 - Wraps existing `<SummaryCard>` — extend with `accessory?: ReactNode` prop in PR-1 (research §"KpiStrip composition" notes this gap)
-- Title: `item.label` (14px muted)
-- Value: `item.value` (24px bold, `tabular-nums`)
+- Title: `item.label` (`text-sm text-muted-foreground` — 14px / 400)
+- Value: `item.value` (`text-2xl font-semibold tabular-nums` — 24px / 600)
 - Delta row (if `delta` present): `TrendingUp` / `TrendingDown` icon + `Math.abs(item.delta.value)%` + `delta.label` in `text-xs`
   - Color via the invertible rule (see Color section)
 - Sparkline (if `sparklineSeries` present): 64px × 16px Recharts `<LineChart>` in the accessory slot, top-right corner of card
@@ -348,13 +356,18 @@ interface KpiStripProps {
 - Count badge: `<Badge variant="secondary" className="ml-2">{count}</Badge>`
 
 **Card payload (per HEMS request):**
+
+The HEMS category (HEALTH / EDUCATION / MAINTENANCE / SUPPORT) is **descriptive metadata, not status** — render as plain `<span>`, NOT a `<Badge>`. Using `Badge variant={STATUS_VARIANTS[category]}` would resolve to `undefined` and fall through to the `default` variant, burning the reserved `--primary` accent on every kanban card. See Implementation Note 15 for the rationale and the §Color section's "Accent is NOT used for" list which excludes HEMS categories.
+
 ```tsx
 <div className="bg-card border border-border rounded-md p-3 shadow-sm space-y-2 cursor-grab">
   <div className="flex items-start justify-between gap-2">
-    <span className="text-sm font-medium">{beneficiaryName}</span>
-    <Badge variant={statusVariant}>{category}</Badge>  {/* HEALTH / EDUCATION / MAINTENANCE / SUPPORT */}
+    <span className="text-sm font-semibold">{beneficiaryName}</span>
+    <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      {category}
+    </span>
   </div>
-  <div className="font-mono tabular-nums text-base font-semibold">
+  <div className="font-mono tabular-nums text-sm font-semibold">
     {formatMoney(amountRequested)}
   </div>
   <div className="text-xs text-muted-foreground">
@@ -362,6 +375,8 @@ interface KpiStripProps {
   </div>
 </div>
 ```
+
+> Note: the money line uses `text-sm font-semibold` (14px / 600) — the prior `text-base` (16px) tier was dropped in revision 1.
 
 **Card padding exception:** `p-3` (12px) — exception from 8-point scale to fit 4–6 cards per column at typical viewport widths.
 
@@ -381,7 +396,7 @@ interface KpiStripProps {
 
 Empty-state visual:
 - Centered `<Icon>` (`Inbox` from lucide for PENDING, `CheckCircle2` for APPROVED, `Banknote` for DISTRIBUTED) at `h-8 w-8 text-muted-foreground`
-- Heading: `text-sm font-medium text-muted-foreground mt-2`
+- Heading: `text-sm font-semibold text-muted-foreground mt-2`
 - Body: `text-xs text-muted-foreground mt-1 max-w-[160px] text-center`
 - Padding: `py-8 px-4`
 
@@ -391,7 +406,7 @@ Empty-state visual:
 - markDistributed success: "Marked as distributed."
 - markDistributed error: "Couldn't mark as distributed — verify the distribution record exists."
 
-**Tabs above board:** `<Tabs>` from shadcn — "Board" (default) | "Table" (existing DataTable view, unchanged). Tab list uses `text-sm font-medium`; active tab indicator uses `border-primary border-b-2`.
+**Tabs above board:** `<Tabs>` from shadcn — "Board" (default) | "Table" (existing DataTable view, unchanged). Tab list uses `text-sm font-semibold`; active tab indicator uses `border-primary border-b-2`.
 
 **Loading skeleton:** 3 columns each with 3 `<Skeleton className="h-24 rounded-md" />` cards.
 
@@ -415,7 +430,7 @@ interface ActivityTimelineProps {
 
 **Layout (per RESEARCH.md code example, with refinements):**
 - Day group `<section>`:
-  - Header: `<h3 className="text-sm font-medium text-muted-foreground mb-2">{formatDate(day, 'EEEE, MMM d')}</h3>` — e.g. "Tuesday, May 19"
+  - Header: `<h3 className="text-sm font-semibold text-muted-foreground mb-2">{formatDate(day, 'EEEE, MMM d')}</h3>` — e.g. "Tuesday, May 19"
   - Ordered list: `<ol className="relative border-l border-border pl-6 space-y-2">`
 - Day group spacing: `space-y-6` (24px) between groups
 
@@ -474,10 +489,10 @@ interface ActivityTimelineProps {
 
 **Day labels:** Show "M / T / W / T / F / S / S" beneath the grid in `text-xs text-muted-foreground` (only at `lg`+).
 
-**Month label:** Show current month name above grid in `text-sm font-medium`. If window crosses month boundary, show "{Apr} / {May}" with each cell column aligned to its month.
+**Month label:** Show current month name above grid in `text-sm font-semibold`. If window crosses month boundary, show "{Apr} / {May}" with each cell column aligned to its month.
 
 **Tooltip on hover (use shadcn Tooltip):**
-- Title: `text-xs font-medium` — "{count} {count === 1 ? 'activity' : 'activities'}"
+- Title: `text-xs font-semibold` — "{count} {count === 1 ? 'activity' : 'activities'}"
 - Body: `text-xs text-muted-foreground` — `formatDate(date, 'EEEE, MMM d')`
 
 **Click handler:** Filter the ActivityTimeline (sibling component) to show only entries from the clicked day. Active day cell gets `ring-2 ring-primary` outline.
@@ -514,7 +529,7 @@ interface ActivityTimelineProps {
 
 **Mobile fallback (`< lg`):** Horizontal scroll inside a `<ScrollArea>`; min-width set so bars stay 24px tall. **Do not collapse to vertical-only at small viewports** — the visual is the chart.
 
-**Today line label:** small "Today" tag in `text-xs font-medium text-primary` floating above the line at the top of the chart area.
+**Today line label:** small "Today" tag in `text-xs font-semibold text-primary` floating above the line at the top of the chart area.
 
 **Loading:** `<Skeleton className="h-64 w-full" />` for Gantt + `<Skeleton className="h-40 w-40 rounded-full" />` for donut.
 
@@ -525,7 +540,7 @@ interface ActivityTimelineProps {
 
 **DebtToEquityDonut:**
 - 2 slices: debt (destructive), equity (success)
-- Center label: `{ratio}%` debt as `text-base font-medium` (e.g. "23%")
+- Center label: `{ratio}%` debt as `text-xl font-semibold` (e.g. "23%")
 - Below center: "debt to equity" in `text-xs text-muted-foreground`
 - Legend below donut: 2 rows — "Debt: ${total}" + "Equity: ${total}"
 - Use existing `chart.tsx` Recharts wrapper. NO Tremor.
@@ -550,13 +565,13 @@ interface ActivityTimelineProps {
 - Container: `<Card className="p-6">`
 - Donut: `h-32 w-32` (smaller than DebtToEquityDonut to fit 4-up grid), 2 slices = sharePercent (chart-N) + remainder (muted)
 - Color cycling: beneficiary at index N uses `chart-{(N % 5) + 1}` slice
-- Center label: `{sharePercent}%` (`text-base font-medium`)
-- Below center: beneficiary name (`text-sm font-medium`)
+- Center label: `{sharePercent}%` (`text-xl font-semibold` — 20px / 600)
+- Below center: beneficiary name (`text-sm font-semibold`)
 - Below name: relationship enum (`text-xs text-muted-foreground`)
 
 **Empty state when sharePercent is null/0:**
 - Render greyed-out donut (full slice in `bg-muted`)
-- Center label: "—" (em dash) in `text-base text-muted-foreground`
+- Center label: "—" (em dash) in `text-xl text-muted-foreground`
 - Below: "{Name} (share not set)" in `text-sm text-muted-foreground`
 - This is a known data state, not an error.
 
@@ -588,7 +603,7 @@ interface ActivityTimelineProps {
 - Content: `flex items-center justify-between gap-4`
 
 **Left section (selection count):**
-- `text-sm font-medium` — "{N} selected" (singular "1 row selected" / plural "N rows selected")
+- `text-sm font-semibold` — "{N} selected" (singular "1 row selected" / plural "N rows selected")
 - `<Button variant="ghost" size="sm" onClick={clearSelection}>Clear</Button>`
 
 **Right section (actions slot):**
@@ -690,8 +705,8 @@ getRowDetail?: (row: TData) => ReactNode
 **Layout:**
 - Container: `<div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4 py-4 border-b border-border last:border-0">`
 - Left: title + description column
-  - Title: `text-base font-medium`
-  - Description: `text-sm text-muted-foreground mt-1`
+  - Title: `text-xl font-semibold` (20px / 600 — promoted from prior 16px tier per revision 1)
+  - Description: `text-sm text-muted-foreground mt-1` (14px / 400)
 - Right: control slot (`<div className="flex items-center justify-end">`)
 
 **Props:**
@@ -709,7 +724,7 @@ interface PreferenceRowProps {
 - CardTitle: `text-xl font-semibold` (matches Heading typography token)
 - Card spacing: `space-y-6` (24px) between cards
 
-**Switch variant:** Install one `@originui/switch-NN` variant (planner picks at install time). Apply `data-[state=checked]:bg-primary` to ensure OKLCH token compliance.
+**Switch primitive:** Use the **existing shadcn-official `src/components/ui/switch.tsx`** (Radix Switch wrapper). Origin UI's switch variants were dropped from this phase per revision 1 safety gate — the existing primitive already renders against the OKLCH theme via `data-[state=checked]:bg-primary` and `data-[state=unchecked]:bg-input`. No customization needed beyond standard className overrides.
 
 **Mobile (`< md`):**
 - Grid collapses to single column
@@ -760,7 +775,7 @@ interface PreferenceRowProps {
   - Completed: `bg-success text-success-foreground border-success` + checkmark icon
 - Connector line between steps: 2px, `bg-muted` for upcoming, `bg-success` for completed
 
-**Step labels:** `text-xs font-medium` below each circle (truncate at 80px width if needed).
+**Step labels:** `text-xs font-semibold` below each circle (truncate at 80px width if needed).
 
 **Navigation:**
 - "Back" + "Next" buttons at dialog footer (variant outline + default respectively)
@@ -784,7 +799,7 @@ export function Kbd({ children, className }: { children: ReactNode; className?: 
     <kbd className={cn(
       "inline-flex items-center justify-center",
       "min-w-[1.5rem] h-5 px-1.5",
-      "font-mono text-xs font-medium",
+      "font-mono text-xs font-semibold",
       "bg-muted text-muted-foreground",
       "border border-border rounded",
       "shadow-[0_1px_0_0_var(--border)]",
@@ -797,6 +812,50 @@ export function Kbd({ children, className }: { children: ReactNode; className?: 
 ```
 
 **Usage:** Command palette shortcut hints. E.g. `<Kbd>⌘</Kbd> + <Kbd>K</Kbd>`.
+
+---
+
+### 15. Date Range Picker — Reuse Existing Calendar Primitive (Phase 3 — calendar consumer pages)
+
+**Component:** Existing `src/components/ui/calendar.tsx` (shadcn-official, already installed) — extended inline with `mode="range"`. Origin UI's `calendar-30..35` range variants were dropped from this phase per revision 1 safety gate.
+
+**Why:** The shadcn-official Calendar (which wraps react-day-picker) supports `mode="range"` natively. The phase needed a date-range affordance for filtering activity_log and HEMS queue by date; that capability already exists in the primitive — no registry install required.
+
+**Spec for a date-range affordance (inline, no new component file required):**
+
+```tsx
+import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Button } from "@/components/ui/button"
+import { CalendarIcon } from "lucide-react"
+import { DateRange } from "react-day-picker"
+
+const [range, setRange] = useState<DateRange | undefined>()
+
+<Popover>
+  <PopoverTrigger asChild>
+    <Button variant="outline" size="sm" className="gap-2">
+      <CalendarIcon className="h-3 w-3" />
+      {range?.from
+        ? range.to
+          ? `${formatDate(range.from)} – ${formatDate(range.to)}`
+          : formatDate(range.from)
+        : "Pick a date range"}
+    </Button>
+  </PopoverTrigger>
+  <PopoverContent align="start" className="w-auto p-0">
+    <Calendar mode="range" selected={range} onSelect={setRange} numberOfMonths={2} />
+  </PopoverContent>
+</Popover>
+```
+
+**Typography on trigger button:** `text-sm` (14px / 400) — Button default.
+
+**Empty state (no range selected):** Trigger button shows "Pick a date range" in default Button text color.
+
+**Loading:** N/A — Calendar is fully client-side, no async render path.
+
+**Mobile (`< md`):** `numberOfMonths={1}` to fit single column.
 
 ---
 
@@ -818,6 +877,7 @@ export function Kbd({ children, className }: { children: ReactNode; className?: 
 | Empty state — table after filtering | "No {resource} match your filters." / "Try clearing filters or search." |
 | Empty state — table no data | "No {resource} yet." / "{CTA to create}" |
 | Empty state — settings card | Render the card with disabled controls; no special copy. |
+| Empty state — date range picker | "Pick a date range" (trigger button) |
 | Error state — generic mutation fail | "Couldn't {action} — refresh and try again." |
 | Error state — network | "Connection lost — check your network and retry." |
 | Error state — RLS denial | "You don't have permission to do this." (rare; admin-only routes) |
@@ -883,14 +943,27 @@ Tailwind 4 default scale (already in use):
 
 | Registry | Blocks Used | Safety Gate |
 |----------|-------------|-------------|
-| shadcn official | Existing 39 primitives + new `context-menu` (gantt dep) | not required (official) |
+| shadcn official | Existing 39 primitives + new `context-menu` (gantt dep) + reuse of existing `calendar.tsx` (date range) and `switch.tsx` (settings) | not required (official) |
 | `@kibo-ui` | kanban, gantt, contribution-graph, avatar-stack, dropzone | direct JSON inspection passed — all 5 verified clean (no fetch, no eval, no process.env, no external imports, no obfuscation). RESEARCH.md §Per-component registry status. Safety Gate: `view passed — no flags — 2026-05-19` |
-| `@originui` (legacy) | calendar-NN (date range), switch-NN | direct URL form preferred per RESEARCH.md Open Question 1. Pick slug at install time. Pre-install grep for color literals required (RESEARCH.md Pitfall 3). Safety Gate: `pre-install grep required at install time — 2026-05-19` |
 | `@diceui` | combobox, tags-input, phone-input, mask-input, sortable, stepper | direct JSON inspection passed for 6 of 7 plan slugs (kbd 404'd, replaced with hand-rolled). RESEARCH.md §Per-component registry status. Safety Gate: `view passed — no flags — 2026-05-19` |
+
+**Origin UI: REMOVED from this phase (revision 1 safety gate, Path B fallback).**
+
+Attempted Path A vetting on 2026-05-19:
+- `curl -sSL https://originui.com/r/legacy/calendar-30.json` → HTTP 200 but returned the Origin UI SPA shell HTML (444KB), not registry JSON. Origin UI uses content-negotiated JSON delivery (HTML to browser/curl, JSON only to the shadcn CLI via UA/Accept-header negotiation per RESEARCH.md A1).
+- `WebFetch` against same URL → HTTP 403 Forbidden (bot protection).
+- Conclusion: Source code cannot be inspected from this session without running `bunx shadcn view` against a slug that has been pre-installed. Per gsd-ui-checker dimension 6, "vetting required at install time" is intent, not evidence — and unverifiable in this session.
+
+Path B applied:
+- Date-range need → reuse existing shadcn-official `src/components/ui/calendar.tsx` with `mode="range"` (see §15). Spec inline in this doc.
+- Switch need → reuse existing shadcn-official `src/components/ui/switch.tsx` (see §11). No customization required.
+- `components.json` `registries` block excludes `@originui` (see §Design System).
+- Bundle math impact: -2 to -5 KB net (Origin variants would have added 2–5 KB; reusing existing primitives is free).
 
 **Hand-rolled substitutions** (no registry, no safety gate needed):
 - `src/components/activity-timeline.tsx` (replaces missing `@kibo-ui/timeline`)
 - `src/components/ui/kbd.tsx` (replaces missing `@diceui/kbd`)
+- Inline date-range picker using existing `Calendar` + `Popover` (replaces dropped `@originui/calendar-NN`)
 
 **Mandatory per-install audit (locked in CONTEXT.md):** After every `bunx shadcn@latest add @ns/<slug>`, grep the new file:
 ```bash
@@ -904,7 +977,7 @@ Any match → patch to `var(--*)` reference before commit. RESEARCH.md Pitfall 3
 
 These are flagged for the planner to translate into specific task line items:
 
-1. **components.json registries block (PR-1, Task 1):** Use `https://originui.com/r/legacy/{name}.json` for Origin (not `/r/{name}.json`). RESEARCH.md A1.
+1. **components.json registries block (PR-1, Task 1):** Add only `@kibo-ui` and `@diceui` namespaces. `@originui` is dropped from this phase per revision 1 — do NOT add it. RESEARCH.md A1.
 2. **Patch `SummaryCard` BEFORE building KpiStrip (PR-1):** Replace hardcoded `text-green-600` / `text-red-600` (lines 51–52) with `text-success` / `text-destructive`. Add `accessory?: ReactNode` prop for sparkline slot. Without this, KpiStrip can't render compliant deltas.
 3. **Add new tRPC mutation `hemsRequest.markDistributed` (PR-A):** Does not exist today (RESEARCH.md A6). Must include `entityId` per CLAUDE.md entityId pattern.
 4. **Add new tRPC procedure `liability.payoffProjections({entityId})` (PR-B):** Batched variant of existing `getPayoffProjection`. RESEARCH.md §Architecture Patterns Pattern 2.
@@ -918,11 +991,13 @@ These are flagged for the planner to translate into specific task line items:
 8. **OKLCH grep audit (every install):** Run `grep -E "bg-\[#|text-\[#|bg-(red|green|blue|yellow|amber|sky|emerald|gray|slate)-[0-9]+" src/components/{ui,kibo-ui}/**/*.tsx`. Any match → patch to var(--*).
 9. **React Compiler bailout audit (every PR):** Check `bun run build` output for `[Compiler bailout]`. If kanban or sortable bails out, add `'use no memo'` to the consumer component (NOT the registry file). PR #87 precedent.
 10. **`date-fns` reintroduction (PR-A):** CLEAN-02 removed `date-fns`; contribution-graph, gantt, and calendar all need it back. Document re-introduction in PR-A description (justifies reversal). Verify tree-shaking via `bun run build:analyze` post-install — flag if any `date-fns/locale/*` chunks appear.
-11. **`ThemeProvider` mount check:** All 5 Kibo slugs verified to NOT import `useTheme()` or `next-themes`. Origin + Dice components must be re-verified at install time. If any do import them, mount `<ThemeProvider>` in `src/app/layout.tsx` BEFORE merging. RESEARCH.md Pitfall 4.
-12. **Bundle budget tracking:** After PR-1, PR-A, PR-B, PR-C, PR-D each, run `bun run build:analyze` and append the gzipped delta to the PR description. Cumulative limit +120 KB. RESEARCH.md projection: ~70–95 KB worst case.
-13. **`PR-E (stepper wizard) is deferred** per RESEARCH.md Open Question 4 recommendation. Planner: do NOT include PR-E in the initial plan; if the user reasserts, add as a follow-up after PR-D ships.
+11. **`ThemeProvider` mount check:** All 5 Kibo slugs verified to NOT import `useTheme()` or `next-themes`. Dice components must be re-verified at install time. If any do import them, mount `<ThemeProvider>` in `src/app/layout.tsx` BEFORE merging. RESEARCH.md Pitfall 4.
+12. **Bundle budget tracking:** After PR-1, PR-A, PR-B, PR-C, PR-D each, run `bun run build:analyze` and append the gzipped delta to the PR description. Cumulative limit +120 KB. Revised projection (Origin UI removed): ~65–90 KB worst case.
+13. **PR-E (stepper wizard) is deferred** per RESEARCH.md Open Question 4 recommendation. Planner: do NOT include PR-E in the initial plan; if the user reasserts, add as a follow-up after PR-D ships.
 14. **`tablecn` bulk-action toolbar is hand-adapted, not installed.** The planner must task it as "build from scratch using shadcn primitives following spec at UI-SPEC.md §8" — no `bunx shadcn add` command will work.
-15. **HEMS card title color exception:** The kanban card uses `Badge variant={statusVariant}` from existing STATUS_VARIANTS — but the **category** badge (HEALTH/EDUCATION/MAINTENANCE/SUPPORT) is NOT in STATUS_VARIANTS. Planner: extend STATUS_VARIANTS in `src/lib/constants.ts` to include the 4 HEMS categories mapped to `outline` variant, or render category in a plain `<span className="text-xs text-muted-foreground uppercase">`. Recommendation: plain span — categories are descriptive, not status.
+15. **HEMS category renders as plain `<span>`, NOT `<Badge>`** (Color §, §3 Kanban). The 4 HEMS category enum values (HEALTH/EDUCATION/MAINTENANCE/SUPPORT) are NOT in `STATUS_VARIANTS` (`src/lib/constants.ts` lines 17–49). Wrapping them in `<Badge variant={STATUS_VARIANTS[category]}>` would resolve to `undefined` → fall through to the `default` variant → render in `--primary`, burning the reserved accent on every kanban card. Use the spec'd snippet exactly: `<span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{category}</span>`. Do NOT extend STATUS_VARIANTS to include categories — categories are descriptive, not status.
+16. **Date-range picker uses existing `Calendar` primitive (§15).** No new registry install. Spec is inline in this document. Apply to activity-log filtering and HEMS queue date filtering.
+17. **Settings switches use existing `src/components/ui/switch.tsx` (§11).** Origin UI's switch variants were dropped per revision 1 — do NOT add `@originui` to components.json or attempt to install any switch variant.
 
 ---
 
