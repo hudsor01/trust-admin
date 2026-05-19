@@ -16,19 +16,19 @@ mock.module('../../src/lib/env', () => ({
 
 // Pass-through mock for the inventory-analysis module so sibling test
 // files' mocks don't leak across file boundaries (bun mock.module is
-// global per process).
-const mockMapToDbCategory = mock((_c: string) => 'OTHER' as const)
+// global per process). submitInventoryItem only imports
+// InventoryAnalysisSchema from this module today.
 const mockSchemaParse = mock((input: unknown) => ({
     success: true,
     data: input as Record<string, unknown>,
 }))
 mock.module('../../src/lib/inventory-analysis', () => ({
-    mapToDbCategory: mockMapToDbCategory,
     InventoryAnalysisSchema: { safeParse: mockSchemaParse },
 }))
 
-// Capture insert.values(...) so we can assert the server re-derived
-// reviewStatus / override reasons from CACHED analysis, not form data.
+// Capture insert.values(...) so we can assert the server reads
+// reviewStatus from CACHED analysis (not form data) — the trust boundary
+// for the analyze→submit flow.
 let capturedInsertValues: Record<string, unknown> | null = null
 const mockReturning = mock(() => Promise.resolve([{ id: 123 }]))
 const mockValues = mock((v: Record<string, unknown>) => {
@@ -167,14 +167,14 @@ describe('submitInventoryItem — direct insert into personal_property', () => {
         const result = await submitInventoryItem({ success: false }, fd)
 
         expect(result.success).toBe(true)
-        // Estate-tax override guardrails were removed alongside the
-        // managed-agent swap (see commit swap-to-managed-agent). The stored
-        // reviewStatus from the cached analysis is written directly to the
-        // aiConfidence column — client-submitted aiReviewStatus is ignored.
+        // The stored reviewStatus from the cached analysis is written
+        // directly to aiConfidence — client-submitted aiReviewStatus is
+        // ignored. (Deterministic override guardrails were dropped when
+        // the inventory pipeline simplified; aiServerOverrideReasons is
+        // a vestigial column kept for forward compatibility, always null.)
         expect(capturedInsertValues?.aiConfidence).toBe(
             'needs_professional_appraisal',
         )
-        // With overrides removed, aiServerOverrideReasons is always null.
         expect(capturedInsertValues?.aiServerOverrideReasons).toBeNull()
         // Form display values still flow through (dodValue = estimatedValue)
         expect(capturedInsertValues?.name).toBe('Cheap print')

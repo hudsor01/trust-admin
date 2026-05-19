@@ -1,6 +1,7 @@
-/** Tests for inventory-analysis.ts — image compression (the only logic that
- * still lives here now that the agentic loop / overrides moved into the
- * managed-agent path in inventory-agent.ts). */
+/** Tests for inventory-analysis.ts — image compression (the only logic
+ * that still lives here; the prior agentic loop + override guardrails
+ * were removed as unreachable, leaving inventory-agent.ts as the sole
+ * runtime path for the /forms/inventory pipeline). */
 
 import { describe, expect, test } from 'bun:test'
 import sharp from 'sharp'

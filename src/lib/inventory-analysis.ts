@@ -165,7 +165,7 @@ export function mapToDbCategory(aiCategory: string): DbCategory {
  *                                   artistic or intrinsic value > $3,000 —
  *                                   Form 706 Schedule F defensibility)
  */
-export const REVIEW_STATUSES = [
+const REVIEW_STATUSES = [
     'inventory_ready',
     'needs_admin_review',
     'needs_professional_appraisal',
