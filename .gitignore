@@ -61,3 +61,8 @@ public/uploads/
 # the repo. Outputs land in personal_property via reviewed insert.sql.
 valuations/
 .env*.local
+
+# Local code-review artifacts (REVIEW-*.md written by review agents).
+# The canonical home for PR-review reasoning is GitHub PR comments;
+# these files are session-local working notes.
+.review/

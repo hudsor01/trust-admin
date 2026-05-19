@@ -3,8 +3,16 @@
 import '../setup'
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import type { ColumnDef } from '@tanstack/react-table'
-import { act, cleanup, render, screen, within } from '@testing-library/react'
+import {
+    act,
+    cleanup,
+    fireEvent,
+    render,
+    screen,
+    within,
+} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { useState } from 'react'
 import { VirtualizedTable } from '../../src/components/virtualized-table'
 import { PERSIST_DEBOUNCE_MS } from '../../src/lib/data-table-persistence'
 
@@ -408,6 +416,58 @@ describe('VirtualizedTable', () => {
             })
             expect(
                 screen.queryByRole('button', { name: /reset column widths/i }),
+            ).toBeNull()
+        })
+
+        test('tableId swap before debounce flushes preserves write under old key, not new', () => {
+            function Harness() {
+                const [tid, setTid] = useState('vt-swap-a')
+                return (
+                    <>
+                        <button
+                            type="button"
+                            data-testid="vt-swap"
+                            onClick={() => setTid('vt-swap-b')}
+                        >
+                            swap
+                        </button>
+                        <VirtualizedTable
+                            columns={columns}
+                            data={testLogs.slice(0, 5)}
+                            tableId={tid}
+                        />
+                    </>
+                )
+            }
+            const { unmount } = render(<Harness />)
+            const handle = screen.getAllByRole('separator', {
+                name: /resize action column/i,
+            })[0]
+            if (!handle) throw new Error('handle missing')
+            // Resize one step under tableId="vt-swap-a".
+            fireEvent.keyDown(handle, { key: 'ArrowRight' })
+            // Capture the exact post-resize width so the persistence
+            // assertion below is tight (catches a regression that
+            // resizes the wrong column or applies a wrong step size).
+            const expectedWidth = Number(
+                screen
+                    .getAllByRole('separator', {
+                        name: /resize action column/i,
+                    })[0]
+                    ?.getAttribute('aria-valuenow'),
+            )
+            // Swap to tableId="vt-swap-b" BEFORE the debounce flushes.
+            fireEvent.click(screen.getByTestId('vt-swap'))
+            // Unmount before any debounce timer for "vt-swap-b" could fire.
+            unmount()
+            // A's resize MUST flush under A's key (transition-flush).
+            const a = window.localStorage.getItem('dt:vt-swap-a:sizing')
+            expect(a).not.toBeNull()
+            expect(JSON.parse(a ?? '{}').action).toBe(expectedWidth)
+            // B's storage must remain untouched (the bug we're guarding
+            // against wrote A's sizing under B's key).
+            expect(
+                window.localStorage.getItem('dt:vt-swap-b:sizing'),
             ).toBeNull()
         })
     })
