@@ -446,6 +446,16 @@ describe('VirtualizedTable', () => {
             if (!handle) throw new Error('handle missing')
             // Resize one step under tableId="vt-swap-a".
             fireEvent.keyDown(handle, { key: 'ArrowRight' })
+            // Capture the exact post-resize width so the persistence
+            // assertion below is tight (catches a regression that
+            // resizes the wrong column or applies a wrong step size).
+            const expectedWidth = Number(
+                screen
+                    .getAllByRole('separator', {
+                        name: /resize action column/i,
+                    })[0]
+                    ?.getAttribute('aria-valuenow'),
+            )
             // Swap to tableId="vt-swap-b" BEFORE the debounce flushes.
             fireEvent.click(screen.getByTestId('vt-swap'))
             // Unmount before any debounce timer for "vt-swap-b" could fire.
@@ -453,7 +463,7 @@ describe('VirtualizedTable', () => {
             // A's resize MUST flush under A's key (transition-flush).
             const a = window.localStorage.getItem('dt:vt-swap-a:sizing')
             expect(a).not.toBeNull()
-            expect(JSON.parse(a ?? '{}').action).toBeGreaterThan(150)
+            expect(JSON.parse(a ?? '{}').action).toBe(expectedWidth)
             // B's storage must remain untouched (the bug we're guarding
             // against wrote A's sizing under B's key).
             expect(

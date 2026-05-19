@@ -92,6 +92,11 @@ export function VirtualizedTable<T>({
     // the canonical comment. Skipped on the first render so SSR HTML
     // and client first-render HTML stay byte-identical; persisted
     // widths apply through the mount effect below.
+    //
+    // Note: if a tableId swap fires mid-drag, the in-progress drag
+    // delta flushes under the old key; subsequent drag events apply to
+    // the new tableId's loaded sizing. Cross-tableId drag is not a
+    // supported flow.
     if (hasMountedRef.current && prevTableIdRef.current !== tableId) {
         const pending = pendingWrite.current
         if (pending && pending.tableId === prevTableIdRef.current) {
