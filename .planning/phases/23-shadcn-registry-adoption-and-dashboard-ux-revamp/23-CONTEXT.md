@@ -18,21 +18,22 @@ The phase delivers in 5 PRs (foundation → headline redesigns wave A → headli
 
 ### Registry adoption (locked)
 
-- **Adopt** `@kibo-ui` (URL pattern `https://www.kibo-ui.com/r/{name}.json`) — for kanban, gantt, timeline, contribution graph, avatar stack, dropzone primitives. Uses shadcn CSS variables.
-- **Adopt** `@originui` (URL pattern `https://originui.com/r/{name}.json`) — for date-range picker, stats-with-sparkline KPI variants, prefcard/switch variants. Tailwind v4-native.
-- **Adopt** `@diceui` (URL pattern `https://www.diceui.com/r/{name}.json`) — for combobox (multi-select), tags input, phone input (E.164), currency mask input, stepper, sortable, kbd primitives.
+- **Adopt** `@kibo-ui` (URL pattern `https://www.kibo-ui.com/r/{name}.json`) — for kanban, gantt, contribution graph, avatar stack, dropzone primitives. Uses shadcn CSS variables. **Landing destination is `src/components/kibo-ui/<slug>/index.tsx`**, not `src/components/ui/` (per RESEARCH.md finding — CLI obeys `target` field).
+- **Adopt** `@diceui` (URL pattern `https://www.diceui.com/r/{name}.json`) — for combobox (multi-select), tags input, phone input (mask only), currency mask input, stepper, sortable. **Landing destination is `src/components/ui/`**.
+- **DEFER** `@originui` — removed from this phase per UI-SPEC revision 1. Origin UI's registry endpoint serves an HTML SPA shell to non-CLI clients; we could not vet a specific slug from this session. Date-range need is covered by the existing `src/components/ui/calendar.tsx` with `mode="range"` (verified to support this via DayPicker prop pass-through + range_start/middle/end className handling). Switch variant need is covered by the existing `src/components/ui/switch.tsx`. May revisit Origin UI in a follow-up phase once a stable pinned slug is verified.
+- **Hand-roll** the Timeline and Kbd components — `@kibo-ui/timeline` returns HTTP 500, `@diceui/kbd` returns HTTP 404 (verified 2026-05-19). UI-SPEC §§ Timeline / Kbd specify the hand-rolled designs using existing primitives (Card + Badge + Separator for Timeline; small mono-font badge with `--muted` background for Kbd).
 - **Reject** Aceternity UI, Magic UI, React Bits, Tremor, shadcn-admin (Vite), shadcnblocks/Bundui/Shadcn UI Kit paid tiers, tweakcn presets. Reasons enumerated in plan §F (theme conflict, motion-heavy, paywalled, or duplicate of Recharts).
-- **All registry components are CLI-installable** via `bunx shadcn@latest add @<ns>/<slug>`; landing destination is `src/components/ui/`.
+- **All registry components are CLI-installable** via `bunx shadcn@latest add @<ns>/<slug>`.
 
 ### Primitives to install in Phase 1 (locked)
 
-- `@originui/date-range-picker-*` (pick a specific slug at install time)
 - `@diceui/combobox`
 - `@diceui/tags-input`
-- `@diceui/phone-input`
+- `@diceui/phone-input` (mask only — no E.164 validation per RESEARCH.md; add `libphonenumber-js` separately if validation needed)
 - `@diceui/mask-input` (configure for USD cent precision; pairs with existing `formatMoney`/`sumStrings`)
 - `@kibo-ui/dropzone` (pairs with existing UploadThing client)
-- `@diceui/kbd`
+- **Date range picker:** existing `src/components/ui/calendar.tsx` with `mode="range"` — no install needed (Origin UI removed).
+- **Kbd primitive:** hand-rolled — no install needed (Dice UI kbd slug 404).
 
 ### Local compositions to build in Phase 1 (locked)
 
@@ -42,7 +43,7 @@ The phase delivers in 5 PRs (foundation → headline redesigns wave A → headli
 ### Phase 2 redesigns (locked)
 
 - `/hems-queue` → install `@kibo-ui/kanban`; three columns PENDING/APPROVED/DISTRIBUTED; drag-to-transition wired to existing `trpc.hemsRequest.approve` and `.markDistributed`. Tabs: "Board" (default) + "Table" (current).
-- `/activity-log` → install `@kibo-ui/timeline` + `@kibo-ui/contribution-graph`. Tabs: "Timeline" (default, grouped by day, color-coded dots for INSERT/UPDATE/DELETE), "Heatmap" (30-day, keyed by `action_user_id`), "Raw" (existing table).
+- `/activity-log` → install `@kibo-ui/contribution-graph` + hand-roll the Timeline component (UI-SPEC § Timeline) using existing Card/Badge/Separator primitives. Tabs: "Timeline" (default, grouped by day, color-coded dots for INSERT/UPDATE/DELETE), "Heatmap" (30-day, keyed by `action_user_id`), "Raw" (existing table).
 - `/liabilities` → install `@kibo-ui/gantt`. Adds KPI strip + Gantt timeline + debt-to-equity donut (recharts).
 - `/beneficiaries` → install `@kibo-ui/avatar-stack` + reuse `@kibo-ui/gantt`. Per-beneficiary share donuts (recharts) + milestone Gantt.
 - KPI strip rolled onto `/accounts`, `/assets`, `/properties`, `/vehicles`, `/insurance`, `/trustees`, `/bequests`, `/personal-property`, `/contacts`, `/artwork`.
@@ -50,7 +51,7 @@ The phase delivers in 5 PRs (foundation → headline redesigns wave A → headli
 ### Phase 3 polish (locked)
 
 - `DataTable` enhancements: bulk-action toolbar (pattern adapted by hand from `sadmann7/tablecn` — not CLI-installable), CSV export (respects current filters + sorting; reuses `formatCurrency`/`formatDate`), opt-in `getRowDetail` row expansion (first consumer `/accounts`).
-- `/settings` refresh: install `@originui/switch-*`; group settings into Card blocks ("Trust info", "Notifications", "Roles & access", "Inventory access"); introduce `PreferenceRow` composition.
+- `/settings` refresh: reuse existing `src/components/ui/switch.tsx` (Origin UI removed per revision 1); group settings into Card blocks ("Trust info", "Notifications", "Roles & access", "Inventory access"); introduce `PreferenceRow` composition (title + description + control in 2-column grid).
 - `@diceui/sortable` applied to trustees (precedence order) and beneficiaries (withdrawal priority). Persist via new `sortIndex` column (Drizzle migration `drizzle/0012_*.sql`).
 - `@diceui/stepper` 3-step wizard for asset creation (type+name → valuation → ownership). Extends `useResourceForm` hook.
 
@@ -74,8 +75,6 @@ The phase delivers in 5 PRs (foundation → headline redesigns wave A → headli
 
 ### Claude's Discretion
 
-- Exact slug of `@originui/date-range-picker-*` to install (pick at CLI prompt time based on what's freshest).
-- Exact slugs for `@originui/switch-*` variants used in `/settings` (Phase 3.2).
 - Specific column-set details for each KPI strip variant (count/sum/delta granularity per resource type).
 - Implementation details for the bulk-action toolbar (since it's hand-adapted from `tablecn`, not CLI-installable).
 - Sortable migration column schema (`sortIndex` integer, indexes, default ordering).
