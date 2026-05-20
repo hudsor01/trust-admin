@@ -9,7 +9,7 @@ import type { Liability } from '@/db/schema'
 import { useResourceForm } from '@/hooks/use-resource-form'
 import { toDateInput } from '@/lib/form-factory'
 import { logger } from '@/lib/logger'
-import { subtractMoney, sumStrings } from '@/lib/money'
+import { isNegative, subtractMoney, sumStrings } from '@/lib/money'
 import { trpc } from '@/lib/trpc'
 import { asLiabilityType, asRecordStatus } from '@/lib/type-utils'
 import { formatCurrency } from '@/utils/formatters'
@@ -183,14 +183,14 @@ export function LiabilitiesClient() {
                 (l) => l.id === payingLiabilityId,
             )
             if (liability) {
-                const currentBalance = parseFloat(
-                    liability.currentBalance ?? '0',
+                // Cent-level subtraction (see src/lib/money.ts) keeps the
+                // optimistic value consistent with the server's cent math;
+                // clamp to '0.00' so an overpayment never shows negative.
+                const next = subtractMoney(
+                    liability.currentBalance,
+                    data.amount,
                 )
-                const paymentAmount = parseFloat(data.amount)
-                const newBalance = Math.max(
-                    0,
-                    currentBalance - paymentAmount,
-                ).toFixed(2)
+                const newBalance = isNegative(next) ? '0.00' : next
                 setOptimisticLiability({ id: payingLiabilityId, newBalance })
             }
 

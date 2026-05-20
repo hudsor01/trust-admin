@@ -8,7 +8,7 @@ import { KpiStrip, type KpiStripItem } from '@/components/kpi-strip'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { logger } from '@/lib/logger'
-import { subtractMoney, sumStrings } from '@/lib/money'
+import { isPositive, subtractMoney, sumStrings, toCents } from '@/lib/money'
 import { trpc } from '@/lib/trpc'
 import {
     calculateAge,
@@ -228,35 +228,37 @@ export function DashboardClient() {
                 personalPropertyTotal,
                 insuranceTotal,
             ])
+            // Chart values derive from integer cents (toCents) to avoid the
+            // float drift parseFloat reintroduces — see src/lib/money.ts.
             const allocationData = [
                 {
                     name: 'Bank Accounts',
-                    value: Number.parseFloat(bankTotal) || 0,
+                    value: toCents(bankTotal) / 100,
                     fill: 'var(--chart-1)',
                 },
                 {
                     name: 'Investments',
-                    value: Number.parseFloat(investTotal) || 0,
+                    value: toCents(investTotal) / 100,
                     fill: 'var(--chart-2)',
                 },
                 {
                     name: 'Real Estate',
-                    value: Number.parseFloat(realEstateTotal) || 0,
+                    value: toCents(realEstateTotal) / 100,
                     fill: 'var(--chart-3)',
                 },
                 {
                     name: 'Vehicles',
-                    value: Number.parseFloat(vehicleTotal) || 0,
+                    value: toCents(vehicleTotal) / 100,
                     fill: 'var(--chart-4)',
                 },
                 {
                     name: 'Personal Property',
-                    value: Number.parseFloat(personalPropertyTotal) || 0,
+                    value: toCents(personalPropertyTotal) / 100,
                     fill: 'var(--chart-5)',
                 },
                 {
                     name: 'Insurance',
-                    value: Number.parseFloat(insuranceTotal) || 0,
+                    value: toCents(insuranceTotal) / 100,
                     fill: 'var(--chart-1)',
                 },
             ].filter((item) => item.value > 0)
@@ -282,18 +284,17 @@ export function DashboardClient() {
         liabilityPayoffPercent,
         totalOriginalLiabilities,
     } = useMemo(() => {
-        const active = liabilities.filter(
-            (l) => parseFloat(l.currentBalance ?? '0') > 0,
-        )
+        const active = liabilities.filter((l) => isPositive(l.currentBalance))
         const totalOriginal = sumStrings(
             liabilities.map((l) => l.originalAmount ?? '0'),
         )
+        // Payoff percent from integer cents — avoids parseFloat drift shifting
+        // the rounded percentage by a point (see src/lib/money.ts).
+        const origCents = toCents(totalOriginal)
         const payoffPercent =
-            parseFloat(totalOriginal) > 0
+            origCents > 0
                 ? Math.round(
-                      ((parseFloat(totalOriginal) -
-                          parseFloat(totalLiabilities)) /
-                          parseFloat(totalOriginal)) *
+                      ((origCents - toCents(totalLiabilities)) / origCents) *
                           100,
                   )
                 : 0

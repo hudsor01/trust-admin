@@ -47,6 +47,8 @@ type LiabilityBar = {
     className: string
     statusColor: string
     label: string
+    /** Carried onto the bar so sorting doesn't re-scan `projections`. */
+    currentBalance: string | null
 }
 
 function deriveBarStyle(
@@ -115,20 +117,11 @@ export function LiabilityGantt({ entityId }: LiabilityGanttProps) {
                     className,
                     statusColor,
                     label: `${p.creditor} · ${formatCurrency(p.currentBalance ?? '0')}`,
+                    currentBalance: p.currentBalance,
                 }
             })
             .sort(
-                (a, b) =>
-                    toCents(
-                        (projections as ProjectionRow[]).find(
-                            (p) => p.id === b.id,
-                        )?.currentBalance ?? null,
-                    ) -
-                    toCents(
-                        (projections as ProjectionRow[]).find(
-                            (p) => p.id === a.id,
-                        )?.currentBalance ?? null,
-                    ),
+                (a, b) => toCents(b.currentBalance) - toCents(a.currentBalance),
             )
     }, [projections])
 
