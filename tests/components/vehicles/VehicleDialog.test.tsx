@@ -31,7 +31,7 @@ const makeFormInstance = () => ({
 const makeWizard = (currentStep = 0) => ({
     currentStep,
     completedSteps: new Set<number>([0, 1].filter((i) => i < currentStep)),
-    isStepValid: mock(() => true),
+    getStepValidity: mock(() => true),
     goNext: mock(() => {}),
     goPrev: mock(() => {}),
     goToStep: mock(() => {}),

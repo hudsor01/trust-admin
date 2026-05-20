@@ -6,12 +6,15 @@
  *   2. Valuation         — DOD valuation, or coverage/premium for insurance
  *   3. Ownership + Linkage — status, transfer status, linkage, notes
  *
- * The `schema` on each step gates the wizard's Next button: only the fields
- * required to *create* the record are validated, so a user cannot advance
- * past an incomplete step. Optional fields (notes, dates) are intentionally
- * absent from the schemas. The final-step submit still routes through the
- * existing `*.create` tRPC procedure, which re-validates the full payload —
- * the wizard adds no new payload shape (see plan threat model T-23-PR-E-01).
+ * The `schema` on each step gates the wizard's Next button. Required identity
+ * fields use `nonEmpty`; money fields use `optionalMoney` (empty OR a valid
+ * 2-decimal amount, mirroring db/validation.ts so `"abc"` / `"12.999"` are
+ * rejected at the step gate, not just at final submit); the vehicle VIN uses
+ * the canonical 17-character VIN schema. Every money field that appears in a
+ * step's `fields` list is included in that step's `schema`. Purely optional
+ * fields (notes, dates) remain absent. The final-step submit still routes
+ * through the existing `*.create` tRPC procedure, which re-validates the full
+ * payload (see plan threat model T-23-PR-E-01).
  *
  * Per-resource grouping deviations from the spec default are documented in
  * the plan SUMMARY: insurance has no DOD fields, so its Valuation step uses
@@ -40,6 +43,26 @@ type InsuranceForm = ReturnType<typeof insurancePolicyFormDefaults>
 
 const nonEmpty = z.string().min(1)
 
+/**
+ * Money field as it appears in a wizard step: empty (the field is optional at
+ * step-gate time) OR a non-negative amount with at most 2 decimal places —
+ * the same shape db/validation.ts enforces server-side. Rejects "abc",
+ * "12.999", scientific notation, etc. so the Next button stays disabled until
+ * the value is something the `*.create` procedure will accept.
+ */
+const optionalMoney = z
+    .string()
+    .regex(
+        /^(\d+(\.\d{1,2})?)?$/,
+        'Must be a non-negative number with at most 2 decimal places',
+    )
+
+/** Vehicle VIN: required, exactly 17 valid VIN characters (db/validation.ts). */
+const requiredVin = z
+    .string()
+    .length(17, 'VIN must be exactly 17 characters')
+    .regex(/^[A-HJ-NPR-Z0-9]{17}$/, 'Invalid VIN format')
+
 /** Vehicle: Identity+VehicleInfo / DOD Valuation+Acquisition / Status. */
 export const VEHICLE_WIZARD_STEPS: WizardStep<VehicleForm>[] = [
     {
@@ -61,7 +84,7 @@ export const VEHICLE_WIZARD_STEPS: WizardStep<VehicleForm>[] = [
             name: nonEmpty,
             make: nonEmpty,
             model: nonEmpty,
-            vin: nonEmpty,
+            vin: requiredVin,
             titleStatus: nonEmpty,
         }),
     },
@@ -75,6 +98,10 @@ export const VEHICLE_WIZARD_STEPS: WizardStep<VehicleForm>[] = [
             'dodValueDate',
             'dodValueType',
         ],
+        schema: z.object({
+            acquisitionCost: optionalMoney,
+            dodValue: optionalMoney,
+        }),
     },
     {
         id: 'ownership',
@@ -112,6 +139,9 @@ export const BANK_ACCOUNT_WIZARD_STEPS: WizardStep<BankForm>[] = [
         id: 'valuation',
         label: 'Valuation',
         fields: ['dodValue', 'dodValueDate'],
+        schema: z.object({
+            dodValue: optionalMoney,
+        }),
     },
     {
         id: 'ownership',
@@ -148,6 +178,10 @@ export const INVESTMENT_ACCOUNT_WIZARD_STEPS: WizardStep<InvestmentForm>[] = [
         id: 'valuation',
         label: 'Valuation',
         fields: ['dodValue', 'dodValueDate', 'costBasis'],
+        schema: z.object({
+            dodValue: optionalMoney,
+            costBasis: optionalMoney,
+        }),
     },
     {
         id: 'ownership',
@@ -188,6 +222,9 @@ export const HOMESTEAD_WIZARD_STEPS: WizardStep<HomesteadFormData>[] = [
         id: 'valuation',
         label: 'Valuation',
         fields: ['dodValue', 'dodValueDate', 'dodValueType'],
+        schema: z.object({
+            dodValue: optionalMoney,
+        }),
     },
     {
         id: 'ownership',
@@ -221,12 +258,16 @@ export const RENTAL_PROPERTY_WIZARD_STEPS: WizardStep<RentalFormData>[] = [
         ],
         schema: z.object({
             name: nonEmpty,
+            monthlyRent: optionalMoney,
         }),
     },
     {
         id: 'valuation',
         label: 'Valuation',
         fields: ['dodValue', 'dodValueDate', 'dodValueType'],
+        schema: z.object({
+            dodValue: optionalMoney,
+        }),
     },
     {
         id: 'ownership',
@@ -261,6 +302,10 @@ export const PERSONAL_PROPERTY_WIZARD_STEPS: WizardStep<PersonalPropertyForm>[] 
                 'dodValueDate',
                 'dodValueType',
             ],
+            schema: z.object({
+                acquisitionCost: optionalMoney,
+                dodValue: optionalMoney,
+            }),
         },
         {
             id: 'ownership',
@@ -300,9 +345,13 @@ export const INSURANCE_WIZARD_STEPS: WizardStep<InsuranceForm>[] = [
         }),
     },
     {
-        id: 'valuation',
+        id: 'coverage',
         label: 'Coverage',
         fields: ['coverageAmount', 'premium', 'premiumFrequency'],
+        schema: z.object({
+            coverageAmount: optionalMoney,
+            premium: optionalMoney,
+        }),
     },
     {
         id: 'ownership',

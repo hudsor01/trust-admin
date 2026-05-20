@@ -13,7 +13,10 @@ import {
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { WizardStepGroup } from '@/components/wizard-step-group'
-import type { UseResourceFormReturn } from '@/hooks/use-resource-form'
+import type {
+    ResourceWizardProps,
+    UseResourceFormReturn,
+} from '@/hooks/use-resource-form'
 import { INVESTMENT_ACCOUNT_WIZARD_STEPS } from '@/lib/asset-wizard-steps'
 import { TRANSFER_STATUS } from '@/lib/constants'
 import {
@@ -29,15 +32,7 @@ interface InvestmentAccountDialogProps {
     onOpenChange: (open: boolean) => void
     onSubmit: () => void
     formInstance: UseResourceFormReturn<InvestmentFormData>['formInstance']
-    wizard: Pick<
-        UseResourceFormReturn<InvestmentFormData>,
-        | 'currentStep'
-        | 'completedSteps'
-        | 'isStepValid'
-        | 'goNext'
-        | 'goPrev'
-        | 'goToStep'
-    >
+    wizard: ResourceWizardProps<InvestmentFormData>
 }
 
 export function InvestmentAccountDialog({
@@ -63,7 +58,7 @@ export function InvestmentAccountDialog({
             steps={INVESTMENT_ACCOUNT_WIZARD_STEPS}
             currentStep={currentStep}
             completedSteps={wizard.completedSteps}
-            isStepValid={wizard.isStepValid(currentStep)}
+            currentStepValid={wizard.getStepValidity(currentStep)}
             onNext={wizard.goNext}
             onPrev={wizard.goPrev}
             onStepClick={wizard.goToStep}
@@ -77,11 +72,7 @@ export function InvestmentAccountDialog({
                                 Identity
                             </h4>
                             <NameDescriptionFields
-                                Field={
-                                    formInstance.Field as unknown as Parameters<
-                                        typeof NameDescriptionFields
-                                    >[0]['Field']
-                                }
+                                formInstance={formInstance}
                                 idPrefix="investment"
                                 namePlaceholder="e.g., Vanguard Brokerage"
                             />

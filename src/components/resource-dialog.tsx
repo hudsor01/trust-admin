@@ -39,7 +39,7 @@ export interface ResourceDialogProps<T> {
     /** Set of completed step indices — used to gate free-jump navigation. */
     completedSteps?: Set<number>
     /** Whether the current step passes its per-step validation schema. */
-    isStepValid?: boolean
+    currentStepValid?: boolean
     /** Advance to the next step (parent gates validity). */
     onNext?: () => void
     /** Return to the previous step. */
@@ -61,7 +61,7 @@ export function ResourceDialog<T>({
     steps,
     currentStep = 0,
     completedSteps,
-    isStepValid = true,
+    currentStepValid = true,
     onNext,
     onPrev,
     onStepClick,
@@ -70,6 +70,13 @@ export function ResourceDialog<T>({
     const isLastStep = !isWizard || currentStep >= steps.length - 1
     const isFirstStep = currentStep === 0
     const done = completedSteps ?? new Set<number>()
+
+    // Gate the final submit on every prior step being completed — `isLastStep`
+    // alone does not guarantee earlier required fields were ever validated, so
+    // a wizard reached out of sequence could submit with a blank step (WR-02).
+    const allPriorStepsComplete =
+        !isWizard ||
+        (steps ?? []).every((_, i) => i >= currentStep || done.has(i))
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -128,11 +135,19 @@ export function ResourceDialog<T>({
                         Cancel
                     </Button>
                     {isWizard && !isLastStep ? (
-                        <Button onClick={onNext} disabled={!isStepValid}>
+                        <Button onClick={onNext} disabled={!currentStepValid}>
                             Next
                         </Button>
                     ) : (
-                        <Button onClick={onSubmit} disabled={isLoading}>
+                        <Button
+                            onClick={onSubmit}
+                            disabled={
+                                isLoading ||
+                                (isWizard &&
+                                    (!allPriorStepsComplete ||
+                                        !currentStepValid))
+                            }
+                        >
                             {isLoading ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />

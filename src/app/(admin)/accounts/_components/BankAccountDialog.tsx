@@ -13,7 +13,10 @@ import {
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { WizardStepGroup } from '@/components/wizard-step-group'
-import type { UseResourceFormReturn } from '@/hooks/use-resource-form'
+import type {
+    ResourceWizardProps,
+    UseResourceFormReturn,
+} from '@/hooks/use-resource-form'
 import { BANK_ACCOUNT_WIZARD_STEPS } from '@/lib/asset-wizard-steps'
 import { TRANSFER_STATUS } from '@/lib/constants'
 import {
@@ -29,15 +32,7 @@ interface BankAccountDialogProps {
     onOpenChange: (open: boolean) => void
     onSubmit: () => void
     formInstance: UseResourceFormReturn<BankFormData>['formInstance']
-    wizard: Pick<
-        UseResourceFormReturn<BankFormData>,
-        | 'currentStep'
-        | 'completedSteps'
-        | 'isStepValid'
-        | 'goNext'
-        | 'goPrev'
-        | 'goToStep'
-    >
+    wizard: ResourceWizardProps<BankFormData>
 }
 
 export function BankAccountDialog({
@@ -61,7 +56,7 @@ export function BankAccountDialog({
             steps={BANK_ACCOUNT_WIZARD_STEPS}
             currentStep={currentStep}
             completedSteps={wizard.completedSteps}
-            isStepValid={wizard.isStepValid(currentStep)}
+            currentStepValid={wizard.getStepValidity(currentStep)}
             onNext={wizard.goNext}
             onPrev={wizard.goPrev}
             onStepClick={wizard.goToStep}
@@ -75,11 +70,7 @@ export function BankAccountDialog({
                                 Identity
                             </h4>
                             <NameDescriptionFields
-                                Field={
-                                    formInstance.Field as unknown as Parameters<
-                                        typeof NameDescriptionFields
-                                    >[0]['Field']
-                                }
+                                formInstance={formInstance}
                                 idPrefix="bank"
                                 namePlaceholder="e.g., Joint Checking"
                             />

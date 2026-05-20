@@ -19,6 +19,7 @@ import { afterEach, describe, expect, test } from 'bun:test'
 import {
     act,
     cleanup,
+    fireEvent,
     render,
     renderHook,
     screen,
@@ -375,5 +376,83 @@ describe('ResourceDialog — stepper rendering', () => {
         )
         expect(screen.getByText('Create')).toBeTruthy()
         expect(screen.queryByText('Next')).toBeNull()
+    })
+})
+
+/**
+ * Live wizard path: mounts a real `useResourceForm` wizard inside
+ * `ResourceDialog` with a `Field`-bound input and exercises the actual
+ * `getStepValidity` call — not a literal boolean. Guards WR-03 (23-05):
+ * step validity must be genuinely reactive, so typing into a required field
+ * flips the Next button from disabled to enabled.
+ */
+describe('ResourceDialog — live wizard step validity (WR-03)', () => {
+    function LiveWizard() {
+        const form = useResourceForm<AssetForm>({
+            initialData: ASSET_DEFAULTS,
+            onSubmit: async () => {},
+            steps: ASSET_STEPS,
+        })
+        const Field = form.formInstance.Field
+        return (
+            <ResourceDialog
+                open
+                onOpenChange={() => {}}
+                title="Add Asset"
+                submitLabel="Create"
+                onSubmit={form.handleSave}
+                steps={ASSET_STEPS}
+                currentStep={form.currentStep}
+                completedSteps={form.completedSteps}
+                currentStepValid={form.getStepValidity(form.currentStep)}
+                onNext={form.goNext}
+                onPrev={form.goPrev}
+                onStepClick={form.goToStep}
+            >
+                <Field name="assetType">
+                    {(field) => (
+                        <input
+                            aria-label="assetType"
+                            value={field.state.value}
+                            onChange={(e) => field.handleChange(e.target.value)}
+                        />
+                    )}
+                </Field>
+                <Field name="name">
+                    {(field) => (
+                        <input
+                            aria-label="name"
+                            value={field.state.value}
+                            onChange={(e) => field.handleChange(e.target.value)}
+                        />
+                    )}
+                </Field>
+            </ResourceDialog>
+        )
+    }
+
+    test('Next is disabled until the required step fields are typed in', () => {
+        render(<LiveWizard />)
+
+        const nextButton = screen.getByText('Next').closest('button')
+        expect(nextButton).not.toBeNull()
+        // Step 0 schema requires assetType + name — both empty initially.
+        expect((nextButton as HTMLButtonElement).disabled).toBe(true)
+
+        // Type a value into only the first required field — still invalid.
+        act(() => {
+            fireEvent.change(screen.getByLabelText('assetType'), {
+                target: { value: 'VEHICLE' },
+            })
+        })
+        expect((nextButton as HTMLButtonElement).disabled).toBe(true)
+
+        // Fill the second required field — Next must enable reactively.
+        act(() => {
+            fireEvent.change(screen.getByLabelText('name'), {
+                target: { value: "Dad's F-150" },
+            })
+        })
+        expect((nextButton as HTMLButtonElement).disabled).toBe(false)
     })
 })

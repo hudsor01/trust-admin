@@ -13,7 +13,10 @@ import {
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { WizardStepGroup } from '@/components/wizard-step-group'
-import type { UseResourceFormReturn } from '@/hooks/use-resource-form'
+import type {
+    ResourceWizardProps,
+    UseResourceFormReturn,
+} from '@/hooks/use-resource-form'
 import { RENTAL_PROPERTY_WIZARD_STEPS } from '@/lib/asset-wizard-steps'
 import {
     DOD_VALUE_TYPES,
@@ -30,15 +33,7 @@ interface RentalPropertyDialogProps {
     onOpenChange: (open: boolean) => void
     onSubmit: () => void
     formInstance: UseResourceFormReturn<RentalFormData>['formInstance']
-    wizard: Pick<
-        UseResourceFormReturn<RentalFormData>,
-        | 'currentStep'
-        | 'completedSteps'
-        | 'isStepValid'
-        | 'goNext'
-        | 'goPrev'
-        | 'goToStep'
-    >
+    wizard: ResourceWizardProps<RentalFormData>
 }
 
 export function RentalPropertyDialog({
@@ -62,7 +57,7 @@ export function RentalPropertyDialog({
             steps={RENTAL_PROPERTY_WIZARD_STEPS}
             currentStep={currentStep}
             completedSteps={wizard.completedSteps}
-            isStepValid={wizard.isStepValid(currentStep)}
+            currentStepValid={wizard.getStepValidity(currentStep)}
             onNext={wizard.goNext}
             onPrev={wizard.goPrev}
             onStepClick={wizard.goToStep}
@@ -76,11 +71,7 @@ export function RentalPropertyDialog({
                                 Identity
                             </h4>
                             <NameDescriptionFields
-                                Field={
-                                    formInstance.Field as unknown as Parameters<
-                                        typeof NameDescriptionFields
-                                    >[0]['Field']
-                                }
+                                formInstance={formInstance}
                                 idPrefix="rental"
                                 namePlaceholder="e.g., Oak Street Duplex"
                             />

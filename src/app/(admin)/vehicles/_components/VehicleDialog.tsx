@@ -13,7 +13,10 @@ import {
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { WizardStepGroup } from '@/components/wizard-step-group'
-import type { UseResourceFormReturn } from '@/hooks/use-resource-form'
+import type {
+    ResourceWizardProps,
+    UseResourceFormReturn,
+} from '@/hooks/use-resource-form'
 import { VEHICLE_WIZARD_STEPS } from '@/lib/asset-wizard-steps'
 import { DOD_VALUE_TYPES, TRANSFER_STATUS } from '@/lib/constants'
 import type { vehicleFormDefaults } from '@/lib/form-factory'
@@ -29,15 +32,7 @@ interface VehicleDialogProps {
     onOpenChange: (open: boolean) => void
     onSubmit: () => void
     formInstance: UseResourceFormReturn<VehicleForm>['formInstance']
-    wizard: Pick<
-        UseResourceFormReturn<VehicleForm>,
-        | 'currentStep'
-        | 'completedSteps'
-        | 'isStepValid'
-        | 'goNext'
-        | 'goPrev'
-        | 'goToStep'
-    >
+    wizard: ResourceWizardProps<VehicleForm>
 }
 
 export function VehicleDialog({
@@ -61,7 +56,7 @@ export function VehicleDialog({
             steps={VEHICLE_WIZARD_STEPS}
             currentStep={currentStep}
             completedSteps={wizard.completedSteps}
-            isStepValid={wizard.isStepValid(currentStep)}
+            currentStepValid={wizard.getStepValidity(currentStep)}
             onNext={wizard.goNext}
             onPrev={wizard.goPrev}
             onStepClick={wizard.goToStep}
@@ -76,11 +71,7 @@ export function VehicleDialog({
                                 Identity
                             </h4>
                             <NameDescriptionFields
-                                Field={
-                                    formInstance.Field as unknown as Parameters<
-                                        typeof NameDescriptionFields
-                                    >[0]['Field']
-                                }
+                                formInstance={formInstance}
                                 idPrefix="vehicle"
                                 namePlaceholder="e.g., Dad's F-150"
                             />
@@ -143,7 +134,7 @@ export function VehicleDialog({
                                             {field.state.meta.errors &&
                                                 field.state.meta.errors.length >
                                                     0 && (
-                                                    <p className="text-sm text-red-500">
+                                                    <p className="text-sm text-destructive">
                                                         {getFieldError(field)}
                                                     </p>
                                                 )}
@@ -168,7 +159,7 @@ export function VehicleDialog({
                                             {field.state.meta.errors &&
                                                 field.state.meta.errors.length >
                                                     0 && (
-                                                    <p className="text-sm text-red-500">
+                                                    <p className="text-sm text-destructive">
                                                         {getFieldError(field)}
                                                     </p>
                                                 )}
@@ -195,7 +186,7 @@ export function VehicleDialog({
                                             {field.state.meta.errors &&
                                                 field.state.meta.errors.length >
                                                     0 && (
-                                                    <p className="text-sm text-red-500">
+                                                    <p className="text-sm text-destructive">
                                                         {getFieldError(field)}
                                                     </p>
                                                 )}
@@ -222,7 +213,7 @@ export function VehicleDialog({
                                             {field.state.meta.errors &&
                                                 field.state.meta.errors.length >
                                                     0 && (
-                                                    <p className="text-sm text-red-500">
+                                                    <p className="text-sm text-destructive">
                                                         {getFieldError(field)}
                                                     </p>
                                                 )}
@@ -246,7 +237,7 @@ export function VehicleDialog({
                                             {field.state.meta.errors &&
                                                 field.state.meta.errors.length >
                                                     0 && (
-                                                    <p className="text-sm text-red-500">
+                                                    <p className="text-sm text-destructive">
                                                         {getFieldError(field)}
                                                     </p>
                                                 )}
@@ -274,7 +265,7 @@ export function VehicleDialog({
                                             {field.state.meta.errors &&
                                                 field.state.meta.errors.length >
                                                     0 && (
-                                                    <p className="text-sm text-red-500">
+                                                    <p className="text-sm text-destructive">
                                                         {getFieldError(field)}
                                                     </p>
                                                 )}
@@ -304,7 +295,7 @@ export function VehicleDialog({
                                             {field.state.meta.errors &&
                                                 field.state.meta.errors.length >
                                                     0 && (
-                                                    <p className="text-sm text-red-500">
+                                                    <p className="text-sm text-destructive">
                                                         {getFieldError(field)}
                                                     </p>
                                                 )}
@@ -340,7 +331,7 @@ export function VehicleDialog({
                                             {field.state.meta.errors &&
                                                 field.state.meta.errors.length >
                                                     0 && (
-                                                    <p className="text-sm text-red-500">
+                                                    <p className="text-sm text-destructive">
                                                         {getFieldError(field)}
                                                     </p>
                                                 )}
@@ -381,7 +372,7 @@ export function VehicleDialog({
                                             {field.state.meta.errors &&
                                                 field.state.meta.errors.length >
                                                     0 && (
-                                                    <p className="text-sm text-red-500">
+                                                    <p className="text-sm text-destructive">
                                                         {getFieldError(field)}
                                                     </p>
                                                 )}
@@ -408,7 +399,7 @@ export function VehicleDialog({
                                             {field.state.meta.errors &&
                                                 field.state.meta.errors.length >
                                                     0 && (
-                                                    <p className="text-sm text-red-500">
+                                                    <p className="text-sm text-destructive">
                                                         {getFieldError(field)}
                                                     </p>
                                                 )}
@@ -444,7 +435,7 @@ export function VehicleDialog({
                                             {field.state.meta.errors &&
                                                 field.state.meta.errors.length >
                                                     0 && (
-                                                    <p className="text-sm text-red-500">
+                                                    <p className="text-sm text-destructive">
                                                         {getFieldError(field)}
                                                     </p>
                                                 )}
@@ -471,7 +462,7 @@ export function VehicleDialog({
                                             {field.state.meta.errors &&
                                                 field.state.meta.errors.length >
                                                     0 && (
-                                                    <p className="text-sm text-red-500">
+                                                    <p className="text-sm text-destructive">
                                                         {getFieldError(field)}
                                                     </p>
                                                 )}
@@ -511,7 +502,7 @@ export function VehicleDialog({
                                             {field.state.meta.errors &&
                                                 field.state.meta.errors.length >
                                                     0 && (
-                                                    <p className="text-sm text-red-500">
+                                                    <p className="text-sm text-destructive">
                                                         {getFieldError(field)}
                                                     </p>
                                                 )}
@@ -559,7 +550,7 @@ export function VehicleDialog({
                                             {field.state.meta.errors &&
                                                 field.state.meta.errors.length >
                                                     0 && (
-                                                    <p className="text-sm text-red-500">
+                                                    <p className="text-sm text-destructive">
                                                         {getFieldError(field)}
                                                     </p>
                                                 )}
@@ -599,7 +590,7 @@ export function VehicleDialog({
                                             {field.state.meta.errors &&
                                                 field.state.meta.errors.length >
                                                     0 && (
-                                                    <p className="text-sm text-red-500">
+                                                    <p className="text-sm text-destructive">
                                                         {getFieldError(field)}
                                                     </p>
                                                 )}
@@ -625,7 +616,7 @@ export function VehicleDialog({
                                     />
                                     {field.state.meta.errors &&
                                         field.state.meta.errors.length > 0 && (
-                                            <p className="text-sm text-red-500">
+                                            <p className="text-sm text-destructive">
                                                 {getFieldError(field)}
                                             </p>
                                         )}

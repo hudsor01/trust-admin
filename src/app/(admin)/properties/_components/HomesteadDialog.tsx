@@ -13,7 +13,10 @@ import {
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { WizardStepGroup } from '@/components/wizard-step-group'
-import type { UseResourceFormReturn } from '@/hooks/use-resource-form'
+import type {
+    ResourceWizardProps,
+    UseResourceFormReturn,
+} from '@/hooks/use-resource-form'
 import { HOMESTEAD_WIZARD_STEPS } from '@/lib/asset-wizard-steps'
 import { DOD_VALUE_TYPES, TRANSFER_STATUS } from '@/lib/constants'
 import type { HomesteadFormData } from './constants'
@@ -26,15 +29,7 @@ interface HomesteadDialogProps {
     onOpenChange: (open: boolean) => void
     onSubmit: () => void
     formInstance: UseResourceFormReturn<HomesteadFormData>['formInstance']
-    wizard: Pick<
-        UseResourceFormReturn<HomesteadFormData>,
-        | 'currentStep'
-        | 'completedSteps'
-        | 'isStepValid'
-        | 'goNext'
-        | 'goPrev'
-        | 'goToStep'
-    >
+    wizard: ResourceWizardProps<HomesteadFormData>
 }
 
 export function HomesteadDialog({
@@ -58,7 +53,7 @@ export function HomesteadDialog({
             steps={HOMESTEAD_WIZARD_STEPS}
             currentStep={currentStep}
             completedSteps={wizard.completedSteps}
-            isStepValid={wizard.isStepValid(currentStep)}
+            currentStepValid={wizard.getStepValidity(currentStep)}
             onNext={wizard.goNext}
             onPrev={wizard.goPrev}
             onStepClick={wizard.goToStep}
@@ -72,11 +67,7 @@ export function HomesteadDialog({
                                 Identity
                             </h4>
                             <NameDescriptionFields
-                                Field={
-                                    formInstance.Field as unknown as Parameters<
-                                        typeof NameDescriptionFields
-                                    >[0]['Field']
-                                }
+                                formInstance={formInstance}
                                 idPrefix="homestead"
                                 namePlaceholder="e.g., Lake House"
                             />
