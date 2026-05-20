@@ -340,6 +340,14 @@ export const liabilityRelations = relations(liability, ({ one, many }) => ({
         fields: [liability.vehicleId],
         references: [vehicle.id],
     }),
+    bankAccount: one(bankAccount, {
+        fields: [liability.bankAccountId],
+        references: [bankAccount.id],
+    }),
+    investmentAccount: one(investmentAccount, {
+        fields: [liability.investmentAccountId],
+        references: [investmentAccount.id],
+    }),
 }))
 
 export const liabilityPaymentRelations = relations(
