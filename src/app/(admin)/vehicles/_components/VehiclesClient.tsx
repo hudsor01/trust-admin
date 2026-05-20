@@ -8,6 +8,7 @@ import { PageHeader } from '@/components/page-header'
 import { Button } from '@/components/ui/button'
 import type { Vehicle } from '@/db/schema'
 import { useResourceForm } from '@/hooks/use-resource-form'
+import { VEHICLE_WIZARD_STEPS } from '@/lib/asset-wizard-steps'
 import { toDateInput, vehicleFormDefaults } from '@/lib/form-factory'
 import { logger } from '@/lib/logger'
 import { sumStrings } from '@/lib/money'
@@ -71,6 +72,7 @@ export function VehiclesClient() {
 
     const vehicleForm = useResourceForm({
         initialData: vehicleFormDefaults(),
+        steps: VEHICLE_WIZARD_STEPS,
         onSubmit: async (data) => {
             const payload = {
                 entityId: entityId!,
@@ -196,6 +198,7 @@ export function VehiclesClient() {
                 onOpenChange={vehicleForm.close}
                 onSubmit={vehicleForm.handleSave}
                 formInstance={vehicleForm.formInstance}
+                wizard={vehicleForm}
             />
 
             <ConfirmDialog {...deleteDialogProps} />

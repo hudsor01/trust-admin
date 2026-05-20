@@ -23,6 +23,20 @@ const makeFormInstance = () => ({
     ),
 })
 
+/**
+ * Plan 23-05 made VehicleDialog a 3-step wizard, so it now requires a `wizard`
+ * prop. `currentStep` controls which step's fields render and whether the
+ * footer shows Next (steps 0-1) or the submit button (step 2 / last).
+ */
+const makeWizard = (currentStep = 0) => ({
+    currentStep,
+    completedSteps: new Set<number>([0, 1].filter((i) => i < currentStep)),
+    isStepValid: mock(() => true),
+    goNext: mock(() => {}),
+    goPrev: mock(() => {}),
+    goToStep: mock(() => {}),
+})
+
 describe('VehicleDialog', () => {
     afterEach(() => {
         cleanup()
@@ -37,6 +51,7 @@ describe('VehicleDialog', () => {
                 onOpenChange={mock(() => {})}
                 onSubmit={mock(() => {})}
                 formInstance={makeFormInstance()}
+                wizard={makeWizard()}
             />,
         )
         // Dialog is closed — no dialog content rendered
@@ -52,6 +67,7 @@ describe('VehicleDialog', () => {
                 onOpenChange={mock(() => {})}
                 onSubmit={mock(() => {})}
                 formInstance={makeFormInstance()}
+                wizard={makeWizard()}
             />,
         )
 
@@ -67,13 +83,34 @@ describe('VehicleDialog', () => {
                 onOpenChange={mock(() => {})}
                 onSubmit={mock(() => {})}
                 formInstance={makeFormInstance()}
+                wizard={makeWizard()}
             />,
         )
 
         expect(screen.getByText('Edit Vehicle')).toBeTruthy()
     })
 
-    test('calls onSubmit when form is submitted', async () => {
+    test('renders the 3-step stepper above the form', () => {
+        render(
+            <VehicleDialog
+                isOpen={true}
+                isEditing={false}
+                isSubmitting={false}
+                onOpenChange={mock(() => {})}
+                onSubmit={mock(() => {})}
+                formInstance={makeFormInstance()}
+                wizard={makeWizard()}
+            />,
+        )
+        expect(document.querySelector('[data-slot="stepper"]')).not.toBeNull()
+        expect(
+            document.querySelectorAll('[data-slot="stepper-item"]').length,
+        ).toBe(3)
+        // step 0 footer shows Next, not the submit button
+        expect(screen.getByText('Next')).toBeTruthy()
+    })
+
+    test('calls onSubmit when the final step submit button is clicked', async () => {
         const user = userEvent.setup()
         const onSubmit = mock(() => {})
 
@@ -85,11 +122,13 @@ describe('VehicleDialog', () => {
                 onOpenChange={mock(() => {})}
                 onSubmit={onSubmit}
                 formInstance={makeFormInstance()}
+                wizard={makeWizard(2)}
             />,
         )
 
-        const saveButton = screen.getByRole('button', { name: /save/i })
-        await user.click(saveButton)
+        // On the last step the footer shows the submit button ("Create").
+        const createButton = screen.getByRole('button', { name: /create/i })
+        await user.click(createButton)
 
         expect(onSubmit.mock.calls.length).toBeGreaterThan(0)
     })
@@ -103,10 +142,12 @@ describe('VehicleDialog', () => {
                 onOpenChange={mock(() => {})}
                 onSubmit={mock(() => {})}
                 formInstance={makeFormInstance()}
+                wizard={makeWizard(2)}
             />,
         )
 
         // The dialog is open and in loading state
         expect(screen.getByText('Add Vehicle')).toBeTruthy()
+        expect(screen.getByText('Saving...')).toBeTruthy()
     })
 })

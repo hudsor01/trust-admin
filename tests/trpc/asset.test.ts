@@ -254,8 +254,12 @@ describe.skipIf(isProductionDb)('asset.listAll aggregator', () => {
         const rows = await adminCaller().asset.listAll({
             entityId: ids.entityId!,
         })
-        const art = rows.find((r) => r.id === ids.artId)
-        const pp = rows.find((r) => r.id === ids.personalId)
+        const art = rows.find(
+            (r) => r.kind === 'personalProperty' && r.id === ids.artId,
+        )
+        const pp = rows.find(
+            (r) => r.kind === 'personalProperty' && r.id === ids.personalId,
+        )
         expect(art?.href).toBe('/artwork')
         expect(pp?.href).toBe('/personal-property')
     })
@@ -264,8 +268,12 @@ describe.skipIf(isProductionDb)('asset.listAll aggregator', () => {
         const rows = await adminCaller().asset.listAll({
             entityId: ids.entityId!,
         })
-        const art = rows.find((r) => r.id === ids.artId)
-        const pp = rows.find((r) => r.id === ids.personalId)
+        const art = rows.find(
+            (r) => r.kind === 'personalProperty' && r.id === ids.artId,
+        )
+        const pp = rows.find(
+            (r) => r.kind === 'personalProperty' && r.id === ids.personalId,
+        )
         expect(art?.category).toBe('Artwork')
         expect(pp?.category).toBe('Furniture')
     })
@@ -274,7 +282,9 @@ describe.skipIf(isProductionDb)('asset.listAll aggregator', () => {
         const rows = await adminCaller().asset.listAll({
             entityId: ids.entityId!,
         })
-        const b = rows.find((r) => r.id === ids.bankId)
+        const b = rows.find(
+            (r) => r.kind === 'bankAccount' && r.id === ids.bankId,
+        )
         // Seeded with currentBalance "1234.56", no dodValue.
         expect(b?.value).toBe('1234.56')
     })
@@ -283,7 +293,9 @@ describe.skipIf(isProductionDb)('asset.listAll aggregator', () => {
         const rows = await adminCaller().asset.listAll({
             entityId: ids.entityId!,
         })
-        const i = rows.find((r) => r.id === ids.insuranceId)
+        const i = rows.find(
+            (r) => r.kind === 'insurancePolicy' && r.id === ids.insuranceId,
+        )
         expect(i?.value).toBe('250000.00')
     })
 
@@ -291,24 +303,34 @@ describe.skipIf(isProductionDb)('asset.listAll aggregator', () => {
         const rows = await adminCaller().asset.listAll({
             entityId: ids.entityId!,
         })
-        expect(rows.find((r) => r.id === ids.vehicleId)?.category).toBe(
-            'Vehicle',
-        )
-        expect(rows.find((r) => r.id === ids.homesteadId)?.category).toBe(
-            'Homestead',
-        )
-        expect(rows.find((r) => r.id === ids.rentalId)?.category).toBe(
-            'Rental Property',
-        )
-        expect(rows.find((r) => r.id === ids.bankId)?.category).toBe(
-            'Bank Account',
-        )
-        expect(rows.find((r) => r.id === ids.investmentId)?.category).toBe(
-            'Investment',
-        )
-        expect(rows.find((r) => r.id === ids.insuranceId)?.category).toBe(
-            'Insurance',
-        )
+        expect(
+            rows.find((r) => r.kind === 'vehicle' && r.id === ids.vehicleId)
+                ?.category,
+        ).toBe('Vehicle')
+        expect(
+            rows.find((r) => r.kind === 'homestead' && r.id === ids.homesteadId)
+                ?.category,
+        ).toBe('Homestead')
+        expect(
+            rows.find(
+                (r) => r.kind === 'rentalProperty' && r.id === ids.rentalId,
+            )?.category,
+        ).toBe('Rental Property')
+        expect(
+            rows.find((r) => r.kind === 'bankAccount' && r.id === ids.bankId)
+                ?.category,
+        ).toBe('Bank Account')
+        expect(
+            rows.find(
+                (r) =>
+                    r.kind === 'investmentAccount' && r.id === ids.investmentId,
+            )?.category,
+        ).toBe('Investment')
+        expect(
+            rows.find(
+                (r) => r.kind === 'insurancePolicy' && r.id === ids.insuranceId,
+            )?.category,
+        ).toBe('Insurance')
     })
 
     test('rows are sorted by updatedAt desc by default', async () => {
