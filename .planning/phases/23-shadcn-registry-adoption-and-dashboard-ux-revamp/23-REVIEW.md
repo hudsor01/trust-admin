@@ -59,7 +59,7 @@ findings:
   warning: 6
   info: 9
   total: 15
-status: issues_found
+status: resolved
 ---
 
 # Phase 23: Code Review Report
@@ -194,6 +194,29 @@ return getClient().begin(async (tx) => {
 
 ---
 
+## Resolution
+
+All 15 findings addressed on branch `feat/23-phase-integration` (PR #91).
+
+| Finding | Resolution | Commit |
+|---------|-----------|--------|
+| WR-01 | DashboardClient asset-allocation + payoff math routed through `toCents`/`isPositive` | `e9f3963` |
+| WR-02 | LiabilitiesClient optimistic balance uses `subtractMoney`/`isNegative` | `e5793e4` |
+| WR-03 | HemsQueueBoard approve drag carries payload via `useRef`, no stale closure | `2f90feb` |
+| WR-04 | Dead `useOptimistic` removed from HemsQueueClient | `2f90feb` |
+| WR-05 | `activityLog.id` cast `as unknown as number` replaced with `Number()`; `recordId` coerced | `22c0c5b` |
+| WR-06 | trustee/beneficiary `reorder` wrapped in `getClient().begin()` transaction | `22c0c5b` |
+| IN-01 | No code change — verified zero `hsl()`/hex literals remain in DashboardClient | (n/a) |
+| IN-02 | `escapeCsvCell` prefixes formula-leading cells with `'` | `e5793e4` |
+| IN-03 | `daysSince` (HemsQueueBoard) + `coerceDate` path (WithdrawalMilestoneGantt) use `parseISO` | `2f90feb`, `e5793e4` |
+| IN-04 | Dead `LiabilitySummaryCards` component + test deleted, comment removed | `e9f3963`, `e5793e4` |
+| IN-05 | Verifier-only `KpiStrip`/`PageHeader` re-exports + `ARTWORK_KPI_LABELS` removed from ArtworkClient | `e5793e4` |
+| IN-06 | `artwork/page.tsx` `entityId: 1` gained an invariant comment | `e5793e4` |
+| IN-07 | LiabilityGantt sort uses `currentBalance` carried onto the bar shape | `e9f3963` |
+| IN-08 | No code change — migration 0012 applied and runtime-verified per phase notes | (n/a) |
+| IN-09 | Routing-number row-detail gained an intentional-asymmetry comment | `e5793e4` |
+
 _Reviewed: 2026-05-19T00:00:00Z_
 _Reviewer: Claude (gsd-code-reviewer)_
 _Depth: standard_
+_Resolved: 2026-05-19 by Claude (gsd-code-fixer)_
