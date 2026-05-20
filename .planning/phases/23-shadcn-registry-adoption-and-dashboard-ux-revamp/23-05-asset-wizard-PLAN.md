@@ -3,8 +3,8 @@ phase: 23
 plan: 05
 type: execute
 wave: 4
-status: deferred
-deferred_reason: "Per UI-SPEC revision 1 Implementation Note 13 and RESEARCH.md Open Question 4, PR-E (stepper wizard) is deferred unless the user reasserts. The existing single-page useResourceForm dialog is well-tuned; the wizard adds form-state complexity for marginal UX gain. PR-1, PR-A, PR-B, and PR-C+D cover the headline wins. Activate this plan after PR-C+D ships and user confirms desire for the 3-step asset creation wizard."
+status: ready
+activated: "2026-05-20 — user reasserted; the asset wizard is a locked CONTEXT.md Phase-3 decision, so the RESEARCH/UI-SPEC defer recommendation is overridden."
 depends_on: [23-01, 23-04]
 files_modified:
   - src/components/ui/stepper.tsx
@@ -44,21 +44,13 @@ must_haves:
       pattern: "import.*from '@/components/ui/stepper'"
 ---
 
-# DEFERRED PLAN — DO NOT EXECUTE UNTIL REASSERTED
+# PLAN ACTIVATED — 2026-05-20
 
-**Status:** `deferred` — kept in the phase plan set for future activation but NOT scheduled for the initial Phase-23 run.
+**Status:** `ready` — the user reasserted on 2026-05-20 that the 3-step asset wizard is wanted.
 
-**Why deferred (per UI-SPEC Implementation Note 13 + RESEARCH.md Open Question 4):**
-- The existing single-page `useResourceForm` dialog is already well-tuned across 7+ asset creation flows.
-- The headline wins of Phase 23 are: registry adoption (PR-1), kanban+timeline (PR-A), gantt+donuts+KPI rollout (PR-B), DataTable polish + sortable lists + settings refresh (PR-C+D). A multi-step wizard for asset creation is a Nice-To-Have rather than a step-change in usability.
-- A wizard introduces form-state complexity (per-step validation, free-jump rules, cancel handling, payload merging) for marginal UX gain.
+The wizard is a **locked CONTEXT.md Phase-3 decision** ("`@diceui/stepper` 3-step wizard for asset creation … Extends `useResourceForm` hook"). UI-SPEC Implementation Note 13 + RESEARCH.md Open Question 4 only *recommended* deferring it; that recommendation is now overridden by the user's reassertion.
 
-**To activate this plan:**
-1. The user (developer) reasserts that the wizard is wanted.
-2. The orchestrator runs `/gsd-execute-phase 23 --plans 05` after PR-C+D has merged.
-3. The executor follows the tasks below.
-
-**This file is intentionally captured (per UI-SPEC Implementation Note 13 + planner protocol option (a)) so the work is not lost — but it is NOT part of the initial Phase-23 execution.**
+**Checkpoint Task 05.0 (human-verify) is SATISFIED** by the user's reassertion — the executor proceeds directly to Task 05.1 with the default 3-step grouping (Type+Name / Valuation / Ownership+Linkage); no group-split overrides were given.
 
 ---
 
