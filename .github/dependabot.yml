@@ -9,3 +9,20 @@ updates:
     directory: "/"
     schedule:
       interval: "daily"
+    # Group version-locked package families into a single PR. These
+    # families must bump in lockstep — a single-package PR splits their
+    # shared core (e.g. @tanstack/query-core, @tanstack/form-core) into
+    # two installed copies, producing duplicate-type build errors.
+    groups:
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
+      tanstack:
+        patterns:
+          - "@tanstack/*"
+      sentry:
+        patterns:
+          - "@sentry/*"
