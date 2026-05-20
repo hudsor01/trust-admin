@@ -208,7 +208,16 @@ export const dashboardRouter = createTRPCRouter({
      * - `activity_log` has no `entityId` column, so the count is restricted
      *   to `recordId`s belonging to the requested entity's rows in the
      *   mapped source table — cross-entity activity cannot leak.
+     * - `recordId` is a bare per-table id (e.g. `bank_account #5` and
+     *   `beneficiary #5` both stringify to `"5"`); the `tableName` equality
+     *   predicate in the WHERE clause is what prevents a same-id row in a
+     *   different table from being counted.
      * - `days` is bounded 1..365.
+     * - All day bucketing is done in UTC: the JS window uses `setUTCHours`/
+     *   `setUTCDate`, bucket keys come from `toISOString()`, and the SQL
+     *   truncation pins `createdAt` (a `timestamptz`) to UTC via
+     *   `AT TIME ZONE 'UTC'` — so the three day computations agree
+     *   regardless of the Postgres session time zone.
      */
     activityCounts: adminProcedure
         .input(
@@ -219,11 +228,13 @@ export const dashboardRouter = createTRPCRouter({
             }),
         )
         .query(async ({ input: { entityId, tableName, days } }) => {
-            // Window start: start of the day `days - 1` days ago, so the
-            // series spans exactly `days` buckets inclusive of today.
+            // Window start: start of the UTC day `days - 1` days ago, so the
+            // series spans exactly `days` buckets inclusive of today. UTC math
+            // keeps this aligned with the UTC bucket keys and the SQL day
+            // labels (see the security note above re: time zones).
             const windowStart = new Date()
-            windowStart.setHours(0, 0, 0, 0)
-            windowStart.setDate(windowStart.getDate() - (days - 1))
+            windowStart.setUTCHours(0, 0, 0, 0)
+            windowStart.setUTCDate(windowStart.getUTCDate() - (days - 1))
 
             // Entity scoping (T-25-01): collect the ids of the entity's rows
             // in the mapped source table. activity_log.recordId is text, so
@@ -239,7 +250,7 @@ export const dashboardRouter = createTRPCRouter({
             const buckets = new Map<string, number>()
             for (let i = 0; i < days; i++) {
                 const d = new Date(windowStart)
-                d.setDate(d.getDate() + i)
+                d.setUTCDate(d.getUTCDate() + i)
                 buckets.set(d.toISOString().slice(0, 10), 0)
             }
 
@@ -247,7 +258,7 @@ export const dashboardRouter = createTRPCRouter({
             if (recordIds.length > 0) {
                 const grouped = await db
                     .select({
-                        day: sql<string>`to_char(date_trunc('day', ${activityLog.createdAt}), 'YYYY-MM-DD')`,
+                        day: sql<string>`to_char(date_trunc('day', ${activityLog.createdAt} AT TIME ZONE 'UTC'), 'YYYY-MM-DD')`,
                         count: count(),
                     })
                     .from(activityLog)
@@ -261,7 +272,9 @@ export const dashboardRouter = createTRPCRouter({
                             ),
                         ),
                     )
-                    .groupBy(sql`date_trunc('day', ${activityLog.createdAt})`)
+                    .groupBy(
+                        sql`date_trunc('day', ${activityLog.createdAt} AT TIME ZONE 'UTC')`,
+                    )
 
                 for (const row of grouped) {
                     if (buckets.has(row.day)) {
