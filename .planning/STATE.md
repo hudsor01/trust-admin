@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Production Hardening & Completeness
 status: executing
-stopped_at: Phase 23 plan 01-foundation complete
-last_updated: "2026-05-19T23:45:00.000Z"
-last_activity: 2026-05-19 -- Phase 23 plan 01-foundation executed
+stopped_at: Phase 23 plan 03-liabilities-beneficiaries-kpi-rollout complete (commits 396e5e3+5b4a6fa+53e9cc4+4226daf)
+last_updated: "2026-05-20T00:55:00.372Z"
+last_activity: 2026-05-20
 progress:
   total_phases: 9
   completed_phases: 8
   total_plans: 24
-  completed_plans: 20
-  percent: 83
+  completed_plans: 21
+  percent: 88
 ---
 
 # State: Trust Admin
@@ -20,11 +20,11 @@ progress:
 
 Milestone: v4.0 Production Hardening & Completeness
 Phase: 23-shadcn-registry-adoption-and-dashboard-ux-revamp — EXECUTING
-Plan: 2 of 4 (Wave 1 complete — PR-1 foundation shipped on feat/23-01-foundation)
-Status: Executing Phase 23 (next: 23-02-hems-kanban-and-activity-log)
-Last activity: 2026-05-19 -- Phase 23 plan 01-foundation complete (commits d406184 + edc00f4)
+Plan: 3 of 4 (Wave 1 complete — PR-1 foundation shipped on feat/23-01-foundation)
+Status: Ready to execute
+Last activity: 2026-05-20
 
-Progress: [██████████] 83%
+Progress: [█████████░] 88%
 
 ## Accumulated Context
 
@@ -143,15 +143,16 @@ const rows = await sql`SELECT id, name, email FROM neon_auth."user" WHERE lower(
 
 ## Session Continuity
 
-Last session: 2026-05-19T23:45:00Z
-Stopped at: Phase 23 plan 01-foundation complete on feat/23-01-foundation (commits d406184 + edc00f4)
-Resume file: .planning/phases/23-shadcn-registry-adoption-and-dashboard-ux-revamp/23-02-hems-kanban-and-activity-log-PLAN.md
+Last session: 2026-05-20T00:54:47.587Z
+Stopped at: Phase 23 plan 03-liabilities-beneficiaries-kpi-rollout complete (commits 396e5e3+5b4a6fa+53e9cc4+4226daf)
+Resume file: None
 
 **Planned Phase:** 23 (Shadcn registry adoption and dashboard UX revamp) — 5 plans — 2026-05-19T22:28:15.607Z
 
 **Phase 23 progress:**
+
 - [x] 23-01-foundation (Wave 1 / PR-1) — registries wired, 6 primitives + Kbd installed, SummaryCard patched, PageHeader + KpiStrip built, 12 Wave-0 tests passing — 2026-05-19
 - [ ] 23-02-hems-kanban-and-activity-log (Wave 2 / PR-2)
-- [ ] 23-03-liabilities-beneficiaries-kpi-rollout (Wave 3 / PR-3)
+- [x] 23-03-liabilities-beneficiaries-kpi-rollout (Wave 2 / PR-B) — payoffProjections batched query, Kibo gantt + avatar-stack installed, LiabilityKpiStrip/Gantt/DebtToEquityDonut, BeneficiaryShareDonuts/AvatarStack/WithdrawalMilestoneGantt, KpiStrip + PageHeader on 11 admin pages, 16 Wave-0 tests, 938 unit tests passing — 2026-05-20 (commits 396e5e3, 5b4a6fa, 53e9cc4, 4226daf on feat/23-03-liabilities-beneficiaries-kpi-rollout)
 - [ ] 23-04-datatable-and-settings-polish (Wave 4 / PR-4)
 - [ ] 23-05-asset-wizard (DEFERRED)
