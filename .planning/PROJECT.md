@@ -32,6 +32,7 @@ Secure, auditable trust administration with role-based access control and Texas 
 - Activity log audit trail
 - Custom forgot/reset password flow via n8n webhook
 - Admin user provisioning with forced password change
+- Kibo UI + Dice UI shadcn registries; dashboard UX revamp (KPI strips, HEMS kanban, activity timeline+heatmap, liability/beneficiary gantt + donut charts, DataTable bulk actions + CSV export, sortable trustee/beneficiary lists) — Phase 23
 
 ## Current Milestone: v4.0 Production Hardening & Completeness
 
