@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Production Hardening & Completeness
 status: executing
-stopped_at: Phase 23 plan 03-liabilities-beneficiaries-kpi-rollout complete (commits 396e5e3+5b4a6fa+53e9cc4+4226daf)
-last_updated: "2026-05-20T00:55:00.372Z"
+stopped_at: Completed 23-04-datatable-and-settings-polish-PLAN.md
+last_updated: "2026-05-20T01:26:28.964Z"
 last_activity: 2026-05-20
 progress:
   total_phases: 9
   completed_phases: 8
   total_plans: 24
-  completed_plans: 21
-  percent: 88
+  completed_plans: 22
+  percent: 92
 ---
 
 # State: Trust Admin
@@ -20,11 +20,11 @@ progress:
 
 Milestone: v4.0 Production Hardening & Completeness
 Phase: 23-shadcn-registry-adoption-and-dashboard-ux-revamp — EXECUTING
-Plan: 3 of 4 (Wave 1 complete — PR-1 foundation shipped on feat/23-01-foundation)
-Status: Ready to execute
+Plan: 4 of 4 complete (23-04 shipped on feat/23-04-datatable-and-settings-polish; only 23-02 HEMS kanban remains, 23-05 deferred)
+Status: 23-04 complete
 Last activity: 2026-05-20
 
-Progress: [█████████░] 88%
+Progress: [█████████░] 92%
 
 ## Accumulated Context
 
@@ -101,6 +101,12 @@ Progress: [█████████░] 88%
 - [Phase 23] KpiStripItem.invertDelta convention: caller marks 'down is good' (liabilities, expenses); zero treated as positive in both modes
 - [Phase 23] KpiStrip sparkline uses inline recharts <LineChart> stroke=var(--primary) with isAnimationActive=false to avoid React Compiler bailout from reconciliation churn
 - [Phase 23] PageHeader composition (h1 + breadcrumb + actions) lives in src/components/ (NOT src/components/ui/) -- app-specific composition vs generic primitive
+- [Phase 23] DataTable bulkActions/exportable/getRowDetail are all additive optional props -- 17 existing callers unchanged; only /accounts opts into getRowDetail + exportable in PR-C
+- [Phase 23] CSV export uses getFilteredRowModel + getVisibleLeafColumns -- hidden columns excluded (T-23-04); buildCsvBody split as a pure fn for testability
+- [Phase 23] DataTableBulkActions defaults requiresConfirm=true for variant:destructive, routes through useConfirmDialog -- no window.confirm (T-23-03)
+- [Phase 23] reorder mutations entityId-scoped via and(eq(id),eq(entityId)) -- cross-entity id throws NOT_FOUND (T-23-05); RLS app.is_admin() is defense-in-depth
+- [Phase 23] beneficiary.sortIndex is new (INTEGER NOT NULL DEFAULT 0, ROW_NUMBER backfill); trustee reuses existing order column -- only composite indexes added for trustee
+- [Phase 23] Test branch DB synced manually after db:deploy -- migration DDL applied to .env.test.local branch via postgres.js tx so tRPC reorder tests pass
 
 ### Auth API Patterns That Work
 
@@ -143,8 +149,8 @@ const rows = await sql`SELECT id, name, email FROM neon_auth."user" WHERE lower(
 
 ## Session Continuity
 
-Last session: 2026-05-20T00:54:47.587Z
-Stopped at: Phase 23 plan 03-liabilities-beneficiaries-kpi-rollout complete (commits 396e5e3+5b4a6fa+53e9cc4+4226daf)
+Last session: 2026-05-20T01:26:07.921Z
+Stopped at: Completed 23-04-datatable-and-settings-polish-PLAN.md
 Resume file: None
 
 **Planned Phase:** 23 (Shadcn registry adoption and dashboard UX revamp) — 5 plans — 2026-05-19T22:28:15.607Z
@@ -154,5 +160,5 @@ Resume file: None
 - [x] 23-01-foundation (Wave 1 / PR-1) — registries wired, 6 primitives + Kbd installed, SummaryCard patched, PageHeader + KpiStrip built, 12 Wave-0 tests passing — 2026-05-19
 - [ ] 23-02-hems-kanban-and-activity-log (Wave 2 / PR-2)
 - [x] 23-03-liabilities-beneficiaries-kpi-rollout (Wave 2 / PR-B) — payoffProjections batched query, Kibo gantt + avatar-stack installed, LiabilityKpiStrip/Gantt/DebtToEquityDonut, BeneficiaryShareDonuts/AvatarStack/WithdrawalMilestoneGantt, KpiStrip + PageHeader on 11 admin pages, 16 Wave-0 tests, 938 unit tests passing — 2026-05-20 (commits 396e5e3, 5b4a6fa, 53e9cc4, 4226daf on feat/23-03-liabilities-beneficiaries-kpi-rollout)
-- [ ] 23-04-datatable-and-settings-polish (Wave 4 / PR-4)
+- [x] 23-04-datatable-and-settings-polish (Wave 3 / PR-C+D) — DataTable bulkActions/exportable/getRowDetail props, csv-export lib, PreferenceRow + 4-card settings refresh, Dice sortable installed, migration 0012 (beneficiary.sortIndex + 2 composite indexes) applied, trustee/beneficiary reorder mutations, sortable consumers, 40 plan tests + 965 unit tests passing — 2026-05-20 (commits 81009c8, aadb02e, 5894e57 on feat/23-04-datatable-and-settings-polish)
 - [ ] 23-05-asset-wizard (DEFERRED)
