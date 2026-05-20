@@ -3,16 +3,20 @@
 import { UserPlus } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
+import { KpiStrip, type KpiStripItem } from '@/components/kpi-strip'
+import { PageHeader } from '@/components/page-header'
 import { Button } from '@/components/ui/button'
 import type { Beneficiary } from '@/db/schema'
 import { sumStrings } from '@/lib/money'
 import { trpc } from '@/lib/trpc'
 import { formatCurrency } from '@/utils/formatters'
 import { AddBeneficiaryDialog } from './AddBeneficiaryDialog'
+import { BeneficiaryAvatarStack } from './BeneficiaryAvatarStack'
 import { BeneficiaryDialog } from './BeneficiaryDialog'
-import { BeneficiarySummaryCards } from './BeneficiarySummaryCards'
+import { BeneficiaryShareDonuts } from './BeneficiaryShareDonuts'
 import { BeneficiaryTable } from './BeneficiaryTable'
 import type { BeneficiaryWithDistributions } from './types'
+import { WithdrawalMilestoneGantt } from './WithdrawalMilestoneGantt'
 
 export function BeneficiariesClient() {
     const utils = trpc.useUtils()
@@ -26,6 +30,18 @@ export function BeneficiariesClient() {
         { entityId: entityId! },
         { enabled: !!entityId },
     )
+
+    // HEMS pending count for the KPI strip — uses existing list query.
+    const { data: hemsRequests = [] } = trpc.hemsRequest.list.useQuery(
+        { entityId: entityId! },
+        { enabled: !!entityId },
+    )
+
+    // Entity dod for WithdrawalMilestoneGantt reference point when a
+    // beneficiary has no dob on file.
+    const { data: entityDetail } = trpc.entity.byId.useQuery(entityId!, {
+        enabled: !!entityId,
+    })
 
     const updateBeneficiaryMutation = trpc.beneficiary.update.useMutation({
         onSuccess: () => {
@@ -112,42 +128,111 @@ export function BeneficiariesClient() {
         [beneficiaries],
     )
 
-    const informedCount = useMemo(
-        () => beneficiaries.filter((b) => b.informed).length,
+    // Distributions issued in the current calendar year (YTD). Filters by
+    // distributionDate prefix so we avoid a separate filtered query.
+    const currentYear = new Date().getUTCFullYear().toString()
+    const totalDistributedYtd = useMemo(
+        () =>
+            sumStrings(
+                beneficiaries.flatMap((b) =>
+                    (b.distributions || [])
+                        .filter((d) =>
+                            d.distributionDate?.startsWith(currentYear),
+                        )
+                        .map((d) => d.amount),
+                ),
+            ),
+        [beneficiaries, currentYear],
+    )
+
+    const pendingHemsCount = useMemo(
+        () => hemsRequests.filter((h) => h.status === 'PENDING').length,
+        [hemsRequests],
+    )
+
+    // Donut row uses derived `name = firstName + lastName` shape.
+    const donutItems = useMemo(
+        () =>
+            beneficiaries.map((b) => ({
+                id: b.id,
+                name: `${b.firstName} ${b.lastName}`.trim(),
+                sharePercent: b.sharePercent,
+                relationship: b.relationship,
+            })),
         [beneficiaries],
     )
-    const releaseSignedCount = useMemo(
-        () => beneficiaries.filter((b) => b.releaseSigned).length,
+
+    const avatarItems = useMemo(
+        () =>
+            beneficiaries.map((b) => ({
+                id: b.id,
+                name: `${b.firstName} ${b.lastName}`.trim(),
+            })),
         [beneficiaries],
     )
+
+    const milestoneItems = useMemo(
+        () =>
+            beneficiaries.map((b) => ({
+                id: b.id,
+                name: `${b.firstName} ${b.lastName}`.trim(),
+                dob: b.dob,
+                withdrawalAge1: b.withdrawalAge1,
+                withdrawalPct1: b.withdrawalPct1,
+                withdrawalAge2: b.withdrawalAge2,
+                withdrawalPct2: b.withdrawalPct2,
+            })),
+        [beneficiaries],
+    )
+
+    const kpiData: KpiStripItem[] = [
+        { label: 'Beneficiary count', value: beneficiaries.length },
+        { label: 'Total share %', value: `${totalShares}%` },
+        {
+            label: 'Distributions YTD',
+            value: formatCurrency(totalDistributedYtd),
+        },
+        { label: 'Pending HEMS', value: pendingHemsCount },
+    ]
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-2xl font-semibold tracking-tight text-balance">
-                        Beneficiaries
-                    </h2>
-                    <p className="text-sm text-muted-foreground">
-                        {beneficiaries.length} beneficiaries |{' '}
-                        {formatCurrency(totalDistributed)} distributed
-                    </p>
+            <PageHeader
+                title="Beneficiaries"
+                description="Trust beneficiaries with share allocations and withdrawal milestones."
+                actions={
+                    <Button
+                        onClick={() => setAddDialogOpen(true)}
+                        disabled={!entityId}
+                    >
+                        <UserPlus className="mr-1 h-4 w-4" />
+                        Add Beneficiary
+                    </Button>
+                }
+            />
+
+            <KpiStrip data={kpiData} isLoading={loading} />
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+                <div className="md:col-span-1">
+                    <BeneficiaryAvatarStack beneficiaries={avatarItems} />
                 </div>
-                <Button
-                    onClick={() => setAddDialogOpen(true)}
-                    disabled={!entityId}
-                >
-                    <UserPlus className="mr-1 h-4 w-4" />
-                    Add Beneficiary
-                </Button>
+                <div className="md:col-span-2 text-sm text-muted-foreground">
+                    {beneficiaries.length} beneficiaries ·{' '}
+                    {formatCurrency(totalDistributed)} distributed lifetime ·{' '}
+                    {formatCurrency(totalDistributedYtd)} YTD
+                </div>
             </div>
 
-            <BeneficiarySummaryCards
-                totalShares={totalShares}
-                informedCount={informedCount}
-                releaseSignedCount={releaseSignedCount}
-                totalDistributed={totalDistributed}
-                totalBeneficiaries={beneficiaries.length}
+            <BeneficiaryShareDonuts
+                beneficiaries={donutItems}
+                isLoading={loading}
+            />
+
+            <WithdrawalMilestoneGantt
+                beneficiaries={milestoneItems}
+                entityDod={entityDetail?.dod ?? null}
+                isLoading={loading}
             />
 
             <BeneficiaryTable
