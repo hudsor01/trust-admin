@@ -322,6 +322,42 @@ export function AccountsClient() {
                         onEdit={handleEditBank}
                         onDelete={handleDeleteBank}
                         onUpdate={updateBankAccount}
+                        getRowDetail={(account) => (
+                            <div className="space-y-1">
+                                <p className="text-sm font-semibold">
+                                    Account detail
+                                </p>
+                                <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                                    <dt className="text-muted-foreground">
+                                        Routing number
+                                    </dt>
+                                    <dd className="font-mono">
+                                        {account.routingNumber ?? '—'}
+                                    </dd>
+                                    <dt className="text-muted-foreground">
+                                        DOD date
+                                    </dt>
+                                    <dd>
+                                        {account.dodValueDate
+                                            ? new Date(
+                                                  account.dodValueDate,
+                                              ).toLocaleDateString()
+                                            : '—'}
+                                    </dd>
+                                    <dt className="text-muted-foreground">
+                                        Notes
+                                    </dt>
+                                    <dd>{account.notes ?? '—'}</dd>
+                                </dl>
+                                <p className="mt-2 text-xs text-muted-foreground">
+                                    Linked liabilities are not yet wired — the
+                                    schema does not currently link a liability
+                                    to a bank or investment account (only to a
+                                    homestead, rental property, or vehicle).
+                                    Tracked as a TODO in plan 23-04 SUMMARY.
+                                </p>
+                            </div>
+                        )}
                     />
                 </TabsContent>
 

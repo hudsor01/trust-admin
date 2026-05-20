@@ -36,7 +36,6 @@ export function BeneficiaryShareDonuts({
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {Array.from({ length: 4 }).map((_, i) => (
                     <Skeleton
-                        // biome-ignore lint/suspicious/noArrayIndexKey: "skeleton placeholders have no stable id"
                         key={`benef-donut-skeleton-${i}`}
                         className="h-48 w-full rounded-lg"
                     />
@@ -102,7 +101,6 @@ function BeneficiaryDonut({
                         >
                             {data.map((entry, i) => (
                                 <Cell
-                                    // biome-ignore lint/suspicious/noArrayIndexKey: "Pie cells are stable per render"
                                     key={`${entry.name}-${i}`}
                                     fill={entry.fill}
                                 />
