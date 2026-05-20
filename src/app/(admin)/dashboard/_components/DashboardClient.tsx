@@ -232,32 +232,32 @@ export function DashboardClient() {
                 {
                     name: 'Bank Accounts',
                     value: Number.parseFloat(bankTotal) || 0,
-                    fill: 'hsl(221, 83%, 53%)',
+                    fill: 'var(--chart-1)',
                 },
                 {
                     name: 'Investments',
                     value: Number.parseFloat(investTotal) || 0,
-                    fill: 'hsl(262, 83%, 58%)',
+                    fill: 'var(--chart-2)',
                 },
                 {
                     name: 'Real Estate',
                     value: Number.parseFloat(realEstateTotal) || 0,
-                    fill: 'hsl(142, 76%, 36%)',
+                    fill: 'var(--chart-3)',
                 },
                 {
                     name: 'Vehicles',
                     value: Number.parseFloat(vehicleTotal) || 0,
-                    fill: 'hsl(38, 92%, 50%)',
+                    fill: 'var(--chart-4)',
                 },
                 {
                     name: 'Personal Property',
                     value: Number.parseFloat(personalPropertyTotal) || 0,
-                    fill: 'hsl(25, 95%, 53%)',
+                    fill: 'var(--chart-5)',
                 },
                 {
                     name: 'Insurance',
                     value: Number.parseFloat(insuranceTotal) || 0,
-                    fill: 'hsl(195, 74%, 44%)',
+                    fill: 'var(--chart-1)',
                 },
             ].filter((item) => item.value > 0)
 
