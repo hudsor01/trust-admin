@@ -147,11 +147,11 @@ export function LiabilityTable({
                             value={percent}
                             className={
                                 isPaidOff
-                                    ? 'h-2 flex-1 [&>div]:bg-green-500'
+                                    ? 'h-2 flex-1 [&>div]:bg-success'
                                     : percent >= 75
-                                      ? 'h-2 flex-1 [&>div]:bg-green-500'
+                                      ? 'h-2 flex-1 [&>div]:bg-success'
                                       : percent >= 25
-                                        ? 'h-2 flex-1 [&>div]:bg-yellow-500'
+                                        ? 'h-2 flex-1 [&>div]:bg-warning'
                                         : 'h-2 flex-1'
                             }
                         />

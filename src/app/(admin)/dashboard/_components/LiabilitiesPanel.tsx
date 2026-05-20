@@ -80,7 +80,7 @@ export function LiabilitiesPanel({
                             <p className="text-xs text-muted-foreground uppercase tracking-wide font-semibold mb-2">
                                 Amount Paid
                             </p>
-                            <p className="text-2xl font-semibold text-green-600 dark:text-green-400 mb-1">
+                            <p className="text-2xl font-semibold text-success mb-1">
                                 {formatCurrency(
                                     subtractMoney(
                                         totalOriginalLiabilities,

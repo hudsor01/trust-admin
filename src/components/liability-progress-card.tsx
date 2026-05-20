@@ -103,7 +103,7 @@ export function LiabilityProgressCard({
                             value={progressPercent}
                             className={cn(
                                 'h-2 flex-1',
-                                isPaidOff && '[&>div]:bg-green-500',
+                                isPaidOff && '[&>div]:bg-success',
                             )}
                         />
                         <span className="text-xs text-muted-foreground w-12 text-right">
@@ -138,7 +138,7 @@ export function LiabilityProgressCard({
                         </Badge>
                     </div>
                     {isPaidOff && (
-                        <Badge className="bg-green-500 hover:bg-green-600">
+                        <Badge className="bg-success hover:bg-success/90">
                             Paid Off
                         </Badge>
                     )}
@@ -149,10 +149,10 @@ export function LiabilityProgressCard({
                         value={progressPercent}
                         className={cn(
                             'h-3',
-                            progressPercent >= 75 && '[&>div]:bg-green-500',
+                            progressPercent >= 75 && '[&>div]:bg-success',
                             progressPercent >= 25 &&
                                 progressPercent < 75 &&
-                                '[&>div]:bg-yellow-500',
+                                '[&>div]:bg-warning',
                         )}
                     />
                     <div className="flex justify-between text-sm">

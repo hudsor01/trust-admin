@@ -107,7 +107,7 @@ export function AccountingCompliancePanel({
                 <ChevronRight className="h-4 w-4 transition-transform group-data-[state=open]:rotate-90" />
                 Principal &amp; Income Details
                 {hasUnconverted && (
-                    <span className="inline-flex items-center rounded-full bg-amber-500/20 px-2 py-0.5 text-xs font-medium text-amber-700">
+                    <span className="inline-flex items-center rounded-full bg-warning/20 px-2 py-0.5 text-xs font-medium text-warning">
                         {unconvertedSummary.length} unconverted
                     </span>
                 )}

@@ -87,13 +87,13 @@ export function PaymentImpactPreview({
     return (
         <div className="space-y-3 mt-4">
             {isNegativePrincipal && (
-                <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-800">
+                <div className="rounded-lg bg-destructive/10 border border-destructive/30 p-3 text-sm text-destructive">
                     Payment does not cover interest. Balance will increase.
                 </div>
             )}
 
             {isPartialPayment && !isNegativePrincipal && (
-                <div className="rounded-lg bg-yellow-50 border border-yellow-200 p-3 text-sm text-yellow-800">
+                <div className="rounded-lg bg-warning/10 border border-warning/30 p-3 text-sm text-warning">
                     This is less than the expected payment of{' '}
                     {formatCurrency(liability.monthlyPayment)}
                 </div>
@@ -109,7 +109,9 @@ export function PaymentImpactPreview({
                             Principal:
                         </span>
                         <span
-                            className={principalNum < 0 ? 'text-red-600' : ''}
+                            className={
+                                principalNum < 0 ? 'text-destructive' : ''
+                            }
                         >
                             {formatCurrency(split.principal)}
                         </span>
@@ -143,7 +145,7 @@ export function PaymentImpactPreview({
                                     payoff.payoffDate,
                                 ).toLocaleDateString()}
                                 {isExtraPayment && (
-                                    <span className="text-green-600 text-xs">
+                                    <span className="text-success text-xs">
                                         Extra payment accelerates payoff!
                                     </span>
                                 )}

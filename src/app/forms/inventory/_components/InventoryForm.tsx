@@ -384,7 +384,7 @@ export function InventoryForm() {
             <Card className="max-w-2xl mx-auto">
                 <CardContent className="pt-6">
                     <div className="text-center space-y-4">
-                        <CheckCircle2 className="h-16 w-16 text-green-500 mx-auto" />
+                        <CheckCircle2 className="h-16 w-16 text-success mx-auto" />
                         <h2 className="text-2xl font-semibold">
                             Item Submitted
                         </h2>
@@ -655,12 +655,12 @@ export function InventoryForm() {
 
                         <div className="bg-background rounded-lg p-4 border">
                             <div className="flex items-center gap-2 mb-2">
-                                <DollarSign className="h-5 w-5 text-green-600" />
+                                <DollarSign className="h-5 w-5 text-success" />
                                 <span className="font-semibold">
                                     Fair Market Value
                                 </span>
                             </div>
-                            <div className="text-3xl font-bold text-green-600">
+                            <div className="text-3xl font-bold text-success">
                                 $
                                 {Number(
                                     analysis.estimatedValue,

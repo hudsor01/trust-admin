@@ -85,8 +85,8 @@ export function DashboardStats({
                             className={cn(
                                 'text-2xl font-semibold mb-2',
                                 isNegative(netIncome)
-                                    ? 'text-red-600 dark:text-red-400'
-                                    : 'text-green-600 dark:text-green-400',
+                                    ? 'text-destructive'
+                                    : 'text-success',
                             )}
                         >
                             {formatCurrency(netIncome)}

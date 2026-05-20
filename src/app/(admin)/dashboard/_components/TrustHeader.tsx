@@ -46,7 +46,7 @@ export function TrustHeader({ entity }: TrustHeaderProps) {
                         Status
                     </p>
                     <div className="flex items-center gap-2">
-                        <Circle className="h-2 w-2 fill-green-500 text-green-500" />
+                        <Circle className="h-2 w-2 fill-success text-success" />
                         <span className="text-sm">Active Administration</span>
                     </div>
                 </div>

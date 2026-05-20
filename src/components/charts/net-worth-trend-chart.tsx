@@ -33,15 +33,15 @@ interface NetWorthTrendChartProps {
 const chartConfig = {
     netWorth: {
         label: 'Net Worth',
-        color: 'hsl(221, 83%, 53%)', // Blue
+        color: 'var(--chart-1)', // Primary (blue)
     },
     assets: {
         label: 'Total Assets',
-        color: 'hsl(142, 76%, 36%)', // Green
+        color: 'var(--chart-2)', // Success (green)
     },
     liabilities: {
         label: 'Total Liabilities',
-        color: 'hsl(0, 84%, 60%)', // Red
+        color: 'var(--chart-3)', // Destructive (red)
     },
 } satisfies ChartConfig
 
@@ -117,7 +117,7 @@ export function NetWorthTrendChart({
                 {hasNegative && (
                     <ReferenceLine
                         y={0}
-                        stroke="hsl(var(--muted-foreground))"
+                        stroke="var(--muted-foreground)"
                         strokeDasharray="3 3"
                     />
                 )}

@@ -99,7 +99,7 @@ export function WithdrawalsTable({
                             className={cn(
                                 row.original.age25.status !== 'COMPLETE' &&
                                     status?.isEligible &&
-                                    'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100',
+                                    'bg-success/15 text-success',
                             )}
                         >
                             {row.original.age25.status === 'COMPLETE'
@@ -132,7 +132,7 @@ export function WithdrawalsTable({
                             className={cn(
                                 row.original.age30.status !== 'COMPLETE' &&
                                     status?.isEligible &&
-                                    'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100',
+                                    'bg-success/15 text-success',
                             )}
                         >
                             {row.original.age30.status === 'COMPLETE'
@@ -164,7 +164,7 @@ export function WithdrawalsTable({
                                 <Button
                                     size="sm"
                                     variant="outline"
-                                    className="border-green-300 text-green-700 hover:bg-green-50 dark:border-green-700 dark:text-green-300"
+                                    className="border-success/40 text-success hover:bg-success/10"
                                     onClick={() =>
                                         onProcessWithdrawal(row.original.age25!)
                                     }
@@ -178,7 +178,7 @@ export function WithdrawalsTable({
                                 <Button
                                     size="sm"
                                     variant="outline"
-                                    className="border-green-300 text-green-700 hover:bg-green-50 dark:border-green-700 dark:text-green-300"
+                                    className="border-success/40 text-success hover:bg-success/10"
                                     onClick={() =>
                                         onProcessWithdrawal(row.original.age30!)
                                     }
