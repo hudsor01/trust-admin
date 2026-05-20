@@ -3,6 +3,8 @@
 import { Plus } from 'lucide-react'
 import { useCallback, useState } from 'react'
 import { ConfirmDialog, useConfirmDialog } from '@/components/confirm-dialog'
+import { KpiStrip, type KpiStripItem } from '@/components/kpi-strip'
+import { PageHeader } from '@/components/page-header'
 import { Button } from '@/components/ui/button'
 import type { InsurancePolicy } from '@/db/schema'
 import { useResourceForm } from '@/hooks/use-resource-form'
@@ -154,28 +156,29 @@ export function InsuranceClient() {
     )
 
     const totalCoverage = sumStrings(policies.map((p) => p.coverageAmount))
+    const totalPremium = sumStrings(policies.map((p) => p.premium))
+    const activeCount = policies.filter((p) => p.status === 'ACTIVE').length
+    const kpiData: KpiStripItem[] = [
+        { label: 'Policy count', value: policies.length },
+        { label: 'Total coverage', value: formatCurrency(totalCoverage) },
+        { label: 'Active count', value: activeCount },
+        { label: 'Annual premium', value: formatCurrency(totalPremium) },
+    ]
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-2xl font-semibold tracking-tight">
-                        Insurance Policies
-                    </h2>
-                    <p className="text-sm text-muted-foreground">
-                        Manage insurance policies
-                        {policies.length > 0 &&
-                            ` - Total Coverage: ${formatCurrency(totalCoverage)}`}
-                    </p>
-                </div>
-            </div>
+            <PageHeader
+                title="Insurance"
+                description="Insurance policies covering trust assets."
+                actions={
+                    <Button onClick={policyForm.handleAdd}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Policy
+                    </Button>
+                }
+            />
 
-            <div className="flex justify-end">
-                <Button onClick={policyForm.handleAdd}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Policy
-                </Button>
-            </div>
+            <KpiStrip data={kpiData} isLoading={policiesLoading} />
 
             <InsuranceTable
                 policies={policies}

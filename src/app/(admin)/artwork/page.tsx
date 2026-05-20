@@ -1,6 +1,6 @@
 import { dehydrate, HydrationBoundary } from '@tanstack/react-query'
 import { createTRPCHelpers } from '@/lib/trpc-server'
-import { PersonalPropertyClient } from '../personal-property/_components/PersonalPropertyClient'
+import { ArtworkClient } from './_components/ArtworkClient'
 
 export default async function ArtworkPage() {
     const helpers = await createTRPCHelpers()
@@ -13,7 +13,7 @@ export default async function ArtworkPage() {
     ])
     return (
         <HydrationBoundary state={dehydrate(helpers.queryClient)}>
-            <PersonalPropertyClient mode="artwork" />
+            <ArtworkClient />
         </HydrationBoundary>
     )
 }

@@ -4,12 +4,17 @@ import { Loader2 } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import { useCallback, useMemo, useOptimistic, useState } from 'react'
 import { toast } from 'sonner'
+import { KpiStrip, type KpiStripItem } from '@/components/kpi-strip'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { logger } from '@/lib/logger'
 import { subtractMoney, sumStrings } from '@/lib/money'
 import { trpc } from '@/lib/trpc'
-import { calculateAge, getWithdrawalStatus } from '@/utils/formatters'
+import {
+    calculateAge,
+    formatCurrency,
+    getWithdrawalStatus,
+} from '@/utils/formatters'
 import { TASK_CATEGORIES } from './constants'
 import { DashboardAlerts } from './DashboardAlerts'
 import { DashboardStats } from './DashboardStats'
@@ -401,9 +406,30 @@ export function DashboardClient() {
     const incomeEntryCount = summaryTotals?.incomeCount ?? 0
     const expenseEntryCount = summaryTotals?.expenseCount ?? 0
 
+    // UI-SPEC §2 revision 1 — KPI rollout extends to /dashboard. Wires onto
+    // existing memoized totals; Cash on hand = sum of bankAccount currentBalance
+    // (live cash, not DOD). KpiStrip is ADDITIVE above DashboardStats — all
+    // existing panels remain.
+    const netWorth = subtractMoney(totalAssets, totalLiabilities)
+    const cashOnHand = sumStrings(
+        bankAccounts.map((a) => a.currentBalance ?? a.dodValue),
+    )
+    const dashboardKpis: KpiStripItem[] = [
+        { label: 'Total assets', value: formatCurrency(totalAssets) },
+        {
+            label: 'Total liabilities',
+            value: formatCurrency(totalLiabilities),
+            invertDelta: true,
+        },
+        { label: 'Net worth', value: formatCurrency(netWorth) },
+        { label: 'Cash on hand', value: formatCurrency(cashOnHand) },
+    ]
+
     return (
         <div className="space-y-8">
             {entity && <TrustHeader entity={entity} />}
+
+            <KpiStrip data={dashboardKpis} isLoading={summaryLoading} />
 
             <DashboardAlerts
                 overdueTasks={overdueTasks}

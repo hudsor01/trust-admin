@@ -3,6 +3,8 @@
 import { Plus } from 'lucide-react'
 import { useCallback, useState } from 'react'
 import { ConfirmDialog, useConfirmDialog } from '@/components/confirm-dialog'
+import { KpiStrip, type KpiStripItem } from '@/components/kpi-strip'
+import { PageHeader } from '@/components/page-header'
 import { Button } from '@/components/ui/button'
 import type { Vehicle } from '@/db/schema'
 import { useResourceForm } from '@/hooks/use-resource-form'
@@ -16,7 +18,7 @@ import {
     asTransferStatus,
     asValuationType,
 } from '@/lib/type-utils'
-import { formatCurrency } from '@/utils/formatters'
+import { formatCurrency, formatPercent } from '@/utils/formatters'
 import { VehicleDialog } from './VehicleDialog'
 import { VehicleTable } from './VehicleTable'
 
@@ -151,28 +153,33 @@ export function VehiclesClient() {
     )
 
     const totalValue = sumStrings(vehicles.map((v) => v.dodValue))
+    const activeCount = vehicles.filter((v) => v.status === 'ACTIVE').length
+    const transferredCount = vehicles.filter(
+        (v) => v.transferStatus === 'COMPLETE',
+    ).length
+    const transferPct =
+        vehicles.length > 0 ? (transferredCount / vehicles.length) * 100 : 0
+    const kpiData: KpiStripItem[] = [
+        { label: 'Vehicle count', value: vehicles.length },
+        { label: 'Total DOD value', value: formatCurrency(totalValue) },
+        { label: 'Transfer % complete', value: formatPercent(transferPct) },
+        { label: 'Active count', value: activeCount },
+    ]
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-2xl font-semibold tracking-tight">
-                        Vehicles
-                    </h2>
-                    <p className="text-sm text-muted-foreground">
-                        Manage vehicle assets
-                        {vehicles.length > 0 &&
-                            ` - Total DOD Value: ${formatCurrency(totalValue)}`}
-                    </p>
-                </div>
-            </div>
+            <PageHeader
+                title="Vehicles"
+                description="Vehicles titled to the trust."
+                actions={
+                    <Button onClick={vehicleForm.handleAdd}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Vehicle
+                    </Button>
+                }
+            />
 
-            <div className="flex justify-end">
-                <Button onClick={vehicleForm.handleAdd}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Vehicle
-                </Button>
-            </div>
+            <KpiStrip data={kpiData} isLoading={vehiclesLoading} />
 
             <VehicleTable
                 vehicles={vehicles}

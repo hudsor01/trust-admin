@@ -4,6 +4,8 @@ import { Download, Plus } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { ConfirmDialog, useConfirmDialog } from '@/components/confirm-dialog'
+import { KpiStrip, type KpiStripItem } from '@/components/kpi-strip'
+import { PageHeader } from '@/components/page-header'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -120,40 +122,48 @@ export function ContactsClient() {
         return data
     }, [contacts, filter, search])
 
+    const attorneysCount = contacts.filter((c) => c.role === 'ATTORNEY').length
+    const cpasCount = contacts.filter((c) => c.role === 'ACCOUNTANT').length
+    const otherProfCount = contacts.length - attorneysCount - cpasCount
+    const kpiData: KpiStripItem[] = [
+        { label: 'Contact count', value: contacts.length },
+        { label: 'Attorneys', value: attorneysCount },
+        { label: 'CPAs', value: cpasCount },
+        { label: 'Other professionals', value: otherProfCount },
+    ]
+
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-2xl font-semibold tracking-tight text-balance">
-                        Contacts
-                    </h2>
-                    <p className="text-sm text-muted-foreground">
-                        {contacts.length} professional contacts
-                    </p>
-                </div>
-                <div className="flex items-center gap-2">
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        className="gap-2"
-                        onClick={() => {
-                            const main = document.querySelector('main')
-                            if (!main) return
-                            exportTablesInContainer(
-                                main as HTMLElement,
-                                'contacts',
-                            )
-                        }}
-                    >
-                        <Download className="h-4 w-4" />
-                        Export CSV
-                    </Button>
-                    <Button onClick={contactForm.handleAdd}>
-                        <Plus className="mr-2 h-4 w-4" />
-                        Add Contact
-                    </Button>
-                </div>
-            </div>
+            <PageHeader
+                title="Contacts"
+                description="Professional contacts (attorneys, CPAs, advisors) associated with the trust."
+                actions={
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-2"
+                            onClick={() => {
+                                const main = document.querySelector('main')
+                                if (!main) return
+                                exportTablesInContainer(
+                                    main as HTMLElement,
+                                    'contacts',
+                                )
+                            }}
+                        >
+                            <Download className="h-4 w-4" />
+                            Export CSV
+                        </Button>
+                        <Button onClick={contactForm.handleAdd}>
+                            <Plus className="mr-2 h-4 w-4" />
+                            Add Contact
+                        </Button>
+                    </div>
+                }
+            />
+
+            <KpiStrip data={kpiData} isLoading={isLoading} />
 
             <Card>
                 <CardContent className="pt-6">

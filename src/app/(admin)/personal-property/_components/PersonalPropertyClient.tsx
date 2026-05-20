@@ -4,6 +4,8 @@ import { Plus } from 'lucide-react'
 import { useCallback, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { ConfirmDialog, useConfirmDialog } from '@/components/confirm-dialog'
+import { KpiStrip, type KpiStripItem } from '@/components/kpi-strip'
+import { PageHeader } from '@/components/page-header'
 import { Button } from '@/components/ui/button'
 import type { PersonalProperty } from '@/db/schema'
 import { useResourceForm } from '@/hooks/use-resource-form'
@@ -233,28 +235,47 @@ export function PersonalPropertyClient({
     )
 
     const totalValue = sumStrings(items.map((p) => p.dodValue))
+    const totalCurrent = totalValue
+    const categoriesTracked = new Set(items.map((p) => p.category)).size
+    // personalProperty has no `insured` column or insurancePolicy FK — surface
+    // 0 for now and document the gap. A future schema migration can add a
+    // pivot table or link and the artwork view will pick it up.
+    const insuredCount = 0
+    const kpiData: KpiStripItem[] =
+        mode === 'artwork'
+            ? [
+                  { label: 'Item count', value: items.length },
+                  { label: 'DOD total', value: formatCurrency(totalValue) },
+                  {
+                      label: 'Estimated current',
+                      value: formatCurrency(totalCurrent),
+                  },
+                  { label: 'Insured count', value: insuredCount },
+              ]
+            : [
+                  { label: 'Item count', value: items.length },
+                  { label: 'DOD total', value: formatCurrency(totalValue) },
+                  {
+                      label: 'Estimated current',
+                      value: formatCurrency(totalCurrent),
+                  },
+                  { label: 'Categories tracked', value: categoriesTracked },
+              ]
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-2xl font-semibold tracking-tight">
-                        {copy.heading}
-                    </h2>
-                    <p className="text-sm text-muted-foreground">
-                        {copy.subheading}
-                        {items.length > 0 &&
-                            ` - Total DOD Value: ${formatCurrency(totalValue)}`}
-                    </p>
-                </div>
-            </div>
+            <PageHeader
+                title={copy.heading}
+                description={copy.subheading}
+                actions={
+                    <Button onClick={itemForm.handleAdd}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        {copy.addButton}
+                    </Button>
+                }
+            />
 
-            <div className="flex justify-end">
-                <Button onClick={itemForm.handleAdd}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    {copy.addButton}
-                </Button>
-            </div>
+            <KpiStrip data={kpiData} isLoading={itemsLoading} />
 
             <PersonalPropertyTable
                 items={items}

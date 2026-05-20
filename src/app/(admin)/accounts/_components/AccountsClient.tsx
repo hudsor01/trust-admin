@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { ConfirmDialog, useConfirmDialog } from '@/components/confirm-dialog'
+import { KpiStrip, type KpiStripItem } from '@/components/kpi-strip'
+import { PageHeader } from '@/components/page-header'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { BankAccount, InvestmentAccount } from '@/db/schema'
 import { useResourceForm } from '@/hooks/use-resource-form'
@@ -276,18 +278,30 @@ export function AccountsClient() {
         investmentAccounts.map((a) => a.dodValue),
     )
 
+    const accountCount = bankAccounts.length + investmentAccounts.length
+    const totalBalance = sumStrings([
+        ...bankAccounts.map((a) => a.currentBalance ?? a.dodValue),
+        ...investmentAccounts.map((a) => a.dodValue),
+    ])
+    const kpiData: KpiStripItem[] = [
+        { label: 'Account count', value: accountCount },
+        { label: 'Total balance', value: formatCurrency(totalBalance) },
+        {
+            label: 'Bank vs Investment',
+            value: `${bankAccounts.length} / ${investmentAccounts.length}`,
+        },
+        // sparkline deferred until activityCounts query lands
+        { label: '30d activity', value: '—', sparklineSeries: undefined },
+    ]
+
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-2xl font-semibold tracking-tight text-balance">
-                        Accounts
-                    </h2>
-                    <p className="text-sm text-muted-foreground">
-                        Manage financial accounts
-                    </p>
-                </div>
-            </div>
+            <PageHeader
+                title="Accounts"
+                description="Bank and investment accounts held by the trust."
+            />
+
+            <KpiStrip data={kpiData} />
 
             <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList>
