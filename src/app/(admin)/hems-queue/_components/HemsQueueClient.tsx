@@ -11,7 +11,7 @@ import {
     Loader2,
     XCircle,
 } from 'lucide-react'
-import { useMemo, useOptimistic, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { KpiStrip } from '@/components/kpi-strip'
 import { PageHeader } from '@/components/page-header'
@@ -78,29 +78,9 @@ export function HemsQueueClient() {
             { enabled: !!entityId },
         )
 
+    // All four mutations refresh the UI via listWithBeneficiary.invalidate();
+    // there is no optimistic path, so the query data is used directly.
     const requestsWithBeneficiary = requests
-
-    const [optimisticRequests] = useOptimistic(
-        requestsWithBeneficiary,
-        (
-            current,
-            update: {
-                id: number
-                status: HemsRequestWithBeneficiary['status']
-                approvedAmount?: string
-            },
-        ) =>
-            current.map((r) =>
-                r.id === update.id
-                    ? {
-                          ...r,
-                          status: update.status,
-                          approvedAmount:
-                              update.approvedAmount ?? r.amountRequested,
-                      }
-                    : r,
-            ),
-    )
 
     const approveRequestMutation = trpc.hemsRequest.approve.useMutation({
         onSuccess: () => utils.hemsRequest.listWithBeneficiary.invalidate(),
@@ -142,12 +122,12 @@ export function HemsQueueClient() {
         useState<HemsRequestWithBeneficiary | null>(null)
 
     const pendingRequests = useMemo(
-        () => optimisticRequests.filter((r) => r.status === 'PENDING'),
-        [optimisticRequests],
+        () => requestsWithBeneficiary.filter((r) => r.status === 'PENDING'),
+        [requestsWithBeneficiary],
     )
     const reviewedRequests = useMemo(
-        () => optimisticRequests.filter((r) => r.status !== 'PENDING'),
-        [optimisticRequests],
+        () => requestsWithBeneficiary.filter((r) => r.status !== 'PENDING'),
+        [requestsWithBeneficiary],
     )
 
     const displayedRequests =
@@ -155,10 +135,10 @@ export function HemsQueueClient() {
 
     const approvedCount = useMemo(
         () =>
-            optimisticRequests.filter(
+            requestsWithBeneficiary.filter(
                 (r) => r.status === 'APPROVED' || r.status === 'DISTRIBUTED',
             ).length,
-        [optimisticRequests],
+        [requestsWithBeneficiary],
     )
 
     const totalRequestedAmount = useMemo(

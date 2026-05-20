@@ -13,8 +13,9 @@
 'use client'
 
 import type { inferRouterOutputs } from '@trpc/server'
+import { parseISO } from 'date-fns'
 import { Banknote, CheckCircle2, Inbox } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { ConfirmDialog, useConfirmDialog } from '@/components/confirm-dialog'
 import {
@@ -63,7 +64,9 @@ type ColumnId = (typeof COLUMNS)[number]['id']
 
 function daysSince(iso: string | null | undefined): number {
     if (!iso) return 0
-    const ms = Date.now() - new Date(iso).getTime()
+    // parseISO avoids engine-dependent string parsing — consistent with
+    // LiabilityGantt / ActivityTimeline.
+    const ms = Date.now() - parseISO(iso).getTime()
     return Math.max(0, Math.floor(ms / 86400000))
 }
 
@@ -84,10 +87,14 @@ export function HemsQueueBoard({ entityId }: { entityId: number }) {
             { enabled: !!entityId },
         )
 
-    const [pendingDrop, setPendingDrop] = useState<{
-        id: number
-        req: HemsRequestRow
-    } | null>(null)
+    type PendingDrop = { id: number; req: HemsRequestRow }
+
+    // `pendingDrop` drives the dialog *title* (a render concern).
+    // `pendingDropRef` carries the payload the confirm callback acts on, so
+    // `onConfirm` never closes over render-state that may be stale on the
+    // tick the drag fires (WR-03).
+    const [pendingDrop, setPendingDrop] = useState<PendingDrop | null>(null)
+    const pendingDropRef = useRef<PendingDrop | null>(null)
 
     const approveMutation = trpc.hemsRequest.approve.useMutation({
         onSuccess: (_data, vars) => {
@@ -124,15 +131,22 @@ export function HemsQueueBoard({ entityId }: { entityId: number }) {
         confirmText: 'Approve',
         variant: 'default',
         onConfirm: async () => {
-            if (!pendingDrop) return
+            // Read the payload from the ref — it is set synchronously by
+            // onDragEnd before confirm(), so it is never stale here.
+            const drop = pendingDropRef.current
+            if (!drop) return
             await approveMutation.mutateAsync({
-                id: pendingDrop.id,
+                id: drop.id,
                 entityId,
-                approvedAmount: pendingDrop.req.amountRequested,
+                approvedAmount: drop.req.amountRequested,
             })
+            pendingDropRef.current = null
             setPendingDrop(null)
         },
-        onCancel: () => setPendingDrop(null),
+        onCancel: () => {
+            pendingDropRef.current = null
+            setPendingDrop(null)
+        },
     })
 
     const data = useMemo(
@@ -200,7 +214,11 @@ export function HemsQueueBoard({ entityId }: { entityId: number }) {
                     if (item.column === newCol) return
 
                     if (item.column === 'PENDING' && newCol === 'APPROVED') {
-                        setPendingDrop({ id, req: item._raw })
+                        const drop = { id, req: item._raw }
+                        // Ref is the source of truth for onConfirm; state is
+                        // only for the dialog title.
+                        pendingDropRef.current = drop
+                        setPendingDrop(drop)
                         confirm()
                     } else if (
                         item.column === 'APPROVED' &&
