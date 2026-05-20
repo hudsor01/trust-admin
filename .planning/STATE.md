@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Production Hardening & Completeness
-status: completed
+status: ready_to_plan
 stopped_at: Completed 25-01-reorder-ordering-and-dashboard-wiring-PLAN.md
 last_updated: "2026-05-20T20:25:00.000Z"
 last_activity: 2026-05-20 -- Phase 25 complete
 progress:
   total_phases: 13
-  completed_phases: 10
+  completed_phases: 11
   total_plans: 25
   completed_plans: 25
-  percent: 100
+  percent: 85
 ---
 
 # State: Trust Admin
@@ -19,10 +19,10 @@ progress:
 ## Current Position
 
 Milestone: v4.0 Production Hardening & Completeness
-Phase: 25 — Reorder ordering and dashboard data wiring — COMPLETE
-Plan: 1 of 1 complete
-Status: Phase 25 complete
-Last activity: 2026-05-20 -- Phase 25 complete (25-01)
+Phase: 26
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-05-20
 
 Progress: [██████████] 100%
 
