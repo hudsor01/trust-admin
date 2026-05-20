@@ -9,7 +9,7 @@ Trust administration application for managing the Hudson Living Trust. Systemati
 - ✅ **v1.0 Neon Platform Integration** - Phases 1-6 (shipped 2026-01-23)
 - ✅ **v2.0 Public Inventory Form** - Phases 7-8 (shipped 2026-01-22)
 - ✅ **v3.0 Email/Password Auth Migration** - Phases 9-14 (shipped 2026-02-22)
-- 🚧 **v4.0 Production Hardening & Completeness** - Phases 15-22 (in progress)
+- 🚧 **v4.0 Production Hardening & Completeness** - Phases 15-27 (in progress; phases 24-27 close v4.0 audit gaps)
 
 ## Phases
 
@@ -217,8 +217,12 @@ Phases execute in numeric order: 15 -> 16 -> 17 -> 18 -> 19 -> 20 -> 21 -> 22
 | 19. missing-asset-uis | v4.0 | 3/3 | Complete | 2026-03-09 |
 | 20. beneficiary-distribution-features | v4.0 | 2/2 | Complete | 2026-03-10 |
 | 21. admin-feature-completeness | v4.0 | 1/1 | Complete | 2026-03-11 |
-| 22. code-quality-cleanup | 3/3 | Complete    | 2026-03-11 | - |
-| 23. shadcn-registry-adoption-and-dashboard-ux-revamp | v4.0 | 4/5 | Complete    | 2026-05-20 |
+| 22. code-quality-cleanup | v4.0 | 3/3 | Complete | 2026-03-11 |
+| 23. shadcn-registry-adoption-and-dashboard-ux-revamp | v4.0 | 5/5 | Complete | 2026-05-20 |
+| 24. test-suite-and-lint-hygiene | v4.0 | TBD | Planned | - |
+| 25. reorder-ordering-and-dashboard-data-wiring | v4.0 | TBD | Planned | - |
+| 26. schema-completeness-for-kpi-data | v4.0 | TBD | Planned | - |
+| 27. datatable-rollout-theme-token-and-doc-accuracy | v4.0 | TBD | Planned | - |
 
 ### Phase 23: Shadcn registry adoption and dashboard UX revamp
 
@@ -233,3 +237,47 @@ Plans:
 - [x] 23-03-liabilities-beneficiaries-kpi-rollout-PLAN.md — add trpc.liability.payoffProjections batched query; install @kibo-ui/gantt + @kibo-ui/avatar-stack; build LiabilityKpiStrip (sumStrings + invertDelta) + LiabilityGantt + DebtToEquityDonut; build BeneficiaryShareDonuts (chart-1..5 cycling + greyed-out empty state) + BeneficiaryAvatarStack + WithdrawalMilestoneGantt; roll KpiStrip onto 11 admin pages (10 list + /dashboard) per UI-SPEC §2 per-page columns table ✅ 2026-05-20
 - [x] 23-04-datatable-and-settings-polish-PLAN.md — extend DataTable with bulkActions/exportable/getRowDetail props (ConfirmDialog for destructive, getFilteredRowModel+getVisibleLeafColumns for CSV, /accounts as first row-expansion consumer); install Dice sortable; build PreferenceRow; refactor /settings into 4 Card groups (Trust info/Notifications/Roles&access/Inventory access); [BLOCKING] Drizzle migration 0012 (beneficiary.sortIndex + composite indexes, camelCase columns, bun run db:deploy); add trpc.trustee.reorder + trpc.beneficiary.reorder mutations; build TrusteeSortableList + BeneficiarySortableList consumers ✅ 2026-05-20
 - [x] 23-05-asset-wizard-PLAN.md — install @diceui/stepper, extend useResourceForm with backwards-compatible wizard state, apply 3-step wizard (Type+Name / Valuation / Ownership) to 7 asset-creation dialogs; payload-shape parity preserved (no tRPC contract change). Was deferred per UI-SPEC Note 13; activated 2026-05-20 after user reasserted. ✅ 2026-05-20
+
+### Phase 24: Test suite and lint hygiene
+
+**Goal:** Restore genuinely-green quality gates so no commit needs a hook bypass. Fix the ~40-46 pre-existing inventory-analysis test failures, the biome formatting issues in `tests/lib/proxy-paths.test.ts` / `tests/lib/validation.test.ts` / `tests/trpc/business-logic.test.ts`, the 6 `useExhaustiveDependencies` warnings, and the 4 Kibo gantt biome suppressions; confirm and document closure of the phase-16 `verifyAccess.ts` 'use server' build blocker. Outcome: `bun test` fully green, `bun run lint` fully clean, zero `LEFTHOOK=0`/`biome-ignore` debt.
+**Requirements:** Gap closure (no new REQ-IDs)
+**Depends on:** Phase 23
+**Gap Closure:** Closes v4.0-MILESTONE-AUDIT tech_debt for phases 16, 17, 18, 22, 23 (test/lint/build hygiene)
+**Plans:** TBD (run /gsd-plan-phase 24 to break down)
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 24 to break down)
+
+### Phase 25: Reorder ordering and dashboard data wiring
+
+**Goal:** Make persisted sort order authoritative app-wide and finish the dashboard data wiring. Add `ORDER BY` to `beneficiary.list`, `getBeneficiariesWithDistributions`, and `trustee.list` so the migration-0012 composite indexes are used and reorder is honored beyond the SortableList cards (INT-G2); build `trpc.dashboard.activityCounts` and light up the suppressed `/accounts` 30-day sparkline; wire `@next/bundle-analyzer` into `next.config.js` so cumulative bundle delta is measurable.
+**Requirements:** Gap closure (INT-G2)
+**Depends on:** Phase 23
+**Gap Closure:** Closes v4.0-MILESTONE-AUDIT INT-G2 + phase-23 tech_debt (activityCounts query, bundle analyzer)
+**Plans:** TBD (run /gsd-plan-phase 25 to break down)
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 25 to break down)
+
+### Phase 26: Schema completeness for KPI data
+
+**Goal:** Replace every placeholder KPI column with real data and enable account-to-liability linkage. Drizzle migrations to add a `specific_bequest` value column (bequest "Total value" KPI), a personal-property `insured` field (artwork "Insured count" KPI), surface `transferStatus` through `asset.listAll` (assets "Transfer-status progress" KPI), and add `liability.bankAccountId` / `liability.investmentAccountId` FKs so the `/accounts` row-detail shows genuinely linked liabilities instead of account metadata.
+**Requirements:** Gap closure (no new REQ-IDs)
+**Depends on:** Phase 23
+**Gap Closure:** Closes v4.0-MILESTONE-AUDIT phase-23 tech_debt (placeholder KPI columns, /accounts getRowDetail override)
+**Plans:** TBD (run /gsd-plan-phase 26 to break down)
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 26 to break down)
+
+### Phase 27: DataTable rollout, theme token, and doc accuracy
+
+**Goal:** Finish the phase-23 UX rollout and correct documentation drift. Extend the DataTable `bulkActions` / `exportable` / `getRowDetail` enhancements to the remaining 16 admin DataTables; add a dedicated `--milestone` OKLCH token to `globals.css` and repoint the milestone/withdrawal alerts off the borrowed `accent` token; amend REQUIREMENTS.md SEC-08 to record that `/api/inventory` was intentionally restored to proxy publicPaths (route-level auth carries the requirement — INT-G1); refresh the stale 23-VERIFICATION.md frontmatter that still lists resolved code-review warnings as open.
+**Requirements:** Gap closure (INT-G1)
+**Depends on:** Phase 23
+**Gap Closure:** Closes v4.0-MILESTONE-AUDIT INT-G1 + phase-23 tech_debt (DataTable rollout, milestone token, doc hygiene)
+**Plans:** TBD (run /gsd-plan-phase 27 to break down)
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 27 to break down)
