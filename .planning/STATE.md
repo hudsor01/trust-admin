@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Production Hardening & Completeness
 status: executing
-stopped_at: Phase 23 plan 01-foundation complete
-last_updated: "2026-05-19T23:45:00.000Z"
-last_activity: 2026-05-19 -- Phase 23 plan 01-foundation executed
+stopped_at: Phase 23 plan 02-hems-kanban-and-activity-log complete on feat/23-02-hems-kanban-and-activity-log (commits 8645c2b + 360b24a + 34d815f)
+last_updated: "2026-05-20T00:17:03.172Z"
+last_activity: 2026-05-20
 progress:
   total_phases: 9
   completed_phases: 8
   total_plans: 24
-  completed_plans: 20
-  percent: 83
+  completed_plans: 21
+  percent: 88
 ---
 
 # State: Trust Admin
@@ -20,11 +20,11 @@ progress:
 
 Milestone: v4.0 Production Hardening & Completeness
 Phase: 23-shadcn-registry-adoption-and-dashboard-ux-revamp — EXECUTING
-Plan: 2 of 4 (Wave 1 complete — PR-1 foundation shipped on feat/23-01-foundation)
-Status: Executing Phase 23 (next: 23-02-hems-kanban-and-activity-log)
-Last activity: 2026-05-19 -- Phase 23 plan 01-foundation complete (commits d406184 + edc00f4)
+Plan: 3 of 4 (Wave 2 PR-A complete — HEMS kanban + activity timeline+heatmap shipped on feat/23-02-hems-kanban-and-activity-log; next: 23-03-liabilities-beneficiaries-kpi-rollout)
+Status: Ready to execute
+Last activity: 2026-05-20 -- Phase 23 plan 02-hems-kanban-and-activity-log complete (3 commits)
 
-Progress: [██████████] 83%
+Progress: [█████████░] 88%
 
 ## Accumulated Context
 
@@ -101,6 +101,15 @@ Progress: [██████████] 83%
 - [Phase 23] KpiStripItem.invertDelta convention: caller marks 'down is good' (liabilities, expenses); zero treated as positive in both modes
 - [Phase 23] KpiStrip sparkline uses inline recharts <LineChart> stroke=var(--primary) with isAnimationActive=false to avoid React Compiler bailout from reconciliation churn
 - [Phase 23] PageHeader composition (h1 + breadcrumb + actions) lives in src/components/ (NOT src/components/ui/) -- app-specific composition vs generic primitive
+- [Phase 23-02] markDistributed mutation enforces APPROVED -> DISTRIBUTED state machine; CONFLICT on any other source status; entityId-scoped + traceBusinessOperation wrapped
+- [Phase 23-02] HEMS kanban category renders as plain span (uppercase tracking-wide text-muted-foreground), NOT Badge -- STATUS_VARIANTS maps HEMS *status* values not *category* values
+- [Phase 23-02] ActivityHeatmap hand-rendered (30-cell grid with cn() + bg-chart-2/{20,40,60}) rather than Kibo ContributionGraph wrapper -- override surface for data-[level=N]:fill-muted-foreground is brittle for small windows
+- [Phase 23-02] PENDING->APPROVED kanban drag opens ConfirmDialog (creates distribution row); APPROVED->DISTRIBUTED drag fires directly (status-only flip, no side effects)
+- [Phase 23-02] Reverse + skip kanban drags are consumer no-ops in onDragEnd (server state machine also rejects, but no-op prevents wasted RPCs and surprising CONFLICT toasts)
+- [Phase 23-02] date-fns re-introduced (removed v4 CLEAN-02) -- contribution-graph transitive dep + ActivityTimeline + ActivityHeatmap callsites
+- [Phase 23-02] ActivityTimeline action dots: INSERT->bg-success / UPDATE->bg-primary / DELETE->bg-destructive (UI-SPEC §Color), ring-4 ring-background halo
+- [Phase 23-02] Activity log heatmap day-click sets parent selectedDay + auto-switches activeTab to 'timeline' -- gives "click cell -> see filtered list" loop without manual tab change
+- [Phase 23-02] Kibo registry source patched for strict-TS (kanban:254 + contribution-graph:263 undefined-array-access guards) -- registry pattern of "install once, treat as project code" makes Rule 1 patches in-scope
 
 ### Auth API Patterns That Work
 
@@ -143,15 +152,16 @@ const rows = await sql`SELECT id, name, email FROM neon_auth."user" WHERE lower(
 
 ## Session Continuity
 
-Last session: 2026-05-19T23:45:00Z
-Stopped at: Phase 23 plan 01-foundation complete on feat/23-01-foundation (commits d406184 + edc00f4)
-Resume file: .planning/phases/23-shadcn-registry-adoption-and-dashboard-ux-revamp/23-02-hems-kanban-and-activity-log-PLAN.md
+Last session: 2026-05-20T00:13:18Z
+Stopped at: Phase 23 plan 02-hems-kanban-and-activity-log complete on feat/23-02-hems-kanban-and-activity-log (commits 8645c2b + 360b24a + 34d815f)
+Resume file: .planning/phases/23-shadcn-registry-adoption-and-dashboard-ux-revamp/23-03-liabilities-beneficiaries-kpi-rollout-PLAN.md
 
 **Planned Phase:** 23 (Shadcn registry adoption and dashboard UX revamp) — 5 plans — 2026-05-19T22:28:15.607Z
 
 **Phase 23 progress:**
+
 - [x] 23-01-foundation (Wave 1 / PR-1) — registries wired, 6 primitives + Kbd installed, SummaryCard patched, PageHeader + KpiStrip built, 12 Wave-0 tests passing — 2026-05-19
-- [ ] 23-02-hems-kanban-and-activity-log (Wave 2 / PR-2)
+- [x] 23-02-hems-kanban-and-activity-log (Wave 2 / PR-2) — markDistributed mutation + Kibo kanban + ActivityTimeline + ActivityHeatmap; HemsQueueClient and ActivityLogClient refactored with Tabs+PageHeader+KpiStrip; 17 new tests (6 trpc + 6 timeline + 5 heatmap) + 3 E2E — 2026-05-20
 - [ ] 23-03-liabilities-beneficiaries-kpi-rollout (Wave 3 / PR-3)
 - [ ] 23-04-datatable-and-settings-polish (Wave 4 / PR-4)
 - [ ] 23-05-asset-wizard (DEFERRED)
