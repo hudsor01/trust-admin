@@ -50,6 +50,13 @@ export interface AssetRow {
     status: string
     /** Per-type detail/edit route. Row-click target. */
     href: string
+    /** Estate-transfer progress for the row. The `TransferStatus` enum value
+     *  ('PENDING' | 'STARTED' | 'COMPLETE') for the six transferable asset
+     *  kinds (vehicle, homestead, rentalProperty, bankAccount,
+     *  investmentAccount, personalProperty). `null` for `insurancePolicy`,
+     *  which has no transferStatus column — insurance is not a transferable
+     *  estate asset. */
+    transferStatus: string | null
     updatedAt: string
 }
 
@@ -127,6 +134,7 @@ export const assetRouter = createTRPCRouter({
                     value: v.dodValue,
                     status: v.status,
                     href: '/vehicles',
+                    transferStatus: v.transferStatus,
                     updatedAt: v.updatedAt,
                 })
             }
@@ -141,6 +149,7 @@ export const assetRouter = createTRPCRouter({
                     value: h.dodValue,
                     status: h.status,
                     href: '/properties',
+                    transferStatus: h.transferStatus,
                     updatedAt: h.updatedAt,
                 })
             }
@@ -155,6 +164,7 @@ export const assetRouter = createTRPCRouter({
                     value: r.dodValue,
                     status: r.status,
                     href: '/properties',
+                    transferStatus: r.transferStatus,
                     updatedAt: r.updatedAt,
                 })
             }
@@ -169,6 +179,7 @@ export const assetRouter = createTRPCRouter({
                     value: b.currentBalance ?? b.dodValue,
                     status: b.status,
                     href: '/accounts',
+                    transferStatus: b.transferStatus,
                     updatedAt: b.updatedAt,
                 })
             }
@@ -183,6 +194,7 @@ export const assetRouter = createTRPCRouter({
                     value: i.currentBalance ?? i.dodValue,
                     status: i.status,
                     href: '/accounts',
+                    transferStatus: i.transferStatus,
                     updatedAt: i.updatedAt,
                 })
             }
@@ -201,6 +213,7 @@ export const assetRouter = createTRPCRouter({
                     value: p.dodValue,
                     status: p.status,
                     href: isArt ? '/artwork' : '/personal-property',
+                    transferStatus: p.transferStatus,
                     updatedAt: p.updatedAt,
                 })
             }
@@ -215,6 +228,9 @@ export const assetRouter = createTRPCRouter({
                     value: ins.coverageAmount,
                     status: ins.status,
                     href: '/insurance',
+                    // insurancePolicy has no transferStatus column — insurance
+                    // is not a transferable estate asset.
+                    transferStatus: null,
                     updatedAt: ins.updatedAt,
                 })
             }
