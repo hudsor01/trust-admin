@@ -256,7 +256,7 @@ No plan or execution was needed. Numbering preserved (phases 25-27 unchanged).
 Plans:
 - [x] None — scope verified already-resolved by phases 17-23 ✅ 2026-05-20
 
-### Phase 25: Reorder ordering and dashboard data wiring
+### Phase 25: Reorder ordering and dashboard data wiring ✅
 
 **Goal:** Make persisted sort order authoritative app-wide and finish the dashboard data wiring. Add `ORDER BY` to `beneficiary.list`, `getBeneficiariesWithDistributions`, and `trustee.list` so the migration-0012 composite indexes are used and reorder is honored beyond the SortableList cards (INT-G2); build `trpc.dashboard.activityCounts` and light up the suppressed `/accounts` 30-day sparkline; wire `@next/bundle-analyzer` into `next.config.js` so cumulative bundle delta is measurable.
 **Requirements:** Gap closure (INT-G2)
@@ -265,7 +265,7 @@ Plans:
 **Plans:** 1 plan
 
 Plans:
-- [ ] 25-01-reorder-ordering-and-dashboard-wiring-PLAN.md — Add ORDER BY to trustee.list/beneficiary.list/getBeneficiariesWithDistributions (INT-G2), build dashboard.activityCounts + wire /accounts 30d sparkline, wire @next/bundle-analyzer
+- [x] 25-01-reorder-ordering-and-dashboard-wiring-PLAN.md — Add ORDER BY to trustee.list/beneficiary.list/getBeneficiariesWithDistributions (INT-G2), build dashboard.activityCounts + wire /accounts 30d sparkline, wire @next/bundle-analyzer ✅ 2026-05-20
 
 ### Phase 26: Schema completeness for KPI data
 
