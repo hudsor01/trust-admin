@@ -4,14 +4,16 @@ import { useOptimistic, useState } from 'react'
 import { toast } from 'sonner'
 import type { BulkLiabilityRow } from '@/components/bulk-entry-table'
 import { ConfirmDialog, useConfirmDialog } from '@/components/confirm-dialog'
+import { PageHeader } from '@/components/page-header'
 import type { Liability } from '@/db/schema'
 import { useResourceForm } from '@/hooks/use-resource-form'
 import { toDateInput } from '@/lib/form-factory'
 import { logger } from '@/lib/logger'
-import { sumStrings } from '@/lib/money'
+import { subtractMoney, sumStrings } from '@/lib/money'
 import { trpc } from '@/lib/trpc'
 import { asLiabilityType, asRecordStatus } from '@/lib/type-utils'
 import { formatCurrency } from '@/utils/formatters'
+import { DebtToEquityDonut } from './DebtToEquityDonut'
 import {
     defaultFormData,
     defaultPaymentForm,
@@ -21,7 +23,10 @@ import {
     type PaymentFormData,
 } from './LiabilityConstants'
 import { LiabilityDialog } from './LiabilityDialog'
-import { LiabilitySummaryCards } from './LiabilitySummaryCards'
+import { LiabilityGantt } from './LiabilityGantt'
+import { LiabilityKpiStrip } from './LiabilityKpiStrip'
+// LiabilitySummaryCards is dead code as of PR-B; kept in tree for one revert
+// cycle. Delete after PR-B verification ships.
 import { LiabilityTable } from './LiabilityTable'
 import { PaymentDialog } from './PaymentDialog'
 
@@ -52,6 +57,13 @@ export function LiabilitiesClient() {
         {
             entityId: entityId!,
         },
+        { enabled: !!entityId },
+    )
+
+    // Aggregate asset values for the DebtToEquity donut (single round-trip via
+    // dashboard.summary — already cached if dashboard was visited).
+    const { data: dashboardSummary } = trpc.dashboard.summary.useQuery(
+        { entityId: entityId! },
         { enabled: !!entityId },
     )
 
@@ -286,37 +298,54 @@ export function LiabilitiesClient() {
         optimisticLiabilities.map((l) => l.currentBalance),
     )
 
-    const activeLiabilities = optimisticLiabilities.filter(
-        (l) => l.status === 'ACTIVE',
-    )
-    const totalActive = sumStrings(
-        activeLiabilities.map((l) => l.currentBalance),
-    )
-
     const payingLiability = optimisticLiabilities.find(
         (l) => l.id === payingLiabilityId,
     )
 
+    // Total asset value across all asset types — bankAccount + investmentAccount
+    // use `currentBalance`; homestead / rentalProperty / vehicle / personalProperty
+    // use `dodValue`; insurancePolicy uses `coverageAmount`. Equity = assets - debt.
+    const totalAssets = sumStrings([
+        ...(dashboardSummary?.bankAccounts ?? []).map((a) => a.currentBalance),
+        ...(dashboardSummary?.investmentAccounts ?? []).map(
+            (a) => a.currentBalance,
+        ),
+        ...(dashboardSummary?.homesteads ?? []).map((a) => a.dodValue),
+        ...(dashboardSummary?.rentalProperties ?? []).map((a) => a.dodValue),
+        ...(dashboardSummary?.vehicles ?? []).map((a) => a.dodValue),
+        ...(dashboardSummary?.personalProperties ?? []).map((a) => a.dodValue),
+        ...(dashboardSummary?.insurancePolicies ?? []).map(
+            (a) => a.coverageAmount,
+        ),
+    ])
+    const totalEquity = subtractMoney(totalAssets, totalLiabilities)
+
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-2xl font-semibold tracking-tight text-balance">
-                        Liabilities
-                    </h2>
-                    <p className="text-sm text-muted-foreground">
-                        Texas Property Code 113.152(5) - Track trust debts and
-                        obligations
-                    </p>
+            <PageHeader
+                title="Liabilities"
+                description="Loans, mortgages, and lines of credit secured by trust assets. Texas Property Code 113.152(5)."
+            />
+
+            <LiabilityKpiStrip
+                liabilities={optimisticLiabilities}
+                isLoading={liabilitiesLoading}
+            />
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2">
+                    {entityId !== undefined && (
+                        <LiabilityGantt entityId={entityId} />
+                    )}
+                </div>
+                <div className="lg:col-span-1">
+                    <DebtToEquityDonut
+                        totalDebt={totalLiabilities}
+                        totalEquity={totalEquity}
+                        isLoading={liabilitiesLoading}
+                    />
                 </div>
             </div>
-
-            <LiabilitySummaryCards
-                totalLiabilities={totalLiabilities}
-                totalActive={totalActive}
-                activeLiabilitiesCount={activeLiabilities.length}
-                totalRecords={optimisticLiabilities.length}
-            />
 
             <LiabilityTable
                 liabilities={optimisticLiabilities}
