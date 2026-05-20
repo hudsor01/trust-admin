@@ -2,7 +2,9 @@
 
 import { Building, Loader2, Plus } from 'lucide-react'
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { EditableDateCell, EditableTextCell } from '@/components/editable-cells'
+import { PageHeader } from '@/components/page-header'
 import { ResourceDialog } from '@/components/resource-dialog'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { Badge } from '@/components/ui/badge'
@@ -32,9 +34,17 @@ import {
     TableRow,
 } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import type { Entity } from '@/db/schema'
 import { useResourceForm } from '@/hooks/use-resource-form'
+import { logger } from '@/lib/logger'
 import { trpc } from '@/lib/trpc'
 import { calculateAge } from '@/utils/formatters'
+import { SettingsInventoryAccessCard } from './SettingsInventoryAccessCard'
+import { SettingsNotificationsCard } from './SettingsNotificationsCard'
+import { SettingsRolesAccessCard } from './SettingsRolesAccessCard'
+import { SettingsTrustInfoCard } from './SettingsTrustInfoCard'
+
+const log = logger.create('Settings')
 
 const CONTACT_ROLES = [
     { value: 'ATTORNEY', label: 'Attorney' },
@@ -159,7 +169,24 @@ export function SettingsClient() {
     const utils = trpc.useUtils()
     const { data: entities } = trpc.entity.list.useQuery()
     const entityId = entities?.[0]?.id
+    const entityRecord = entities?.[0]
     const [activeTab, setActiveTab] = useState('beneficiaries')
+
+    const updateEntityMutation = trpc.entity.update.useMutation({
+        onSuccess: () => {
+            utils.entity.list.invalidate()
+            toast.success('Trust info updated')
+        },
+        onError: (error) => {
+            log.error('Failed to update trust info', { error })
+            toast.error('Failed to update trust info')
+        },
+    })
+
+    const handleTrustUpdate = (data: Partial<Entity>) => {
+        if (!entityId) return
+        updateEntityMutation.mutate({ id: entityId, data })
+    }
 
     const { data: beneficiaries = [], isLoading: beneficiariesLoading } =
         trpc.beneficiary.list.useQuery(
@@ -216,16 +243,21 @@ export function SettingsClient() {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-2xl font-semibold tracking-tight">
-                        Settings
-                    </h2>
-                    <p className="text-sm text-muted-foreground">
-                        Configure personal information and preferences
-                    </p>
-                </div>
-            </div>
+            <PageHeader
+                title="Settings"
+                description="Trust configuration and preferences."
+            />
+
+            <SettingsTrustInfoCard
+                entity={entityRecord}
+                onUpdate={handleTrustUpdate}
+            />
+
+            <SettingsNotificationsCard />
+
+            <SettingsRolesAccessCard />
+
+            <SettingsInventoryAccessCard />
 
             <Card>
                 <CardHeader>
