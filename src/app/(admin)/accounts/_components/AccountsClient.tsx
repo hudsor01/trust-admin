@@ -62,6 +62,11 @@ export function AccountsClient() {
             { enabled: !!entityId },
         )
 
+    const { data: bankActivity } = trpc.dashboard.activityCounts.useQuery(
+        { entityId: entityId!, tableName: 'bank_account', days: 30 },
+        { enabled: !!entityId },
+    )
+
     const createInvestmentAccountMutation =
         trpc.investmentAccount.create.useMutation({
             onSuccess: () =>
@@ -289,6 +294,7 @@ export function AccountsClient() {
         ...bankAccounts.map((a) => a.currentBalance ?? a.dodValue),
         ...investmentAccounts.map((a) => a.dodValue),
     ])
+    const activitySeries = bankActivity?.map((d) => d.count) ?? []
     const kpiData: KpiStripItem[] = [
         { label: 'Account count', value: accountCount },
         { label: 'Total balance', value: formatCurrency(totalBalance) },
@@ -296,8 +302,12 @@ export function AccountsClient() {
             label: 'Bank vs Investment',
             value: `${bankAccounts.length} / ${investmentAccounts.length}`,
         },
-        // sparkline deferred until activityCounts query lands
-        { label: '30d activity', value: '—', sparklineSeries: undefined },
+        {
+            label: '30d activity',
+            value: activitySeries.reduce((a, b) => a + b, 0),
+            sparklineSeries:
+                activitySeries.length > 0 ? activitySeries : undefined,
+        },
     ]
 
     return (
