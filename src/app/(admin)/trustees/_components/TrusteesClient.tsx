@@ -142,9 +142,9 @@ export function TrusteesClient() {
 
     const loading = trusteesLoading
 
-    const currentTrustees = trustees
-        .filter((t) => t.status === 'ACTIVE')
-        .sort((a, b) => a.order - b.order)
+    // trustee.list is server-ordered by `order` (idx_trustee_entity_order),
+    // so no client-side .sort() is needed — server order is authoritative.
+    const currentTrustees = trustees.filter((t) => t.status === 'ACTIVE')
     const arbiterTrustees = trustees.filter((t) => t.status === 'ARBITER')
     const successorCount = trustees.filter(
         (t) => t.status === 'SUCCESSOR',
@@ -253,9 +253,7 @@ export function TrusteesClient() {
                         </p>
                     ) : (
                         <TrusteeTable
-                            trustees={arbiterTrustees.sort(
-                                (a, b) => a.order - b.order,
-                            )}
+                            trustees={arbiterTrustees}
                             allowPrimaryLock={false}
                             onDelete={handleDelete}
                             onEdit={handleEditTrustee}

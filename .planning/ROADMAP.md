@@ -220,7 +220,7 @@ Phases execute in numeric order: 15 -> 16 -> 17 -> 18 -> 19 -> 20 -> 21 -> 22
 | 22. code-quality-cleanup | v4.0 | 3/3 | Complete | 2026-03-11 |
 | 23. shadcn-registry-adoption-and-dashboard-ux-revamp | v4.0 | 5/5 | Complete | 2026-05-20 |
 | 24. test-suite-and-lint-hygiene | v4.0 | 0/0 | Complete (verified pre-resolved) | 2026-05-20 |
-| 25. reorder-ordering-and-dashboard-data-wiring | v4.0 | 0/1 | Planned | - |
+| 25. reorder-ordering-and-dashboard-data-wiring | v4.0 | 1/1 | Complete    | 2026-05-20 |
 | 26. schema-completeness-for-kpi-data | v4.0 | TBD | Planned | - |
 | 27. datatable-rollout-theme-token-and-doc-accuracy | v4.0 | TBD | Planned | - |
 
@@ -256,16 +256,16 @@ No plan or execution was needed. Numbering preserved (phases 25-27 unchanged).
 Plans:
 - [x] None — scope verified already-resolved by phases 17-23 ✅ 2026-05-20
 
-### Phase 25: Reorder ordering and dashboard data wiring
+### Phase 25: Reorder ordering and dashboard data wiring ✅
 
 **Goal:** Make persisted sort order authoritative app-wide and finish the dashboard data wiring. Add `ORDER BY` to `beneficiary.list`, `getBeneficiariesWithDistributions`, and `trustee.list` so the migration-0012 composite indexes are used and reorder is honored beyond the SortableList cards (INT-G2); build `trpc.dashboard.activityCounts` and light up the suppressed `/accounts` 30-day sparkline; wire `@next/bundle-analyzer` into `next.config.js` so cumulative bundle delta is measurable.
 **Requirements:** Gap closure (INT-G2)
 **Depends on:** Phase 23
 **Gap Closure:** Closes v4.0-MILESTONE-AUDIT INT-G2 + phase-23 tech_debt (activityCounts query, bundle analyzer)
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 
 Plans:
-- [ ] 25-01-reorder-ordering-and-dashboard-wiring-PLAN.md — Add ORDER BY to trustee.list/beneficiary.list/getBeneficiariesWithDistributions (INT-G2), build dashboard.activityCounts + wire /accounts 30d sparkline, wire @next/bundle-analyzer
+- [x] 25-01-reorder-ordering-and-dashboard-wiring-PLAN.md — Add ORDER BY to trustee.list/beneficiary.list/getBeneficiariesWithDistributions (INT-G2), build dashboard.activityCounts + wire /accounts 30d sparkline, wire @next/bundle-analyzer ✅ 2026-05-20
 
 ### Phase 26: Schema completeness for KPI data
 

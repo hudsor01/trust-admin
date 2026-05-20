@@ -242,18 +242,13 @@ export function BeneficiariesClient() {
                             throughout the app.
                         </p>
                         <BeneficiarySortableList
-                            beneficiaries={[...beneficiaries]
-                                .sort(
-                                    (a, b) =>
-                                        (a.sortIndex ?? 0) - (b.sortIndex ?? 0),
-                                )
-                                .map((b) => ({
-                                    id: b.id,
-                                    firstName: b.firstName,
-                                    lastName: b.lastName,
-                                    relationship: b.relationship,
-                                    sortIndex: b.sortIndex ?? 0,
-                                }))}
+                            beneficiaries={beneficiaries.map((b) => ({
+                                id: b.id,
+                                firstName: b.firstName,
+                                lastName: b.lastName,
+                                relationship: b.relationship,
+                                sortIndex: b.sortIndex ?? 0,
+                            }))}
                             entityId={entityId}
                         />
                     </CardContent>

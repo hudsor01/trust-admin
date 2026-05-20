@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Production Hardening & Completeness
-status: completed
-stopped_at: Completed 23-04-datatable-and-settings-polish-PLAN.md
-last_updated: "2026-05-20T19:39:26.780Z"
-last_activity: 2026-05-20
+status: ready_to_plan
+stopped_at: Completed 25-01-reorder-ordering-and-dashboard-wiring-PLAN.md
+last_updated: "2026-05-20T20:25:00.000Z"
+last_activity: 2026-05-20 -- Phase 25 complete
 progress:
   total_phases: 13
-  completed_phases: 9
+  completed_phases: 11
   total_plans: 25
-  completed_plans: 24
-  percent: 96
+  completed_plans: 25
+  percent: 85
 ---
 
 # State: Trust Admin
@@ -19,12 +19,12 @@ progress:
 ## Current Position
 
 Milestone: v4.0 Production Hardening & Completeness
-Phase: 23
+Phase: 26
 Plan: Not started
-Status: Milestone complete
+Status: Ready to plan
 Last activity: 2026-05-20
 
-Progress: [█████████░] 92%
+Progress: [██████████] 100%
 
 ## Accumulated Context
 
@@ -107,6 +107,10 @@ Progress: [█████████░] 92%
 - [Phase 23] reorder mutations entityId-scoped via and(eq(id),eq(entityId)) -- cross-entity id throws NOT_FOUND (T-23-05); RLS app.is_admin() is defense-in-depth
 - [Phase 23] beneficiary.sortIndex is new (INTEGER NOT NULL DEFAULT 0, ROW_NUMBER backfill); trustee reuses existing order column -- only composite indexes added for trustee
 - [Phase 23] Test branch DB synced manually after db:deploy -- migration DDL applied to .env.test.local branch via postgres.js tx so tRPC reorder tests pass
+- [Phase 25] trustee.list / beneficiary.list / getBeneficiariesWithDistributions apply ORDER BY -- migration-0012 composite indexes now back a real query plan; client-side .sort() removed (server order is single source of truth)
+- [Phase 25] dashboard.activityCounts scopes the global activity_log audit table (no entityId column) by mapping the allowlisted tableName to its entity-owning source table and filtering recordId IN (that entity's row ids)
+- [Phase 25] activityCounts tableName is a z.enum allowlist of 8 snake_case names mapped to Drizzle tables via a static lookup -- never interpolated into raw SQL (T-25-02)
+- [Phase 25] @next/bundle-analyzer is a no-op under Turbopack -- build:analyze runs `next build --webpack` to emit .next/analyze/*.html
 
 ### Auth API Patterns That Work
 
@@ -149,11 +153,13 @@ const rows = await sql`SELECT id, name, email FROM neon_auth."user" WHERE lower(
 
 ## Session Continuity
 
-Last session: 2026-05-20T01:26:07.921Z
-Stopped at: Completed 23-04-datatable-and-settings-polish-PLAN.md
+Last session: 2026-05-20T20:11:29.344Z
+Stopped at: Completed 25-01-reorder-ordering-and-dashboard-wiring-PLAN.md
 Resume file: None
 
-**Planned Phase:** 25 (Reorder ordering and dashboard data wiring) — 1 plans — 2026-05-20T19:39:26.774Z
+**Phase 25 progress:**
+
+- [x] 25-01-reorder-ordering-and-dashboard-wiring (Wave 1) — INT-G2 closed: ORDER BY added to trustee.list / beneficiary.list / getBeneficiariesWithDistributions backed by migration-0012 composite indexes, redundant client .sort() removed; dashboard.activityCounts adminProcedure (entity-scoped, tableName z.enum allowlist, dense per-day series) with 4 TDD tests; /accounts 30d-activity sparkline wired; @next/bundle-analyzer wired into next.config.ts (build:analyze → next build --webpack emits .next/analyze/*.html) — 2026-05-20 (commits 3fdedae, 0cc6838, 73c2878 on feat/25-reorder-and-dashboard-wiring)
 
 **Phase 23 progress:**
 

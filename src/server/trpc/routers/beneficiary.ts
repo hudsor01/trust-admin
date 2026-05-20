@@ -1,5 +1,5 @@
 import { TRPCError } from '@trpc/server'
-import { and, eq } from 'drizzle-orm'
+import { and, asc, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { db, getClient, type TxSql } from '@/db'
 import {
@@ -20,10 +20,13 @@ export const beneficiaryRouter = createTRPCRouter({
     list: adminProcedure
         .input(z.object({ entityId: z.coerce.number() }))
         .query(async ({ input }) => {
+            // .orderBy(asc(sortIndex)) matches idx_beneficiary_entity_sort
+            // (entityId, sortIndex) — the composite index backs the query.
             return db
                 .select()
                 .from(beneficiary)
                 .where(eq(beneficiary.entityId, input.entityId))
+                .orderBy(asc(beneficiary.sortIndex))
         }),
 
     listWithDistributions: adminProcedure

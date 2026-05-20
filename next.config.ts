@@ -1,5 +1,11 @@
+import bundleAnalyzer from '@next/bundle-analyzer'
 import { withSentryConfig } from '@sentry/nextjs'
 import type { NextConfig } from 'next'
+
+// Bundle analyzer — no-op unless ANALYZE=true; emits .next/analyze/*.html.
+const withBundleAnalyzer = bundleAnalyzer({
+    enabled: process.env.ANALYZE === 'true',
+})
 
 /** Security headers applied to all routes */
 const securityHeaders = [
@@ -105,19 +111,24 @@ const nextConfig: NextConfig = {
     },
 }
 
-export default withSentryConfig(nextConfig, {
-    org: process.env.SENTRY_ORG,
-    project: process.env.SENTRY_PROJECT,
-    authToken: process.env.SENTRY_AUTH_TOKEN,
-    silent: true,
-    telemetry: false,
-    sourcemaps: {
-        disable:
-            process.env.NODE_ENV !== 'production' ||
-            !process.env.SENTRY_AUTH_TOKEN,
-    },
+// withBundleAnalyzer is the outermost wrapper (only injects the analyzer
+// webpack plugin, gated by ANALYZE=true); withSentryConfig stays innermost
+// so Sentry's config transform still applies.
+export default withBundleAnalyzer(
+    withSentryConfig(nextConfig, {
+        org: process.env.SENTRY_ORG,
+        project: process.env.SENTRY_PROJECT,
+        authToken: process.env.SENTRY_AUTH_TOKEN,
+        silent: true,
+        telemetry: false,
+        sourcemaps: {
+            disable:
+                process.env.NODE_ENV !== 'production' ||
+                !process.env.SENTRY_AUTH_TOKEN,
+        },
 
-    bundleSizeOptimizations: {
-        excludeDebugStatements: true,
-    },
-})
+        bundleSizeOptimizations: {
+            excludeDebugStatements: true,
+        },
+    }),
+)

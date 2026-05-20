@@ -1,5 +1,5 @@
 import { TRPCError } from '@trpc/server'
-import { and, eq } from 'drizzle-orm'
+import { and, asc, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { db, getClient, type TxSql } from '@/db'
 import { trustee } from '@/db/schema'
@@ -13,7 +13,10 @@ export const trusteeRouter = createTRPCRouter({
             db
                 .select()
                 .from(trustee)
-                .where(eq(trustee.entityId, input.entityId)),
+                .where(eq(trustee.entityId, input.entityId))
+                // Matches idx_trustee_entity_order (entityId, order) — the
+                // composite index backs both the WHERE and the ORDER BY.
+                .orderBy(asc(trustee.order)),
         ),
 
     create: adminProcedure
