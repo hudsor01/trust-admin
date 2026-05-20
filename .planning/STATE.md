@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Production Hardening & Completeness
-status: ready_to_plan
+status: planning
 stopped_at: Completed 25-01-reorder-ordering-and-dashboard-wiring-PLAN.md
-last_updated: "2026-05-20T20:25:00.000Z"
-last_activity: 2026-05-20 -- Phase 25 complete
+last_updated: "2026-05-20T23:26:28.190Z"
+last_activity: 2026-05-20
 progress:
   total_phases: 13
-  completed_phases: 11
-  total_plans: 25
+  completed_phases: 10
+  total_plans: 28
   completed_plans: 25
-  percent: 85
+  percent: 89
 ---
 
 # State: Trust Admin
@@ -168,3 +168,5 @@ Resume file: None
 - [x] 23-03-liabilities-beneficiaries-kpi-rollout (Wave 2 / PR-B) — payoffProjections batched query, Kibo gantt + avatar-stack installed, LiabilityKpiStrip/Gantt/DebtToEquityDonut, BeneficiaryShareDonuts/AvatarStack/WithdrawalMilestoneGantt, KpiStrip + PageHeader on 11 admin pages, 16 Wave-0 tests, 938 unit tests passing — 2026-05-20 (commits 396e5e3, 5b4a6fa, 53e9cc4, 4226daf on feat/23-03-liabilities-beneficiaries-kpi-rollout)
 - [x] 23-04-datatable-and-settings-polish (Wave 3 / PR-C+D) — DataTable bulkActions/exportable/getRowDetail props, csv-export lib, PreferenceRow + 4-card settings refresh, Dice sortable installed, migration 0012 (beneficiary.sortIndex + 2 composite indexes) applied, trustee/beneficiary reorder mutations, sortable consumers, 40 plan tests + 965 unit tests passing — 2026-05-20 (commits 81009c8, aadb02e, 5894e57 on feat/23-04-datatable-and-settings-polish)
 - [ ] 23-05-asset-wizard (DEFERRED)
+
+**Planned Phase:** 26 (Schema completeness for KPI data) — 3 plans — 2026-05-20T23:26:28.184Z

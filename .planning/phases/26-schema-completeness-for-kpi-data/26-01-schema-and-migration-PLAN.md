@@ -271,7 +271,7 @@ Journal — drizzle/meta/_journal.json: last entry is idx 12, tag
        nullable case (refine must allow null/undefined). Keep this minimal.
   </action>
   <verify>
-    <automated>test -f drizzle/0013_kpi_schema_completeness.sql && grep -qE 'ADD COLUMN.*"estimatedValue"|ADD COLUMN.*estimatedValue' drizzle/0013_kpi_schema_completeness.sql && grep -q "bankAccountId" drizzle/0013_kpi_schema_completeness.sql && grep -q "investmentAccountId" drizzle/0013_kpi_schema_completeness.sql && ! grep -E '"[a-z]+_[a-z_]+"' drizzle/0013_kpi_schema_completeness.sql | grep -vE 'specific_bequest|personal_property|bank_account|investment_account|liability' && grep -q '0013_kpi_schema_completeness' drizzle/meta/_journal.json && bun run typecheck</automated>
+    <automated>test -f drizzle/0013_kpi_schema_completeness.sql && grep -qE 'ADD COLUMN.*"estimatedValue"|ADD COLUMN.*estimatedValue' drizzle/0013_kpi_schema_completeness.sql && grep -q '"bankAccountId"' drizzle/0013_kpi_schema_completeness.sql && grep -q '"investmentAccountId"' drizzle/0013_kpi_schema_completeness.sql && grep -q '"estimatedValue"' drizzle/0013_kpi_schema_completeness.sql && ! grep -qE '"(estimated_value|bank_account_id|investment_account_id)"' drizzle/0013_kpi_schema_completeness.sql && grep -q '0013_kpi_schema_completeness' drizzle/meta/_journal.json && bun run typecheck</automated>
   </verify>
   <acceptance_criteria>
     - `drizzle/0013_kpi_schema_completeness.sql` exists
