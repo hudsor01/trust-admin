@@ -69,11 +69,13 @@ export function ActivityLogClient() {
         'timeline',
     )
 
-    // Map ActivityLog (DB) -> ActivityLogEntry (timeline). recordId can be string in DB.
+    // Map ActivityLog (DB) -> ActivityLogEntry (timeline). activityLog.id is a
+    // bigint column with `mode: 'number'`, so it is a JS number at runtime;
+    // Number() makes that explicit without a type-system escape hatch.
     const timelineEntries: ActivityLogEntry[] = useMemo(
         () =>
             logs.map((l) => ({
-                id: l.id as unknown as number,
+                id: Number(l.id),
                 tableName: l.tableName,
                 recordId: l.recordId,
                 action: l.action,
@@ -159,13 +161,18 @@ export function ActivityLogClient() {
                 header: ({ column }) => (
                     <DataTableColumnHeader column={column} title="Record ID" />
                 ),
-                cell: ({ row }) => (
-                    <span className="font-mono text-sm text-muted-foreground">
-                        {row.original.recordId.length > 12
-                            ? `${row.original.recordId.slice(0, 12)}...`
-                            : row.original.recordId}
-                    </span>
-                ),
+                cell: ({ row }) => {
+                    // recordId is a NOT NULL text column; coerce defensively
+                    // so .length/.slice never throw on an unexpected value.
+                    const recordId = String(row.original.recordId ?? '')
+                    return (
+                        <span className="font-mono text-sm text-muted-foreground">
+                            {recordId.length > 12
+                                ? `${recordId.slice(0, 12)}...`
+                                : recordId}
+                        </span>
+                    )
+                },
             },
             {
                 id: 'details',
