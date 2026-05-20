@@ -318,6 +318,9 @@ export const selectRentalPropertySchema = createSelectSchema(rentalProperty)
 export const insertSpecificBequestSchema = createInsertSchema(specificBequest, {
     createdAt: (schema) => schema.optional(),
     updatedAt: (schema) => schema.optional(),
+    // Nullable money column — 2-decimal, non-negative, magnitude-bounded;
+    // allows null/empty (most bequests are non-monetary item descriptions).
+    estimatedValue: () => positiveNumberValidation,
 })
 export const selectSpecificBequestSchema = createSelectSchema(specificBequest)
 
