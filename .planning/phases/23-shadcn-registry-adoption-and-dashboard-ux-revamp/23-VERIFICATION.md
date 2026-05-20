@@ -2,7 +2,7 @@
 phase: 23-shadcn-registry-adoption-and-dashboard-ux-revamp
 verified: 2026-05-19T00:00:00Z
 status: passed
-score: 40/40 must-haves verified (1 fixed post-verification, 1 accepted via override)
+score: 48/48 must-haves verified (40 plans 23-01..04 + 8 plan 23-05; 1 fixed post-verification, 1 accepted via override)
 overrides_applied: 1
 overrides:
   - must_have: "/accounts page is first consumer of getRowDetail — shows linked liabilities for the expanded account row"
@@ -12,10 +12,10 @@ overrides:
 resolved:
   - truth: "DashboardClient asset-allocation chart uses OKLCH theme tokens (locked 'no color literals' phase constraint)"
     resolution: "Fixed in commit f193679 — replaced the 6 hsl() literals with var(--chart-1)..var(--chart-5), cycling at the 6th slice, matching the donut pattern already used in BeneficiaryShareDonuts and DebtToEquityDonut. grep confirms zero hsl()/hex/Tailwind-palette literals remain in DashboardClient.tsx; typecheck + lint clean, full 995-test suite green."
-deferred:
+activated_after_verification:
   - truth: "Asset-creation 3-step wizard (@diceui/stepper, useResourceForm extension)"
-    addressed_in: "Plan 23-05 (intentionally deferred)"
-    evidence: "UI-SPEC Implementation Note 13 / plan 23-05 status: deferred, autonomous: false — explicitly out of scope for this phase integration verification"
+    addressed_in: "Plan 23-05"
+    note: "Initially deferred per UI-SPEC Note 13. The user reasserted on 2026-05-20 — the wizard is a locked CONTEXT.md Phase-3 decision — so 23-05 was executed and verified. All 8 plan-23-05 must-haves confirmed (see addendum). Phase 23 is now 5/5 plans complete."
 ---
 
 # Phase 23: Shadcn Registry Adoption and Dashboard UX Revamp — Verification Report
@@ -172,5 +172,30 @@ The 6 advisory warnings from 23-REVIEW.md (non-transactional reorder mutations, 
 
 ---
 
-_Verified: 2026-05-19 · gaps resolved 2026-05-19_
-_Verifier: Claude (gsd-verifier); gap resolution + override applied by orchestrator_
+## Addendum — Plan 23-05 Asset Wizard (verified 2026-05-20)
+
+Plan 23-05 was initially deferred (UI-SPEC Note 13). The user reasserted it on
+2026-05-20; since the 3-step asset wizard is a **locked CONTEXT.md Phase-3
+decision**, 23-05 was executed and verified. All 8 plan-23-05 must-haves:
+
+| # | Truth | Status | Evidence |
+| --- | ----- | ------ | -------- |
+| 41 | src/components/ui/stepper.tsx exists (Dice UI stepper primitive) | ✓ VERIFIED | Installed via `bunx shadcn add @diceui/stepper`; OKLCH-clean, no `useTheme` import |
+| 42 | useResourceForm accepts `steps?` and exposes currentStep/goNext/goPrev/goToStep/isFirstStep/isLastStep/completedSteps | ✓ VERIFIED | use-resource-form.ts — 13 matches for `currentStep\|goNext\|goPrev`; no-op defaults when `steps` omitted (backwards-compatible) |
+| 43 | ResourceDialog renders Stepper above the form when `steps` provided | ✓ VERIFIED | resource-dialog.tsx — 19 `Stepper` references; wizard-step-group.tsx filters fields to active step |
+| 44 | 7 asset-creation dialogs use 3 steps (Type+Name / Valuation / Ownership) | ✓ VERIFIED | asset-wizard-steps.ts defines all 7 (vehicle, homestead, rentalProperty, bankAccount, investmentAccount, personalProperty, insurance) |
+| 45 | Next disabled until current step passes zod validation | ✓ VERIFIED | resource-dialog.test.tsx — goNext does/doesn't advance on valid/invalid step |
+| 46 | Last step's Next becomes the submit CTA | ✓ VERIFIED | resource-dialog.test.tsx covers last-step submit |
+| 47 | Free-jump allowed only to completed steps | ✓ VERIFIED | resource-dialog.test.tsx — goToStep jumps only to completedSteps |
+| 48 | Wizard collects the same payload as the single-page form (no API change) | ✓ VERIFIED | resource-dialog.test.tsx payload-shape parity test passes |
+
+**23-05 checks:** typecheck 0, lint 0, `tests/components/resource-dialog.test.tsx` 11/11 pass, full suite green via pre-commit hook. OKLCH + ThemeProvider + React-Compiler audits clean (see 23-05-asset-wizard-SUMMARY.md).
+
+A pre-existing flaky test (`asset.listAll aggregator` — non-unique `AssetRow.id` across asset kinds) surfaced during the 23-05 suite run and was fixed in commit `95af005` (disambiguate lookups by `kind`) — unrelated to 23-05, fixed to keep the suite deterministic.
+
+**Phase 23: 5/5 plans complete, 48/48 must-haves verified.**
+
+---
+
+_Verified: 2026-05-19 (plans 23-01..04) · 2026-05-20 (plan 23-05) · gaps resolved 2026-05-19_
+_Verifier: Claude (gsd-verifier); gap resolution, override, and 23-05 addendum applied by orchestrator_
