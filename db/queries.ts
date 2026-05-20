@@ -72,6 +72,9 @@ export async function getBeneficiariesWithDistributions(
 ) {
     return db.query.beneficiary.findMany({
         where: entityId ? eq(beneficiary.entityId, entityId) : undefined,
+        // Honors the persisted reorder (beneficiary.sortIndex); matches
+        // idx_beneficiary_entity_sort. listWithDistributions delegates here.
+        orderBy: (b, { asc }) => [asc(b.sortIndex)],
         with: {
             distributions: {
                 orderBy: (d, { desc }) => [desc(d.distributionDate)],
