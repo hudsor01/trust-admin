@@ -219,7 +219,7 @@ Phases execute in numeric order: 15 -> 16 -> 17 -> 18 -> 19 -> 20 -> 21 -> 22
 | 21. admin-feature-completeness | v4.0 | 1/1 | Complete | 2026-03-11 |
 | 22. code-quality-cleanup | v4.0 | 3/3 | Complete | 2026-03-11 |
 | 23. shadcn-registry-adoption-and-dashboard-ux-revamp | v4.0 | 5/5 | Complete | 2026-05-20 |
-| 24. test-suite-and-lint-hygiene | v4.0 | TBD | Planned | - |
+| 24. test-suite-and-lint-hygiene | v4.0 | 0/0 | Complete (verified pre-resolved) | 2026-05-20 |
 | 25. reorder-ordering-and-dashboard-data-wiring | v4.0 | TBD | Planned | - |
 | 26. schema-completeness-for-kpi-data | v4.0 | TBD | Planned | - |
 | 27. datatable-rollout-theme-token-and-doc-accuracy | v4.0 | TBD | Planned | - |
@@ -238,16 +238,23 @@ Plans:
 - [x] 23-04-datatable-and-settings-polish-PLAN.md — extend DataTable with bulkActions/exportable/getRowDetail props (ConfirmDialog for destructive, getFilteredRowModel+getVisibleLeafColumns for CSV, /accounts as first row-expansion consumer); install Dice sortable; build PreferenceRow; refactor /settings into 4 Card groups (Trust info/Notifications/Roles&access/Inventory access); [BLOCKING] Drizzle migration 0012 (beneficiary.sortIndex + composite indexes, camelCase columns, bun run db:deploy); add trpc.trustee.reorder + trpc.beneficiary.reorder mutations; build TrusteeSortableList + BeneficiarySortableList consumers ✅ 2026-05-20
 - [x] 23-05-asset-wizard-PLAN.md — install @diceui/stepper, extend useResourceForm with backwards-compatible wizard state, apply 3-step wizard (Type+Name / Valuation / Ownership) to 7 asset-creation dialogs; payload-shape parity preserved (no tRPC contract change). Was deferred per UI-SPEC Note 13; activated 2026-05-20 after user reasserted. ✅ 2026-05-20
 
-### Phase 24: Test suite and lint hygiene
+### Phase 24: Test suite and lint hygiene — COMPLETE (verified pre-resolved 2026-05-20)
 
-**Goal:** Restore genuinely-green quality gates so no commit needs a hook bypass. Fix the ~40-46 pre-existing inventory-analysis test failures, the biome formatting issues in `tests/lib/proxy-paths.test.ts` / `tests/lib/validation.test.ts` / `tests/trpc/business-logic.test.ts`, the 6 `useExhaustiveDependencies` warnings, and the 4 Kibo gantt biome suppressions; confirm and document closure of the phase-16 `verifyAccess.ts` 'use server' build blocker. Outcome: `bun test` fully green, `bun run lint` fully clean, zero `LEFTHOOK=0`/`biome-ignore` debt.
+**Goal:** Restore genuinely-green quality gates so no commit needs a hook bypass — fix the inventory-analysis test failures, biome formatting issues, `useExhaustiveDependencies` warnings, Kibo gantt suppressions, and the phase-16 `verifyAccess.ts` build blocker.
 **Requirements:** Gap closure (no new REQ-IDs)
 **Depends on:** Phase 23
-**Gap Closure:** Closes v4.0-MILESTONE-AUDIT tech_debt for phases 16, 17, 18, 22, 23 (test/lint/build hygiene)
-**Plans:** TBD (run /gsd-plan-phase 24 to break down)
+**Gap Closure:** v4.0-MILESTONE-AUDIT tech_debt for phases 16, 17, 18, 22, 23 (test/lint/build hygiene)
+
+**Status:** Closed without a plan — when phase planning began (2026-05-20) the entire scope was verified already-resolved against the live codebase on `main`. The audit aggregated these items from phase 17/22 SUMMARYs (March 2026); they were all fixed over the course of phases 17-23. Verification at planning time:
+- Full unit suite: **999 pass / 0 fail** across 72 files — the inventory-analysis tests pass (`inventory-analysis.test.ts` 15/15).
+- `bun run lint` (biome): clean, 0 findings — the test-file formatting issues and the 6 `useExhaustiveDependencies` warnings were resolved during phase 23's code-review pass.
+- No `biome-ignore` suppressions in `src/components/kibo-ui/`.
+- `verifyAccess.ts` build blocker resolved — its only export is `export async function verifyAccessCode` (no non-async exports from a `'use server'` file).
+
+No plan or execution was needed. Numbering preserved (phases 25-27 unchanged).
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 24 to break down)
+- [x] None — scope verified already-resolved by phases 17-23 ✅ 2026-05-20
 
 ### Phase 25: Reorder ordering and dashboard data wiring
 
