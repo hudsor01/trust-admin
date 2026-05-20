@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { KpiStrip, type KpiStripItem } from '@/components/kpi-strip'
 import { PageHeader } from '@/components/page-header'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { Beneficiary } from '@/db/schema'
 import { sumStrings } from '@/lib/money'
 import { trpc } from '@/lib/trpc'
@@ -14,6 +15,7 @@ import { AddBeneficiaryDialog } from './AddBeneficiaryDialog'
 import { BeneficiaryAvatarStack } from './BeneficiaryAvatarStack'
 import { BeneficiaryDialog } from './BeneficiaryDialog'
 import { BeneficiaryShareDonuts } from './BeneficiaryShareDonuts'
+import { BeneficiarySortableList } from './BeneficiarySortableList'
 import { BeneficiaryTable } from './BeneficiaryTable'
 import type { BeneficiaryWithDistributions } from './types'
 import { WithdrawalMilestoneGantt } from './WithdrawalMilestoneGantt'
@@ -228,6 +230,35 @@ export function BeneficiariesClient() {
                 beneficiaries={donutItems}
                 isLoading={loading}
             />
+
+            {!loading && beneficiaries.length > 1 && entityId && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-lg">Display Order</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="mb-3 text-sm text-muted-foreground">
+                            Drag to reorder how beneficiaries are listed
+                            throughout the app.
+                        </p>
+                        <BeneficiarySortableList
+                            beneficiaries={[...beneficiaries]
+                                .sort(
+                                    (a, b) =>
+                                        (a.sortIndex ?? 0) - (b.sortIndex ?? 0),
+                                )
+                                .map((b) => ({
+                                    id: b.id,
+                                    firstName: b.firstName,
+                                    lastName: b.lastName,
+                                    relationship: b.relationship,
+                                    sortIndex: b.sortIndex ?? 0,
+                                }))}
+                            entityId={entityId}
+                        />
+                    </CardContent>
+                </Card>
+            )}
 
             <WithdrawalMilestoneGantt
                 beneficiaries={milestoneItems}

@@ -937,6 +937,9 @@ export const beneficiary = pgTable(
         zip: t.text(),
         taxId: t.text(),
         sharePercent: t.numeric({ precision: 5, scale: 2 }),
+        // Persistent display order within an entity (set via the sortable list
+        // on /beneficiaries). Backfilled in id-order by migration 0012.
+        sortIndex: t.integer('sortIndex').notNull().default(0),
         distributionStandard: distributionStandard(),
         withdrawalAge1: t.integer(),
         withdrawalPct1: t.integer(),
@@ -981,6 +984,10 @@ export const beneficiary = pgTable(
     (table) => [
         index('idx_beneficiary_entity_id').on(table.entityId),
         index('idx_beneficiary_parent_id').on(table.parentId),
+        index('idx_beneficiary_entity_sort').on(
+            table.entityId,
+            table.sortIndex,
+        ),
         uniqueIndex('Beneficiary_taxId_key').using(
             'btree',
             table.taxId.asc().nullsLast().op('text_ops'),
@@ -1945,6 +1952,7 @@ export const trustee = pgTable(
     (table) => [
         index('idx_trustee_entity_id').on(table.entityId),
         index('idx_trustee_status').on(table.status),
+        index('idx_trustee_entity_order').on(table.entityId, table.order),
         foreignKey({
             columns: [table.entityId],
             foreignColumns: [entity.id],

@@ -105,6 +105,52 @@ export const beneficiaryRouter = createTRPCRouter({
             return deleted
         }),
 
+    /**
+     * Persist a new display order for beneficiaries. Writes the new
+     * `sortIndex` integer column (added by migration 0012) to the position
+     * of each id in `orderedIds`.
+     *
+     * Each UPDATE is scoped by `and(eq(id), eq(entityId))` so a forged id
+     * belonging to a different entity matches no row — the count mismatch
+     * then throws NOT_FOUND. This is the T-23-05 entityId-bypass mitigation;
+     * RLS via `app.is_admin()` is defense-in-depth on top.
+     */
+    reorder: adminProcedure
+        .input(
+            z.object({
+                entityId: z.coerce.number(),
+                orderedIds: z.array(z.coerce.number()),
+            }),
+        )
+        .mutation(async ({ input }) => {
+            const updates = await Promise.all(
+                input.orderedIds.map((id, idx) =>
+                    db
+                        .update(beneficiary)
+                        .set({
+                            sortIndex: idx,
+                            updatedAt: new Date().toISOString(),
+                        })
+                        .where(
+                            and(
+                                eq(beneficiary.id, id),
+                                eq(beneficiary.entityId, input.entityId),
+                            ),
+                        )
+                        .returning(),
+                ),
+            )
+            const flat = updates.flat()
+            if (flat.length !== input.orderedIds.length) {
+                throw new TRPCError({
+                    code: 'NOT_FOUND',
+                    message:
+                        'One or more beneficiaries not found in this entity',
+                })
+            }
+            return flat
+        }),
+
     me: beneficiaryProcedure.query(async ({ ctx }) => {
         if (!ctx.user.beneficiaryId) {
             return null
