@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Production Hardening & Completeness
-status: planning
-stopped_at: Completed 25-01-reorder-ordering-and-dashboard-wiring-PLAN.md
-last_updated: "2026-05-20T23:26:28.190Z"
+status: executing
+stopped_at: Completed 26-01-schema-and-migration-PLAN.md
+last_updated: "2026-05-20T23:53:04.988Z"
 last_activity: 2026-05-20
 progress:
   total_phases: 13
   completed_phases: 10
   total_plans: 28
-  completed_plans: 25
-  percent: 89
+  completed_plans: 26
+  percent: 93
 ---
 
 # State: Trust Admin
@@ -20,11 +20,11 @@ progress:
 
 Milestone: v4.0 Production Hardening & Completeness
 Phase: 26
-Plan: Not started
-Status: Ready to plan
+Plan: 26-01 complete (1/3)
+Status: In progress
 Last activity: 2026-05-20
 
-Progress: [██████████] 100%
+Progress: [█████████░] 93%
 
 ## Accumulated Context
 
@@ -111,6 +111,10 @@ Progress: [██████████] 100%
 - [Phase 25] dashboard.activityCounts scopes the global activity_log audit table (no entityId column) by mapping the allowlisted tableName to its entity-owning source table and filtering recordId IN (that entity's row ids)
 - [Phase 25] activityCounts tableName is a z.enum allowlist of 8 snake_case names mapped to Drizzle tables via a static lookup -- never interpolated into raw SQL (T-25-02)
 - [Phase 25] @next/bundle-analyzer is a no-op under Turbopack -- build:analyze runs `next build --webpack` to emit .next/analyze/*.html
+- [Phase 26] Migration 0013 adds 4 KPI columns -- specific_bequest.estimatedValue numeric(14,2), personal_property.insured boolean default false, liability.bankAccountId + investmentAccountId nullable FKs; applied to live DB + test branch, verified via information_schema.columns runtime check
+- [Phase 26] New liability FK columns mirror the existing rentalPropertyId/homesteadId/vehicleId pattern verbatim (nullable bigint, onUpdate cascade / onDelete set null) + dedicated idx_liability_<col> btree index (Postgres does not auto-index FK columns)
+- [Phase 26] drizzle-kit emitted migration 0013 column identifiers as camelCase directly (no snake_case hand-edit needed) because the new columns are declared with camelCase names in db/schema.ts, not via t.numeric('snake_name') override
+- [Phase 26] Test-branch DB synced via committed idempotent postgres.js transaction script (scripts/apply-0013-testbranch.ts) -- FK ADD CONSTRAINT wrapped in DO $$ existence guards
 
 ### Auth API Patterns That Work
 
@@ -153,9 +157,15 @@ const rows = await sql`SELECT id, name, email FROM neon_auth."user" WHERE lower(
 
 ## Session Continuity
 
-Last session: 2026-05-20T20:11:29.344Z
-Stopped at: Completed 25-01-reorder-ordering-and-dashboard-wiring-PLAN.md
+Last session: 2026-05-20T23:49:08.000Z
+Stopped at: Completed 26-01-schema-and-migration-PLAN.md
 Resume file: None
+
+**Phase 26 progress:**
+
+- [x] 26-01-schema-and-migration (Wave 1) — Added 4 KPI columns in migration 0013: specific_bequest.estimatedValue numeric(14,2), personal_property.insured boolean default false, liability.bankAccountId + investmentAccountId nullable FKs (onDelete set null) + 2 indexes; liabilityRelations bankAccount/investmentAccount one-relations; insertSpecificBequestSchema null-safe estimatedValue validator; migration applied to live DB + test branch ([BLOCKING] db:deploy verified via information_schema.columns runtime check — all 4 columns present); 1003 unit tests passing — 2026-05-20 (commits f9dee94, 311a06c, 9c5e532 on feat/26-schema-completeness)
+- [ ] 26-03-transfer-status-through-asset-aggregator (Wave 2)
+- [ ] 26-02-router-form-and-kpi-wiring (Wave 2)
 
 **Phase 25 progress:**
 
