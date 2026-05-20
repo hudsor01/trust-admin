@@ -48,7 +48,7 @@ export const withdrawalColumns: ColumnDef<WithdrawalRow>[] = [
                             row.original.age25.withdrawn
                                 ? 'text-muted-foreground'
                                 : row.original.age25.status.daysUntil === 0
-                                  ? 'text-green-600 dark:text-green-400 font-medium'
+                                  ? 'text-success font-medium'
                                   : '',
                         )}
                     >
@@ -78,7 +78,7 @@ export const withdrawalColumns: ColumnDef<WithdrawalRow>[] = [
                             row.original.age30.withdrawn
                                 ? 'text-muted-foreground'
                                 : row.original.age30.status.daysUntil === 0
-                                  ? 'text-green-600 dark:text-green-400 font-medium'
+                                  ? 'text-success font-medium'
                                   : '',
                         )}
                     >

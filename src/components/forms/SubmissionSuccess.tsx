@@ -17,8 +17,8 @@ export function SubmissionSuccess({
         <Card className="max-w-lg mx-auto">
             <CardContent className="pt-6">
                 <div className="text-center space-y-4">
-                    <div className="mx-auto w-12 h-12 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
-                        <CheckCircle2 className="h-6 w-6 text-green-600 dark:text-green-400" />
+                    <div className="mx-auto w-12 h-12 bg-success/15 rounded-full flex items-center justify-center">
+                        <CheckCircle2 className="h-6 w-6 text-success" />
                     </div>
                     <div>
                         <h3 className="text-lg font-semibold">

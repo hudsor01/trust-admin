@@ -4,12 +4,17 @@ import { Loader2 } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import { useCallback, useMemo, useOptimistic, useState } from 'react'
 import { toast } from 'sonner'
+import { KpiStrip, type KpiStripItem } from '@/components/kpi-strip'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { logger } from '@/lib/logger'
-import { subtractMoney, sumStrings } from '@/lib/money'
+import { isPositive, subtractMoney, sumStrings, toCents } from '@/lib/money'
 import { trpc } from '@/lib/trpc'
-import { calculateAge, getWithdrawalStatus } from '@/utils/formatters'
+import {
+    calculateAge,
+    formatCurrency,
+    getWithdrawalStatus,
+} from '@/utils/formatters'
 import { TASK_CATEGORIES } from './constants'
 import { DashboardAlerts } from './DashboardAlerts'
 import { DashboardStats } from './DashboardStats'
@@ -223,36 +228,38 @@ export function DashboardClient() {
                 personalPropertyTotal,
                 insuranceTotal,
             ])
+            // Chart values derive from integer cents (toCents) to avoid the
+            // float drift parseFloat reintroduces — see src/lib/money.ts.
             const allocationData = [
                 {
                     name: 'Bank Accounts',
-                    value: Number.parseFloat(bankTotal) || 0,
-                    fill: 'hsl(221, 83%, 53%)',
+                    value: toCents(bankTotal) / 100,
+                    fill: 'var(--chart-1)',
                 },
                 {
                     name: 'Investments',
-                    value: Number.parseFloat(investTotal) || 0,
-                    fill: 'hsl(262, 83%, 58%)',
+                    value: toCents(investTotal) / 100,
+                    fill: 'var(--chart-2)',
                 },
                 {
                     name: 'Real Estate',
-                    value: Number.parseFloat(realEstateTotal) || 0,
-                    fill: 'hsl(142, 76%, 36%)',
+                    value: toCents(realEstateTotal) / 100,
+                    fill: 'var(--chart-3)',
                 },
                 {
                     name: 'Vehicles',
-                    value: Number.parseFloat(vehicleTotal) || 0,
-                    fill: 'hsl(38, 92%, 50%)',
+                    value: toCents(vehicleTotal) / 100,
+                    fill: 'var(--chart-4)',
                 },
                 {
                     name: 'Personal Property',
-                    value: Number.parseFloat(personalPropertyTotal) || 0,
-                    fill: 'hsl(25, 95%, 53%)',
+                    value: toCents(personalPropertyTotal) / 100,
+                    fill: 'var(--chart-5)',
                 },
                 {
                     name: 'Insurance',
-                    value: Number.parseFloat(insuranceTotal) || 0,
-                    fill: 'hsl(195, 74%, 44%)',
+                    value: toCents(insuranceTotal) / 100,
+                    fill: 'var(--chart-1)',
                 },
             ].filter((item) => item.value > 0)
 
@@ -277,18 +284,17 @@ export function DashboardClient() {
         liabilityPayoffPercent,
         totalOriginalLiabilities,
     } = useMemo(() => {
-        const active = liabilities.filter(
-            (l) => parseFloat(l.currentBalance ?? '0') > 0,
-        )
+        const active = liabilities.filter((l) => isPositive(l.currentBalance))
         const totalOriginal = sumStrings(
             liabilities.map((l) => l.originalAmount ?? '0'),
         )
+        // Payoff percent from integer cents — avoids parseFloat drift shifting
+        // the rounded percentage by a point (see src/lib/money.ts).
+        const origCents = toCents(totalOriginal)
         const payoffPercent =
-            parseFloat(totalOriginal) > 0
+            origCents > 0
                 ? Math.round(
-                      ((parseFloat(totalOriginal) -
-                          parseFloat(totalLiabilities)) /
-                          parseFloat(totalOriginal)) *
+                      ((origCents - toCents(totalLiabilities)) / origCents) *
                           100,
                   )
                 : 0
@@ -401,9 +407,30 @@ export function DashboardClient() {
     const incomeEntryCount = summaryTotals?.incomeCount ?? 0
     const expenseEntryCount = summaryTotals?.expenseCount ?? 0
 
+    // UI-SPEC §2 revision 1 — KPI rollout extends to /dashboard. Wires onto
+    // existing memoized totals; Cash on hand = sum of bankAccount currentBalance
+    // (live cash, not DOD). KpiStrip is ADDITIVE above DashboardStats — all
+    // existing panels remain.
+    const netWorth = subtractMoney(totalAssets, totalLiabilities)
+    const cashOnHand = sumStrings(
+        bankAccounts.map((a) => a.currentBalance ?? a.dodValue),
+    )
+    const dashboardKpis: KpiStripItem[] = [
+        { label: 'Total assets', value: formatCurrency(totalAssets) },
+        {
+            label: 'Total liabilities',
+            value: formatCurrency(totalLiabilities),
+            invertDelta: true,
+        },
+        { label: 'Net worth', value: formatCurrency(netWorth) },
+        { label: 'Cash on hand', value: formatCurrency(cashOnHand) },
+    ]
+
     return (
         <div className="space-y-8">
             {entity && <TrustHeader entity={entity} />}
+
+            <KpiStrip data={dashboardKpis} isLoading={summaryLoading} />
 
             <DashboardAlerts
                 overdueTasks={overdueTasks}

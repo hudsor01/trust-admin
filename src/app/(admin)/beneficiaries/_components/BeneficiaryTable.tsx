@@ -124,7 +124,7 @@ export function BeneficiaryTable({
                             eligibility.status === 'full' &&
                                 'bg-success hover:bg-success/90',
                             eligibility.status === 'partial' &&
-                                'bg-amber-500/20 text-amber-700 border-amber-500/30',
+                                'bg-warning/20 text-warning border-warning/30',
                             eligibility.status === 'none' &&
                                 !row.original.dob &&
                                 'text-muted-foreground',

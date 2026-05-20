@@ -1,11 +1,16 @@
 import { dehydrate, HydrationBoundary } from '@tanstack/react-query'
 import { createTRPCHelpers } from '@/lib/trpc-server'
-import { PersonalPropertyClient } from '../personal-property/_components/PersonalPropertyClient'
+import { ArtworkClient } from './_components/ArtworkClient'
 
 export default async function ArtworkPage() {
     const helpers = await createTRPCHelpers()
     await Promise.all([
         helpers.personalProperty.list.prefetch({
+            // entityId 1 is The Hudson Living Trust — a documented invariant
+            // (CLAUDE.md: the entity list is ordered by asc(entity.id), so
+            // entities[0] is always ID 1). ArtworkClient resolves the entity
+            // dynamically via entity.list at render; this literal only warms
+            // the server-side prefetch cache.
             entityId: 1,
             category: 'ART',
         }),
@@ -13,7 +18,7 @@ export default async function ArtworkPage() {
     ])
     return (
         <HydrationBoundary state={dehydrate(helpers.queryClient)}>
-            <PersonalPropertyClient mode="artwork" />
+            <ArtworkClient />
         </HydrationBoundary>
     )
 }

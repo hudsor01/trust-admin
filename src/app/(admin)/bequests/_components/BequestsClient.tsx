@@ -3,11 +3,14 @@
 import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import { ConfirmDialog, useConfirmDialog } from '@/components/confirm-dialog'
+import { KpiStrip, type KpiStripItem } from '@/components/kpi-strip'
+import { PageHeader } from '@/components/page-header'
 import { Button } from '@/components/ui/button'
 import type { SpecificBequest } from '@/db/schema'
 import { useResourceForm } from '@/hooks/use-resource-form'
 import { logger } from '@/lib/logger'
 import { trpc } from '@/lib/trpc'
+import { formatPercent } from '@/utils/formatters'
 import { BequestDialog } from './BequestDialog'
 import { BequestTable } from './BequestTable'
 import type { BequestFormData } from './types'
@@ -148,24 +151,36 @@ export function BequestsClient() {
 
     const pendingBequests = bequests.filter((b) => !b.dateDistributed)
     const distributedBequests = bequests.filter((b) => b.dateDistributed)
+    const distributedPct =
+        bequests.length > 0
+            ? (distributedBequests.length / bequests.length) * 100
+            : 0
+
+    // `specific_bequest` has no monetary value column — bequest description
+    // typically encodes the item ("antique watch", "$5,000 to nephew"), so
+    // "Total value" is shown as the bequest count for now. Future enhancement:
+    // add `value: numeric` to specific_bequest and aggregate via sumStrings.
+    const kpiData: KpiStripItem[] = [
+        { label: 'Bequest count', value: bequests.length },
+        { label: 'Total value', value: '—' },
+        { label: 'Distributed %', value: formatPercent(distributedPct) },
+        { label: 'Pending count', value: pendingBequests.length },
+    ]
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-2xl font-semibold tracking-tight text-balance">
-                        Specific Bequests
-                    </h2>
-                    <p className="text-sm text-muted-foreground">
-                        {pendingBequests.length} pending,{' '}
-                        {distributedBequests.length} distributed
-                    </p>
-                </div>
-                <Button onClick={() => bequestForm.open()}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Bequest
-                </Button>
-            </div>
+            <PageHeader
+                title="Specific bequests"
+                description="Trust specific bequests — items or amounts distributed to named recipients outside the share allocation."
+                actions={
+                    <Button onClick={() => bequestForm.open()}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Bequest
+                    </Button>
+                }
+            />
+
+            <KpiStrip data={kpiData} isLoading={loading} />
 
             <BequestTable
                 pendingBequests={pendingBequests}

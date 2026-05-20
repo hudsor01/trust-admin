@@ -85,6 +85,13 @@
       "when": 1779200414868,
       "tag": "0011_ordinary_sasquatch",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1779239718652,
+      "tag": "0012_add_sort_index",
+      "breakpoints": true
     }
   ]
 }

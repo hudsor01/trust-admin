@@ -18,6 +18,7 @@ import {
     useReactTable,
     type VisibilityState,
 } from '@tanstack/react-table'
+import { ChevronRight } from 'lucide-react'
 import * as React from 'react'
 import {
     Table,
@@ -35,6 +36,12 @@ import {
     PERSIST_DEBOUNCE_MS,
     saveColumnSizing,
 } from '@/lib/data-table-persistence'
+import { cn } from '@/lib/utils'
+import {
+    type BulkAction,
+    DataTableBulkActions,
+} from './data-table-bulk-actions'
+import { DataTableExport } from './data-table-export'
 import { DataTablePagination } from './data-table-pagination'
 import { ResizeHandle } from './data-table-resize-handle'
 import { DataTableViewOptions } from './data-table-view-options'
@@ -62,6 +69,16 @@ interface DataTableProps<TData, TValue> {
         | ((table: TanStackTable<TData>) => React.ReactNode)
     /** Click handler for table body rows. Wires up cursor: pointer when set. */
     onRowClick?: (row: TData, ctx: Row<TData>) => void
+    /** When provided, render a sticky bulk-action toolbar below the table header when selection is non-empty. */
+    bulkActions?: BulkAction<TData>[]
+    /** When true, render a CSV export button in the top-right toolbar slot. */
+    exportable?: boolean
+    /** Used by the CSV exporter for filename (e.g. "vehicles" → "vehicles-2026-05-19.csv"). */
+    exportResource?: string
+    /** Optional per-column formatters for CSV export (keyed by column id). */
+    exportFormatters?: Record<string, (value: unknown, row: unknown) => string>
+    /** When provided, each row renders an expand chevron and `getRowDetail(row)` below the row when expanded. */
+    getRowDetail?: (row: TData) => React.ReactNode
 }
 
 export function DataTable<TData, TValue>({
@@ -78,7 +95,23 @@ export function DataTable<TData, TValue>({
     tableId,
     toolbar,
     onRowClick,
+    bulkActions,
+    exportable,
+    exportResource,
+    exportFormatters,
+    getRowDetail,
 }: DataTableProps<TData, TValue>) {
+    const [expandedRows, setExpandedRows] = React.useState<Set<string>>(
+        new Set(),
+    )
+    const toggleExpand = React.useCallback((rowId: string) => {
+        setExpandedRows((prev) => {
+            const next = new Set(prev)
+            if (next.has(rowId)) next.delete(rowId)
+            else next.add(rowId)
+            return next
+        })
+    }, [])
     const [sorting, setSorting] = React.useState<SortingState>([])
     const [columnFilters, setColumnFilters] =
         React.useState<ColumnFiltersState>([])
@@ -323,10 +356,25 @@ export function DataTable<TData, TValue>({
                     />
                 )}
                 {typeof toolbar === 'function' ? toolbar(table) : toolbar}
+                {exportable && exportResource && (
+                    <DataTableExport
+                        table={table}
+                        resource={exportResource}
+                        formatters={exportFormatters}
+                    />
+                )}
                 {enableColumnVisibility && (
                     <DataTableViewOptions table={table} />
                 )}
             </div>
+
+            {bulkActions && bulkActions.length > 0 && (
+                <DataTableBulkActions
+                    table={table}
+                    actions={bulkActions}
+                    resourceLabel={exportResource}
+                />
+            )}
 
             {/* `width: 100%` + `minWidth: totalSize` keeps narrow tables flush
                 with the container while letting wide / user-resized tables
@@ -343,6 +391,12 @@ export function DataTable<TData, TValue>({
                     <TableHeader>
                         {table.getHeaderGroups().map((headerGroup) => (
                             <TableRow key={headerGroup.id}>
+                                {getRowDetail && (
+                                    <TableHead
+                                        style={{ width: 40 }}
+                                        aria-hidden="true"
+                                    />
+                                )}
                                 {headerGroup.headers.map((header) => {
                                     const canResize =
                                         header.column.getCanResize()
@@ -379,84 +433,151 @@ export function DataTable<TData, TValue>({
                     </TableHeader>
                     <TableBody>
                         {table.getRowModel().rows?.length ? (
-                            table.getRowModel().rows.map((row) => (
-                                <TableRow
-                                    key={row.id}
-                                    data-state={
-                                        row.getIsSelected() && 'selected'
-                                    }
-                                    role={onRowClick ? 'button' : undefined}
-                                    tabIndex={onRowClick ? 0 : undefined}
-                                    className={
-                                        onRowClick
-                                            ? 'cursor-pointer focus:outline-none focus-visible:bg-muted/50'
-                                            : undefined
-                                    }
-                                    onClick={
-                                        onRowClick
-                                            ? (e) => {
-                                                  // Don't navigate when the
-                                                  // click landed on a child
-                                                  // interactive element (a
-                                                  // button, link, input, …).
-                                                  // The row itself carries
-                                                  // role="button" for a11y,
-                                                  // so exclude that match
-                                                  // via currentTarget.
-                                                  const target =
-                                                      e.target as HTMLElement
-                                                  const interactive =
-                                                      target.closest(
-                                                          'button, a, input, select, textarea, [role="button"], [role="checkbox"], [role="menuitem"]',
-                                                      )
-                                                  if (
-                                                      interactive &&
-                                                      interactive !==
-                                                          e.currentTarget
-                                                  ) {
-                                                      return
-                                                  }
-                                                  onRowClick(row.original, row)
-                                              }
-                                            : undefined
-                                    }
-                                    onKeyDown={
-                                        onRowClick
-                                            ? (e) => {
-                                                  if (
-                                                      e.key === 'Enter' ||
-                                                      e.key === ' '
-                                                  ) {
-                                                      e.preventDefault()
-                                                      onRowClick(
-                                                          row.original,
-                                                          row,
-                                                      )
-                                                  }
-                                              }
-                                            : undefined
-                                    }
-                                >
-                                    {row.getVisibleCells().map((cell) => (
-                                        <TableCell
-                                            key={cell.id}
-                                            style={{
-                                                width: cell.column.getSize(),
-                                            }}
-                                            className="overflow-hidden"
+                            table.getRowModel().rows.map((row) => {
+                                const isExpanded = expandedRows.has(row.id)
+                                return (
+                                    <React.Fragment key={row.id}>
+                                        <TableRow
+                                            data-state={
+                                                row.getIsSelected() &&
+                                                'selected'
+                                            }
+                                            role={
+                                                onRowClick
+                                                    ? 'button'
+                                                    : undefined
+                                            }
+                                            tabIndex={
+                                                onRowClick ? 0 : undefined
+                                            }
+                                            className={
+                                                onRowClick
+                                                    ? 'cursor-pointer focus:outline-none focus-visible:bg-muted/50'
+                                                    : undefined
+                                            }
+                                            onClick={
+                                                onRowClick
+                                                    ? (e) => {
+                                                          // Don't navigate when the
+                                                          // click landed on a child
+                                                          // interactive element (a
+                                                          // button, link, input, …).
+                                                          // The row itself carries
+                                                          // role="button" for a11y,
+                                                          // so exclude that match
+                                                          // via currentTarget.
+                                                          const target =
+                                                              e.target as HTMLElement
+                                                          const interactive =
+                                                              target.closest(
+                                                                  'button, a, input, select, textarea, [role="button"], [role="checkbox"], [role="menuitem"]',
+                                                              )
+                                                          if (
+                                                              interactive &&
+                                                              interactive !==
+                                                                  e.currentTarget
+                                                          ) {
+                                                              return
+                                                          }
+                                                          onRowClick(
+                                                              row.original,
+                                                              row,
+                                                          )
+                                                      }
+                                                    : undefined
+                                            }
+                                            onKeyDown={
+                                                onRowClick
+                                                    ? (e) => {
+                                                          if (
+                                                              e.key ===
+                                                                  'Enter' ||
+                                                              e.key === ' '
+                                                          ) {
+                                                              e.preventDefault()
+                                                              onRowClick(
+                                                                  row.original,
+                                                                  row,
+                                                              )
+                                                          }
+                                                      }
+                                                    : undefined
+                                            }
                                         >
-                                            {flexRender(
-                                                cell.column.columnDef.cell,
-                                                cell.getContext(),
+                                            {getRowDetail && (
+                                                <TableCell
+                                                    style={{ width: 40 }}
+                                                    className="w-10 p-0 text-center align-middle"
+                                                >
+                                                    <button
+                                                        type="button"
+                                                        aria-expanded={
+                                                            isExpanded
+                                                        }
+                                                        aria-label={
+                                                            isExpanded
+                                                                ? 'Collapse row'
+                                                                : 'Expand row'
+                                                        }
+                                                        onClick={(e) => {
+                                                            e.stopPropagation()
+                                                            toggleExpand(row.id)
+                                                        }}
+                                                        className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                                    >
+                                                        <ChevronRight
+                                                            className={cn(
+                                                                'h-4 w-4 transition-transform',
+                                                                isExpanded &&
+                                                                    'rotate-90',
+                                                            )}
+                                                        />
+                                                    </button>
+                                                </TableCell>
                                             )}
-                                        </TableCell>
-                                    ))}
-                                </TableRow>
-                            ))
+                                            {row
+                                                .getVisibleCells()
+                                                .map((cell) => (
+                                                    <TableCell
+                                                        key={cell.id}
+                                                        style={{
+                                                            width: cell.column.getSize(),
+                                                        }}
+                                                        className="overflow-hidden"
+                                                    >
+                                                        {flexRender(
+                                                            cell.column
+                                                                .columnDef.cell,
+                                                            cell.getContext(),
+                                                        )}
+                                                    </TableCell>
+                                                ))}
+                                        </TableRow>
+                                        {getRowDetail && isExpanded && (
+                                            <TableRow
+                                                aria-hidden={false}
+                                                data-row-detail="true"
+                                            >
+                                                <TableCell
+                                                    colSpan={
+                                                        row.getVisibleCells()
+                                                            .length + 1
+                                                    }
+                                                    className="bg-muted/30 p-4 border-b border-border"
+                                                >
+                                                    {getRowDetail(row.original)}
+                                                </TableCell>
+                                            </TableRow>
+                                        )}
+                                    </React.Fragment>
+                                )
+                            })
                         ) : (
                             <TableRow>
                                 <TableCell
-                                    colSpan={columns.length}
+                                    colSpan={
+                                        columns.length + (getRowDetail ? 1 : 0)
+                                    }
                                     className="h-24 text-center"
                                 >
                                     {emptyMessage}

@@ -1,10 +1,20 @@
 'use client'
 
 import type { ColumnDef } from '@tanstack/react-table'
-import { ClipboardList, Pencil, Plus, Trash2 } from 'lucide-react'
+import {
+    Activity,
+    CalendarDays,
+    ClipboardList,
+    Pencil,
+    Plus,
+    Table as TableIcon,
+    Trash2,
+} from 'lucide-react'
 import { useMemo, useState } from 'react'
+import type { ActivityLogEntry } from '@/components/activity-timeline'
+import { KpiStrip } from '@/components/kpi-strip'
+import { PageHeader } from '@/components/page-header'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import {
     Dialog,
@@ -20,10 +30,13 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { VirtualizedTable } from '@/components/virtualized-table'
 import type { ActivityLog as ActivityLogType } from '@/db/schema'
 import { trpc } from '@/lib/trpc'
 import { formatDate } from '@/utils/formatters'
+import { ActivityHeatmap } from './ActivityHeatmap'
+import { ActivityTimelineView } from './ActivityTimelineView'
 
 const ACTION_LABELS: Record<string, string> = {
     INSERT: 'Created',
@@ -49,6 +62,30 @@ export function ActivityLogClient() {
     const [actionFilter, setActionFilter] = useState<string>('all')
     const [tableFilter, setTableFilter] = useState<string>('all')
     const [selectedLog, setSelectedLog] = useState<ActivityLogType | null>(null)
+    const [selectedDay, setSelectedDay] = useState<string | undefined>(
+        undefined,
+    )
+    const [activeTab, setActiveTab] = useState<'timeline' | 'heatmap' | 'raw'>(
+        'timeline',
+    )
+
+    // Map ActivityLog (DB) -> ActivityLogEntry (timeline). activityLog.id is a
+    // bigint column with `mode: 'number'`, so it is a JS number at runtime;
+    // Number() makes that explicit without a type-system escape hatch.
+    const timelineEntries: ActivityLogEntry[] = useMemo(
+        () =>
+            logs.map((l) => ({
+                id: Number(l.id),
+                tableName: l.tableName,
+                recordId: l.recordId,
+                action: l.action,
+                oldValues: l.oldValues as Record<string, unknown> | null,
+                newValues: l.newValues as Record<string, unknown> | null,
+                changedBy: l.changedBy ?? '',
+                createdAt: l.createdAt,
+            })),
+        [logs],
+    )
 
     const tableNames = useMemo(() => {
         const names = new Set(logs.map((log) => log.tableName))
@@ -124,13 +161,18 @@ export function ActivityLogClient() {
                 header: ({ column }) => (
                     <DataTableColumnHeader column={column} title="Record ID" />
                 ),
-                cell: ({ row }) => (
-                    <span className="font-mono text-sm text-muted-foreground">
-                        {row.original.recordId.length > 12
-                            ? `${row.original.recordId.slice(0, 12)}...`
-                            : row.original.recordId}
-                    </span>
-                ),
+                cell: ({ row }) => {
+                    // recordId is a NOT NULL text column; coerce defensively
+                    // so .length/.slice never throw on an unexpected value.
+                    const recordId = String(row.original.recordId ?? '')
+                    return (
+                        <span className="font-mono text-sm text-muted-foreground">
+                            {recordId.length > 12
+                                ? `${recordId.slice(0, 12)}...`
+                                : recordId}
+                        </span>
+                    )
+                },
             },
             {
                 id: 'details',
@@ -148,132 +190,123 @@ export function ActivityLogClient() {
         [],
     )
 
+    const kpiItems = useMemo(
+        () => [
+            { label: 'Total Changes', value: stats.total, icon: ClipboardList },
+            { label: 'Inserts', value: stats.inserts, icon: Plus },
+            { label: 'Updates', value: stats.updates, icon: Pencil },
+            { label: 'Deletes', value: stats.deletes, icon: Trash2 },
+        ],
+        [stats.total, stats.inserts, stats.updates, stats.deletes],
+    )
+
     return (
         <div className="space-y-6">
-            <div className="flex items-center gap-3">
-                <ClipboardList className="h-6 w-6 text-muted-foreground" />
-                <div>
-                    <h2 className="text-2xl font-semibold tracking-tight">
-                        Activity Log
-                    </h2>
-                    <p className="text-sm text-muted-foreground">
-                        Audit trail of all database changes
-                    </p>
-                </div>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-4">
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">
-                            Total Changes
-                        </CardTitle>
-                        <ClipboardList className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{stats.total}</div>
-                        <p className="text-xs text-muted-foreground">
-                            audit log entries
-                        </p>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">
-                            Inserts
-                        </CardTitle>
-                        <Plus className="h-4 w-4 text-green-500" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">
-                            {stats.inserts}
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                            records created
-                        </p>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">
-                            Updates
-                        </CardTitle>
-                        <Pencil className="h-4 w-4 text-blue-500" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">
-                            {stats.updates}
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                            records modified
-                        </p>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">
-                            Deletes
-                        </CardTitle>
-                        <Trash2 className="h-4 w-4 text-red-500" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">
-                            {stats.deletes}
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                            records removed
-                        </p>
-                    </CardContent>
-                </Card>
-            </div>
-
-            <div className="flex gap-4">
-                <div className="w-48">
-                    <Select
-                        value={actionFilter}
-                        onValueChange={setActionFilter}
-                    >
-                        <SelectTrigger>
-                            <SelectValue placeholder="Filter by action" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All Actions</SelectItem>
-                            <SelectItem value="INSERT">Insert</SelectItem>
-                            <SelectItem value="UPDATE">Update</SelectItem>
-                            <SelectItem value="DELETE">Delete</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-
-                <div className="w-64">
-                    <Select value={tableFilter} onValueChange={setTableFilter}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Filter by table" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All Tables</SelectItem>
-                            {tableNames.map((name) => (
-                                <SelectItem key={name} value={name}>
-                                    {name}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
-            </div>
-
-            <VirtualizedTable
-                tableId="activity-log"
-                columns={columns}
-                data={filteredLogs}
-                isLoading={isLoading}
-                emptyMessage="No activity log entries found."
-                maxHeight={500}
-                rowHeight={48}
+            <PageHeader
+                title="Activity Log"
+                description="Audit trail of every change. Filter by day with the heatmap."
             />
+
+            <KpiStrip data={kpiItems} isLoading={isLoading} />
+
+            <Tabs
+                value={activeTab}
+                onValueChange={(v) => setActiveTab(v as typeof activeTab)}
+            >
+                <TabsList>
+                    <TabsTrigger value="timeline" className="gap-2">
+                        <Activity className="h-4 w-4" />
+                        Timeline
+                    </TabsTrigger>
+                    <TabsTrigger value="heatmap" className="gap-2">
+                        <CalendarDays className="h-4 w-4" />
+                        Heatmap
+                    </TabsTrigger>
+                    <TabsTrigger value="raw" className="gap-2">
+                        <TableIcon className="h-4 w-4" />
+                        Raw
+                    </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="timeline" className="mt-4">
+                    <ActivityTimelineView
+                        entries={timelineEntries}
+                        selectedDay={selectedDay}
+                        isLoading={isLoading}
+                    />
+                </TabsContent>
+
+                <TabsContent value="heatmap" className="mt-4">
+                    <ActivityHeatmap
+                        entries={timelineEntries}
+                        selectedDay={selectedDay}
+                        onDayClick={(day) => {
+                            setSelectedDay(day)
+                            if (day) setActiveTab('timeline')
+                        }}
+                    />
+                </TabsContent>
+
+                <TabsContent value="raw" className="mt-4 space-y-4">
+                    <div className="flex gap-4">
+                        <div className="w-48">
+                            <Select
+                                value={actionFilter}
+                                onValueChange={setActionFilter}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Filter by action" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">
+                                        All Actions
+                                    </SelectItem>
+                                    <SelectItem value="INSERT">
+                                        Insert
+                                    </SelectItem>
+                                    <SelectItem value="UPDATE">
+                                        Update
+                                    </SelectItem>
+                                    <SelectItem value="DELETE">
+                                        Delete
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="w-64">
+                            <Select
+                                value={tableFilter}
+                                onValueChange={setTableFilter}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Filter by table" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">
+                                        All Tables
+                                    </SelectItem>
+                                    {tableNames.map((name) => (
+                                        <SelectItem key={name} value={name}>
+                                            {name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+
+                    <VirtualizedTable
+                        tableId="activity-log"
+                        columns={columns}
+                        data={filteredLogs}
+                        isLoading={isLoading}
+                        emptyMessage="No activity log entries found."
+                        maxHeight={500}
+                        rowHeight={48}
+                    />
+                </TabsContent>
+            </Tabs>
 
             <Dialog
                 open={!!selectedLog}

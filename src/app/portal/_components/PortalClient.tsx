@@ -580,12 +580,12 @@ export function PortalClient() {
                                                 </TableCell>
                                                 <TableCell>
                                                     {dist.approvalDate ? (
-                                                        <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">
+                                                        <Badge className="bg-success/15 text-success">
                                                             <CheckCircle className="h-3 w-3 mr-1" />
                                                             Approved
                                                         </Badge>
                                                     ) : (
-                                                        <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-100">
+                                                        <Badge className="bg-warning/15 text-warning">
                                                             <Clock className="h-3 w-3 mr-1" />
                                                             Pending
                                                         </Badge>

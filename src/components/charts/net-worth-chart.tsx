@@ -17,11 +17,11 @@ interface NetWorthChartProps {
 const chartConfig = {
     assets: {
         label: 'Assets',
-        color: 'hsl(142, 76%, 36%)', // Green
+        color: 'var(--chart-2)', // Success (green)
     },
     liabilities: {
         label: 'Liabilities',
-        color: 'hsl(0, 84%, 60%)', // Red
+        color: 'var(--chart-3)', // Destructive (red)
     },
 } satisfies ChartConfig
 

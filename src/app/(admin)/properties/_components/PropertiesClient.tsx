@@ -3,12 +3,19 @@
 import { Loader2 } from 'lucide-react'
 import { useState } from 'react'
 import { ConfirmDialog, useConfirmDialog } from '@/components/confirm-dialog'
+import { KpiStrip, type KpiStripItem } from '@/components/kpi-strip'
+import { PageHeader } from '@/components/page-header'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { Homestead, RentalProperty } from '@/db/schema'
 import { useResourceForm } from '@/hooks/use-resource-form'
+import {
+    HOMESTEAD_WIZARD_STEPS,
+    RENTAL_PROPERTY_WIZARD_STEPS,
+} from '@/lib/asset-wizard-steps'
 import { toDateInput } from '@/lib/form-factory'
 import { logger } from '@/lib/logger'
+import { sumStrings } from '@/lib/money'
 import { trpc } from '@/lib/trpc'
 import {
     asRecordStatus,
@@ -16,6 +23,7 @@ import {
     asTransferStatus,
     asValuationType,
 } from '@/lib/type-utils'
+import { formatCurrency } from '@/utils/formatters'
 import type { HomesteadFormData, RentalFormData } from './constants'
 import { HomesteadDialog } from './HomesteadDialog'
 import { HomesteadSection } from './HomesteadSection'
@@ -89,6 +97,14 @@ export function PropertiesClient() {
             { enabled: !!entityId },
         )
 
+    // Mortgage / secured-debt totals — KPI "Total mortgage balance" sums
+    // liability.currentBalance for any liability linked to a homestead or
+    // rentalProperty (UI-SPEC §2 /properties row).
+    const { data: liabilities = [] } = trpc.liability.list.useQuery(
+        { entityId: entityId! },
+        { enabled: !!entityId },
+    )
+
     const createRentalMutation = trpc.rentalProperty.create.useMutation({
         onSuccess: () => utils.rentalProperty.list.invalidate(),
     })
@@ -114,6 +130,7 @@ export function PropertiesClient() {
 
     const homesteadForm = useResourceForm<HomesteadFormData>({
         initialData: defaultHomesteadForm,
+        steps: HOMESTEAD_WIZARD_STEPS,
         onSubmit: async (data) => {
             const payload = {
                 entityId: entityId!,
@@ -169,6 +186,7 @@ export function PropertiesClient() {
 
     const rentalForm = useResourceForm<RentalFormData>({
         initialData: defaultRentalForm,
+        steps: RENTAL_PROPERTY_WIZARD_STEPS,
         onSubmit: async (data) => {
             const payload = {
                 entityId: entityId!,
@@ -309,18 +327,37 @@ export function PropertiesClient() {
 
     const homestead = homesteads[0] // Texas trust allows one homestead
 
+    const allProperties = [...homesteads, ...rentals]
+    const linkedLiabilities = liabilities.filter(
+        (l) => l.homesteadId !== null || l.rentalPropertyId !== null,
+    )
+    const totalDodValue = sumStrings(allProperties.map((p) => p.dodValue))
+    const totalCurrentValue = totalDodValue
+    const totalMortgageBalance = sumStrings(
+        linkedLiabilities.map((l) => l.currentBalance),
+    )
+    const kpiData: KpiStripItem[] = [
+        { label: 'Property count', value: allProperties.length },
+        { label: 'Total DOD value', value: formatCurrency(totalDodValue) },
+        {
+            label: 'Total current value',
+            value: formatCurrency(totalCurrentValue),
+        },
+        {
+            label: 'Total mortgage balance',
+            value: formatCurrency(totalMortgageBalance),
+            invertDelta: true,
+        },
+    ]
+
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-2xl font-semibold tracking-tight text-balance">
-                        Properties
-                    </h2>
-                    <p className="text-sm text-muted-foreground">
-                        Manage real property assets
-                    </p>
-                </div>
-            </div>
+            <PageHeader
+                title="Properties"
+                description="Homestead and rental real property held by the trust."
+            />
+
+            <KpiStrip data={kpiData} />
 
             <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList>
@@ -361,6 +398,7 @@ export function PropertiesClient() {
                 onOpenChange={homesteadForm.close}
                 onSubmit={homesteadForm.handleSave}
                 formInstance={homesteadFormInstance}
+                wizard={homesteadForm}
             />
 
             <RentalPropertyDialog
@@ -370,6 +408,7 @@ export function PropertiesClient() {
                 onOpenChange={rentalForm.close}
                 onSubmit={rentalForm.handleSave}
                 formInstance={rentalFormInstance}
+                wizard={rentalForm}
             />
 
             <ConfirmDialog {...deleteHomesteadDialogProps} />

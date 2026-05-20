@@ -10,6 +10,10 @@
     "cssVariables": true,
     "prefix": ""
   },
+  "registries": {
+    "@kibo-ui": "https://www.kibo-ui.com/r/{name}.json",
+    "@diceui": "https://www.diceui.com/r/{name}.json"
+  },
   "aliases": {
     "components": "@/components",
     "utils": "@/lib/utils",

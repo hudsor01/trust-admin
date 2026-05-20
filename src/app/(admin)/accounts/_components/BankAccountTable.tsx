@@ -2,6 +2,7 @@
 
 import type { ColumnDef } from '@tanstack/react-table'
 import { Pencil, Plus, Trash2 } from 'lucide-react'
+import type { ReactNode } from 'react'
 import {
     EditableCurrencyCell,
     EditableSelectCell,
@@ -25,6 +26,8 @@ interface BankAccountTableProps {
     onEdit: (account: BankAccount) => void
     onDelete: (id: number) => void
     onUpdate: (id: number, data: Partial<BankAccount>) => Promise<void>
+    /** Optional inline row detail (e.g. linked liabilities). */
+    getRowDetail?: (account: BankAccount) => ReactNode
 }
 
 export function BankAccountTable({
@@ -33,6 +36,7 @@ export function BankAccountTable({
     onEdit,
     onDelete,
     onUpdate,
+    getRowDetail,
 }: BankAccountTableProps) {
     const columns: ColumnDef<BankAccount>[] = [
         {
@@ -225,6 +229,9 @@ export function BankAccountTable({
                 emptyMessage="No bank accounts found."
                 enableColumnVisibility={true}
                 enablePagination={true}
+                exportable
+                exportResource="bank-accounts"
+                getRowDetail={getRowDetail}
             />
         </div>
     )

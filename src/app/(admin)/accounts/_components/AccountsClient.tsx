@@ -3,9 +3,15 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { ConfirmDialog, useConfirmDialog } from '@/components/confirm-dialog'
+import { KpiStrip, type KpiStripItem } from '@/components/kpi-strip'
+import { PageHeader } from '@/components/page-header'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { BankAccount, InvestmentAccount } from '@/db/schema'
 import { useResourceForm } from '@/hooks/use-resource-form'
+import {
+    BANK_ACCOUNT_WIZARD_STEPS,
+    INVESTMENT_ACCOUNT_WIZARD_STEPS,
+} from '@/lib/asset-wizard-steps'
 import {
     bankAccountFormDefaults,
     investmentAccountFormDefaults,
@@ -101,6 +107,7 @@ export function AccountsClient() {
 
     const bankForm = useResourceForm<BankFormData>({
         initialData: bankAccountFormDefaults(),
+        steps: BANK_ACCOUNT_WIZARD_STEPS,
         onSubmit: async (data) => {
             const payload = {
                 entityId: entityId!,
@@ -136,6 +143,7 @@ export function AccountsClient() {
 
     const investmentForm = useResourceForm<InvestmentFormData>({
         initialData: investmentAccountFormDefaults(),
+        steps: INVESTMENT_ACCOUNT_WIZARD_STEPS,
         onSubmit: async (data) => {
             const payload = {
                 entityId: entityId!,
@@ -276,18 +284,30 @@ export function AccountsClient() {
         investmentAccounts.map((a) => a.dodValue),
     )
 
+    const accountCount = bankAccounts.length + investmentAccounts.length
+    const totalBalance = sumStrings([
+        ...bankAccounts.map((a) => a.currentBalance ?? a.dodValue),
+        ...investmentAccounts.map((a) => a.dodValue),
+    ])
+    const kpiData: KpiStripItem[] = [
+        { label: 'Account count', value: accountCount },
+        { label: 'Total balance', value: formatCurrency(totalBalance) },
+        {
+            label: 'Bank vs Investment',
+            value: `${bankAccounts.length} / ${investmentAccounts.length}`,
+        },
+        // sparkline deferred until activityCounts query lands
+        { label: '30d activity', value: '—', sparklineSeries: undefined },
+    ]
+
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-2xl font-semibold tracking-tight text-balance">
-                        Accounts
-                    </h2>
-                    <p className="text-sm text-muted-foreground">
-                        Manage financial accounts
-                    </p>
-                </div>
-            </div>
+            <PageHeader
+                title="Accounts"
+                description="Bank and investment accounts held by the trust."
+            />
+
+            <KpiStrip data={kpiData} />
 
             <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList>
@@ -308,6 +328,47 @@ export function AccountsClient() {
                         onEdit={handleEditBank}
                         onDelete={handleDeleteBank}
                         onUpdate={updateBankAccount}
+                        getRowDetail={(account) => (
+                            <div className="space-y-1">
+                                <p className="text-sm font-semibold">
+                                    Account detail
+                                </p>
+                                <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                                    <dt className="text-muted-foreground">
+                                        Routing number
+                                    </dt>
+                                    {/* Rendered unmasked intentionally:
+                                        routing numbers are public bank
+                                        identifiers, unlike account numbers
+                                        (which are masked via
+                                        maskAccountNumber). */}
+                                    <dd className="font-mono">
+                                        {account.routingNumber ?? '—'}
+                                    </dd>
+                                    <dt className="text-muted-foreground">
+                                        DOD date
+                                    </dt>
+                                    <dd>
+                                        {account.dodValueDate
+                                            ? new Date(
+                                                  account.dodValueDate,
+                                              ).toLocaleDateString()
+                                            : '—'}
+                                    </dd>
+                                    <dt className="text-muted-foreground">
+                                        Notes
+                                    </dt>
+                                    <dd>{account.notes ?? '—'}</dd>
+                                </dl>
+                                <p className="mt-2 text-xs text-muted-foreground">
+                                    Linked liabilities are not yet wired — the
+                                    schema does not currently link a liability
+                                    to a bank or investment account (only to a
+                                    homestead, rental property, or vehicle).
+                                    Tracked as a TODO in plan 23-04 SUMMARY.
+                                </p>
+                            </div>
+                        )}
                     />
                 </TabsContent>
 
@@ -329,6 +390,7 @@ export function AccountsClient() {
                 onOpenChange={bankForm.close}
                 onSubmit={bankForm.handleSave}
                 formInstance={bankFormInstance}
+                wizard={bankForm}
             />
 
             <InvestmentAccountDialog
@@ -338,6 +400,7 @@ export function AccountsClient() {
                 onOpenChange={investmentForm.close}
                 onSubmit={investmentForm.handleSave}
                 formInstance={investmentFormInstance}
+                wizard={investmentForm}
             />
 
             <ConfirmDialog {...deleteBankDialogProps} />

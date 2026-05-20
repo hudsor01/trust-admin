@@ -60,7 +60,7 @@ export function HistoryTable({
                     }
                     className={cn(
                         row.original.isWithdrawal &&
-                            'bg-violet-100 text-violet-800 dark:bg-violet-900 dark:text-violet-100',
+                            'bg-accent text-accent-foreground',
                     )}
                 >
                     {row.original.isWithdrawal

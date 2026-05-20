@@ -177,7 +177,7 @@ export function TaskList({
                                                             className={cn(
                                                                 'text-xs mt-0.5',
                                                                 isOverdue
-                                                                    ? 'text-amber-600 dark:text-amber-400'
+                                                                    ? 'text-warning'
                                                                     : 'text-muted-foreground',
                                                             )}
                                                         >

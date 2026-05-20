@@ -4,6 +4,8 @@ import { Loader2, Plus } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { ConfirmDialog, useConfirmDialog } from '@/components/confirm-dialog'
+import { KpiStrip, type KpiStripItem } from '@/components/kpi-strip'
+import { PageHeader } from '@/components/page-header'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useResourceForm } from '@/hooks/use-resource-form'
@@ -12,6 +14,7 @@ import { logger } from '@/lib/logger'
 import { trpc } from '@/lib/trpc'
 import { asTrusteeStatus } from '@/lib/type-utils'
 import { TrusteeDialog } from './TrusteeDialog'
+import { TrusteeSortableList } from './TrusteeSortableList'
 import { type TrusteeRow, TrusteeTable } from './TrusteeTable'
 
 const log = logger.create('Trustees')
@@ -143,24 +146,63 @@ export function TrusteesClient() {
         .filter((t) => t.status === 'ACTIVE')
         .sort((a, b) => a.order - b.order)
     const arbiterTrustees = trustees.filter((t) => t.status === 'ARBITER')
+    const successorCount = trustees.filter(
+        (t) => t.status === 'SUCCESSOR',
+    ).length
+
+    // /trustees per UI-SPEC §2 — 3-column variant (no 4th KPI). KpiStrip's
+    // lg:grid-cols-4 leaves an empty slot which is acceptable per the spec.
+    const kpiData: KpiStripItem[] = [
+        { label: 'Trustee count', value: trustees.length },
+        { label: 'Current count', value: currentTrustees.length },
+        { label: 'Successor count', value: successorCount },
+    ]
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-semibold tracking-tight text-balance">
-                    Trustees
-                </h2>
-                <Button
-                    onClick={() => {
-                        setEditingId(null)
-                        setCreateMode('TRUSTEE')
-                        trusteeForm.open()
-                    }}
-                >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Trustee
-                </Button>
-            </div>
+            <PageHeader
+                title="Trustees"
+                description="Trustees, arbiters, and successor trustees with their order of service."
+                actions={
+                    <Button
+                        onClick={() => {
+                            setEditingId(null)
+                            setCreateMode('TRUSTEE')
+                            trusteeForm.open()
+                        }}
+                    >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Trustee
+                    </Button>
+                }
+            />
+
+            <KpiStrip data={kpiData} isLoading={trusteesLoading} />
+
+            {!loading && currentTrustees.length > 1 && entityId && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-lg">
+                            Order of Service
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="mb-3 text-sm text-muted-foreground">
+                            Drag to reorder how trustees are listed throughout
+                            the app.
+                        </p>
+                        <TrusteeSortableList
+                            trustees={currentTrustees.map((t) => ({
+                                id: t.id,
+                                name: t.name,
+                                status: t.status ?? null,
+                                order: t.order,
+                            }))}
+                            entityId={entityId}
+                        />
+                    </CardContent>
+                </Card>
+            )}
 
             <Card>
                 <CardHeader>

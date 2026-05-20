@@ -58,7 +58,7 @@ export function ContactDialog({
                             />
                             {field.state.meta.errors &&
                                 field.state.meta.errors.length > 0 && (
-                                    <p className="text-sm text-red-500">
+                                    <p className="text-sm text-destructive">
                                         {getFieldError(field)}
                                     </p>
                                 )}
@@ -195,7 +195,7 @@ export function ContactDialog({
                             />
                             {field.state.meta.errors &&
                                 field.state.meta.errors.length > 0 && (
-                                    <p className="text-sm text-red-500">
+                                    <p className="text-sm text-destructive">
                                         {getFieldError(field)}
                                     </p>
                                 )}
@@ -219,7 +219,7 @@ export function ContactDialog({
                             />
                             {field.state.meta.errors &&
                                 field.state.meta.errors.length > 0 && (
-                                    <p className="text-sm text-red-500">
+                                    <p className="text-sm text-destructive">
                                         {getFieldError(field)}
                                     </p>
                                 )}
@@ -298,7 +298,7 @@ export function ContactDialog({
                                 />
                                 {field.state.meta.errors &&
                                     field.state.meta.errors.length > 0 && (
-                                        <p className="text-sm text-red-500">
+                                        <p className="text-sm text-destructive">
                                             {getFieldError(field)}
                                         </p>
                                     )}

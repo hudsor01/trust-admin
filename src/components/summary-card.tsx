@@ -1,4 +1,5 @@
 import { type LucideIcon, TrendingDown, TrendingUp } from 'lucide-react'
+import type { ReactNode } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 
@@ -12,6 +13,7 @@ export interface SummaryCardProps {
     }
     isLoading?: boolean
     formatter?: (value: number) => string
+    accessory?: ReactNode
 }
 
 export function SummaryCard({
@@ -21,6 +23,7 @@ export function SummaryCard({
     trend,
     isLoading = false,
     formatter,
+    accessory,
 }: SummaryCardProps) {
     const formattedValue =
         typeof value === 'number' && formatter ? formatter(value) : value
@@ -38,16 +41,23 @@ export function SummaryCard({
 
     return (
         <Card>
-            <CardContent className="pt-6">
+            <CardContent className="pt-6 relative">
+                {accessory && (
+                    <div className="absolute top-3 right-3">{accessory}</div>
+                )}
                 <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
                     {Icon && <Icon className="h-4 w-4" />}
                     {title}
                 </div>
-                <div className="text-2xl font-bold">{formattedValue}</div>
+                <div className="text-2xl font-semibold tabular-nums">
+                    {formattedValue}
+                </div>
                 {trend && (
                     <div
                         className={`flex items-center gap-1 text-xs mt-2 ${
-                            trend.isPositive ? 'text-green-600' : 'text-red-600'
+                            trend.isPositive
+                                ? 'text-success'
+                                : 'text-destructive'
                         }`}
                     >
                         {trend.isPositive ? (

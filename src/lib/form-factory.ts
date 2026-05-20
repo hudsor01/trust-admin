@@ -109,49 +109,6 @@ export const investmentAccountFormDefaults = createFormDefaults({
     notes: '',
 })
 
-export const homesteadFormDefaults = createFormDefaults({
-    name: '',
-    description: '',
-    streetAddress: '',
-    city: '',
-    state: '',
-    zip: '',
-    county: '',
-    propertyType: 'SINGLE_FAMILY',
-    yearBuilt: null as number | null,
-    squareFeet: null as number | null,
-    bedrooms: null as number | null,
-    bathrooms: '',
-    acquisitionDate: null as string | null,
-    acquisitionCost: '',
-    dodValue: '',
-    dodValueDate: null as string | null,
-    status: 'ACTIVE',
-    transferStatus: 'PENDING',
-    notes: '',
-})
-
-export const rentalPropertyFormDefaults = createFormDefaults({
-    name: '',
-    description: '',
-    streetAddress: '',
-    city: '',
-    state: '',
-    zip: '',
-    propertyType: 'SINGLE_FAMILY',
-    units: null as number | null,
-    squareFeet: null as number | null,
-    monthlyRent: '',
-    rentalStatus: 'RENTED',
-    acquisitionDate: null as string | null,
-    acquisitionCost: '',
-    dodValue: '',
-    dodValueDate: null as string | null,
-    status: 'ACTIVE',
-    transferStatus: 'PENDING',
-    notes: '',
-})
-
 export const trusteeFormDefaults = createFormDefaults({
     name: '',
     status: 'ACTIVE',

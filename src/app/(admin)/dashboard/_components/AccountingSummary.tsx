@@ -81,7 +81,7 @@ export function AccountingSummary({
                                         <p className="text-sm font-medium">
                                             Total
                                         </p>
-                                        <p className="text-sm font-semibold text-green-600 dark:text-green-400">
+                                        <p className="text-sm font-semibold text-success">
                                             {formatCurrency(incomeTotal)}
                                         </p>
                                     </div>
@@ -182,8 +182,8 @@ export function AccountingSummary({
                                     className={cn(
                                         'text-2xl font-semibold',
                                         isNegative(netIncome)
-                                            ? 'text-red-600 dark:text-red-400'
-                                            : 'text-green-600 dark:text-green-400',
+                                            ? 'text-destructive'
+                                            : 'text-success',
                                     )}
                                 >
                                     {formatCurrency(netIncome)}

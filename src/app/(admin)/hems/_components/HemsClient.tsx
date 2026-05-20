@@ -248,12 +248,12 @@ export function HemsClient() {
             </div>
 
             {eligibleWithdrawals.length > 0 && (
-                <Alert className="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950">
-                    <AlertCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-                    <AlertTitle className="text-green-800 dark:text-green-200">
+                <Alert className="border-success/30 bg-success/10">
+                    <AlertCircle className="h-4 w-4 text-success" />
+                    <AlertTitle className="text-success">
                         Eligible Withdrawals
                     </AlertTitle>
-                    <AlertDescription className="text-green-700 dark:text-green-300">
+                    <AlertDescription className="text-success">
                         {eligibleWithdrawals.length} withdrawal
                         {eligibleWithdrawals.length > 1 ? 's are' : ' is'}{' '}
                         eligible to be processed.
@@ -272,7 +272,7 @@ export function HemsClient() {
                         {eligibleWithdrawals.length > 0 && (
                             <Badge
                                 variant="default"
-                                className="bg-green-600 text-xs"
+                                className="bg-success text-xs"
                             >
                                 {eligibleWithdrawals.length}
                             </Badge>

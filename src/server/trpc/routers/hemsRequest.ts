@@ -207,6 +207,64 @@ export const hemsRequestRouter = createTRPCRouter({
             )
         }),
 
+    /** Mark distributed: flip APPROVED -> DISTRIBUTED. Distribution record was already created by approve. */
+    markDistributed: adminProcedure
+        .input(
+            z.object({
+                id: z.coerce.number(),
+                entityId: z.coerce.number(),
+            }),
+        )
+        .mutation(async ({ input }) => {
+            addBreadcrumb(
+                'hems',
+                `Marking HEMS request ${input.id} distributed`,
+            )
+
+            return traceBusinessOperation(
+                'hems.markDistributed',
+                { requestId: input.id, entityId: input.entityId },
+                async () => {
+                    const existing = await db.query.hemsRequest.findFirst({
+                        where: and(
+                            eq(hemsRequest.id, input.id),
+                            eq(hemsRequest.entityId, input.entityId),
+                        ),
+                    })
+                    if (!existing)
+                        throw new TRPCError({
+                            code: 'NOT_FOUND',
+                            message: 'HEMS request not found in this entity',
+                        })
+                    if (existing.status !== 'APPROVED') {
+                        throw new TRPCError({
+                            code: 'CONFLICT',
+                            message: `Cannot mark distributed: current status is ${existing.status}. Request must be APPROVED first.`,
+                        })
+                    }
+                    const [updated] = await db
+                        .update(hemsRequest)
+                        .set({
+                            status: 'DISTRIBUTED',
+                            updatedAt: new Date().toISOString(),
+                        })
+                        .where(
+                            and(
+                                eq(hemsRequest.id, input.id),
+                                eq(hemsRequest.entityId, input.entityId),
+                            ),
+                        )
+                        .returning()
+                    if (!updated)
+                        throw new TRPCError({
+                            code: 'INTERNAL_SERVER_ERROR',
+                            message: 'Failed to mark request distributed',
+                        })
+                    return updated
+                },
+            )
+        }),
+
     deny: adminProcedure
         .input(
             z.object({

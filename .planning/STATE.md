@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Production Hardening & Completeness
-status: completed
-stopped_at: Completed 22-01-PLAN.md
-last_updated: "2026-03-11T14:38:47.648Z"
-last_activity: "2026-03-11 -- Completed 22-01 dead code removal: 110 dead exports removed from db/queries.ts, date-utils.ts deleted, TxSql consolidated (CLEAN-01, CLEAN-02, CLEAN-06)"
+status: milestone_complete
+stopped_at: Completed 23-04-datatable-and-settings-polish-PLAN.md
+last_updated: "2026-05-20T01:26:28.964Z"
+last_activity: 2026-05-20
 progress:
-  total_phases: 8
-  completed_phases: 8
-  total_plans: 19
-  completed_plans: 19
+  total_phases: 9
+  completed_phases: 9
+  total_plans: 24
+  completed_plans: 22
   percent: 100
 ---
 
@@ -19,12 +19,12 @@ progress:
 ## Current Position
 
 Milestone: v4.0 Production Hardening & Completeness
-Phase: 22 of 22 (code-quality-cleanup)
-Plan: 3 of 3 completed in current phase
-Status: Phase complete
-Last activity: 2026-03-11 -- Completed 22-01 dead code removal: 110 dead exports removed from db/queries.ts, date-utils.ts deleted, TxSql consolidated (CLEAN-01, CLEAN-02, CLEAN-06)
+Phase: 23
+Plan: Not started
+Status: Milestone complete
+Last activity: 2026-05-20
 
-Progress: [██████████] 100%
+Progress: [█████████░] 92%
 
 ## Accumulated Context
 
@@ -92,6 +92,21 @@ Progress: [██████████] 100%
 - [v4.0] TxSql type defined once in db/index.ts -- imported by db/queries.ts and contact.ts (no duplicate definitions)
 - [v4.0] Internal CRUD helpers in db/queries.ts made private -- only exported via CRUD object aggregations
 - [v4.0] date-fns removed (unused) -- date-utils.ts had zero imports across codebase
+- [Phase 23] components.json registries block uses @kibo-ui + @diceui only -- Origin UI excluded per UI-SPEC rev 1 safety gate (date-range covered by calendar mode='range', switch already present)
+- [Phase 23] Kbd hand-rolled at src/components/ui/kbd.tsx (UI-SPEC §14 verbatim) -- @diceui/kbd returns HTTP 404
+- [Phase 23] shadcn-official context-menu installed in PR-1 (not PR-B) -- prefetched as @kibo-ui/gantt regDep for PR-C
+- [Phase 23] SummaryCard delta colors use text-success / text-destructive tokens (NOT text-green-600 / text-red-600) per UI-SPEC §Color
+- [Phase 23] SummaryCard value uses font-semibold tabular-nums (NOT font-bold) per UI-SPEC §Typography Display
+- [Phase 23] SummaryCard exports accessory?: ReactNode prop -- top-3 right-3 absolute slot for sparklines / status badges
+- [Phase 23] KpiStripItem.invertDelta convention: caller marks 'down is good' (liabilities, expenses); zero treated as positive in both modes
+- [Phase 23] KpiStrip sparkline uses inline recharts <LineChart> stroke=var(--primary) with isAnimationActive=false to avoid React Compiler bailout from reconciliation churn
+- [Phase 23] PageHeader composition (h1 + breadcrumb + actions) lives in src/components/ (NOT src/components/ui/) -- app-specific composition vs generic primitive
+- [Phase 23] DataTable bulkActions/exportable/getRowDetail are all additive optional props -- 17 existing callers unchanged; only /accounts opts into getRowDetail + exportable in PR-C
+- [Phase 23] CSV export uses getFilteredRowModel + getVisibleLeafColumns -- hidden columns excluded (T-23-04); buildCsvBody split as a pure fn for testability
+- [Phase 23] DataTableBulkActions defaults requiresConfirm=true for variant:destructive, routes through useConfirmDialog -- no window.confirm (T-23-03)
+- [Phase 23] reorder mutations entityId-scoped via and(eq(id),eq(entityId)) -- cross-entity id throws NOT_FOUND (T-23-05); RLS app.is_admin() is defense-in-depth
+- [Phase 23] beneficiary.sortIndex is new (INTEGER NOT NULL DEFAULT 0, ROW_NUMBER backfill); trustee reuses existing order column -- only composite indexes added for trustee
+- [Phase 23] Test branch DB synced manually after db:deploy -- migration DDL applied to .env.test.local branch via postgres.js tx so tRPC reorder tests pass
 
 ### Auth API Patterns That Work
 
@@ -130,9 +145,20 @@ const rows = await sql`SELECT id, name, email FROM neon_auth."user" WHERE lower(
 - 2026-02-22: v3.0 shipped -- Email/Password Auth Migration (phases 9-14)
 - 2026-02-24: Forgot-password flow built outside GSD (unplanned)
 - 2026-03-08: v4.0 roadmap created -- Production Hardening & Completeness (phases 15-22)
+- 2026-05-19: Phase 23 added -- Shadcn registry adoption and dashboard UX revamp (full revamp per approved plan at ~/.claude/plans/yes-i-would-live-bright-pumpkin.md; 5 sub-PRs covering registry foundation, headline page redesigns, and DataTable/settings polish)
 
 ## Session Continuity
 
-Last session: 2026-03-11T14:33:08Z
-Stopped at: Completed 22-01-PLAN.md
+Last session: 2026-05-20T01:26:07.921Z
+Stopped at: Completed 23-04-datatable-and-settings-polish-PLAN.md
 Resume file: None
+
+**Planned Phase:** 23 (Shadcn registry adoption and dashboard UX revamp) — 5 plans — 2026-05-19T22:28:15.607Z
+
+**Phase 23 progress:**
+
+- [x] 23-01-foundation (Wave 1 / PR-1) — registries wired, 6 primitives + Kbd installed, SummaryCard patched, PageHeader + KpiStrip built, 12 Wave-0 tests passing — 2026-05-19
+- [ ] 23-02-hems-kanban-and-activity-log (Wave 2 / PR-2)
+- [x] 23-03-liabilities-beneficiaries-kpi-rollout (Wave 2 / PR-B) — payoffProjections batched query, Kibo gantt + avatar-stack installed, LiabilityKpiStrip/Gantt/DebtToEquityDonut, BeneficiaryShareDonuts/AvatarStack/WithdrawalMilestoneGantt, KpiStrip + PageHeader on 11 admin pages, 16 Wave-0 tests, 938 unit tests passing — 2026-05-20 (commits 396e5e3, 5b4a6fa, 53e9cc4, 4226daf on feat/23-03-liabilities-beneficiaries-kpi-rollout)
+- [x] 23-04-datatable-and-settings-polish (Wave 3 / PR-C+D) — DataTable bulkActions/exportable/getRowDetail props, csv-export lib, PreferenceRow + 4-card settings refresh, Dice sortable installed, migration 0012 (beneficiary.sortIndex + 2 composite indexes) applied, trustee/beneficiary reorder mutations, sortable consumers, 40 plan tests + 965 unit tests passing — 2026-05-20 (commits 81009c8, aadb02e, 5894e57 on feat/23-04-datatable-and-settings-polish)
+- [ ] 23-05-asset-wizard (DEFERRED)

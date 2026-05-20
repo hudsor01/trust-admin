@@ -290,4 +290,40 @@ export const liabilityRouter = createTRPCRouter({
                 liabilityRecord.escrowMonthly || undefined,
             )
         }),
+
+    /**
+     * Batched payoff projections for every liability in the entity. Used by
+     * LiabilityGantt to render one bar per loan in a single round-trip.
+     *
+     * projection is `null` when the liability is revolving credit, missing
+     * interestRate, or missing monthlyPayment — those bars are skipped/rendered
+     * as "—" by the consumer.
+     */
+    payoffProjections: adminProcedure
+        .input(z.object({ entityId: z.coerce.number() }))
+        .query(async ({ input }) => {
+            const liabs = await db
+                .select()
+                .from(liability)
+                .where(eq(liability.entityId, input.entityId))
+
+            return liabs.map((l) => ({
+                id: l.id,
+                creditor: l.creditor,
+                startDate: l.loanStartDate ?? l.createdAt,
+                currentBalance: l.currentBalance,
+                originalAmount: l.originalAmount,
+                status: l.status,
+                projection:
+                    !l.interestRate || !l.monthlyPayment || l.isRevolvingCredit
+                        ? null
+                        : estimatePayoffDate(
+                              l.currentBalance ?? '0',
+                              l.interestRate,
+                              l.monthlyPayment,
+                              l.escrowMonthly ?? undefined,
+                              l.loanStartDate ?? undefined,
+                          ),
+            }))
+        }),
 })

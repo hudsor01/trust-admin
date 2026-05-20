@@ -7,14 +7,17 @@ import {
     Clock,
     DollarSign,
     FileText,
+    Inbox,
     Loader2,
     XCircle,
 } from 'lucide-react'
-import { useMemo, useOptimistic, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
+import { KpiStrip } from '@/components/kpi-strip'
+import { PageHeader } from '@/components/page-header'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { DataTable } from '@/components/ui/data-table'
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import {
@@ -41,6 +44,7 @@ import { sumStrings } from '@/lib/money'
 import { trpc } from '@/lib/trpc'
 import type { AppRouter } from '@/server/trpc/router'
 import { formatCurrency, formatDate } from '@/utils/formatters'
+import { HemsQueueBoard } from './HemsQueueBoard'
 
 type RouterOutputs = inferRouterOutputs<AppRouter>
 type HemsRequestWithBeneficiary =
@@ -74,29 +78,9 @@ export function HemsQueueClient() {
             { enabled: !!entityId },
         )
 
+    // All four mutations refresh the UI via listWithBeneficiary.invalidate();
+    // there is no optimistic path, so the query data is used directly.
     const requestsWithBeneficiary = requests
-
-    const [optimisticRequests] = useOptimistic(
-        requestsWithBeneficiary,
-        (
-            current,
-            update: {
-                id: number
-                status: HemsRequestWithBeneficiary['status']
-                approvedAmount?: string
-            },
-        ) =>
-            current.map((r) =>
-                r.id === update.id
-                    ? {
-                          ...r,
-                          status: update.status,
-                          approvedAmount:
-                              update.approvedAmount ?? r.amountRequested,
-                      }
-                    : r,
-            ),
-    )
 
     const approveRequestMutation = trpc.hemsRequest.approve.useMutation({
         onSuccess: () => utils.hemsRequest.listWithBeneficiary.invalidate(),
@@ -117,7 +101,10 @@ export function HemsQueueClient() {
     })
 
     const loading = requestsLoading
-    const [activeTab, setActiveTab] = useState('pending')
+    const [activeTab, setActiveTab] = useState<'board' | 'table'>('board')
+    const [tableSubTab, setTableSubTab] = useState<'pending' | 'reviewed'>(
+        'pending',
+    )
 
     const [reviewingRequest, setReviewingRequest] =
         useState<HemsRequestWithBeneficiary | null>(null)
@@ -135,16 +122,63 @@ export function HemsQueueClient() {
         useState<HemsRequestWithBeneficiary | null>(null)
 
     const pendingRequests = useMemo(
-        () => optimisticRequests.filter((r) => r.status === 'PENDING'),
-        [optimisticRequests],
+        () => requestsWithBeneficiary.filter((r) => r.status === 'PENDING'),
+        [requestsWithBeneficiary],
     )
     const reviewedRequests = useMemo(
-        () => optimisticRequests.filter((r) => r.status !== 'PENDING'),
-        [optimisticRequests],
+        () => requestsWithBeneficiary.filter((r) => r.status !== 'PENDING'),
+        [requestsWithBeneficiary],
     )
 
     const displayedRequests =
-        activeTab === 'pending' ? pendingRequests : reviewedRequests
+        tableSubTab === 'pending' ? pendingRequests : reviewedRequests
+
+    const approvedCount = useMemo(
+        () =>
+            requestsWithBeneficiary.filter(
+                (r) => r.status === 'APPROVED' || r.status === 'DISTRIBUTED',
+            ).length,
+        [requestsWithBeneficiary],
+    )
+
+    const totalRequestedAmount = useMemo(
+        () =>
+            formatCurrency(
+                sumStrings(pendingRequests.map((r) => r.amountRequested)),
+            ),
+        [pendingRequests],
+    )
+
+    const kpiItems = useMemo(
+        () => [
+            {
+                label: 'Pending',
+                value: pendingRequests.length,
+                icon: Clock,
+            },
+            {
+                label: 'Approved + Distributed',
+                value: approvedCount,
+                icon: CheckCircle,
+            },
+            {
+                label: 'Total Requested',
+                value: totalRequestedAmount,
+                icon: DollarSign,
+            },
+            {
+                label: 'Reviewed',
+                value: reviewedRequests.length,
+                icon: FileText,
+            },
+        ],
+        [
+            pendingRequests.length,
+            approvedCount,
+            totalRequestedAmount,
+            reviewedRequests.length,
+        ],
+    )
 
     const columns: ColumnDef<HemsRequestWithBeneficiary>[] = [
         {
@@ -286,122 +320,85 @@ export function HemsQueueClient() {
 
     return (
         <div className="space-y-6">
-            <div>
-                <h2 className="text-2xl font-semibold tracking-tight">
-                    HEMS Requests
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                    Review and approve beneficiary distribution requests
-                </p>
-            </div>
+            <PageHeader
+                title="HEMS Queue"
+                description="Drag pending requests to approve, then to distributed when paid out."
+            />
 
-            <div className="grid gap-4 md:grid-cols-3">
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">
-                            Pending Review
-                        </CardTitle>
-                        <Clock className="h-4 w-4 text-amber-500" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">
-                            {pendingRequests.length}
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                            {pendingRequests.length === 1
-                                ? 'request'
-                                : 'requests'}{' '}
-                            awaiting decision
-                        </p>
-                    </CardContent>
-                </Card>
+            <KpiStrip data={kpiItems} isLoading={loading} />
 
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">
-                            Total Requested
-                        </CardTitle>
-                        <DollarSign className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">
-                            {formatCurrency(
-                                sumStrings(
-                                    pendingRequests.map(
-                                        (r) => r.amountRequested,
-                                    ),
-                                ),
-                            )}
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                            pending approval
-                        </p>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">
-                            This Month
-                        </CardTitle>
-                        <CheckCircle className="h-4 w-4 text-green-500" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">
-                            {
-                                optimisticRequests.filter(
-                                    (r) =>
-                                        r.status === 'APPROVED' ||
-                                        r.status === 'DISTRIBUTED',
-                                ).length
-                            }
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                            approved
-                        </p>
-                    </CardContent>
-                </Card>
-            </div>
-
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <Tabs
+                value={activeTab}
+                onValueChange={(v) => setActiveTab(v as typeof activeTab)}
+            >
                 <TabsList>
-                    <TabsTrigger value="pending" className="gap-2">
-                        <Clock className="h-4 w-4" />
-                        Pending ({pendingRequests.length})
+                    <TabsTrigger value="board" className="gap-2">
+                        <Inbox className="h-4 w-4" />
+                        Board
                     </TabsTrigger>
-                    <TabsTrigger value="reviewed" className="gap-2">
+                    <TabsTrigger value="table" className="gap-2">
                         <FileText className="h-4 w-4" />
-                        Reviewed ({reviewedRequests.length})
+                        Table
                     </TabsTrigger>
                 </TabsList>
 
-                <TabsContent value={activeTab} className="mt-4">
-                    {loading ? (
+                <TabsContent value="board" className="mt-4">
+                    {entityId ? (
+                        <HemsQueueBoard entityId={entityId} />
+                    ) : (
                         <div className="flex justify-center py-12">
                             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                         </div>
-                    ) : displayedRequests.length === 0 ? (
-                        <Card>
-                            <CardContent className="py-12">
-                                <p className="text-center text-muted-foreground">
-                                    {activeTab === 'pending'
-                                        ? 'No pending requests to review.'
-                                        : 'No reviewed requests yet.'}
-                                </p>
-                            </CardContent>
-                        </Card>
-                    ) : (
-                        <DataTable
-                            tableId="hems-queue"
-                            data={displayedRequests}
-                            columns={columns}
-                            searchKey="category"
-                            searchPlaceholder="Filter by category..."
-                            emptyMessage="No requests found."
-                            enableColumnVisibility={true}
-                            enablePagination={true}
-                        />
                     )}
+                </TabsContent>
+
+                <TabsContent value="table" className="mt-4">
+                    <Tabs
+                        value={tableSubTab}
+                        onValueChange={(v) =>
+                            setTableSubTab(v as typeof tableSubTab)
+                        }
+                    >
+                        <TabsList>
+                            <TabsTrigger value="pending" className="gap-2">
+                                <Clock className="h-4 w-4" />
+                                Pending ({pendingRequests.length})
+                            </TabsTrigger>
+                            <TabsTrigger value="reviewed" className="gap-2">
+                                <FileText className="h-4 w-4" />
+                                Reviewed ({reviewedRequests.length})
+                            </TabsTrigger>
+                        </TabsList>
+
+                        <TabsContent value={tableSubTab} className="mt-4">
+                            {loading ? (
+                                <div className="flex justify-center py-12">
+                                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                                </div>
+                            ) : displayedRequests.length === 0 ? (
+                                <Card>
+                                    <CardContent className="py-12">
+                                        <p className="text-center text-muted-foreground">
+                                            {tableSubTab === 'pending'
+                                                ? 'No pending requests to review.'
+                                                : 'No reviewed requests yet.'}
+                                        </p>
+                                    </CardContent>
+                                </Card>
+                            ) : (
+                                <DataTable
+                                    tableId="hems-queue"
+                                    data={displayedRequests}
+                                    columns={columns}
+                                    searchKey="category"
+                                    searchPlaceholder="Filter by category..."
+                                    emptyMessage="No requests found."
+                                    enableColumnVisibility={true}
+                                    enablePagination={true}
+                                />
+                            )}
+                        </TabsContent>
+                    </Tabs>
                 </TabsContent>
             </Tabs>
 

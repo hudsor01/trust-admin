@@ -3,14 +3,17 @@
 import type { ColumnDef } from '@tanstack/react-table'
 import { useRouter } from 'next/navigation'
 import { useMemo } from 'react'
+import { KpiStrip, type KpiStripItem } from '@/components/kpi-strip'
+import { PageHeader } from '@/components/page-header'
 import { Badge } from '@/components/ui/badge'
 import { DataTable } from '@/components/ui/data-table'
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import { DataTableFacetedFilter } from '@/components/ui/data-table-faceted-filter'
 import { STATUS_VARIANTS } from '@/lib/constants'
+import { sumStrings } from '@/lib/money'
 import { trpc } from '@/lib/trpc'
 import type { AssetRow } from '@/server/trpc/routers/asset'
-import { formatCurrency } from '@/utils/formatters'
+import { formatCurrency, formatPercent } from '@/utils/formatters'
 import { KIND_LABELS } from './_labels'
 import { ExportAssetsButton } from './ExportAssetsButton'
 
@@ -167,18 +170,35 @@ export function AssetsClient() {
         [rows],
     )
 
+    // AssetRow aggregates seven asset tables; `value` is per-kind best-effort
+    // (dodValue or currentBalance or coverageAmount). transferStatus isn't
+    // exposed through listAll, so "Transfer-status progress" approximates with
+    // % of rows where status === 'ACTIVE'. Real transfer-progress requires a
+    // future listAll extension to surface transferStatus per row.
+    const assetCount = rows.length
+    const totalDod = sumStrings(rows.map((r) => r.value ?? '0'))
+    const totalCurrent = totalDod // listAll returns best-effort value already
+    const activeRows = rows.filter((r) => r.status === 'ACTIVE')
+    const transferPct =
+        rows.length > 0 ? (activeRows.length / rows.length) * 100 : 0
+    const kpiData: KpiStripItem[] = [
+        { label: 'Asset count', value: assetCount },
+        { label: 'DOD total', value: formatCurrency(totalDod) },
+        { label: 'Estimated current', value: formatCurrency(totalCurrent) },
+        {
+            label: 'Transfer-status progress',
+            value: formatPercent(transferPct),
+        },
+    ]
+
     return (
         <div className="space-y-6">
-            <div>
-                <h2 className="text-2xl font-semibold tracking-tight">
-                    All Assets
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                    Every asset across vehicles, properties, accounts,
-                    insurance, personal property, and artwork — sortable and
-                    filterable in one place.
-                </p>
-            </div>
+            <PageHeader
+                title="All assets"
+                description="Every asset across vehicles, properties, accounts, insurance, personal property, and artwork — sortable and filterable in one place."
+            />
+
+            <KpiStrip data={kpiData} isLoading={isLoading || !entityId} />
 
             <DataTable
                 tableId="assets"
