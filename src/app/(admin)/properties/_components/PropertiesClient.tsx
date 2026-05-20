@@ -9,6 +9,10 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { Homestead, RentalProperty } from '@/db/schema'
 import { useResourceForm } from '@/hooks/use-resource-form'
+import {
+    HOMESTEAD_WIZARD_STEPS,
+    RENTAL_PROPERTY_WIZARD_STEPS,
+} from '@/lib/asset-wizard-steps'
 import { toDateInput } from '@/lib/form-factory'
 import { logger } from '@/lib/logger'
 import { sumStrings } from '@/lib/money'
@@ -126,6 +130,7 @@ export function PropertiesClient() {
 
     const homesteadForm = useResourceForm<HomesteadFormData>({
         initialData: defaultHomesteadForm,
+        steps: HOMESTEAD_WIZARD_STEPS,
         onSubmit: async (data) => {
             const payload = {
                 entityId: entityId!,
@@ -181,6 +186,7 @@ export function PropertiesClient() {
 
     const rentalForm = useResourceForm<RentalFormData>({
         initialData: defaultRentalForm,
+        steps: RENTAL_PROPERTY_WIZARD_STEPS,
         onSubmit: async (data) => {
             const payload = {
                 entityId: entityId!,
@@ -392,6 +398,7 @@ export function PropertiesClient() {
                 onOpenChange={homesteadForm.close}
                 onSubmit={homesteadForm.handleSave}
                 formInstance={homesteadFormInstance}
+                wizard={homesteadForm}
             />
 
             <RentalPropertyDialog
@@ -401,6 +408,7 @@ export function PropertiesClient() {
                 onOpenChange={rentalForm.close}
                 onSubmit={rentalForm.handleSave}
                 formInstance={rentalFormInstance}
+                wizard={rentalForm}
             />
 
             <ConfirmDialog {...deleteHomesteadDialogProps} />

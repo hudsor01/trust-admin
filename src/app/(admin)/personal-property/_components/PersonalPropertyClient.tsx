@@ -9,6 +9,7 @@ import { PageHeader } from '@/components/page-header'
 import { Button } from '@/components/ui/button'
 import type { PersonalProperty } from '@/db/schema'
 import { useResourceForm } from '@/hooks/use-resource-form'
+import { PERSONAL_PROPERTY_WIZARD_STEPS } from '@/lib/asset-wizard-steps'
 import { personalPropertyFormDefaults, toDateInput } from '@/lib/form-factory'
 import { logger } from '@/lib/logger'
 import { sumStrings } from '@/lib/money'
@@ -135,6 +136,7 @@ export function PersonalPropertyClient({
             ...personalPropertyFormDefaults(),
             category: copy.defaultCategory as string,
         },
+        steps: PERSONAL_PROPERTY_WIZARD_STEPS,
         onSubmit: async (data) => {
             const category = asPersonalPropertyCategory(data.category)
             const payload = {
@@ -295,6 +297,7 @@ export function PersonalPropertyClient({
                 onOpenChange={itemForm.close}
                 onSubmit={itemForm.handleSave}
                 formInstance={itemForm.formInstance}
+                wizard={itemForm}
                 mode={mode}
                 categoryOptions={categoryOptions}
             />

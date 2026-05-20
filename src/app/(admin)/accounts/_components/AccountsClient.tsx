@@ -9,6 +9,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { BankAccount, InvestmentAccount } from '@/db/schema'
 import { useResourceForm } from '@/hooks/use-resource-form'
 import {
+    BANK_ACCOUNT_WIZARD_STEPS,
+    INVESTMENT_ACCOUNT_WIZARD_STEPS,
+} from '@/lib/asset-wizard-steps'
+import {
     bankAccountFormDefaults,
     investmentAccountFormDefaults,
     toDateInput,
@@ -103,6 +107,7 @@ export function AccountsClient() {
 
     const bankForm = useResourceForm<BankFormData>({
         initialData: bankAccountFormDefaults(),
+        steps: BANK_ACCOUNT_WIZARD_STEPS,
         onSubmit: async (data) => {
             const payload = {
                 entityId: entityId!,
@@ -138,6 +143,7 @@ export function AccountsClient() {
 
     const investmentForm = useResourceForm<InvestmentFormData>({
         initialData: investmentAccountFormDefaults(),
+        steps: INVESTMENT_ACCOUNT_WIZARD_STEPS,
         onSubmit: async (data) => {
             const payload = {
                 entityId: entityId!,
@@ -379,6 +385,7 @@ export function AccountsClient() {
                 onOpenChange={bankForm.close}
                 onSubmit={bankForm.handleSave}
                 formInstance={bankFormInstance}
+                wizard={bankForm}
             />
 
             <InvestmentAccountDialog
@@ -388,6 +395,7 @@ export function AccountsClient() {
                 onOpenChange={investmentForm.close}
                 onSubmit={investmentForm.handleSave}
                 formInstance={investmentFormInstance}
+                wizard={investmentForm}
             />
 
             <ConfirmDialog {...deleteBankDialogProps} />

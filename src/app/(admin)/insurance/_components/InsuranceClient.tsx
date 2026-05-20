@@ -8,6 +8,7 @@ import { PageHeader } from '@/components/page-header'
 import { Button } from '@/components/ui/button'
 import type { InsurancePolicy } from '@/db/schema'
 import { useResourceForm } from '@/hooks/use-resource-form'
+import { INSURANCE_WIZARD_STEPS } from '@/lib/asset-wizard-steps'
 import { insurancePolicyFormDefaults, toDateInput } from '@/lib/form-factory'
 import { logger } from '@/lib/logger'
 import { sumStrings } from '@/lib/money'
@@ -74,6 +75,7 @@ export function InsuranceClient() {
 
     const policyForm = useResourceForm({
         initialData: insurancePolicyFormDefaults(),
+        steps: INSURANCE_WIZARD_STEPS,
         onSubmit: async (data) => {
             const payload = {
                 entityId: entityId!,
@@ -195,6 +197,7 @@ export function InsuranceClient() {
                 onOpenChange={policyForm.close}
                 onSubmit={policyForm.handleSave}
                 formInstance={policyForm.formInstance}
+                wizard={policyForm}
             />
 
             <ConfirmDialog {...deleteDialogProps} />
