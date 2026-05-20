@@ -1,6 +1,6 @@
 'use client'
 
-import { addYears, differenceInDays } from 'date-fns'
+import { addYears, differenceInDays, parseISO } from 'date-fns'
 import { useMemo } from 'react'
 import { Skeleton } from '@/components/ui/skeleton'
 
@@ -45,10 +45,14 @@ export function WithdrawalMilestoneGantt({
 
     const rows = useMemo(() => {
         return beneficiaries.map((b) => {
+            // parseISO avoids engine-dependent / timezone-ambiguous parsing
+            // of date-only strings — consistent with LiabilityGantt.
             const reference = b.dob
-                ? new Date(b.dob)
+                ? parseISO(b.dob)
                 : entityDod
-                  ? new Date(entityDod as Date | string)
+                  ? entityDod instanceof Date
+                      ? entityDod
+                      : parseISO(entityDod)
                   : today
             const milestone = (
                 age: number | null,

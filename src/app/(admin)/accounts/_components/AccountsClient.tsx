@@ -337,6 +337,11 @@ export function AccountsClient() {
                                     <dt className="text-muted-foreground">
                                         Routing number
                                     </dt>
+                                    {/* Rendered unmasked intentionally:
+                                        routing numbers are public bank
+                                        identifiers, unlike account numbers
+                                        (which are masked via
+                                        maskAccountNumber). */}
                                     <dd className="font-mono">
                                         {account.routingNumber ?? '—'}
                                     </dd>

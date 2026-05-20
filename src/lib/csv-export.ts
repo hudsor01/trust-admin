@@ -8,6 +8,10 @@
  *
  * Output is RFC-4180-compliant: any cell containing comma, double-quote, or
  * newline is wrapped in double-quotes with internal quotes escaped via doubling.
+ *
+ * Cells whose first character could be read as a spreadsheet formula
+ * (`= + - @`, tab, CR) are prefixed with a single quote so Excel/Sheets
+ * treats them as literal text — CSV formula-injection guard.
  */
 import type { Table } from '@tanstack/react-table'
 import { formatCurrency, formatDate, formatPercent } from '@/utils/formatters'
@@ -24,7 +28,7 @@ export interface ExportTableToCsvOptions {
 
 export function escapeCsvCell(value: unknown): string {
     if (value === null || value === undefined) return ''
-    const s =
+    let s =
         typeof value === 'string'
             ? value
             : typeof value === 'boolean'
@@ -32,6 +36,10 @@ export function escapeCsvCell(value: unknown): string {
                   ? 'Yes'
                   : 'No'
               : String(value)
+    // Neutralize spreadsheet formula execution before RFC-4180 quoting.
+    if (/^[=+\-@\t\r]/.test(s)) {
+        s = `'${s}`
+    }
     if (s.includes(',') || s.includes('"') || s.includes('\n')) {
         return `"${s.replace(/"/g, '""')}"`
     }

@@ -25,8 +25,6 @@ import {
 import { LiabilityDialog } from './LiabilityDialog'
 import { LiabilityGantt } from './LiabilityGantt'
 import { LiabilityKpiStrip } from './LiabilityKpiStrip'
-// LiabilitySummaryCards is dead code as of PR-B; kept in tree for one revert
-// cycle. Delete after PR-B verification ships.
 import { LiabilityTable } from './LiabilityTable'
 import { PaymentDialog } from './PaymentDialog'
 
