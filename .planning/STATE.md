@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Production Hardening & Completeness
-status: milestone_complete
+status: completed
 stopped_at: Completed 23-04-datatable-and-settings-polish-PLAN.md
-last_updated: "2026-05-20T01:26:28.964Z"
+last_updated: "2026-05-20T19:39:26.780Z"
 last_activity: 2026-05-20
 progress:
-  total_phases: 9
+  total_phases: 13
   completed_phases: 9
-  total_plans: 24
-  completed_plans: 22
-  percent: 100
+  total_plans: 25
+  completed_plans: 24
+  percent: 96
 ---
 
 # State: Trust Admin
@@ -153,7 +153,7 @@ Last session: 2026-05-20T01:26:07.921Z
 Stopped at: Completed 23-04-datatable-and-settings-polish-PLAN.md
 Resume file: None
 
-**Planned Phase:** 23 (Shadcn registry adoption and dashboard UX revamp) — 5 plans — 2026-05-19T22:28:15.607Z
+**Planned Phase:** 25 (Reorder ordering and dashboard data wiring) — 1 plans — 2026-05-20T19:39:26.774Z
 
 **Phase 23 progress:**
 
