@@ -60,29 +60,29 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FIRE-01 | TBD | Pending |
-| FIRE-02 | TBD | Pending |
-| FIRE-03 | TBD | Pending |
-| FIRE-04 | TBD | Pending |
-| FIRE-05 | TBD | Pending |
-| FIRE-06 | TBD | Pending |
-| FIRE-07 | TBD | Pending |
-| FIRE-08 | TBD | Pending |
-| FIRE-09 | TBD | Pending |
-| ASSET-01 | TBD | Pending |
-| ASSET-02 | TBD | Pending |
-| ASSET-03 | TBD | Pending |
-| ASSET-04 | TBD | Pending |
-| BENE-01 | TBD | Pending |
-| BENE-02 | TBD | Pending |
-| BENE-03 | TBD | Pending |
-| BENE-04 | TBD | Pending |
+| FIRE-01 | Phase 28 | Pending |
+| FIRE-02 | Phase 28 | Pending |
+| FIRE-03 | Phase 28 | Pending |
+| FIRE-04 | Phase 28 | Pending |
+| FIRE-05 | Phase 28 | Pending |
+| FIRE-06 | Phase 30 | Pending |
+| FIRE-07 | Phase 30 | Pending |
+| FIRE-08 | Phase 28 | Pending |
+| FIRE-09 | Phase 28 | Pending |
+| ASSET-01 | Phase 31 | Pending |
+| ASSET-02 | Phase 31 | Pending |
+| ASSET-03 | Phase 32 | Pending |
+| ASSET-04 | Phase 32 | Pending |
+| BENE-01 | Phase 33 | Pending |
+| BENE-02 | Phase 33 | Pending |
+| BENE-03 | Phase 33 | Pending |
+| BENE-04 | Phase 33 | Pending |
 
 **Coverage:**
 - v1 requirements: 17 total
-- Mapped to phases: 0 (roadmap pending)
-- Unmapped: 17 ⚠️
+- Mapped to phases: 17 (100%)
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-05-21*
-*Last updated: 2026-05-21 after initial definition*
+*Last updated: 2026-05-21 after roadmap creation (Phases 28-33)*
