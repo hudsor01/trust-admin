@@ -4,7 +4,11 @@
  * Respects the current filter state (`getFilteredRowModel`) and the visible
  * leaf columns (`getVisibleLeafColumns`) so the user can never export data
  * that the table is not currently rendering — this is the T-23-04
- * information-disclosure mitigation.
+ * information-disclosure mitigation. The export column set is
+ * `getVisibleLeafColumns()` minus the `select` utility column: the
+ * selection-checkbox column (`id: 'select'`) is UI-only and carries no data,
+ * and `enableHiding: false` does NOT make it invisible, so it is dropped
+ * explicitly here (T-27-04).
  *
  * Output is RFC-4180-compliant: any cell containing comma, double-quote, or
  * newline is wrapped in double-quotes with internal quotes escaped via doubling.
@@ -50,7 +54,9 @@ export function buildCsvBody<TData>(
     table: Table<TData>,
     options?: Pick<ExportTableToCsvOptions, 'formatters'>,
 ): { body: string; rowCount: number } {
-    const visibleColumns = table.getVisibleLeafColumns()
+    const visibleColumns = table
+        .getVisibleLeafColumns()
+        .filter((c) => c.id !== 'select')
     const rows = table.getFilteredRowModel().rows
 
     const headers = visibleColumns.map((c) => {
