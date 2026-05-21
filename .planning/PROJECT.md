@@ -2,7 +2,7 @@
 
 ## What This Is
 
-A trust administration application for managing the **Hudson Living Trust**, a Texas Irrevocable Trust. The grantor (Richard Hudson) died 2024-12-28, making this an **estate settlement** followed by **ongoing trust administration**.
+A trust administration application for managing the **Hudson Living Trust**, a Texas Irrevocable Trust. The grantor (Richard Hudson) died 2025-12-28, making this an **estate settlement** followed by **ongoing trust administration**.
 
 **Two user types:**
 - **Admin (Trustee):** Manages all trust assets, liabilities, accounting, and distributions
@@ -43,11 +43,37 @@ Secure, auditable trust administration with role-based access control and Texas 
 - **v3.0 Email/Password Auth Migration** (2026-02-22) — email/password auth, user provisioning, beneficiary RLS isolation
 - **v4.0 Production Hardening & Completeness** (2026-05-21) — 13 phases: security/perf/correctness hardening, feature completeness, code-quality cleanup, dashboard UX revamp, gap-closure. Audit `passed`, 40/40 requirements. See `milestones/v4.0-ROADMAP.md`.
 
-## Next Milestone
+## Current Milestone: v5.0 Firearms Tracking & Beneficiary UX Refinement
 
-TBD — run `/gsd-new-milestone` to define v5.0 (theme, requirements, roadmap).
+**Goal:** Add firearms as a first-class trust asset class and streamline the Beneficiaries view by removing redundant UI.
 
-Known carry-over (advisory, not blocking): Nyquist validation coverage is `partial`/`missing` across v4.0 phases — optionally backfill with `/gsd-validate-phase {N}` independent of milestone boundaries.
+**Target features:**
+- Beneficiaries view — remove the avatar-stack card and the entire Display Order + withdrawal-milestone gantt section; rely on the table's existing column-click sorting
+- Firearms asset page — new dedicated `firearm` table (serial #, make/model, caliber, NFA class, FFL/ATF transfer status) with router + admin page, integrated into dashboard asset totals
+- Assets nav — alphabetize the dropdown sub-items and insert Firearms: Accounts, Artwork, Firearms, Insurance, Personal Property, Properties, Vehicles
+
+**Notes:**
+- v5.0 is open-ended — these features start the milestone; more phases are added as work surfaces them
+- Firearms stored as a dedicated table (not a `personalProperty` category) — firearms carry regulatory fields (serial #, NFA classification, FFL/ATF Form 5 transfers) the Artwork pattern can't hold
+- Display Order removal keeps the beneficiary `sortIndex` column — only the drag-reorder UI is removed
+- Carry-over (advisory): Nyquist validation coverage is `partial`/`missing` across v4.0 phases — backfill with `/gsd-validate-phase {N}` independent of milestone boundaries
+
+## Evolution
+
+This document evolves at phase transitions and milestone boundaries.
+
+**After each phase transition** (via `/gsd-transition`):
+1. Requirements invalidated? → Move to Out of Scope with reason
+2. Requirements validated? → Move to Validated with phase reference
+3. New requirements emerged? → Add to Active
+4. Decisions to log? → Add to Key Decisions
+5. "What This Is" still accurate? → Update if drifted
+
+**After each milestone** (via `/gsd:complete-milestone`):
+1. Full review of all sections
+2. Core Value check — still the right priority?
+3. Audit Out of Scope — reasons still valid?
+4. Update Context with current state
 
 ---
-*Last updated: 2026-05-21 after v4.0 milestone*
+*Last updated: 2026-05-21 after v5.0 milestone start*
