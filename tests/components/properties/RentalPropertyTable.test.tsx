@@ -56,7 +56,6 @@ describe('RentalPropertyTable', () => {
             <RentalPropertyTable
                 rentals={[]}
                 rentalsLoading={false}
-                selectedEntity={1}
                 onAdd={mock(() => {})}
                 onEdit={mock(() => {})}
                 onDelete={mock(() => {})}
@@ -89,7 +88,6 @@ describe('RentalPropertyTable', () => {
             <RentalPropertyTable
                 rentals={rentals}
                 rentalsLoading={false}
-                selectedEntity={1}
                 onAdd={mock(() => {})}
                 onEdit={mock(() => {})}
                 onDelete={mock(() => {})}
@@ -107,7 +105,6 @@ describe('RentalPropertyTable', () => {
             <RentalPropertyTable
                 rentals={[]}
                 rentalsLoading={true}
-                selectedEntity={1}
                 onAdd={mock(() => {})}
                 onEdit={mock(() => {})}
                 onDelete={mock(() => {})}
@@ -124,7 +121,6 @@ describe('RentalPropertyTable', () => {
             <RentalPropertyTable
                 rentals={[]}
                 rentalsLoading={false}
-                selectedEntity={1}
                 onAdd={mock(() => {})}
                 onEdit={mock(() => {})}
                 onDelete={mock(() => {})}
@@ -143,7 +139,6 @@ describe('RentalPropertyTable', () => {
             <RentalPropertyTable
                 rentals={[]}
                 rentalsLoading={false}
-                selectedEntity={1}
                 onAdd={onAdd}
                 onEdit={mock(() => {})}
                 onDelete={mock(() => {})}
@@ -168,7 +163,6 @@ describe('RentalPropertyTable', () => {
             <RentalPropertyTable
                 rentals={[rental]}
                 rentalsLoading={false}
-                selectedEntity={1}
                 onAdd={mock(() => {})}
                 onEdit={mock(() => {})}
                 onDelete={mock(() => {})}
@@ -186,7 +180,6 @@ describe('RentalPropertyTable', () => {
             <RentalPropertyTable
                 rentals={[makeRentalProperty()]}
                 rentalsLoading={false}
-                selectedEntity={1}
                 onAdd={mock(() => {})}
                 onEdit={mock(() => {})}
                 onDelete={mock(() => {})}
@@ -202,7 +195,6 @@ describe('RentalPropertyTable', () => {
             <RentalPropertyTable
                 rentals={[]}
                 rentalsLoading={false}
-                selectedEntity={1}
                 onAdd={mock(() => {})}
                 onEdit={mock(() => {})}
                 onDelete={mock(() => {})}
@@ -224,7 +216,6 @@ describe('RentalPropertyTable', () => {
             <RentalPropertyTable
                 rentals={[rental]}
                 rentalsLoading={false}
-                selectedEntity={1}
                 onAdd={mock(() => {})}
                 onEdit={mock(() => {})}
                 onDelete={onDelete}
