@@ -3,7 +3,7 @@ import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '@/db'
 import { getLiabilityPayments, recordLiabilityPayment } from '@/db/queries'
-import { bankAccount, liability } from '@/db/schema'
+import { bankAccount, investmentAccount, liability } from '@/db/schema'
 import { insertLiabilitySchema, updateLiabilitySchema } from '@/db/validation'
 import { estimatePayoffDate } from '@/lib/amortization'
 import { addBreadcrumb, traceBusinessOperation } from '@/lib/sentry'
@@ -41,6 +41,56 @@ const recordPaymentSchema = z.object({
     allocationClass: z.enum(ALLOCATION_CLASS_VALUES).optional(),
 })
 
+/**
+ * Verify each non-null linked-account FK on a liability payload belongs to the
+ * SAME entity as the liability (cross-entity tampering guard — T-26-01).
+ *
+ * A `bankAccountId` / `investmentAccountId` is attacker-controllable: a request
+ * scoped to entity A could otherwise attach an account belonging to entity B
+ * and leak it through /accounts row-detail. For each supplied FK we look the
+ * account up scoped by `and(eq(id, fkId), eq(entityId, entityId))` — mirroring
+ * the proven recordPayment guard — and throw BAD_REQUEST when it does not
+ * resolve. `null`/`undefined` FKs (the liability is unlinked) are skipped.
+ */
+async function assertLinkedAccountsInEntity(params: {
+    entityId: number
+    bankAccountId?: number | null
+    investmentAccountId?: number | null
+}): Promise<void> {
+    if (params.bankAccountId !== null && params.bankAccountId !== undefined) {
+        const account = await db.query.bankAccount.findFirst({
+            where: and(
+                eq(bankAccount.id, params.bankAccountId),
+                eq(bankAccount.entityId, params.entityId),
+            ),
+        })
+        if (!account) {
+            throw new TRPCError({
+                code: 'BAD_REQUEST',
+                message: 'Linked account does not belong to this entity',
+            })
+        }
+    }
+
+    if (
+        params.investmentAccountId !== null &&
+        params.investmentAccountId !== undefined
+    ) {
+        const account = await db.query.investmentAccount.findFirst({
+            where: and(
+                eq(investmentAccount.id, params.investmentAccountId),
+                eq(investmentAccount.entityId, params.entityId),
+            ),
+        })
+        if (!account) {
+            throw new TRPCError({
+                code: 'BAD_REQUEST',
+                message: 'Linked account does not belong to this entity',
+            })
+        }
+    }
+}
+
 export const liabilityRouter = createTRPCRouter({
     list: adminProcedure
         .input(z.object({ entityId: z.coerce.number() }))
@@ -63,9 +113,61 @@ export const liabilityRouter = createTRPCRouter({
             })
         }),
 
+    /**
+     * Liabilities linked to a single bank or investment account.
+     *
+     * Tested forward API for a future single-account view. The phase-26
+     * /accounts row-detail deliberately does NOT consume this — it filters the
+     * already-loaded `liability.list` result client-side to avoid an N+1 query
+     * per expanded row. Kept entityId-scoped so the explicit filter and RLS
+     * `app.is_admin()` both apply. Exactly one account id is supplied per call;
+     * if neither is supplied, returns `[]`.
+     */
+    getLinked: adminProcedure
+        .input(
+            z.object({
+                entityId: z.coerce.number(),
+                bankAccountId: z.coerce.number().optional(),
+                investmentAccountId: z.coerce.number().optional(),
+            }),
+        )
+        .query(async ({ input }) => {
+            if (input.bankAccountId !== undefined) {
+                return db
+                    .select()
+                    .from(liability)
+                    .where(
+                        and(
+                            eq(liability.entityId, input.entityId),
+                            eq(liability.bankAccountId, input.bankAccountId),
+                        ),
+                    )
+            }
+            if (input.investmentAccountId !== undefined) {
+                return db
+                    .select()
+                    .from(liability)
+                    .where(
+                        and(
+                            eq(liability.entityId, input.entityId),
+                            eq(
+                                liability.investmentAccountId,
+                                input.investmentAccountId,
+                            ),
+                        ),
+                    )
+            }
+            return []
+        }),
+
     create: adminProcedure
         .input(insertLiabilitySchema)
         .mutation(async ({ input }) => {
+            await assertLinkedAccountsInEntity({
+                entityId: input.entityId,
+                bankAccountId: input.bankAccountId,
+                investmentAccountId: input.investmentAccountId,
+            })
             const [created] = await db
                 .insert(liability)
                 .values({ ...input, updatedAt: new Date().toISOString() })
@@ -87,6 +189,11 @@ export const liabilityRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ input }) => {
+            await assertLinkedAccountsInEntity({
+                entityId: input.entityId,
+                bankAccountId: input.data.bankAccountId,
+                investmentAccountId: input.data.investmentAccountId,
+            })
             const [updated] = await db
                 .update(liability)
                 .set({ ...input.data, updatedAt: new Date().toISOString() })
