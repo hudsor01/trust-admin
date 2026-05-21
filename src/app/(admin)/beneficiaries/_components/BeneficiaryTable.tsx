@@ -294,6 +294,8 @@ export function BeneficiaryTable({
                     emptyMessage="No beneficiaries found"
                     enableColumnVisibility={true}
                     enablePagination={true}
+                    exportable
+                    exportResource="beneficiaries"
                     initialColumnVisibility={{
                         streetAddress: false,
                         city: false,
