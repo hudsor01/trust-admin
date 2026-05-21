@@ -67,6 +67,23 @@ const STATUS_LABELS: Record<string, string> = {
     CANCELLED: 'Cancelled',
 }
 
+// CSV-export value mapper for the display-only `beneficiary` column — it has
+// no `accessorKey`, so `row.getValue` returns `undefined` and the exporter
+// must derive the name from `row.original.beneficiary` here.
+const hemsQueueExportFormatters: Record<
+    string,
+    (value: unknown, row: unknown) => string
+> = {
+    beneficiary: (_v, row) => {
+        const beneficiary = (row as HemsRequestWithBeneficiary).beneficiary
+        if (!beneficiary) return 'Unknown'
+        const name = `${beneficiary.firstName ?? ''} ${
+            beneficiary.lastName ?? ''
+        }`.trim()
+        return beneficiary.email ? `${name} (${beneficiary.email})` : name
+    },
+}
+
 export function HemsQueueClient() {
     const utils = trpc.useUtils()
     const { data: entities } = trpc.entity.list.useQuery()
@@ -258,6 +275,7 @@ export function HemsQueueClient() {
         {
             id: 'actions',
             header: 'Actions',
+            meta: { excludeFromExport: true },
             cell: ({ row }) =>
                 row.original.status === 'PENDING' ? (
                     <Button size="sm" onClick={() => openReview(row.original)}>
@@ -397,6 +415,7 @@ export function HemsQueueClient() {
                                     enablePagination={true}
                                     exportable
                                     exportResource="hems-queue"
+                                    exportFormatters={hemsQueueExportFormatters}
                                 />
                             )}
                         </TabsContent>

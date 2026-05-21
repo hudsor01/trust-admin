@@ -20,6 +20,34 @@ import { cn } from '@/lib/utils'
 import { formatDate } from '@/utils/formatters'
 import { EXPENSE_TYPES, INCOME_TYPES } from './accounting-constants'
 
+// CSV-export value mappers for the display-only columns (`category`, `flags`,
+// `reconciled`) — those columns have no `accessorKey`, so `row.getValue`
+// returns `undefined` and the exporter must read from `row` here. Reproduces
+// exactly what the on-screen cell renders.
+const accountingExportFormatters: Record<
+    string,
+    (value: unknown, row: unknown) => string
+> = {
+    category: (_v, row) => {
+        const r = row as TrustAccounting
+        return r.entryType === 'INCOME'
+            ? (INCOME_TYPES.find((t) => t.value === r.incomeType)?.label ??
+                  r.incomeType ??
+                  '')
+            : (EXPENSE_TYPES.find((t) => t.value === r.expenseType)?.label ??
+                  r.expenseType ??
+                  '')
+    },
+    flags: (_v, row) => {
+        const r = row as TrustAccounting
+        return [r.isPrincipal && 'Principal', r.taxDeductible && 'Deductible']
+            .filter(Boolean)
+            .join('; ')
+    },
+    reconciled: (_v, row) =>
+        (row as TrustAccounting).reconciled ? 'Yes' : 'No',
+}
+
 interface AccountingTableProps {
     data: TrustAccounting[]
     totalCount: number
@@ -186,6 +214,7 @@ export function AccountingTable({
         {
             id: 'actions',
             header: '',
+            meta: { excludeFromExport: true },
             cell: ({ row }) => (
                 <div className="flex items-center gap-1">
                     <Button
@@ -265,6 +294,7 @@ export function AccountingTable({
                             bulkActions={bulkActions}
                             exportable
                             exportResource="accounting"
+                            exportFormatters={accountingExportFormatters}
                         />
                         {totalPages > 1 && (
                             <div className="flex items-center justify-between pt-4">

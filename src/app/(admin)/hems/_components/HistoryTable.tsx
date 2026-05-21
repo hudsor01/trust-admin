@@ -1,6 +1,7 @@
 'use client'
 
 import type { ColumnDef } from '@tanstack/react-table'
+import { useMemo } from 'react'
 import { EditableTextCell } from '@/components/editable-cells'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -20,6 +21,34 @@ interface HistoryTableProps {
     ) => Promise<void>
 }
 
+/**
+ * Build CSV-export value mappers for display columns that resolve from props
+ * rather than a row accessor. `Beneficiary` renders a name looked up from the
+ * `beneficiaries` prop (the column's `accessorKey` yields a raw id), and
+ * `Type` renders a derived label — both must be reproduced for the export.
+ */
+function buildHistoryExportFormatters(
+    beneficiaries: Beneficiary[],
+): Record<string, (value: unknown, row: unknown) => string> {
+    return {
+        beneficiaryId: (_v, row) => {
+            const r = row as Distribution
+            const beneficiary = beneficiaries.find(
+                (b) => b.id === r.beneficiaryId,
+            )
+            return beneficiary
+                ? `${beneficiary.firstName} ${beneficiary.lastName}`
+                : ''
+        },
+        distributionType: (_v, row) => {
+            const r = row as Distribution
+            return r.isWithdrawal
+                ? 'Withdrawal'
+                : (r.hemsCategory ?? r.distributionType ?? '')
+        },
+    }
+}
+
 export function HistoryTable({
     distributions,
     beneficiaries,
@@ -36,6 +65,7 @@ export function HistoryTable({
         },
         {
             accessorKey: 'beneficiaryId',
+            meta: { exportHeader: 'Beneficiary' },
             header: ({ column }) => (
                 <DataTableColumnHeader column={column} title="Beneficiary" />
             ),
@@ -50,6 +80,7 @@ export function HistoryTable({
         },
         {
             accessorKey: 'distributionType',
+            meta: { exportHeader: 'Type' },
             header: ({ column }) => (
                 <DataTableColumnHeader column={column} title="Type" />
             ),
@@ -102,6 +133,11 @@ export function HistoryTable({
         },
     ]
 
+    const exportFormatters = useMemo(
+        () => buildHistoryExportFormatters(beneficiaries),
+        [beneficiaries],
+    )
+
     return (
         <Card>
             <CardHeader>
@@ -116,6 +152,7 @@ export function HistoryTable({
                     emptyMessage="No distributions recorded"
                     exportable
                     exportResource="distributions"
+                    exportFormatters={exportFormatters}
                 />
             </CardContent>
         </Card>

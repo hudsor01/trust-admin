@@ -16,6 +16,11 @@
  * Cells whose first character could be read as a spreadsheet formula
  * (`= + - @`, tab, CR) are prefixed with a single quote so Excel/Sheets
  * treats them as literal text — CSV formula-injection guard.
+ *
+ * Two `columnDef.meta` flags shape the export (declared in `data-table.tsx`):
+ * `excludeFromExport` drops a column from the CSV entirely (UI-only columns
+ * like row actions), and `exportHeader` supplies a human label for columns
+ * whose `header` is a render function rather than a string.
  */
 import type { Table } from '@tanstack/react-table'
 import { formatCurrency, formatDate, formatPercent } from '@/utils/formatters'
@@ -56,10 +61,16 @@ export function buildCsvBody<TData>(
 ): { body: string; rowCount: number } {
     const visibleColumns = table
         .getVisibleLeafColumns()
-        .filter((c) => c.id !== 'select')
+        .filter(
+            (c) =>
+                c.id !== 'select' &&
+                c.columnDef.meta?.excludeFromExport !== true,
+        )
     const rows = table.getFilteredRowModel().rows
 
     const headers = visibleColumns.map((c) => {
+        const exportHeader = c.columnDef.meta?.exportHeader
+        if (typeof exportHeader === 'string') return exportHeader
         const header = c.columnDef.header
         if (typeof header === 'string') return header
         return c.id

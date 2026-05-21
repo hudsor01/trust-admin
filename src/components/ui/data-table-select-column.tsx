@@ -33,6 +33,10 @@ export function selectColumn<TData>(): ColumnDef<TData, unknown> {
         enableResizing: false,
         header: ({ table }) => (
             <Checkbox
+                // CheckedState tri-state: `true` when all rows selected,
+                // the string `'indeterminate'` when only some are, else
+                // `false`. The `&&` yields the string by design — Radix
+                // Checkbox accepts `boolean | 'indeterminate'`.
                 checked={
                     table.getIsAllPageRowsSelected() ||
                     (table.getIsSomePageRowsSelected() && 'indeterminate')

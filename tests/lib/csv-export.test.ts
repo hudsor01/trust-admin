@@ -189,6 +189,55 @@ describe('buildCsvBody', () => {
         expect(body).not.toContain('Carol')
     })
 
+    test('excludes columns flagged meta.excludeFromExport (UI-only columns)', () => {
+        const withActions: ColumnDef<Row>[] = [
+            ...columns,
+            {
+                id: 'actions',
+                header: 'Actions',
+                meta: { excludeFromExport: true },
+                cell: () => null,
+            },
+        ]
+        const { result } = renderHook(() =>
+            useReactTable<Row>({
+                data,
+                columns: withActions,
+                getCoreRowModel: getCoreRowModel(),
+                getFilteredRowModel: getFilteredRowModel(),
+            }),
+        )
+        const { body } = buildCsvBody(result.current)
+        const lines = body.split('\n')
+        // "Actions" header gone, every row keeps only the 4 data columns.
+        expect(lines[0]).toBe('Name,Amount,Date,Secret')
+        expect(lines[1].split(',').length).toBe(4)
+    })
+
+    test('uses meta.exportHeader for columns with a render-function header', () => {
+        const withFnHeader: ColumnDef<Row>[] = [
+            {
+                id: 'name',
+                accessorKey: 'name',
+                meta: { exportHeader: 'Full Name' },
+                // Render-function header: without exportHeader the exporter
+                // would fall back to the raw column id "name".
+                header: () => null,
+            },
+            helper.accessor('amount', { id: 'amount', header: 'Amount' }),
+        ]
+        const { result } = renderHook(() =>
+            useReactTable<Row>({
+                data,
+                columns: withFnHeader,
+                getCoreRowModel: getCoreRowModel(),
+                getFilteredRowModel: getFilteredRowModel(),
+            }),
+        )
+        const { body } = buildCsvBody(result.current)
+        expect(body.split('\n')[0]).toBe('Full Name,Amount')
+    })
+
     test('excludes the select/utility column (id: "select") — no spurious header or leading empty cell', () => {
         // A table whose first column is the UI-only select column. A plain
         // ColumnDef with id "select" exercises the same `c.id !== 'select'`
