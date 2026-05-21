@@ -221,7 +221,7 @@ Phases execute in numeric order: 15 -> 16 -> 17 -> 18 -> 19 -> 20 -> 21 -> 22
 | 23. shadcn-registry-adoption-and-dashboard-ux-revamp | v4.0 | 5/5 | Complete | 2026-05-20 |
 | 24. test-suite-and-lint-hygiene | v4.0 | 0/0 | Complete (verified pre-resolved) | 2026-05-20 |
 | 25. reorder-ordering-and-dashboard-data-wiring | v4.0 | 1/1 | Complete    | 2026-05-20 |
-| 26. schema-completeness-for-kpi-data | v4.0 | 2/3 | In progress | - |
+| 26. schema-completeness-for-kpi-data | v4.0 | 3/3 | Complete | 2026-05-20 |
 | 27. datatable-rollout-theme-token-and-doc-accuracy | v4.0 | TBD | Planned | - |
 
 ### Phase 23: Shadcn registry adoption and dashboard UX revamp
@@ -278,7 +278,7 @@ Plans:
 Plans:
 - [x] 26-01-schema-and-migration-PLAN.md — Add estimatedValue / insured / liability FK columns to db/schema.ts + relations, generate + hand-edit migration 0013, [BLOCKING] db:deploy with live-DB column-existence check ✅ 2026-05-20
 - [x] 26-03-transfer-status-through-asset-aggregator-PLAN.md — Surface transferStatus through asset.listAll AssetRow + all 7 mappers, recompute /assets Transfer-status progress KPI from the real field ✅ 2026-05-20
-- [ ] 26-02-router-form-and-kpi-wiring-PLAN.md — Liability cross-entity FK validation + getLinked query, wire bequest estimatedValue / personal-property insured / liability account-linkage through routers, forms, and KPI strips
+- [x] 26-02-router-form-and-kpi-wiring-PLAN.md — Liability cross-entity FK validation + getLinked query, wire bequest estimatedValue / personal-property insured / liability account-linkage through routers, forms, and KPI strips ✅ 2026-05-20
 
 ### Phase 27: DataTable rollout, theme token, and doc accuracy
 

@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Production Hardening & Completeness
-status: executing
-stopped_at: Completed 26-01-schema-and-migration-PLAN.md
-last_updated: "2026-05-21T00:08:58.123Z"
+status: completed
+stopped_at: Completed 26-03-transfer-status-through-asset-aggregator-PLAN.md
+last_updated: "2026-05-21T00:40:13.852Z"
 last_activity: 2026-05-20
 progress:
   total_phases: 13
-  completed_phases: 10
+  completed_phases: 11
   total_plans: 28
-  completed_plans: 27
-  percent: 96
+  completed_plans: 28
+  percent: 100
 ---
 
 # State: Trust Admin
@@ -20,11 +20,11 @@ progress:
 
 Milestone: v4.0 Production Hardening & Completeness
 Phase: 26
-Plan: 26-03 complete (2/3)
-Status: In progress
+Plan: 26-02 complete (3/3) — phase 26 complete
+Status: Phase complete
 Last activity: 2026-05-20
 
-Progress: [██████████] 96%
+Progress: [██████████] 100%
 
 ## Accumulated Context
 
@@ -117,6 +117,9 @@ Progress: [██████████] 96%
 - [Phase 26] Test-branch DB synced via committed idempotent postgres.js transaction script (scripts/apply-0013-testbranch.ts) -- FK ADD CONSTRAINT wrapped in DO $$ existence guards
 - [Phase 26] AssetRow.transferStatus typed string | null -- null for insurancePolicy (no transferStatus column per CLAUDE.md), TransferStatus enum value for the six transferable kinds; the aggregator surfaces the absence as an explicit null literal with a doc comment rather than omitting the field
 - [Phase 26] /assets Transfer-status progress KPI excludes null-transferStatus rows (insurance policies) from the denominator -- progress = COMPLETE transfers / transferable assets, replacing the status === 'ACTIVE' approximation (no schema change; transferStatus already existed on the six transferable asset tables)
+- [Phase 26] liability router gains a cross-entity FK guard (assertLinkedAccountsInEntity) -- verifies each non-null bankAccountId/investmentAccountId belongs to the request's entity, throws BAD_REQUEST otherwise; mirrors the recordPayment guard (T-26-01 mitigation), runs before insert/update
+- [Phase 26] liability.getLinked is a tested forward API NOT consumed by phase-26 UI -- /accounts row-detail filters trpc.liability.list client-side to avoid an N+1 query per expanded row; getLinked reserved for a future single-account view (not dead code)
+- [Phase 26] /bequests Total value KPI sums estimatedValue via sumStrings; /artwork Insured count KPI counts the real insured boolean -- both phase-23 placeholder KPIs (em-dash, hardcoded 0) replaced with real data; liability create/edit form links to bank/investment accounts via nullable-FK Selects
 
 ### Auth API Patterns That Work
 
@@ -159,15 +162,15 @@ const rows = await sql`SELECT id, name, email FROM neon_auth."user" WHERE lower(
 
 ## Session Continuity
 
-Last session: 2026-05-21T00:14:00.000Z
-Stopped at: Completed 26-03-transfer-status-through-asset-aggregator-PLAN.md
+Last session: 2026-05-20T00:00:00.000Z
+Stopped at: Completed 26-02-router-form-and-kpi-wiring-PLAN.md — phase 26 complete
 Resume file: None
 
-**Phase 26 progress:**
+**Phase 26 progress:** COMPLETE (3/3)
 
 - [x] 26-01-schema-and-migration (Wave 1) — Added 4 KPI columns in migration 0013: specific_bequest.estimatedValue numeric(14,2), personal_property.insured boolean default false, liability.bankAccountId + investmentAccountId nullable FKs (onDelete set null) + 2 indexes; liabilityRelations bankAccount/investmentAccount one-relations; insertSpecificBequestSchema null-safe estimatedValue validator; migration applied to live DB + test branch ([BLOCKING] db:deploy verified via information_schema.columns runtime check — all 4 columns present); 1003 unit tests passing — 2026-05-20 (commits f9dee94, 311a06c, 9c5e532 on feat/26-schema-completeness)
 - [x] 26-03-transfer-status-through-asset-aggregator (Wave 2) — AssetRow gains a transferStatus field (string | null); all 7 per-kind mappers in routers/asset.ts set it (6 pass the source column through, insurancePolicy sets null — no transferStatus column); asset.test.ts asserts transferStatus on returned rows (PENDING for the 6 transferable kinds, null for insurance); /assets "Transfer-status progress" KPI recomputed from the real field (COMPLETE / transferable, insurance excluded from the denominator) — replaces the status === 'ACTIVE' approximation; no schema change; 1005 unit tests passing — 2026-05-20 (commits d662317, 1d94826 on feat/26-schema-completeness)
-- [ ] 26-02-router-form-and-kpi-wiring (Wave 2)
+- [x] 26-02-router-form-and-kpi-wiring (Wave 2) — liability router gains assertLinkedAccountsInEntity (cross-entity FK guard on create/update — T-26-01) + getLinked query (tested forward API, not consumed by phase-26 UI); /bequests Total value KPI sums real estimatedValue via sumStrings (em-dash placeholder gone); /artwork Insured count KPI counts the real insured boolean (hardcoded 0 gone); liability create/edit form links to bank/investment accounts via nullable-FK Selects; /accounts row-detail lists genuinely linked liabilities on both account types (client-side filter over trpc.liability.list, no N+1); 5 TDD linkage tests; 1010 unit tests passing — 2026-05-20 (commits 11a8099, 14c81a1, e888b9d, 975dfc0, aa13532 on feat/26-schema-completeness)
 
 **Phase 25 progress:**
 
