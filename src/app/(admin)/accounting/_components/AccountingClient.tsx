@@ -239,6 +239,28 @@ export function AccountingClient() {
         confirmDelete()
     }
 
+    // Sequential (NOT Promise.all) bulk delete: a mid-batch failure leaves a
+    // known committed set and an exact failure count to report.
+    const onBulkDelete = async (rows: TrustAccounting[]) => {
+        let failed = 0
+        for (const row of rows) {
+            try {
+                await deleteEntryMutation.mutateAsync({
+                    id: row.id,
+                    entityId: entityId!,
+                })
+            } catch (error) {
+                failed++
+                log.error('Bulk delete failed', { id: row.id, error })
+            }
+        }
+        if (failed > 0) {
+            toast.error(`Failed to delete ${failed} of ${rows.length} entries`)
+        } else {
+            toast.success(`Deleted ${rows.length} entries`)
+        }
+    }
+
     const updateEntry = async (
         id: number,
         updates: Partial<TrustAccounting>,
@@ -393,6 +415,7 @@ export function AccountingClient() {
                 onTabChange={handleTabChange}
                 onEditEntry={openEditForm}
                 onDeleteEntry={deleteEntry}
+                onBulkDelete={onBulkDelete}
                 onUpdateEntry={updateEntry}
             />
 

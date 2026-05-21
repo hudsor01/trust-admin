@@ -308,6 +308,30 @@ export function LiabilitiesClient() {
         })
     }
 
+    // Sequential (NOT Promise.all) bulk delete: a mid-batch failure leaves a
+    // known committed set and an exact failure count to report.
+    const onBulkDelete = async (rows: Liability[]) => {
+        let failed = 0
+        for (const row of rows) {
+            try {
+                await deleteLiabilityMutation.mutateAsync({
+                    id: row.id,
+                    entityId: entityId!,
+                })
+            } catch (err) {
+                failed++
+                log.error('Bulk delete failed', { id: row.id, error: err })
+            }
+        }
+        if (failed > 0) {
+            toast.error(
+                `Failed to delete ${failed} of ${rows.length} liabilities`,
+            )
+        } else {
+            toast.success(`Deleted ${rows.length} liabilities`)
+        }
+    }
+
     const totalLiabilities = sumStrings(
         optimisticLiabilities.map((l) => l.currentBalance),
     )
@@ -373,6 +397,7 @@ export function LiabilitiesClient() {
                 onRecordPayment={openPaymentDialog}
                 onBulkSave={handleBulkSave}
                 onBulkCancel={() => setBulkMode(false)}
+                onBulkDelete={onBulkDelete}
                 onUpdateLiability={updateLiability}
             />
 

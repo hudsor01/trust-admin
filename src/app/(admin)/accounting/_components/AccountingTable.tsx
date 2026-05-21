@@ -10,7 +10,9 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { DataTable } from '@/components/ui/data-table'
+import type { BulkAction } from '@/components/ui/data-table-bulk-actions'
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
+import { selectColumn } from '@/components/ui/data-table-select-column'
 import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { TrustAccounting } from '@/db/schema'
@@ -31,6 +33,7 @@ interface AccountingTableProps {
     onTabChange: (tab: string) => void
     onEditEntry: (entry: TrustAccounting) => void
     onDeleteEntry: (id: number) => void
+    onBulkDelete: (rows: TrustAccounting[]) => Promise<void>
     onUpdateEntry: (id: number, updates: Partial<TrustAccounting>) => void
 }
 
@@ -47,9 +50,11 @@ export function AccountingTable({
     onTabChange,
     onEditEntry,
     onDeleteEntry,
+    onBulkDelete,
     onUpdateEntry,
 }: AccountingTableProps) {
     const accountingColumns: ColumnDef<TrustAccounting>[] = [
+        selectColumn<TrustAccounting>(),
         {
             accessorKey: 'accountingDate',
             header: ({ column }) => (
@@ -206,6 +211,15 @@ export function AccountingTable({
         },
     ]
 
+    const bulkActions: BulkAction<TrustAccounting>[] = [
+        {
+            label: 'Delete',
+            icon: Trash2,
+            variant: 'destructive',
+            onClick: onBulkDelete,
+        },
+    ]
+
     return (
         <Card>
             <Tabs value={activeTab} onValueChange={onTabChange}>
@@ -247,6 +261,10 @@ export function AccountingTable({
                             emptyMessage="No entries recorded yet. Click 'Add Entry' to start tracking."
                             enableColumnVisibility={true}
                             enablePagination={false}
+                            enableRowSelection
+                            bulkActions={bulkActions}
+                            exportable
+                            exportResource="accounting"
                         />
                         {totalPages > 1 && (
                             <div className="flex items-center justify-between pt-4">
