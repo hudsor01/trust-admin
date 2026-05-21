@@ -222,7 +222,7 @@ Phases execute in numeric order: 15 -> 16 -> 17 -> 18 -> 19 -> 20 -> 21 -> 22
 | 24. test-suite-and-lint-hygiene | v4.0 | 0/0 | Complete (verified pre-resolved) | 2026-05-20 |
 | 25. reorder-ordering-and-dashboard-data-wiring | v4.0 | 1/1 | Complete    | 2026-05-20 |
 | 26. schema-completeness-for-kpi-data | v4.0 | 3/3 | Complete    | 2026-05-21 |
-| 27. datatable-rollout-theme-token-and-doc-accuracy | v4.0 | 3/4 | In progress | - |
+| 27. datatable-rollout-theme-token-and-doc-accuracy | v4.0 | 4/4 | Complete    | 2026-05-20 |
 
 ### Phase 23: Shadcn registry adoption and dashboard UX revamp
 
