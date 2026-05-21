@@ -114,6 +114,8 @@ export function HistoryTable({
                     columns={historyColumns}
                     isLoading={isLoading}
                     emptyMessage="No distributions recorded"
+                    exportable
+                    exportResource="distributions"
                 />
             </CardContent>
         </Card>

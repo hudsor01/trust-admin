@@ -395,6 +395,8 @@ export function HemsQueueClient() {
                                     emptyMessage="No requests found."
                                     enableColumnVisibility={true}
                                     enablePagination={true}
+                                    exportable
+                                    exportResource="hems-queue"
                                 />
                             )}
                         </TabsContent>
