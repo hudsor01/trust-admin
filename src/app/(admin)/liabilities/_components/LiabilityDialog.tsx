@@ -21,6 +21,12 @@ import {
 } from './LiabilityConstants'
 import { PaymentPreview } from './PaymentPreview'
 
+/** Minimal account shape for the linked-account Select dropdowns. */
+interface LinkableAccount {
+    id: number
+    name: string
+}
+
 interface LiabilityDialogProps {
     isOpen: boolean
     isEditing: boolean
@@ -28,6 +34,8 @@ interface LiabilityDialogProps {
     onOpenChange: (open: boolean) => void
     onSubmit: () => void
     formInstance: UseResourceFormReturn<LiabilityFormData>['formInstance']
+    bankAccounts: LinkableAccount[]
+    investmentAccounts: LinkableAccount[]
 }
 
 export function LiabilityDialog({
@@ -37,6 +45,8 @@ export function LiabilityDialog({
     onOpenChange,
     onSubmit,
     formInstance,
+    bankAccounts,
+    investmentAccounts,
 }: LiabilityDialogProps) {
     return (
         <ResourceDialog
@@ -517,6 +527,80 @@ export function LiabilityDialog({
                         </div>
                     )}
                 </formInstance.Field>
+
+                {/* Linked accounts — nullable FK Selects. The "__none__"
+                    sentinel maps to '' (Phase 23 convention). The router
+                    rejects an account from another entity (T-26-01). */}
+                <div className="grid grid-cols-2 gap-4">
+                    <formInstance.Field name="bankAccountId">
+                        {(field) => (
+                            <div className="space-y-2">
+                                <Label htmlFor="bank-account">
+                                    Linked bank account
+                                </Label>
+                                <Select
+                                    value={field.state.value || '__none__'}
+                                    onValueChange={(v) =>
+                                        field.handleChange(
+                                            v === '__none__' ? '' : v,
+                                        )
+                                    }
+                                >
+                                    <SelectTrigger id="bank-account">
+                                        <SelectValue placeholder="None" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="__none__">
+                                            None
+                                        </SelectItem>
+                                        {bankAccounts.map((a) => (
+                                            <SelectItem
+                                                key={a.id}
+                                                value={String(a.id)}
+                                            >
+                                                {a.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
+                    </formInstance.Field>
+                    <formInstance.Field name="investmentAccountId">
+                        {(field) => (
+                            <div className="space-y-2">
+                                <Label htmlFor="investment-account">
+                                    Linked investment account
+                                </Label>
+                                <Select
+                                    value={field.state.value || '__none__'}
+                                    onValueChange={(v) =>
+                                        field.handleChange(
+                                            v === '__none__' ? '' : v,
+                                        )
+                                    }
+                                >
+                                    <SelectTrigger id="investment-account">
+                                        <SelectValue placeholder="None" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="__none__">
+                                            None
+                                        </SelectItem>
+                                        {investmentAccounts.map((a) => (
+                                            <SelectItem
+                                                key={a.id}
+                                                value={String(a.id)}
+                                            >
+                                                {a.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
+                    </formInstance.Field>
+                </div>
 
                 <formInstance.Field name="notes">
                     {(field) => (

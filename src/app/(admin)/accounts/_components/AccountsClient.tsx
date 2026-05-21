@@ -6,7 +6,7 @@ import { ConfirmDialog, useConfirmDialog } from '@/components/confirm-dialog'
 import { KpiStrip, type KpiStripItem } from '@/components/kpi-strip'
 import { PageHeader } from '@/components/page-header'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import type { BankAccount, InvestmentAccount } from '@/db/schema'
+import type { BankAccount, InvestmentAccount, Liability } from '@/db/schema'
 import { useResourceForm } from '@/hooks/use-resource-form'
 import {
     BANK_ACCOUNT_WIZARD_STEPS,
@@ -64,6 +64,13 @@ export function AccountsClient() {
 
     const { data: bankActivity } = trpc.dashboard.activityCounts.useQuery(
         { entityId: entityId!, tableName: 'bank_account', days: 30 },
+        { enabled: !!entityId },
+    )
+
+    // All liabilities for the entity — filtered client-side per expanded row
+    // in getRowDetail to avoid an N+1 query (one fetch, not one per account).
+    const { data: liabilities = [] } = trpc.liability.list.useQuery(
+        { entityId: entityId! },
         { enabled: !!entityId },
     )
 
@@ -370,13 +377,11 @@ export function AccountsClient() {
                                     </dt>
                                     <dd>{account.notes ?? '—'}</dd>
                                 </dl>
-                                <p className="mt-2 text-xs text-muted-foreground">
-                                    Linked liabilities are not yet wired — the
-                                    schema does not currently link a liability
-                                    to a bank or investment account (only to a
-                                    homestead, rental property, or vehicle).
-                                    Tracked as a TODO in plan 23-04 SUMMARY.
-                                </p>
+                                <LinkedLiabilities
+                                    liabilities={liabilities.filter(
+                                        (l) => l.bankAccountId === account.id,
+                                    )}
+                                />
                             </div>
                         )}
                     />
@@ -389,6 +394,36 @@ export function AccountsClient() {
                         onEdit={handleEditInvestment}
                         onDelete={handleDeleteInvestment}
                         onUpdate={updateInvestmentAccount}
+                        getRowDetail={(account) => (
+                            <div className="space-y-1">
+                                <p className="text-sm font-semibold">
+                                    Account detail
+                                </p>
+                                <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                                    <dt className="text-muted-foreground">
+                                        DOD date
+                                    </dt>
+                                    <dd>
+                                        {account.dodValueDate
+                                            ? new Date(
+                                                  account.dodValueDate,
+                                              ).toLocaleDateString()
+                                            : '—'}
+                                    </dd>
+                                    <dt className="text-muted-foreground">
+                                        Notes
+                                    </dt>
+                                    <dd>{account.notes ?? '—'}</dd>
+                                </dl>
+                                <LinkedLiabilities
+                                    liabilities={liabilities.filter(
+                                        (l) =>
+                                            l.investmentAccountId ===
+                                            account.id,
+                                    )}
+                                />
+                            </div>
+                        )}
                     />
                 </TabsContent>
             </Tabs>
@@ -415,6 +450,33 @@ export function AccountsClient() {
 
             <ConfirmDialog {...deleteBankDialogProps} />
             <ConfirmDialog {...deleteInvestmentDialogProps} />
+        </div>
+    )
+}
+
+/** Renders the liabilities linked to an account inside a row-detail panel. */
+function LinkedLiabilities({ liabilities }: { liabilities: Liability[] }) {
+    return (
+        <div className="mt-3 border-t pt-2">
+            <p className="text-xs font-semibold text-muted-foreground">
+                Linked liabilities
+            </p>
+            {liabilities.length === 0 ? (
+                <p className="mt-1 text-xs text-muted-foreground">
+                    No linked liabilities
+                </p>
+            ) : (
+                <ul className="mt-1 space-y-1">
+                    {liabilities.map((l) => (
+                        <li key={l.id} className="flex justify-between text-sm">
+                            <span>{l.creditor}</span>
+                            <span className="tabular-nums">
+                                {formatCurrency(l.currentBalance)}
+                            </span>
+                        </li>
+                    ))}
+                </ul>
+            )}
         </div>
     )
 }

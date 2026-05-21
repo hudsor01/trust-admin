@@ -58,6 +58,12 @@ export function LiabilitiesClient() {
         { enabled: !!entityId },
     )
 
+    const { data: investmentAccounts = [] } =
+        trpc.investmentAccount.list.useQuery(
+            { entityId: entityId! },
+            { enabled: !!entityId },
+        )
+
     // Aggregate asset values for the DebtToEquity donut (single round-trip via
     // dashboard.summary — already cached if dashboard was visited).
     const { data: dashboardSummary } = trpc.dashboard.summary.useQuery(
@@ -150,6 +156,12 @@ export function LiabilitiesClient() {
                     ? data.escrowMonthly || null
                     : null,
                 isRevolvingCredit: isRevolvingType(data.liabilityType),
+                bankAccountId: data.bankAccountId
+                    ? Number(data.bankAccountId)
+                    : null,
+                investmentAccountId: data.investmentAccountId
+                    ? Number(data.investmentAccountId)
+                    : null,
                 status: asRecordStatus(data.status),
                 notes: data.notes || null,
             }
@@ -238,6 +250,10 @@ export function LiabilitiesClient() {
             loanTermMonths: l.loanTermMonths?.toString() || '',
             loanStartDate: toDateInput(l.loanStartDate) || null,
             escrowMonthly: l.escrowMonthly?.toString() || '',
+            bankAccountId: l.bankAccountId ? String(l.bankAccountId) : '',
+            investmentAccountId: l.investmentAccountId
+                ? String(l.investmentAccountId)
+                : '',
             status: l.status,
             notes: l.notes || '',
         })
@@ -367,6 +383,8 @@ export function LiabilitiesClient() {
                 onOpenChange={liabilityForm.close}
                 onSubmit={liabilityForm.handleSave}
                 formInstance={liabilityFormInstance}
+                bankAccounts={bankAccounts}
+                investmentAccounts={investmentAccounts}
             />
 
             <PaymentDialog
