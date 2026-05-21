@@ -286,7 +286,10 @@ Plans:
 **Requirements:** Gap closure (INT-G1)
 **Depends on:** Phase 23
 **Gap Closure:** Closes v4.0-MILESTONE-AUDIT INT-G1 + phase-23 tech_debt (DataTable rollout, milestone token, doc hygiene)
-**Plans:** TBD (run /gsd-plan-phase 27 to break down)
+**Plans:** 4 plans (2 waves)
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 27 to break down)
+- [ ] 27-01-PLAN.md — Build the shared selectColumn DataTable helper (unblocks bulkActions); correct REQUIREMENTS.md SEC-08 (INT-G1); refresh stale 23-VERIFICATION.md frontmatter
+- [ ] 27-02-PLAN.md — Add the dedicated --milestone OKLCH theme token (light + dark + @theme); repoint the dashboard milestone alert + HEMS withdrawal badge off accent
+- [ ] 27-03-PLAN.md — Roll exportable + bulk-delete onto the asset tables (Vehicles, Properties, Personal Property, Insurance) + exportable on Beneficiaries
+- [ ] 27-04-PLAN.md — Roll exportable + bulk-delete onto Liabilities + Accounting; exportable on HEMS-queue table, HEMS/distribution/withdrawal tables, and Users

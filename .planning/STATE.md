@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Production Hardening & Completeness
-status: ready_to_plan
-stopped_at: Completed 26-03-transfer-status-through-asset-aggregator-PLAN.md
-last_updated: "2026-05-21T00:40:13.852Z"
-last_activity: 2026-05-20
+status: planning
+stopped_at: Completed 26-02-router-form-and-kpi-wiring-PLAN.md — phase 26 complete
+last_updated: "2026-05-21T02:37:03.390Z"
+last_activity: 2026-05-21
 progress:
   total_phases: 13
-  completed_phases: 12
-  total_plans: 28
+  completed_phases: 11
+  total_plans: 32
   completed_plans: 28
-  percent: 92
+  percent: 88
 ---
 
 # State: Trust Admin
@@ -184,4 +184,4 @@ Resume file: None
 - [x] 23-04-datatable-and-settings-polish (Wave 3 / PR-C+D) — DataTable bulkActions/exportable/getRowDetail props, csv-export lib, PreferenceRow + 4-card settings refresh, Dice sortable installed, migration 0012 (beneficiary.sortIndex + 2 composite indexes) applied, trustee/beneficiary reorder mutations, sortable consumers, 40 plan tests + 965 unit tests passing — 2026-05-20 (commits 81009c8, aadb02e, 5894e57 on feat/23-04-datatable-and-settings-polish)
 - [ ] 23-05-asset-wizard (DEFERRED)
 
-**Planned Phase:** 26 (Schema completeness for KPI data) — 3 plans — 2026-05-20T23:26:28.184Z
+**Planned Phase:** 27 (DataTable rollout, theme token, and doc accuracy) — 4 plans — 2026-05-21T02:37:03.384Z
