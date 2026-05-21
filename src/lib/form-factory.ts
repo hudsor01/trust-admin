@@ -79,6 +79,39 @@ export const vehicleFormDefaults = createFormDefaults({
     notes: '',
 })
 
+// Firearm (v5.0 Phase 30) — NOTE: nfaTransferStatus is INTENTIONALLY omitted.
+// Per Phase 29 D-03, that field's only mutation path is setNfaTransferStatus
+// (via NfaStatusDialog); FirearmDialog must not bind it.
+export const firearmFormDefaults = createFormDefaults({
+    name: '',
+    description: '',
+    make: '',
+    model: '',
+    serialNumber: '',
+    firearmType: 'PISTOL',
+    caliber: '',
+    barrelLength: '',
+    action: '',
+    isNfa: false,
+    nfaClass: null as string | null,
+    atfFormType: null as string | null,
+    atfControlNumber: '',
+    taxStampDate: null as string | null,
+    nfrtrSerial: '',
+    nfaRegistered: null as boolean | null,
+    acquisitionDate: null as string | null,
+    acquisitionCost: '',
+    dodValue: '',
+    dodValueDate: null as string | null,
+    dodValueType: '',
+    condition: 'GOOD',
+    status: 'ACTIVE',
+    transferStatus: 'PENDING',
+    location: '',
+    insured: false,
+    notes: '',
+})
+
 export const bankAccountFormDefaults = createFormDefaults({
     name: '',
     description: '',
