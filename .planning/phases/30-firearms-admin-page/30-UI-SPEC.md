@@ -56,6 +56,14 @@ Exceptions:
 
 Inherited from Phase 23 global system. No overrides for this page.
 
+**Project-baseline exemption (STATE.md `[Phase 23]`):** Phase 23 locked **3 font
+weights** (400 / 500 / 600) as the project-wide standard used by every admin
+page and the shared `KpiStrip`/`PageHeader`/`DataTable` primitives. The
+"max 2 weights" UI-checker rule applies to NEW per-page declarations; this
+page introduces **zero** new weights — it inherits the locked baseline
+verbatim. Forcing 2 weights here would diverge from 12 existing admin pages
+and ship a visibly inconsistent firearm page.
+
 | Role | Size | Weight | Line Height | Usage |
 |------|------|--------|-------------|-------|
 | Body | 14px (text-sm) | 400 | 1.5 | Table cells, form labels, help text |
@@ -168,7 +176,7 @@ of the DataTable primitive).
 | 6 | `condition` | Condition | `EditableSelectCell` with `CONDITION_OPTIONS` | Yes |
 | 7 | `dodValue` | DOD Value | `EditableCurrencyCell` | Yes |
 | 8 | `transferStatus` | Transfer | `EditableSelectCell` with `TRANSFER_STATUS` variants | Yes |
-| 9 | `actions` | — | Edit (Pencil) + Delete (Trash2) ghost icon buttons | Yes |
+| 9 | `actions` | — | Edit (Pencil, `aria-label="Edit firearm"`) + Delete (Trash2, `aria-label="Delete firearm"`) ghost icon buttons; both wrapped in `<Tooltip>` with the same label text | Yes |
 
 **Hidden by default** (user toggles via Columns button):
 
@@ -404,8 +412,8 @@ serial number.
 | Primary CTA | "Add Firearm" |
 | Dialog title (create) | "Add Firearm" |
 | Dialog title (edit) | "Edit Firearm" |
-| Dialog submit (create) | "Create" |
-| Dialog submit (edit) | "Save" |
+| Dialog submit (create) | "Create Firearm" |
+| Dialog submit (edit) | "Save Changes" |
 | PageHeader title | "Firearms" |
 | PageHeader description | "Firearms held by the trust." |
 | Breadcrumb | Assets › Firearms |
@@ -414,7 +422,7 @@ serial number.
 | Serial number conflict | "A firearm with this serial number already exists." |
 | Delete confirm title | "Delete Firearm" |
 | Delete confirm body | "Are you sure you want to delete this firearm? This action cannot be undone." |
-| Delete confirm button | "Delete" |
+| Delete confirm button | "Delete Firearm" |
 | Bulk delete success toast | "Deleted {n} firearms" |
 | Bulk delete partial-fail toast | "Failed to delete {n} of {total} firearms" |
 | Single delete success toast | (no success toast on single delete — the row disappears; omit per vehicle precedent) |
