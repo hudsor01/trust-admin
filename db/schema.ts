@@ -1173,6 +1173,7 @@ export const valuation = pgTable(
         bankAccountId: bigint({ mode: 'number' }),
         investmentAccountId: bigint({ mode: 'number' }),
         personalPropertyId: bigint({ mode: 'number' }),
+        firearmId: bigint({ mode: 'number' }),
         valuationDate: t
             .timestamp({ precision: 3, mode: 'string', withTimezone: true })
             .notNull(),
@@ -1196,6 +1197,7 @@ export const valuation = pgTable(
         index('idx_valuation_personal_property_id').on(
             table.personalPropertyId,
         ),
+        index('idx_valuation_firearm_id').on(table.firearmId),
         index('idx_valuation_date').on(table.valuationDate.desc()),
         foreignKey({
             columns: [table.vehicleId],
@@ -1239,6 +1241,13 @@ export const valuation = pgTable(
         })
             .onUpdate('cascade')
             .onDelete('set null'),
+        foreignKey({
+            columns: [table.firearmId],
+            foreignColumns: [firearm.id],
+            name: 'valuation_firearm_id_fkey',
+        })
+            .onUpdate('cascade')
+            .onDelete('set null'),
         // Polymorphic constraint: exactly one FK must be set
         check(
             'valuation_single_asset_check',
@@ -1248,7 +1257,8 @@ export const valuation = pgTable(
                  CASE WHEN ${table.rentalPropertyId} IS NOT NULL THEN 1 ELSE 0 END +
                  CASE WHEN ${table.bankAccountId} IS NOT NULL THEN 1 ELSE 0 END +
                  CASE WHEN ${table.investmentAccountId} IS NOT NULL THEN 1 ELSE 0 END +
-                 CASE WHEN ${table.personalPropertyId} IS NOT NULL THEN 1 ELSE 0 END
+                 CASE WHEN ${table.personalPropertyId} IS NOT NULL THEN 1 ELSE 0 END +
+                 CASE WHEN ${table.firearmId} IS NOT NULL THEN 1 ELSE 0 END
                 ) = 1
             )`,
         ),
@@ -1640,6 +1650,7 @@ export const document = pgTable(
         investmentAccountId: bigint({ mode: 'number' }),
         insurancePolicyId: bigint({ mode: 'number' }),
         personalPropertyId: bigint({ mode: 'number' }),
+        firearmId: bigint({ mode: 'number' }),
         documentDate: t.timestamp({
             precision: 3,
             mode: 'string',
@@ -1670,6 +1681,7 @@ export const document = pgTable(
         ),
         index('idx_document_insurance_policy_id').on(table.insurancePolicyId),
         index('idx_document_personal_property_id').on(table.personalPropertyId),
+        index('idx_document_firearm_id').on(table.firearmId),
         foreignKey({
             columns: [table.entityId],
             foreignColumns: [entity.id],
@@ -1726,6 +1738,13 @@ export const document = pgTable(
         })
             .onUpdate('cascade')
             .onDelete('set null'),
+        foreignKey({
+            columns: [table.firearmId],
+            foreignColumns: [firearm.id],
+            name: 'document_firearm_id_fkey',
+        })
+            .onUpdate('cascade')
+            .onDelete('set null'),
         // Polymorphic constraint: exactly one owner FK must be set
         check(
             'document_single_owner_check',
@@ -1737,7 +1756,8 @@ export const document = pgTable(
                  CASE WHEN ${table.bankAccountId} IS NOT NULL THEN 1 ELSE 0 END +
                  CASE WHEN ${table.investmentAccountId} IS NOT NULL THEN 1 ELSE 0 END +
                  CASE WHEN ${table.insurancePolicyId} IS NOT NULL THEN 1 ELSE 0 END +
-                 CASE WHEN ${table.personalPropertyId} IS NOT NULL THEN 1 ELSE 0 END
+                 CASE WHEN ${table.personalPropertyId} IS NOT NULL THEN 1 ELSE 0 END +
+                 CASE WHEN ${table.firearmId} IS NOT NULL THEN 1 ELSE 0 END
                 ) = 1
             )`,
         ),
