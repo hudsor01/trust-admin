@@ -9,6 +9,7 @@ import {
     distribution,
     document,
     entity,
+    firearm,
     hemsRequest,
     homestead,
     insurancePolicy,
@@ -131,6 +132,18 @@ const vinValidation = z
     .length(17, 'VIN must be exactly 17 characters')
     .regex(/^[A-HJ-NPR-Z0-9]{17}$/, 'Invalid VIN format')
 
+// ATF Form 4473 Box 16 allows up to 40 alphanumeric chars; we accept 50 +
+// hyphens as a tolerant superset matching real-world serial formats.
+const serialNumberValidation = z
+    .string()
+    .min(1, 'Serial number is required')
+    .max(50, 'Serial number must be 50 characters or fewer')
+    .trim()
+    .regex(
+        /^[A-Za-z0-9-]+$/,
+        'Serial number must contain only letters, numbers, and hyphens',
+    )
+
 const zipValidation = z
     .string()
     .regex(/^\d{5}$/, 'ZIP code must be exactly 5 digits')
@@ -237,6 +250,29 @@ export const insertEntitySchema = createInsertSchema(entity, {
             .optional(),
 })
 export const selectEntitySchema = createSelectSchema(entity)
+
+// Base schema (no .refine()) so insertFirearmSchema.partial() — used by
+// updateFirearmSchema below — does not throw in Zod v4, which forbids
+// .partial() on refined object schemas.
+const insertFirearmSchemaBase = createInsertSchema(firearm, {
+    createdAt: (schema) => schema.optional(),
+    updatedAt: (schema) => schema.optional(),
+    name: (schema) => schema.min(1, 'Name is required'),
+    make: (schema) => schema.min(1, 'Make is required'),
+    model: (schema) => schema.min(1, 'Model is required'),
+    serialNumber: () => serialNumberValidation,
+    caliber: (schema) => schema.trim().optional(),
+    acquisitionCost: () => positiveNumberValidation,
+    dodValue: () => positiveNumberValidation,
+})
+export const insertFirearmSchema = insertFirearmSchemaBase.refine(
+    (data) => !data.isNfa || data.nfaClass != null,
+    {
+        message: 'NFA class is required when firearm is classified as NFA',
+        path: ['nfaClass'],
+    },
+)
+export const selectFirearmSchema = createSelectSchema(firearm)
 
 export const insertHemsRequestSchema = createInsertSchema(hemsRequest, {
     createdAt: (schema) => schema.optional(),
@@ -431,6 +467,17 @@ export const updateBeneficiarySchema = requireAtLeastOneField(
 )
 export const updateEntitySchema = requireAtLeastOneField(
     insertEntitySchema.partial(),
+)
+// Partial off the base (no refine) — Zod v4 forbids .partial() on a
+// refined schema. The NFA-conditional refine is reapplied here so an
+// UPDATE that sets isNfa=true still requires nfaClass.
+export const updateFirearmSchema = requireAtLeastOneField(
+    insertFirearmSchemaBase
+        .partial()
+        .refine((data) => !data.isNfa || data.nfaClass != null, {
+            message: 'NFA class is required when firearm is classified as NFA',
+            path: ['nfaClass'],
+        }),
 )
 export const updateHomesteadSchema = requireAtLeastOneField(
     insertHomesteadSchema.partial(),

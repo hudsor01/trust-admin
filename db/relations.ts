@@ -7,6 +7,7 @@ import {
     distribution,
     document,
     entity,
+    firearm,
     hemsRequest,
     homestead,
     insurancePolicy,
@@ -55,6 +56,7 @@ export const entityRelations = relations(entity, ({ one, many }) => ({
     trusteeFeeSchedules: many(trusteeFeeSchedule),
     trusteeFeeEntries: many(trusteeFeeEntry),
     liabilities: many(liability),
+    firearms: many(firearm),
 }))
 
 export const vehicleRelations = relations(vehicle, ({ one, many }) => ({
@@ -181,6 +183,10 @@ export const valuationRelations = relations(valuation, ({ one }) => ({
         fields: [valuation.personalPropertyId],
         references: [personalProperty.id],
     }),
+    firearm: one(firearm, {
+        fields: [valuation.firearmId],
+        references: [firearm.id],
+    }),
 }))
 
 export const valuationCorrectionRelations = relations(
@@ -238,6 +244,19 @@ export const documentRelations = relations(document, ({ one }) => ({
         fields: [document.personalPropertyId],
         references: [personalProperty.id],
     }),
+    firearm: one(firearm, {
+        fields: [document.firearmId],
+        references: [firearm.id],
+    }),
+}))
+
+export const firearmRelations = relations(firearm, ({ one, many }) => ({
+    entity: one(entity, {
+        fields: [firearm.entityId],
+        references: [entity.id],
+    }),
+    valuations: many(valuation),
+    documents: many(document),
 }))
 
 export const transactionRelations = relations(transaction, ({ one }) => ({

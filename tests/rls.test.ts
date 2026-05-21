@@ -862,6 +862,7 @@ describe.skipIf(isProductionDb)('Row-Level Security', () => {
             'rental_property',
             'insurance_policy',
             'personal_property',
+            'firearm',
             'trustee',
             'trustee_fee_schedule',
             'trustee_fee_entry',
