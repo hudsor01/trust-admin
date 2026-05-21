@@ -116,7 +116,8 @@ Audit: [`milestones/v4.0-MILESTONE-AUDIT.md`](milestones/v4.0-MILESTONE-AUDIT.md
   3. Admin can edit any field of an existing firearm record; the table row updates on save
   4. Admin can delete a firearm record; the row is removed and a success toast is shown
   5. Admin can sort the table by any column, filter rows by text, and download a CSV of the current view
-**Plans**: TBD
+**Plans**: 1 plan
+- [ ] 30-01-PLAN.md — Firearms admin page: /firearms route + 3-step wizard FirearmDialog + DataTable with 9 visible/21 hidden columns + NFA row-detail + NfaStatusDialog (setNfaTransferStatus CQS affordance) + CSV export with location excluded
 **UI hint**: yes
 
 ### Phase 31: asset-aggregator-integration
@@ -160,7 +161,7 @@ Audit: [`milestones/v4.0-MILESTONE-AUDIT.md`](milestones/v4.0-MILESTONE-AUDIT.md
 |-------|----------------|--------|-----------|
 | 28. firearm-schema-and-migration | 2/2 | Complete    | 2026-05-21 |
 | 29. firearm-trpc-router | 1/1 | Complete    | 2026-05-21 |
-| 30. firearms-admin-page | 0/? | Not started | - |
+| 30. firearms-admin-page | 0/1 | Not started | - |
 | 31. asset-aggregator-integration | 0/? | Not started | - |
 | 32. sidebar-nav-alphabetization | 0/? | Not started | - |
 | 33. beneficiary-ux-cleanup | 0/? | Not started | - |
