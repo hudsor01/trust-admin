@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Production Hardening & Completeness
 status: planning
-stopped_at: Completed 26-02-router-form-and-kpi-wiring-PLAN.md — phase 26 complete
-last_updated: "2026-05-21T02:37:03.390Z"
+stopped_at: Completed 27-01-datatable-foundation-and-docs-PLAN.md
+last_updated: "2026-05-21T03:20:50.017Z"
 last_activity: 2026-05-21
 progress:
   total_phases: 13
   completed_phases: 11
   total_plans: 32
-  completed_plans: 28
-  percent: 88
+  completed_plans: 29
+  percent: 91
 ---
 
 # State: Trust Admin
@@ -20,11 +20,11 @@ progress:
 
 Milestone: v4.0 Production Hardening & Completeness
 Phase: 27
-Plan: Not started
-Status: Ready to plan
+Plan: 27-01 complete (1/4)
+Status: In progress
 Last activity: 2026-05-21
 
-Progress: [██████████] 100%
+Progress: [█████████░] 91%
 
 ## Accumulated Context
 
@@ -162,9 +162,13 @@ const rows = await sql`SELECT id, name, email FROM neon_auth."user" WHERE lower(
 
 ## Session Continuity
 
-Last session: 2026-05-20T00:00:00.000Z
-Stopped at: Completed 26-02-router-form-and-kpi-wiring-PLAN.md — phase 26 complete
+Last session: 2026-05-21T03:20:50.012Z
+Stopped at: Completed 27-01-datatable-foundation-and-docs-PLAN.md
 Resume file: None
+
+**Phase 27 progress:** IN PROGRESS (1/4)
+
+- [x] 27-01-datatable-foundation-and-docs (Wave 1) — Built selectColumn<TData>() (src/components/ui/data-table-select-column.tsx): the missing selection-UI primitive for the phase-23 bulkActions toolbar — a ColumnDef (id 'select', size 40, no sorting/hiding/resizing) with a header "select all" Checkbox + per-row Checkbox bound to TanStack rowSelection; the cell stops click propagation so a select click never fires onRowClick. Fixed csv-export.ts buildCsvBody to filter c.id !== 'select' (enableHiding:false only hides from the visibility menu — getVisibleLeafColumns still returns the column), so no exported CSV gains a spurious select column (T-27-04). Corrected REQUIREMENTS.md SEC-08 — INT-G1 closed (proxy publicPaths removal was deliberately reverted in 0a62754; route-level auth carries the requirement). Refreshed stale 23-VERIFICATION.md frontmatter (review_followups block, 5 WR Anti-Patterns rows marked resolved). 1016 unit tests passing (pre-commit hook, 0 fail) — 2026-05-20 (commits 9df8c94, 4b16c88, 767dc04 on feat/27-datatable-rollout)
 
 **Phase 26 progress:** COMPLETE (3/3)
 
