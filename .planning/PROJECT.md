@@ -24,25 +24,30 @@ Secure, auditable trust administration with role-based access control and Texas 
 
 ## Current State
 
-- 24 tRPC routers for all resources
-- Admin auth + beneficiary portal (email/password)
-- Payment recording with auto-accounting
-- HEMS workflow (request → approve → distribute)
-- RLS policies with JWT session initialization
-- Activity log audit trail
-- Custom forgot/reset password flow via n8n webhook
-- Admin user provisioning with forced password change
-- Kibo UI + Dice UI shadcn registries; dashboard UX revamp (KPI strips, HEMS kanban, activity timeline+heatmap, liability/beneficiary gantt + donut charts, DataTable bulk actions + CSV export, sortable trustee/beneficiary lists) — Phase 23
+**Shipped through v4.0 (2026-05-21).** Production-hardened and feature-complete for estate settlement + ongoing administration.
 
-## Current Milestone: v4.0 Production Hardening & Completeness
+- 24+ tRPC routers for all resources; admin auth + beneficiary portal (email/password)
+- Payment recording with auto-accounting; HEMS workflow (request → approve → distribute)
+- RLS policies with JWT session initialization; immutable activity-log audit trail
+- Custom forgot/reset password flow via n8n webhook; admin user provisioning with forced password change
+- Hardened security posture: validated env, timing-safe access codes, session revocation, base64 caps
+- Dashboard performance: SQL-aggregated totals, server-side pagination, portal prefetch
+- Full asset coverage: dedicated admin pages for artwork, personal property, insurance
+- Dashboard UX (Kibo/Dice shadcn registries): KPI strips on 11 pages, HEMS kanban, activity timeline+heatmap, liability/beneficiary gantt + donut charts, DataTable bulk-actions/CSV/row-expansion across 14 admin tables, sortable trustee/beneficiary lists, 3-step asset-creation wizard
+- Schema completeness: real KPI data columns, liability-to-account FKs (migrations 0012-0013)
 
-**Goal:** Systematically address security vulnerabilities, performance bottlenecks, architecture debt, incomplete features, and code quality issues identified in comprehensive critical review.
+## Shipped Milestones
 
-**Target areas:**
-- Security & data integrity fixes (auth, RLS, input validation, session management)
-- Performance optimization (unbounded queries, sequential calls, client-side filtering)
-- Correctness fixes (auto-classification, payment math, deprecated API migration)
-- Feature completeness (missing asset UIs, portal HEMS history, tax compliance fields)
-- Dead code removal & code quality (unused functions, duplicate layers, type safety)
+- **v1.0 Neon Platform Integration** (2026-01-23) — serverless driver, preview branching, pooling, autoscaling
+- **v2.0 Public Inventory Form** (2026-01-22) — public submission form + admin review queue
+- **v3.0 Email/Password Auth Migration** (2026-02-22) — email/password auth, user provisioning, beneficiary RLS isolation
+- **v4.0 Production Hardening & Completeness** (2026-05-21) — 13 phases: security/perf/correctness hardening, feature completeness, code-quality cleanup, dashboard UX revamp, gap-closure. Audit `passed`, 40/40 requirements. See `milestones/v4.0-ROADMAP.md`.
 
-**Audit:** `.planning/v4-critical-review.md` (45 findings across 4 severity tiers)
+## Next Milestone
+
+TBD — run `/gsd-new-milestone` to define v5.0 (theme, requirements, roadmap).
+
+Known carry-over (advisory, not blocking): Nyquist validation coverage is `partial`/`missing` across v4.0 phases — optionally backfill with `/gsd-validate-phase {N}` independent of milestone boundaries.
+
+---
+*Last updated: 2026-05-21 after v4.0 milestone*
