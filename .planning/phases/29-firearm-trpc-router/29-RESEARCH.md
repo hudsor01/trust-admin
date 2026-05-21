@@ -505,12 +505,18 @@ The 5 ROADMAP success criteria are the binding contract for Phase 29:
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **NFA guard in `setNfaTransferStatus`**
-   - What we know: DB allows `nfaTransferStatus` on non-NFA firearms (no constraint prevents it)
-   - What's unclear: Whether the planner wants a `BAD_REQUEST` guard or considers it acceptable to allow tracking on non-NFA items
-   - Recommendation: Add the guard — one `findFirst` lookup; follows `hemsRequest.approve` precedent for pre-flight status checks; cost is ~1ms extra per call
+> Resolution recorded during planning. Single question below was answered by
+> the planner per the recommendation; implementation locked in `29-01-PLAN.md`.
+
+1. **NFA guard in `setNfaTransferStatus`** — **RESOLVED: guard included.**
+   - Decision: preflight `findFirst` on `firearm.id + entityId`; throw
+     `TRPCError({ code: 'BAD_REQUEST' })` when `!existing.isNfa`.
+   - Rationale: matches `hemsRequest.approve` / `markDistributed` preflight-then-mutate
+     precedent; cost is ~1ms; closes the "nfaTransferStatus on non-NFA firearm"
+     data-integrity gap the DB CHECK doesn't enforce.
+   - Locked in `29-01-PLAN.md` Task 1 Step 4(f).
 
 ---
 
