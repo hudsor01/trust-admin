@@ -8,7 +8,7 @@
 
 ## Domain Context
 
-The Hudson Living Trust is a **Texas irrevocable trust** where the grantor died 2024-12-28. Firearms held at death are trust property. The trust is **not** a dedicated NFA/gun trust (it predates the death and holds all estate assets). The trustee's obligations are:
+The Hudson Living Trust is a **Texas irrevocable trust** where the grantor died 2025-12-28. Firearms held at death are trust property. The trust is **not** a dedicated NFA/gun trust (it predates the death and holds all estate assets). The trustee's obligations are:
 
 1. Inventory every firearm as of the date of death (DOD valuation for IRS Form 706 estate tax purposes).
 2. Secure physical custody pending legal transfer.

@@ -38,7 +38,7 @@ Every entry below is marked **NEW** (create from scratch) or **MODIFIED** (edit 
 - RLS: `.enableRLS()` with four standard `pgPolicy` entries (same `app.is_admin()` shape as vehicle)
 - FK: `firearm_entity_id_fkey` → `entity.id`, onUpdate cascade, onDelete restrict
 
-**Valuation table note:** The `valuation` table has a `firarmId` FK column per its polymorphic pattern. Add `firarmId: bigint({ mode: 'number' })` and update the `valuation_single_asset_check` constraint to include it. This is optional for v5.0 if valuation history for firearms is deferred — but the check constraint must be updated if the column is added, or the constraint stays accurate with 6 options.
+**Valuation table note:** The `valuation` table has a separate FK column for each asset type (its polymorphic pattern). Add a `firearmId: bigint({ mode: 'number' })` FK column and update the `valuation_single_asset_check` constraint to include it — without that constraint update, every INSERT to `valuation` fails. Per the v5.0 roadmap this FK ships in Phase 28 (covers FIRE-09).
 
 ### Router Layer
 

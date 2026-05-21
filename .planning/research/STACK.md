@@ -126,13 +126,13 @@ export const insertFirearmSchema = createInsertSchema(firearm, {
 ATF Form 4, Form 5, and Form 1 PDFs are stored via UploadThing and linked through the
 existing polymorphic `document` table. Two steps:
 
-1. Add `firearmsId bigint` FK column to `document` table.
+1. Add `firearmId bigint` FK column to `document` table.
 2. Extend the `document_single_owner_check` CHECK constraint to count the new FK.
 3. The `documentType` enum value `'LEGAL'` covers ATF forms adequately. No new enum
    value is needed — ATF forms are legal/regulatory documents. Optionally add `'ATF_FORM'`
    for precision, but `'LEGAL'` is sufficient.
 
-The `valuation` table similarly needs a `firearmsId` FK if per-item valuation history is
+The `valuation` table similarly needs a `firearmId` FK if per-item valuation history is
 desired. This is optional for MVP — `dodValue` on the `firearm` row suffices for
 estate accounting.
 

@@ -239,7 +239,7 @@ NFA classification and firearm type are two orthogonal dimensions. Developers co
 
 **How to avoid:**
 - Two separate columns:
-  - `fireamType` enum: `PISTOL | REVOLVER | RIFLE | SHOTGUN | OTHER` — physical description of the firearm.
+  - `firearmType` enum: `PISTOL | REVOLVER | RIFLE | SHOTGUN | OTHER` — physical description of the firearm.
   - `nfaClassification` enum: `NONE | SUPPRESSOR | SBR | SBS | MACHINE_GUN | DESTRUCTIVE_DEVICE | AOW` — regulatory category. Default `NONE`.
 - These are independent. A rifle can have `nfaClassification = 'NONE'` (standard Title I) or `nfaClassification = 'SBR'` (if the barrel was cut). A pistol can have `nfaClassification = 'NONE'` or `nfaClassification = 'AOW'` in edge cases.
 

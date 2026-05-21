@@ -2,7 +2,7 @@
 
 ## What This Is
 
-A trust administration application for managing the **Hudson Living Trust**, a Texas Irrevocable Trust. The grantor (Richard Hudson) died 2024-12-28, making this an **estate settlement** followed by **ongoing trust administration**.
+A trust administration application for managing the **Hudson Living Trust**, a Texas Irrevocable Trust. The grantor (Richard Hudson) died 2025-12-28, making this an **estate settlement** followed by **ongoing trust administration**.
 
 **Two user types:**
 - **Admin (Trustee):** Manages all trust assets, liabilities, accounting, and distributions
