@@ -181,6 +181,43 @@ export const transferStatus = pgEnum('TransferStatus', [
     'COMPLETE',
 ])
 
+// Firearm enums (v5.0 — Phase 28)
+export const firearmType = pgEnum('FirearmType', [
+    'PISTOL',
+    'REVOLVER',
+    'RIFLE',
+    'SHOTGUN',
+    'SUPPRESSOR',
+    'SBR',
+    'SBS',
+    'MACHINE_GUN',
+    'AOW',
+    'DESTRUCTIVE_DEVICE',
+    'OTHER',
+])
+export const nfaClass = pgEnum('NfaClass', [
+    'SUPPRESSOR',
+    'SBR',
+    'SBS',
+    'MACHINE_GUN',
+    'AOW',
+    'DESTRUCTIVE_DEVICE',
+])
+export const atfFormType = pgEnum('AtfFormType', ['FORM_1', 'FORM_4', 'FORM_5'])
+export const firearmCondition = pgEnum('FirearmCondition', [
+    'POOR',
+    'FAIR',
+    'GOOD',
+    'VERY_GOOD',
+    'EXCELLENT',
+    'NEW',
+])
+export const nfaTransferStatus = pgEnum('NfaTransferStatus', [
+    'NOT_FILED',
+    'FILED',
+    'APPROVED',
+])
+
 // Trust accounting enums
 export const accountingEntryType = pgEnum('AccountingEntryType', [
     'INCOME',
@@ -1411,6 +1448,116 @@ export const personalProperty = pgTable(
 
 export type PersonalProperty = typeof personalProperty.$inferSelect
 export type InsertPersonalProperty = typeof personalProperty.$inferInsert
+
+// ============================================
+// Assets - Firearms (v5.0 — Phase 28)
+// ============================================
+
+export const firearm = pgTable(
+    'firearm',
+    (t) => ({
+        id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
+        entityId: bigint({ mode: 'number' }).notNull(),
+        // Core identity (FIRE-01)
+        name: t.text().notNull(),
+        description: t.text(),
+        make: t.text().notNull(),
+        model: t.text().notNull(),
+        serialNumber: t.text().notNull(),
+        firearmType: firearmType().notNull(),
+        caliber: t.text(),
+        barrelLength: t.numeric({ precision: 6, scale: 2 }),
+        // NFA classification (FIRE-02)
+        isNfa: t.boolean().default(false).notNull(),
+        nfaClass: nfaClass(),
+        atfFormType: atfFormType(),
+        atfControlNumber: t.text(),
+        taxStampDate: t.timestamp({
+            precision: 3,
+            mode: 'string',
+            withTimezone: true,
+        }),
+        nfrtrSerial: t.text(),
+        nfaRegistered: t.boolean(),
+        // NFA Form 5 transfer status (FIRE-05) — separate from generic transferStatus
+        nfaTransferStatus: nfaTransferStatus(),
+        // Estate/valuation (FIRE-03)
+        acquisitionDate: t.timestamp({
+            precision: 3,
+            mode: 'string',
+            withTimezone: true,
+        }),
+        acquisitionCost: t.numeric({ precision: 12, scale: 2 }),
+        dodValue: t.numeric({ precision: 14, scale: 2 }),
+        dodValueDate: t.timestamp({
+            precision: 3,
+            mode: 'string',
+            withTimezone: true,
+        }),
+        dodValueType: valuationType(),
+        condition: firearmCondition().default('GOOD').notNull(),
+        action: t.text(),
+        // Shared lifecycle
+        status: recordStatus().default('ACTIVE').notNull(),
+        transferStatus: transferStatus().default('PENDING').notNull(),
+        // Storage (FIRE-04)
+        location: t.text(),
+        insured: t.boolean().default(false).notNull(),
+        // Metadata
+        notes: t.text(),
+        createdAt: t
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
+            .default(sql`CURRENT_TIMESTAMP`)
+            .notNull(),
+        updatedAt: t
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
+            .notNull(),
+    }),
+    (table) => [
+        uniqueIndex('firearm_serial_number_key').using(
+            'btree',
+            table.serialNumber.asc().nullsLast().op('text_ops'),
+        ),
+        index('idx_firearm_entity_id').on(table.entityId),
+        index('idx_firearm_status').on(table.status),
+        foreignKey({
+            columns: [table.entityId],
+            foreignColumns: [entity.id],
+            name: 'firearm_entity_id_fkey',
+        })
+            .onUpdate('cascade')
+            .onDelete('restrict'),
+        // NFA-conditional CHECK: if isNfa, nfaClass must be set
+        check(
+            'firearm_nfa_class_required_check',
+            sql`(${table.isNfa} = false OR ${table.nfaClass} IS NOT NULL)`,
+        ),
+        pgPolicy('crud-authenticated-policy-select', {
+            as: 'permissive',
+            for: 'select',
+            to: ['authenticated'],
+            using: sql`( SELECT app.is_admin() AS is_admin)`,
+        }),
+        pgPolicy('crud-authenticated-policy-insert', {
+            as: 'permissive',
+            for: 'insert',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-update', {
+            as: 'permissive',
+            for: 'update',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-delete', {
+            as: 'permissive',
+            for: 'delete',
+            to: ['authenticated'],
+        }),
+    ],
+).enableRLS()
+
+export type Firearm = typeof firearm.$inferSelect
+export type InsertFirearm = typeof firearm.$inferInsert
 
 // ============================================
 // Inventory Analysis Cache
