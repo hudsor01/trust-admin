@@ -9,19 +9,28 @@ import { adminProcedure, createTRPCRouter } from '../init'
 /**
  * Translate the Postgres 23505 (unique_violation) on the `firearm_serial_number_key`
  * unique index into a tRPC CONFLICT. Mirrors `isBeneficiaryLinkUniqueViolation` in
- * userManagement.ts — the canonical precedent for constraint-name-matched 23505
- * remapping in this codebase.
+ * userManagement.ts — but handles the Drizzle wrapper: when called from
+ * `db.insert(...)`/`db.update(...)`, the NeonDbError is nested as `err.cause`
+ * inside a `DrizzleQueryError`. We check both the top-level and the cause.
  */
 function isFirearmSerialConflict(err: unknown): boolean {
-    return (
+    const matches = (candidate: unknown): boolean =>
+        typeof candidate === 'object' &&
+        candidate !== null &&
+        'code' in candidate &&
+        (candidate as { code?: string }).code === '23505' &&
+        'constraint' in candidate &&
+        (candidate as { constraint?: string }).constraint ===
+            'firearm_serial_number_key'
+    if (matches(err)) return true
+    if (
         typeof err === 'object' &&
         err !== null &&
-        'code' in err &&
-        (err as { code?: string }).code === '23505' &&
-        'constraint' in err &&
-        (err as { constraint?: string }).constraint ===
-            'firearm_serial_number_key'
+        'cause' in err &&
+        matches((err as { cause?: unknown }).cause)
     )
+        return true
+    return false
 }
 
 export const firearmRouter = createTRPCRouter({
