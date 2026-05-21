@@ -8,13 +8,15 @@
 
 ## Summary
 
-Phase 28 is a pure schema-and-migration phase: no frontend, no tRPC router. It delivers the `firearm` pgTable, 4 new pgEnums, `document.firearmId` FK + updated CHECK, `valuation.firearmId` FK + updated CHECK, Zod schemas in `db/validation.ts`, and a clean applied Drizzle migration. The `firearm` table is the 8th asset class — it follows the `vehicle` pattern exactly. There are no new npm dependencies.
+Phase 28 is a pure schema/migration phase — no tRPC router, no UI. The deliverables are: 4 new pgEnums, a new `firearm` pgTable (the 8th asset table), two polymorphic FK column additions (`document.firearmId`, `valuation.firearmId`) with updated CHECK constraints, Zod schemas in `db/validation.ts`, and a clean applied Drizzle migration.
 
-The primary execution risk is the polymorphic CHECK constraint update on both `document` and `valuation`. The current `document_single_owner_check` expression counts 8 FK columns and requires `= 1`. Adding `firearmId` makes it 9. The valuation check currently counts 6 columns. If `db:generate` emits DROP + recreate for the altered constraints, the migration must be verified to contain the correct updated expressions before applying. If it emits `ALTER TABLE ... DROP CONSTRAINT ... ADD CONSTRAINT`, the planner must verify the new CHECK expression is correct.
+The `vehicle` table is the exact structural template for `firearm`. The shared-column set is verified from the live schema: `id` (bigint identity PK), `entityId` (FK→entity, notNull), `name`, `description`, `dodValue`, `dodValueDate`, `dodValueType`, `status`, `transferStatus`, `notes`, `createdAt`, `updatedAt`. Firearm adds its own domain columns on top.
 
-The secondary risk is the camelCase column name gotcha — documented via migration 0008 which failed exactly this way. Migration 0013 (the most recent, applied Phase 26) confirms that ADD COLUMN statements generated from camelCase schema declarations emit correct quoted camelCase identifiers (`"bankAccountId"`, not `"bank_account_id"`). The risk is specifically in raw SQL sub-blocks: UPDATE, DEFAULT expressions, and inline CHECK constraint SQL. The Phase 28 migration must be hand-audited before `db:migrate`.
+The `document_single_owner_check` constraint currently sums **8 FK columns** (entityId + 7 asset FKs). Adding `firearmId` to `document` extends it to 9. The `valuation_single_asset_check` currently sums **6 FK columns**. Adding `firearmId` extends it to 7. Both constraints must be dropped and re-added as part of the migration — a DROP CONSTRAINT / ADD CONSTRAINT pair. This is the primary migration risk for existing tables.
 
-There is one explicit scope-vs-success-criteria discrepancy to resolve: **serial number uniqueness scope** (addressed below).
+The migration will be index 14 in the Drizzle journal (current highest is 13: `0013_kpi_schema_completeness.sql`). The output directory is `./drizzle/` (not `./db/migrations/`). The `db:deploy` command runs `drizzle-kit generate` then `drizzle-kit migrate` — always use this, never `db:push`.
+
+**Primary recommendation:** Follow the `vehicle` pattern exactly. Hand-audit the generated migration for camelCase column references before applying. The four key audit points are: enum type names in CREATE TYPE, column identifiers in ADD COLUMN and CREATE INDEX statements, column references in the CHECK constraint drop/re-add SQL, and the `name` column field in the `firearm` table itself.
 
 ---
 
@@ -22,12 +24,11 @@ There is one explicit scope-vs-success-criteria discrepancy to resolve: **serial
 
 | Capability | Primary Tier | Secondary Tier | Rationale |
 |------------|-------------|----------------|-----------|
-| Firearm table definition + enums | Database | — | pgTable, pgEnum declarations in db/schema.ts emit DDL |
-| RLS policies | Database | — | pgPolicy() declarations inside pgTable emit ALTER TABLE ENABLE + CREATE POLICY |
-| Zod validation schemas | API / Backend | — | db/validation.ts schemas consumed by tRPC input parsing (Phase 29) |
-| document.firearmId FK | Database | — | Alters existing document table; must update polymorphic CHECK |
-| valuation.firearmId FK | Database | — | Alters existing valuation table; must update polymorphic CHECK |
-| Migration sequencing | Database | — | drizzle-kit generate → hand-audit → drizzle-kit migrate |
+| Firearm table + enums | Database / Storage | — | Schema DDL lives entirely in DB; no app logic in Phase 28 |
+| Zod validation schemas | API / Backend | — | `db/validation.ts` is consumed by tRPC routers (Phase 29) |
+| RLS policies | Database / Storage | — | pgPolicy entries in schema.ts are emitted into migration SQL |
+| document.firearmId FK | Database / Storage | — | ALTER TABLE on existing table; constraint update required |
+| valuation.firearmId FK | Database / Storage | — | ALTER TABLE on existing table; constraint update required |
 
 ---
 
@@ -36,68 +37,230 @@ There is one explicit scope-vs-success-criteria discrepancy to resolve: **serial
 
 | ID | Description | Research Support |
 |----|-------------|------------------|
-| FIRE-01 | Admin can add a firearm record with core identity fields — name, make, model, serial number, firearm type, caliber, barrel length | `firearm` pgTable with `name`, `make`, `model`, `serialNumber`, `firearmType` enum, `caliber`, `barrelLength`; `insertFirearmSchema` with serialNumber validation |
-| FIRE-02 | Admin can classify a firearm as an NFA item and record its NFA class, ATF form type, ATF control number, and tax-stamp date | `isNfa`, `nfaClass`, `atfFormType`, `atfControlNumber`, `taxStampDate` columns; `NfaClass`, `AtfFormType` enums |
-| FIRE-03 | Admin can record a firearm's DOD valuation, NRA condition grade, and acquisition details | `dodValue`, `dodValueDate`, `dodValueType`, `condition` (FirearmCondition enum), `acquisitionDate`, `acquisitionCost` columns |
-| FIRE-04 | Admin can track a firearm's storage location, insured flag, and transfer status | `location`, `insured`, `transferStatus` columns (reuse existing `transferStatus` enum) |
-| FIRE-05 | Admin can track ATF Form 5 transfer progress separately from generic transfer status | `nfaTransferStatus` column (new `NfaTransferStatus` enum: `NOT_FILED`, `FILED`, `APPROVED`) |
-| FIRE-08 | Admin can attach ATF-form and tax-stamp documents to a firearm record | `document.firearmId` FK; updated `document_single_owner_check` from 8 → 9 FK columns |
-| FIRE-09 | Admin can record appraisal / valuation history for a firearm | `valuation.firearmId` FK; updated `valuation_single_asset_check` from 6 → 7 FK columns |
+| FIRE-01 | Admin can add a firearm record with core identity fields — name, make, model, serial number, firearm type, caliber, barrel length | `firearm` pgTable defined below covers all fields; `insertFirearmSchema` validates them |
+| FIRE-02 | Admin can classify a firearm as NFA and record NFA class, ATF form type, ATF control number, tax-stamp date | `isNfa` boolean + `nfaClass`, `atfFormType`, `atfControlNumber`, `taxStampDate` columns in table definition |
+| FIRE-03 | Admin can record DOD valuation, NRA condition grade, and acquisition details | `dodValue`/`dodValueDate`/`dodValueType` (shared pattern), `condition` (new enum), `acquisitionDate`/`acquisitionCost` columns |
+| FIRE-04 | Admin can track storage location, insured flag, and transfer status | `location`, `insured`, `transferStatus` columns (mirrors `personalProperty` pattern) |
+| FIRE-05 | Admin can track ATF Form 5 transfer progress separately from generic transfer status | `nfaTransferStatus` column using new `NfaTransferStatus` pgEnum (`NOT_FILED`, `FILED`, `APPROVED`) |
+| FIRE-08 | Admin can attach ATF-form and tax-stamp documents to a firearm record | `document.firearmId` FK column added + `document_single_owner_check` updated from 8 → 9 FKs |
+| FIRE-09 | Admin can record appraisal / valuation history for a firearm | `valuation.firearmId` FK column added + `valuation_single_asset_check` updated from 6 → 7 FKs |
 </phase_requirements>
 
 ---
 
-## Project Constraints (from CLAUDE.md)
+## Ground Truth: Live Schema State
 
-- `db:deploy` only — `db:push` is explicitly broken for this schema (corrupts RLS policies). The `package.json` `db:push` script itself prints `'WARNING: db:push has RLS policy bugs. Use db:deploy instead.'`. [VERIFIED: codebase]
-- **camelCase column names in Postgres** — all column identifiers are camelCase (`"serialNumber"`, `"dodValue"`, `"nfaClass"`, etc.). Table names stay snake_case (`firearm`, `bank_account`). [VERIFIED: codebase — migration 0008 header comment + migration 0013 SQL confirm this]
-- **Migration gotcha:** drizzle-kit sometimes emits snake_case column references in raw SQL blocks (UPDATE, DEFAULT, CHECK). Always hand-audit the generated migration SQL before applying. [VERIFIED: codebase — MEMORY.md + 0008 migration header]
-- Use `getClient()` (postgres.js) to surface migration errors — `getSql()` (Neon HTTP) reports DDL success even on failure. [VERIFIED: db/index.ts]
-- `bun run db:deploy` = `drizzle-kit generate` + `drizzle-kit migrate` in one step. [VERIFIED: package.json]
-- Migration output directory: `./drizzle/` (from drizzle.config.ts `out: './drizzle'`). [VERIFIED: codebase]
+All findings below are from direct codebase inspection of `db/schema.ts` and the drizzle snapshot `drizzle/meta/0013_snapshot.json` (which reflects exactly what drizzle-kit knows about the current DB state).
+
+### Existing `transferStatus` enum — MUST NOT be modified
+
+```typescript
+// db/schema.ts line 178 [VERIFIED: direct codebase read]
+export const transferStatus = pgEnum('TransferStatus', [
+    'PENDING',
+    'STARTED',
+    'COMPLETE',
+])
+```
+
+STATE.md explicitly locks: `SURRENDERED` value is OUT OF SCOPE. Do not add it.
+
+### Existing `valuationType` enum — reused by `firearm.dodValueType`
+
+```typescript
+// db/schema.ts line 103 [VERIFIED: direct codebase read]
+export const valuationType = pgEnum('ValuationType', [
+    'APPRAISAL', 'MARKET_ESTIMATE', 'TAX_ASSESSED', 'STATEMENT_BALANCE',
+    'PURCHASE_PRICE', 'BOOK_VALUE', 'SELF_ASSESSED', 'STATEMENT',
+])
+```
+
+### Existing `recordStatus` enum — reused by `firearm.status`
+
+Values include: `ACTIVE`, `INACTIVE`, `OPEN`, `PENDING`, `CLOSED`, `FROZEN`, `SOLD`, `TRANSFERRED`, `DISPOSED`, `PAID_OFF`, and more. Default for assets: `'ACTIVE'`.
+
+### Existing `documentType` enum — no change needed
+
+Already has `'OTHER'` which covers ATF documents. No new values required.
+
+### `vehicle` pgTable — exact structural template for `firearm`
+
+[VERIFIED: direct codebase read, db/schema.ts lines 413–491]
+
+Key structural elements to replicate exactly:
+- `id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity()`
+- `entityId: bigint({ mode: 'number' }).notNull()`
+- Unique index: `uniqueIndex('Vehicle_vin_key').using('btree', table.vin.asc().nullsLast().op('text_ops'))` — replicate for `serialNumber`
+- Two non-unique indexes: `idx_vehicle_entity_id`, `idx_vehicle_status`
+- FK declaration: `foreignKey({ columns: [table.entityId], foreignColumns: [entity.id], name: 'vehicle_entity_id_fkey' }).onUpdate('cascade').onDelete('restrict')`
+- Four pgPolicy entries: select/insert/update/delete, all `app.is_admin()` on select, insert/update/delete open to `authenticated`
+- `.enableRLS()` chained at end
+
+**Note on vehicle RLS policy details:**
+```typescript
+// select uses USING clause [VERIFIED]
+pgPolicy('crud-authenticated-policy-select', {
+    as: 'permissive', for: 'select', to: ['authenticated'],
+    using: sql`( SELECT app.is_admin() AS is_admin)`,
+})
+// insert has NO withCheck — consistent with other asset tables [VERIFIED]
+pgPolicy('crud-authenticated-policy-insert', {
+    as: 'permissive', for: 'insert', to: ['authenticated'],
+})
+// update has no using/withCheck — consistent with other asset tables [VERIFIED]
+pgPolicy('crud-authenticated-policy-update', {
+    as: 'permissive', for: 'update', to: ['authenticated'],
+})
+// delete has no using — consistent [VERIFIED]
+pgPolicy('crud-authenticated-policy-delete', {
+    as: 'permissive', for: 'delete', to: ['authenticated'],
+})
+```
+
+### `document` table current state — VERIFIED from snapshot
+
+Current `document` columns: `id`, `name`, `documentType`, `filePath`, `entityId`, `vehicleId`, `homesteadId`, `rentalPropertyId`, `bankAccountId`, `investmentAccountId`, `insurancePolicyId`, `personalPropertyId`, `documentDate`, `expirationDate`, `notes`, `createdAt`, `updatedAt`.
+
+`document_single_owner_check` counts **8 FK columns** (entityId + 7 asset FKs). Verified from snapshot `0013_snapshot.json`. The Drizzle schema.ts representation is also verified (lines 1583–1596).
+
+Adding `firearmId` → 9 FK columns in the sum expression.
+
+### `valuation` table current state — VERIFIED from snapshot
+
+Current `valuation` columns: `id`, `vehicleId`, `homesteadId`, `rentalPropertyId`, `bankAccountId`, `investmentAccountId`, `personalPropertyId`, `valuationDate`, `value`, `valuationType`, `source`, `notes`, `createdAt`.
+
+`valuation_single_asset_check` counts **6 FK columns** (no entityId, no artworkId — the baseline migration 0000 had artworkId but it was removed; the snapshot and schema.ts both confirm 6-FK state as of migration 0013). Verified from snapshot `0013_snapshot.json`.
+
+Adding `firearmId` → 7 FK columns in the sum expression.
+
+**Note on `artworkId` discrepancy:** The initial migration file `0000_high_ares.sql` shows `artworkId` in `valuation`, but migration `0001_left_nico_minoru.sql` is marked as a historical no-op, and all subsequent snapshots (including 0013) show only 6 FKs in `valuation`. The snapshot is ground truth. Do not include `artworkId` in the updated CHECK constraint.
+
+### Drizzle migration journal state — VERIFIED
+
+Migration index 13 (`0013_kpi_schema_completeness`) is the current highest. The next migration will be index 14 and will be named `drizzle/0014_<drizzle_generated_name>.sql`.
+
+Migration output directory: `./drizzle/` (from `drizzle.config.ts` `out: './drizzle'`).
+
+The `db:deploy` script runs: `drizzle-kit generate --config drizzle.config.ts && drizzle-kit migrate --config drizzle.config.ts`.
+
+### Migration 0013 camelCase confirmation
+
+[VERIFIED: direct read of `drizzle/0013_kpi_schema_completeness.sql`]
+
+Migration 0013 emitted camelCase column identifiers directly without requiring hand-edit: `"bankAccountId"`, `"investmentAccountId"`, `"estimatedValue"`. The comment in 0013 explicitly confirms: "drizzle-kit emitted the ADD COLUMN statements with the correct camelCase already because the new columns are declared with camelCase names in db/schema.ts." This is the precedent for Phase 28.
+
+**However:** The risk documented in CLAUDE.md MEMORY still applies to CREATE TABLE DDL and CHECK constraint re-expressions. Migration 0008 failed on snake_case column references in UPDATE statements. Phase 28's migration touches two existing tables' CHECK constraints via DROP/ADD — those constraint expressions must be inspected for camelCase correctness.
 
 ---
 
 ## Standard Stack
 
-### Core (Phase 28 only — no new dependencies)
+No new npm packages. All tools are pre-existing in the codebase.
 
-| Library | Version | Purpose | Source |
-|---------|---------|---------|--------|
-| drizzle-orm | 0.45.2 | `pgTable`, `pgEnum`, `pgPolicy`, `check`, `foreignKey`, `uniqueIndex`, `index` | [VERIFIED: npm registry + package.json] |
-| drizzle-kit | 0.31.10 | `generate` + `migrate` commands | [VERIFIED: npm registry + package.json] |
-| drizzle-zod | 0.8.3 | `createInsertSchema`, `createSelectSchema` | [VERIFIED: npm registry + package.json] |
-| zod | 4.4.3 | Schema overrides, `requireAtLeastOneField` | [VERIFIED: npm registry + package.json] |
+| Library | Version | Purpose | Why Standard |
+|---------|---------|---------|--------------|
+| `drizzle-orm` | 0.45 | `pgEnum`, `pgTable`, `check`, `pgPolicy`, `uniqueIndex` | Project ORM |
+| `drizzle-zod` | current | `createInsertSchema`, `createSelectSchema` | Project validation |
+| `zod` | current | Schema refinements, string validation | Project validation |
+| `drizzle-kit` | 0.31.10 | `db:generate` / `db:migrate` / `db:deploy` | Migration tooling |
 
-**No new packages needed.** Zero new npm installs.
+### Package Legitimacy Audit
 
----
-
-## Package Legitimacy Audit
-
-> No new packages — this phase installs nothing. Section not applicable.
-
-**Packages added:** none
+No new packages are installed in Phase 28. This section is not applicable.
 
 ---
 
 ## Architecture Patterns
 
-### Firearm Table — Exact Column List
+### Firearm Table System Architecture
 
-Based on FEATURES.md (authoritative field list) reconciled against `vehicle`'s actual schema (verified from `db/schema.ts` lines 413–491) and the locked STATE.md v5.0 decisions:
+```
+db/schema.ts
+    ├── NEW: pgEnum('FirearmType', [...])
+    ├── NEW: pgEnum('NfaClass', [...])
+    ├── NEW: pgEnum('AtfFormType', [...])
+    ├── NEW: pgEnum('FirearmCondition', [...])
+    ├── NEW: pgEnum('NfaTransferStatus', [...])
+    ├── NEW: pgTable('firearm', ...).enableRLS()
+    ├── MODIFIED: pgTable('document', ...) — add firearmId column + updated CHECK
+    └── MODIFIED: pgTable('valuation', ...) — add firearmId column + updated CHECK
+
+db/relations.ts
+    ├── NEW: export const firearmRelations (entity→many, valuation→many, document→many)
+    ├── MODIFIED: entityRelations — add firearms: many(firearm)
+    ├── MODIFIED: valuationRelations — add firearm: one(firearm)
+    └── MODIFIED: documentRelations — add firearm: one(firearm)
+
+db/validation.ts
+    ├── NEW: insertFirearmSchema
+    ├── NEW: selectFirearmSchema
+    └── NEW: updateFirearmSchema (= requireAtLeastOneField(insertFirearmSchema.partial()))
+
+drizzle/0014_<name>.sql  [generated by db:generate, hand-audited, applied by db:migrate]
+    ├── CREATE TYPE "FirearmType" AS ENUM (...)
+    ├── CREATE TYPE "NfaClass" AS ENUM (...)
+    ├── CREATE TYPE "AtfFormType" AS ENUM (...)
+    ├── CREATE TYPE "FirearmCondition" AS ENUM (...)
+    ├── CREATE TYPE "NfaTransferStatus" AS ENUM (...)
+    ├── CREATE TABLE firearm (...)
+    ├── GENERATED ALWAYS AS IDENTITY (sequence)
+    ├── ALTER TABLE document ADD COLUMN "firearmId" bigint
+    ├── ALTER TABLE document DROP CONSTRAINT document_single_owner_check
+    ├── ALTER TABLE document ADD CONSTRAINT document_single_owner_check CHECK (... 9 FKs ...)
+    ├── ALTER TABLE valuation ADD COLUMN "firearmId" bigint
+    ├── ALTER TABLE valuation DROP CONSTRAINT valuation_single_asset_check
+    ├── ALTER TABLE valuation ADD CONSTRAINT valuation_single_asset_check CHECK (... 7 FKs ...)
+    ├── ADD CONSTRAINT firearm_entity_id_fkey FOREIGN KEY (...)
+    ├── ADD CONSTRAINT document_firearm_id_fkey FOREIGN KEY (...)
+    ├── ADD CONSTRAINT valuation_firearm_id_fkey FOREIGN KEY (...)
+    ├── CREATE UNIQUE INDEX "firearm_serial_number_key" ON firearm (...)
+    ├── CREATE INDEX idx_firearm_entity_id ON firearm (...)
+    ├── CREATE INDEX idx_firearm_status ON firearm (...)
+    ├── CREATE INDEX idx_document_firearm_id ON document (...)
+    ├── CREATE INDEX idx_valuation_firearm_id ON valuation (...)
+    ├── ENABLE ROW LEVEL SECURITY on firearm
+    └── CREATE POLICY (4×) on firearm
+```
+
+### Recommended Project Structure
+
+No new directories for Phase 28 — all changes are in `db/`.
+
+```
+db/
+├── schema.ts       # 5 new enums + firearm table + document/valuation modifications
+├── relations.ts    # firearmRelations + 3 relation updates
+├── validation.ts   # insertFirearmSchema + selectFirearmSchema + updateFirearmSchema
+└── (migrations auto-generated into drizzle/)
+```
+
+---
+
+## Key Technical Decisions
+
+### 1. Enum Set — Final Recommended Names and Values
+
+[VERIFIED: enum naming convention from direct codebase read — all existing pgEnum names are PascalCase Postgres type names with camelCase TS variable names]
+
+**New enums for Phase 28 (all required by FIRE-01 through FIRE-05):**
 
 ```typescript
-// db/schema.ts — add after personalProperty, before inventoryAnalysisCache
-
+// Physical form factor — what kind of gun is it [VERIFIED: FEATURES.md recommendation]
 export const firearmType = pgEnum('FirearmType', [
     'PISTOL',
     'REVOLVER',
     'RIFLE',
     'SHOTGUN',
+    'SUPPRESSOR',
+    'SBR',
+    'SBS',
+    'MACHINE_GUN',
+    'AOW',
+    'DESTRUCTIVE_DEVICE',
     'OTHER',
 ])
 
+// Regulatory NFA classification — orthogonal to physical type [VERIFIED: FEATURES.md]
 export const nfaClass = pgEnum('NfaClass', [
     'SUPPRESSOR',
     'SBR',
@@ -107,12 +270,14 @@ export const nfaClass = pgEnum('NfaClass', [
     'DESTRUCTIVE_DEVICE',
 ])
 
+// ATF form type under which item was last registered/transferred [VERIFIED: FEATURES.md]
 export const atfFormType = pgEnum('AtfFormType', [
     'FORM_1',
     'FORM_4',
     'FORM_5',
 ])
 
+// NRA modern firearms grading scale [VERIFIED: FEATURES.md + NRA grading standards]
 export const firearmCondition = pgEnum('FirearmCondition', [
     'POOR',
     'FAIR',
@@ -122,53 +287,84 @@ export const firearmCondition = pgEnum('FirearmCondition', [
     'NEW',
 ])
 
+// ATF Form 5 estate transfer filing status — separate from generic transferStatus
+// (covers FIRE-05; STATE.md decision: 3-value enum NOT_FILED/FILED/APPROVED)
 export const nfaTransferStatus = pgEnum('NfaTransferStatus', [
     'NOT_FILED',
     'FILED',
     'APPROVED',
 ])
+```
 
+**Why separate `firearmType` and `nfaClass`:** A rifle can have `firearmType = 'RIFLE'` and `nfaClass = 'SBR'` if the barrel was cut. A pistol can have `firearmType = 'PISTOL'` and `nfaClass = 'AOW'` in edge cases. They are orthogonal attributes, not the same dimension. This is confirmed in both FEATURES.md and PITFALLS.md (Pitfall 11).
+
+**Why `nfaTransferStatus` not `form5Status`:** STATE.md locks the 3-value set `NOT_FILED | FILED | APPROVED`. SUMMARY.md resolved the FEATURES.md (3-value) vs PITFALLS.md (5-value) discrepancy in favor of the simpler 3-value set. The column name `nfaTransferStatus` matches STATE.md's explicit decision.
+
+### 2. `firearm` Table — Complete Column Specification
+
+```typescript
 export const firearm = pgTable(
     'firearm',
     (t) => ({
+        // --- PK + entity scope (vehicle pattern) ---
         id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
         entityId: bigint({ mode: 'number' }).notNull(),
-        name: t.text().notNull(),
+
+        // --- Core identity (FIRE-01) ---
+        name: t.text().notNull(),                          // display label
         description: t.text(),
-        // Core identity
-        make: t.text().notNull(),
-        model: t.text().notNull(),
-        serialNumber: t.text().notNull(),
-        firearmType: firearmType().notNull(),
-        caliber: t.text(),
-        barrelLength: t.numeric({ precision: 6, scale: 2 }),
-        action: t.text(),
-        // NFA classification
+        make: t.text().notNull(),                          // manufacturer
+        model: t.text().notNull(),                         // model designation
+        serialNumber: t.text().notNull(),                  // unique — see uniqueIndex below
+        firearmType: firearmType().notNull(),               // physical form factor
+        caliber: t.text(),                                 // free-text, Zod .trim()
+        barrelLength: t.numeric({ precision: 6, scale: 2 }), // inches; SBR/SBS relevance
+
+        // --- NFA fields (FIRE-02) ---
         isNfa: t.boolean().default(false).notNull(),
-        nfaClass: nfaClass(),                    // nullable — only set when isNfa=true
-        atfFormType: atfFormType(),              // nullable — form under which item was registered
-        atfControlNumber: t.text(),
-        taxStampDate: t.timestamp({ precision: 3, mode: 'string', withTimezone: true }),
-        nfaTransferStatus: nfaTransferStatus(), // nullable — only relevant when isNfa=true
-        // Estate valuation (shared pattern with all transferable assets)
-        acquisitionDate: t.timestamp({ precision: 3, mode: 'string', withTimezone: true }),
+        nfaClass: nfaClass(),                              // nullable — set when isNfa = true
+        atfFormType: atfFormType(),                        // FORM_1 / FORM_4 / FORM_5
+        atfControlNumber: t.text(),                        // ATF approval number on stamp
+        taxStampDate: t.timestamp({
+            precision: 3, mode: 'string', withTimezone: true,
+        }),
+        nfrtrSerial: t.text(),                             // may differ from serialNumber
+        nfaRegistered: t.boolean(),                        // null=unknown, false=unregistered contraband
+
+        // --- NFA Form 5 transfer status (FIRE-05) ---
+        nfaTransferStatus: nfaTransferStatus(),            // nullable — only meaningful when isNfa=true
+
+        // --- Estate/valuation fields (FIRE-03) — shared asset pattern ---
+        acquisitionDate: t.timestamp({
+            precision: 3, mode: 'string', withTimezone: true,
+        }),
         acquisitionCost: t.numeric({ precision: 12, scale: 2 }),
         dodValue: t.numeric({ precision: 14, scale: 2 }),
-        dodValueDate: t.timestamp({ precision: 3, mode: 'string', withTimezone: true }),
-        dodValueType: valuationType(),           // reuse existing enum
-        condition: firearmCondition().default('GOOD').notNull(),
-        // Lifecycle
+        dodValueDate: t.timestamp({
+            precision: 3, mode: 'string', withTimezone: true,
+        }),
+        dodValueType: valuationType(),                     // reuses existing enum
+        condition: firearmCondition().default('GOOD').notNull(), // NRA grade (FIRE-03)
+
+        // --- Shared lifecycle fields (vehicle pattern) ---
         status: recordStatus().default('ACTIVE').notNull(),
         transferStatus: transferStatus().default('PENDING').notNull(),
-        // Physical tracking
+
+        // --- Storage/physical tracking (FIRE-04) ---
         location: t.text(),
-        insured: t.boolean().default(false).notNull(),
+        insured: t.boolean().default(false).notNull(),     // mirrors personalProperty.insured
+
+        // --- Metadata ---
         notes: t.text(),
-        createdAt: t.timestamp({ precision: 3, mode: 'string', withTimezone: true })
-            .default(sql`CURRENT_TIMESTAMP`).notNull(),
-        updatedAt: t.timestamp({ precision: 3, mode: 'string', withTimezone: true }).notNull(),
+        createdAt: t.timestamp({
+            precision: 3, mode: 'string', withTimezone: true,
+        }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+        updatedAt: t.timestamp({
+            precision: 3, mode: 'string', withTimezone: true,
+        }).notNull(),
     }),
     (table) => [
+        // Serial number uniqueness — see Section 3 for global vs per-entity decision
         uniqueIndex('firearm_serial_number_key').using(
             'btree',
             table.serialNumber.asc().nullsLast().op('text_ops'),
@@ -197,155 +393,244 @@ export const firearm = pgTable(
 ).enableRLS()
 ```
 
-[VERIFIED: codebase — vehicle table pattern at db/schema.ts:413–491; enum naming convention from existing pgEnum declarations]
+### 3. Serial Number Uniqueness: Global vs Per-Entity
 
-### Why 5 Enums, Not 2
+**Discrepancy:** PITFALLS.md (Pitfall 9) recommends a **global** unique index ("serial numbers identify specific physical firearms regardless of ownership"). Success criterion #2 says "same `serialNumber` for the same entity" — implying per-entity.
 
-ARCHITECTURE.md listed only `nfaClass`. FEATURES.md is the authoritative field list and specifies 5 enums. STATE.md locked `nfaTransferStatus` as `NOT_FILED / FILED / APPROVED`. All 5 are needed:
+**Resolution: Use a global uniqueIndex.** Rationale:
 
-| Enum | Drizzle name | Values | Notes |
-|------|-------------|--------|-------|
-| FirearmType | `firearmType` | PISTOL, REVOLVER, RIFLE, SHOTGUN, OTHER | Physical form factor — orthogonal to NFA class |
-| NfaClass | `nfaClass` | SUPPRESSOR, SBR, SBS, MACHINE_GUN, AOW, DESTRUCTIVE_DEVICE | Regulatory classification — only set when isNfa=true |
-| AtfFormType | `atfFormType` | FORM_1, FORM_4, FORM_5 | Form type under which item was registered |
-| FirearmCondition | `firearmCondition` | POOR, FAIR, GOOD, VERY_GOOD, EXCELLENT, NEW | NRA grading scale for valuation |
-| NfaTransferStatus | `nfaTransferStatus` | NOT_FILED, FILED, APPROVED | ATF Form 5 lifecycle — separate from generic `transferStatus` |
+1. A firearm's serial number is engraved on the physical receiver by federal law and is globally unique per ATF regulations. Two different trusts cannot legitimately hold two firearms with the same serial number.
+2. The `vehicle` table uses `uniqueIndex('Vehicle_vin_key')` on VIN — also a globally unique physical identifier. The firearm precedent follows the vehicle precedent.
+3. Success criterion #2 says "A unique-index violation is raised when inserting two firearm rows with the same `serialNumber` for the same entity" — this is true whether the index is global or per-entity. A global unique index satisfies this criterion (and is stricter).
+4. The trust has a single entity. Even if multi-entity were ever supported, duplicate serial numbers across entities are physically impossible.
 
-**Existing enums reused (no modification):** `transferStatus` (PENDING/STARTED/COMPLETE), `recordStatus` (ACTIVE/etc.), `valuationType` (APPRAISAL/etc.)
+**Index name:** `'firearm_serial_number_key'` following the `'Vehicle_vin_key'` naming pattern.
 
-**`SURRENDERED` on `transferStatus` is OUT OF SCOPE** — confirmed by STATE.md v5.0 and REQUIREMENTS.md Out of Scope table. The `nfaRegistered` boolean + notes handle unregistered NFA items.
+### 4. NFA Conditional CHECK Constraint
 
-### Enum Naming Convention
+**Question:** Should a DB-level CHECK enforce `isNfa = false OR nfaClass IS NOT NULL`?
 
-[VERIFIED: codebase] Existing pgEnum declarations use PascalCase for the Postgres type name as the first argument, and camelCase for the exported JS variable:
+**Recommendation: NO — do not add a conditional CHECK constraint for Phase 28.** Rationale:
+
+1. Drizzle's `check()` helper emits a `CHECK` constraint in DDL. This pattern exists in the codebase for the polymorphic FK constraints (valuation, document, transaction). However, those constraints are structural requirements; the NFA conditionality is business logic.
+2. A CHECK constraint `(isNfa = false OR nfaClass IS NOT NULL)` would block seeding or importing historical records where the NFA class is filled in later, creates friction in partial saves (e.g., user checks `isNfa` then must immediately provide `nfaClass` before saving), and is better enforced in the Zod schema for `insertFirearmSchema`.
+3. The Zod validation should use `.refine()` to enforce this: `(data) => !data.isNfa || data.nfaClass != null`.
+4. The UI enforces it further by gating the NFA field group on `isNfa`.
+
+If this is reconsidered, the Drizzle syntax would be:
+```typescript
+check('firearm_nfa_class_check',
+    sql`(${table.isNfa} = false OR ${table.nfaClass} IS NOT NULL)`)
+```
+
+### 5. Updated CHECK Constraints
+
+**`document_single_owner_check` — updated expression (8 → 9 FKs):**
+
+The Drizzle schema.ts change adds `firearmId: bigint({ mode: 'number' })` to the `document` column map, adds a `CASE WHEN` to the existing `check()` call, adds a `foreignKey` declaration, and adds an `index('idx_document_firearm_id')`.
+
+New CHECK in `schema.ts`:
+```typescript
+check(
+    'document_single_owner_check',
+    sql`(
+        (CASE WHEN ${table.entityId} IS NOT NULL THEN 1 ELSE 0 END +
+         CASE WHEN ${table.vehicleId} IS NOT NULL THEN 1 ELSE 0 END +
+         CASE WHEN ${table.homesteadId} IS NOT NULL THEN 1 ELSE 0 END +
+         CASE WHEN ${table.rentalPropertyId} IS NOT NULL THEN 1 ELSE 0 END +
+         CASE WHEN ${table.bankAccountId} IS NOT NULL THEN 1 ELSE 0 END +
+         CASE WHEN ${table.investmentAccountId} IS NOT NULL THEN 1 ELSE 0 END +
+         CASE WHEN ${table.insurancePolicyId} IS NOT NULL THEN 1 ELSE 0 END +
+         CASE WHEN ${table.personalPropertyId} IS NOT NULL THEN 1 ELSE 0 END +
+         CASE WHEN ${table.firearmId} IS NOT NULL THEN 1 ELSE 0 END
+        ) = 1
+    )`,
+)
+```
+
+The generated migration will emit a DROP CONSTRAINT + ADD CONSTRAINT pair. Inspect the generated SQL to verify camelCase column references (e.g., `"firearmId"` not `"firearm_id"`).
+
+**`valuation_single_asset_check` — updated expression (6 → 7 FKs):**
 
 ```typescript
-export const transferStatus = pgEnum('TransferStatus', [...])  // JS var: camelCase, PG type: PascalCase
-export const recordStatus = pgEnum('RecordStatus', [...])
-export const valuationType = pgEnum('ValuationType', [...])
-export const documentType = pgEnum('DocumentType', [...])
+check(
+    'valuation_single_asset_check',
+    sql`(
+        (CASE WHEN ${table.vehicleId} IS NOT NULL THEN 1 ELSE 0 END +
+         CASE WHEN ${table.homesteadId} IS NOT NULL THEN 1 ELSE 0 END +
+         CASE WHEN ${table.rentalPropertyId} IS NOT NULL THEN 1 ELSE 0 END +
+         CASE WHEN ${table.bankAccountId} IS NOT NULL THEN 1 ELSE 0 END +
+         CASE WHEN ${table.investmentAccountId} IS NOT NULL THEN 1 ELSE 0 END +
+         CASE WHEN ${table.personalPropertyId} IS NOT NULL THEN 1 ELSE 0 END +
+         CASE WHEN ${table.firearmId} IS NOT NULL THEN 1 ELSE 0 END
+        ) = 1
+    )`,
+)
 ```
 
-New enums follow the same convention: `firearmType` / `'FirearmType'`, `nfaClass` / `'NfaClass'`, etc.
+---
 
-### document CHECK Constraint — Exact Before/After
+## Zod Validation Schema Pattern
 
-**Current state** [VERIFIED: db/schema.ts:1583–1595]:
+[VERIFIED: direct codebase read of `db/validation.ts`]
 
-```sql
--- document_single_owner_check (CURRENT — 8 FK columns, requires = 1)
-(CASE WHEN entityId IS NOT NULL THEN 1 ELSE 0 END +
- CASE WHEN vehicleId IS NOT NULL THEN 1 ELSE 0 END +
- CASE WHEN homesteadId IS NOT NULL THEN 1 ELSE 0 END +
- CASE WHEN rentalPropertyId IS NOT NULL THEN 1 ELSE 0 END +
- CASE WHEN bankAccountId IS NOT NULL THEN 1 ELSE 0 END +
- CASE WHEN investmentAccountId IS NOT NULL THEN 1 ELSE 0 END +
- CASE WHEN insurancePolicyId IS NOT NULL THEN 1 ELSE 0 END +
- CASE WHEN personalPropertyId IS NOT NULL THEN 1 ELSE 0 END
-) = 1
+The `vehicle` pattern in `db/validation.ts`:
+```typescript
+export const insertVehicleSchema = createInsertSchema(vehicle, {
+    createdAt: (schema) => schema.optional(),
+    updatedAt: (schema) => schema.optional(),
+    vin: () => vinValidation,
+    acquisitionCost: () => positiveNumberValidation,
+    dodValue: () => positiveNumberValidation,
+    name: (schema) => schema.min(1, 'Name is required'),
+})
+export const selectVehicleSchema = createSelectSchema(vehicle)
+export const updateVehicleSchema = requireAtLeastOneField(insertVehicleSchema.partial())
 ```
 
-**After Phase 28 — add `firearmId` (9 FK columns)**:
-
-```sql
--- document_single_owner_check (PHASE 28 — 9 FK columns)
-(CASE WHEN entityId IS NOT NULL THEN 1 ELSE 0 END +
- CASE WHEN vehicleId IS NOT NULL THEN 1 ELSE 0 END +
- CASE WHEN homesteadId IS NOT NULL THEN 1 ELSE 0 END +
- CASE WHEN rentalPropertyId IS NOT NULL THEN 1 ELSE 0 END +
- CASE WHEN bankAccountId IS NOT NULL THEN 1 ELSE 0 END +
- CASE WHEN investmentAccountId IS NOT NULL THEN 1 ELSE 0 END +
- CASE WHEN insurancePolicyId IS NOT NULL THEN 1 ELSE 0 END +
- CASE WHEN personalPropertyId IS NOT NULL THEN 1 ELSE 0 END +
- CASE WHEN firearmId IS NOT NULL THEN 1 ELSE 0 END
-) = 1
-```
-
-**document column additions required:**
-- `firearmId: bigint({ mode: 'number' })` (nullable FK)
-- `index('idx_document_firearm_id').on(table.firearmId)`
-- `foreignKey({ columns: [table.firearmId], foreignColumns: [firearm.id], name: 'document_firearm_id_fkey' }).onUpdate('cascade').onDelete('set null')`
-
-### valuation CHECK Constraint — Exact Before/After
-
-**Current state** [VERIFIED: db/schema.ts:1206–1216]:
-
-```sql
--- valuation_single_asset_check (CURRENT — 6 FK columns, requires = 1)
-(CASE WHEN vehicleId IS NOT NULL THEN 1 ELSE 0 END +
- CASE WHEN homesteadId IS NOT NULL THEN 1 ELSE 0 END +
- CASE WHEN rentalPropertyId IS NOT NULL THEN 1 ELSE 0 END +
- CASE WHEN bankAccountId IS NOT NULL THEN 1 ELSE 0 END +
- CASE WHEN investmentAccountId IS NOT NULL THEN 1 ELSE 0 END +
- CASE WHEN personalPropertyId IS NOT NULL THEN 1 ELSE 0 END
-) = 1
-```
-
-Note: `valuation` does NOT have an `entityId` column in the CHECK — unlike `document` which includes `entityId` as a valid single-owner target. The valuation table is always owned by a specific asset, never by the entity directly.
-
-**After Phase 28 — add `firearmId` (7 FK columns)**:
-
-```sql
--- valuation_single_asset_check (PHASE 28 — 7 FK columns)
-(CASE WHEN vehicleId IS NOT NULL THEN 1 ELSE 0 END +
- CASE WHEN homesteadId IS NOT NULL THEN 1 ELSE 0 END +
- CASE WHEN rentalPropertyId IS NOT NULL THEN 1 ELSE 0 END +
- CASE WHEN bankAccountId IS NOT NULL THEN 1 ELSE 0 END +
- CASE WHEN investmentAccountId IS NOT NULL THEN 1 ELSE 0 END +
- CASE WHEN personalPropertyId IS NOT NULL THEN 1 ELSE 0 END +
- CASE WHEN firearmId IS NOT NULL THEN 1 ELSE 0 END
-) = 1
-```
-
-**valuation column additions required:**
-- `firearmId: bigint({ mode: 'number' })` (nullable FK, after `personalPropertyId`)
-- `index('idx_valuation_firearm_id').on(table.firearmId)`
-- `foreignKey({ columns: [table.firearmId], foreignColumns: [firearm.id], name: 'valuation_firearm_id_fkey' }).onUpdate('cascade').onDelete('set null')`
-
-### Zod Validation Pattern
-
-[VERIFIED: db/validation.ts] The exact pattern for a vehicle-like asset:
+**`insertFirearmSchema` — recommended overrides:**
 
 ```typescript
-// db/validation.ts — add firearm schemas
-
-import { firearm } from './schema'
-
 export const insertFirearmSchema = createInsertSchema(firearm, {
     createdAt: (schema) => schema.optional(),
     updatedAt: (schema) => schema.optional(),
     name: (schema) => schema.min(1, 'Name is required'),
     make: (schema) => schema.min(1, 'Make is required'),
     model: (schema) => schema.min(1, 'Model is required'),
-    serialNumber: (schema) =>
-        schema
-            .min(1, 'Serial number is required')
-            .max(50, 'Serial number must be 50 characters or fewer')
-            .trim(),
+    serialNumber: () => z.string()
+        .min(1, 'Serial number is required')
+        .max(50, 'Serial number must be 50 characters or fewer')  // ATF Form 4473 allows up to 40; 50 is safe ceiling
+        .trim()
+        .regex(/^[A-Za-z0-9\-]+$/, 'Serial number must contain only letters, numbers, and hyphens'),
+    caliber: (schema) => schema.trim().optional(),
     acquisitionCost: () => positiveNumberValidation,
     dodValue: () => positiveNumberValidation,
-})
-export const selectFirearmSchema = createSelectSchema(firearm)
-export const updateFirearmSchema = requireAtLeastOneField(
-    insertFirearmSchema.partial(),
+}).refine(
+    (data) => !data.isNfa || data.nfaClass != null,
+    { message: 'NFA class is required when firearm is classified as NFA', path: ['nfaClass'] }
 )
+
+export const selectFirearmSchema = createSelectSchema(firearm)
+
+export const updateFirearmSchema = requireAtLeastOneField(insertFirearmSchema.partial())
 ```
 
-Key validation choices [CITED: ATF Form 4473 Box 16 per FEATURES.md research]:
-- `serialNumber` max 50 chars (ATF Form 4473 allows up to 40 chars — 50 gives minor buffer for unusual formats)
-- `caliber` free text with implicit `.trim()` from the schema (Zod string schema normalizes via `createInsertSchema`)
-- `positiveNumberValidation` for `acquisitionCost` and `dodValue` — matches vehicle/homestead/rentalProperty precedent
-- No `vinValidation`-equivalent for serial numbers — serial numbers have no standardized format (manufacturer-specific, 4–40 alphanumeric chars)
+**`requireAtLeastOneField` helper** — already defined at line 42 of `db/validation.ts`. Used on all 26 existing update schemas. The firearm update schema must use it too (STATE.md: "requireAtLeastOneField() Zod .refine() on all 26 update schemas").
 
-### relations.ts Pattern
+Note: `insertFirearmSchema.partial()` produces a partial schema, then `requireAtLeastOneField()` wraps it with the "at least one field" refine. These are chained correctly — `updateFirearmSchema` will be the 27th such schema.
 
-[VERIFIED: db/relations.ts:60–68] Vehicle relation pattern to copy:
+---
+
+## Migration Mechanics
+
+### Step-by-Step Migration Protocol
+
+1. Edit `db/schema.ts`:
+   - Add 5 new pgEnum declarations in the enums section (after existing enums, before `activityLog` table)
+   - Add `firearm` pgTable after `personalProperty` (line ~1413), before `inventoryAnalysisCache`
+   - Add `firearmId: bigint({ mode: 'number' })` column to `document` table
+   - Update `document_single_owner_check` to include `firearmId` CASE WHEN (8→9)
+   - Add `foreignKey` for `document.firearmId` → `firearm.id` with `.onUpdate('cascade').onDelete('set null')`
+   - Add `index('idx_document_firearm_id').on(table.firearmId)` to document
+   - Add `firearmId: bigint({ mode: 'number' })` column to `valuation` table
+   - Update `valuation_single_asset_check` to include `firearmId` CASE WHEN (6→7)
+   - Add `foreignKey` for `valuation.firearmId` → `firearm.id` with `.onUpdate('cascade').onDelete('set null')`
+   - Add `index('idx_valuation_firearm_id').on(table.firearmId)` to valuation
+
+2. Edit `db/relations.ts`:
+   - Add `import { firearm }` to imports
+   - Add `firearmRelations` export
+   - Add `firearms: many(firearm)` to `entityRelations`
+   - Add `firearm: one(firearm, { fields: [valuation.firearmId], references: [firearm.id] })` to `valuationRelations`
+   - Add `firearm: one(firearm, { fields: [document.firearmId], references: [firearm.id] })` to `documentRelations`
+
+3. Edit `db/validation.ts`:
+   - Add `firearm` to imports from `./schema`
+   - Add `insertFirearmSchema`, `selectFirearmSchema`, `updateFirearmSchema`
+
+4. Run `bun run db:generate` — generates `drizzle/0014_<name>.sql`
+
+5. **Hand-audit the generated SQL before applying.** Audit checklist:
+   - All `CREATE TYPE` statements use the PascalCase names: `"FirearmType"`, `"NfaClass"`, `"AtfFormType"`, `"FirearmCondition"`, `"NfaTransferStatus"`
+   - `CREATE TABLE firearm` column names are camelCase: `"entityId"`, `"serialNumber"`, `"firearmType"`, `"isNfa"`, `"nfaClass"`, `"atfFormType"`, `"atfControlNumber"`, `"taxStampDate"`, `"nfrtrSerial"`, `"nfaRegistered"`, `"nfaTransferStatus"`, `"acquisitionDate"`, `"acquisitionCost"`, `"dodValue"`, `"dodValueDate"`, `"dodValueType"`, `"barrelLength"`, `"createdAt"`, `"updatedAt"`, `"transferStatus"`, `"insured"`
+   - `DROP CONSTRAINT document_single_owner_check` and re-add with 9-FK expression — column refs camelCase
+   - `DROP CONSTRAINT valuation_single_asset_check` and re-add with 7-FK expression — column refs camelCase
+   - `ADD COLUMN "firearmId"` (not `"firearm_id"`) in both `document` and `valuation`
+   - `CREATE UNIQUE INDEX "firearm_serial_number_key"` uses camelCase `"serialNumber"`
+   - FK constraint names follow naming conventions: `firearm_entity_id_fkey`, `document_firearm_id_fkey`, `valuation_firearm_id_fkey`
+
+6. Run `bun run db:migrate` (or `db:deploy` to combine steps 4+6)
+
+7. Post-migration verification SQL:
+   ```sql
+   -- Verify RLS enabled
+   SELECT relname, relrowsecurity FROM pg_class WHERE relname = 'firearm';
+   -- Expected: relrowsecurity = true
+
+   -- Verify policies exist
+   SELECT policyname, cmd FROM pg_policies WHERE tablename = 'firearm';
+   -- Expected: 4 rows (select, insert, update, delete)
+
+   -- Verify enums created
+   SELECT typname FROM pg_type WHERE typname IN (
+       'FirearmType', 'NfaClass', 'AtfFormType', 'FirearmCondition', 'NfaTransferStatus'
+   );
+   -- Expected: 5 rows
+
+   -- Verify table columns
+   SELECT column_name FROM information_schema.columns WHERE table_name = 'firearm';
+
+   -- Verify firearmId added to document and valuation
+   SELECT column_name FROM information_schema.columns
+   WHERE table_name IN ('document', 'valuation') AND column_name = 'firearmId';
+   -- Expected: 2 rows
+   ```
+
+### Migration Failure Recovery
+
+If `bun run db:migrate` exits with bare exit code 1 and no error message:
+1. Run the SQL manually via `getClient()` (postgres.js transaction) — NOT `getSql()` (Neon HTTP reports DDL success even when nothing persists)
+2. Check `drizzle.__drizzle_migrations` for a stale row with idx=14 — if present and the SQL was partially applied, update the hash rather than deleting the row (per MEMORY.md stale row recovery)
+
+### Test Branch Sync
+
+STATE.md Phase 23 precedent: "Test branch DB synced manually after db:deploy — migration DDL applied to .env.test.local branch via postgres.js tx so tRPC reorder tests pass."
+
+STATE.md Phase 26 precedent: committed idempotent postgres.js script `scripts/apply-0013-testbranch.ts`.
+
+Phase 28 creates a new table — the test branch must also have the `firearm` table for any Phase 29 tRPC tests to compile and run. The planner must include a task to sync the test branch after the migration is applied to the main DB.
+
+Pattern for Phase 28 test-branch sync script (`scripts/apply-0014-testbranch.ts`):
+```typescript
+// Apply migration 0014 to .env.test.local DB
+// Wrapped in DO $$ existence checks so idempotent
+import { getClient } from '../db'
+const sql = getClient()
+await sql.begin(async (tx) => {
+    // CREATE TYPE guards (DO $$ ... EXCEPTION duplicate_object $$ END)
+    // CREATE TABLE IF NOT EXISTS firearm (...)
+    // ALTER TABLE document ADD COLUMN IF NOT EXISTS "firearmId" bigint
+    // DROP CONSTRAINT (IF EXISTS) + ADD CONSTRAINT for document_single_owner_check
+    // ALTER TABLE valuation ADD COLUMN IF NOT EXISTS "firearmId" bigint
+    // DROP CONSTRAINT (IF EXISTS) + ADD CONSTRAINT for valuation_single_asset_check
+    // ADD CONSTRAINT FK (guarded by DO $$ existence check)
+    // CREATE INDEX IF NOT EXISTS
+    // ENABLE ROW LEVEL SECURITY
+    // CREATE POLICY (guarded by DO $$ existence check)
+})
+```
+
+---
+
+## `db/relations.ts` — Exact Pattern to Follow
+
+[VERIFIED: direct codebase read of `db/relations.ts`]
 
 ```typescript
-// db/relations.ts — add to imports: firearm
-// Add to entityRelations: firearms: many(firearm)
-// Add new relation:
+// Add to imports:
+// firearm
 
+// New declaration:
 export const firearmRelations = relations(firearm, ({ one, many }) => ({
     entity: one(entity, {
         fields: [firearm.entityId],
@@ -354,69 +639,21 @@ export const firearmRelations = relations(firearm, ({ one, many }) => ({
     valuations: many(valuation),
     documents: many(document),
 }))
-```
 
-The `entityRelations` gains `firearms: many(firearm)` in the `many()` declarations.
+// Modify entityRelations — add after existing many() entries:
+//     firearms: many(firearm),
 
-### Migration Mechanics
+// Modify valuationRelations — add after personalProperty:
+//     firearm: one(firearm, {
+//         fields: [valuation.firearmId],
+//         references: [firearm.id],
+//     }),
 
-**Directory:** `./drizzle/` (not `./db/migrations/` — that folder contains manually applied one-off SQL). The drizzle-kit output goes to `./drizzle/` per `drizzle.config.ts`. [VERIFIED: codebase]
-
-**Current migration index:** 0013 is the last applied migration. Phase 28 generates `0014_<name>.sql`. [VERIFIED: drizzle/meta/_journal.json]
-
-**Migration sequence:**
-1. Edit `db/schema.ts` — add 5 pgEnums, `firearm` table, update `document` and `valuation`
-2. Edit `db/relations.ts` — add `firearmRelations`, add `firearms` to `entityRelations`
-3. Edit `db/validation.ts` — add 3 schemas
-4. `bun run db:generate` → emits `drizzle/0014_<name>.sql`
-5. **Hand-audit 0014:** verify all column identifiers in CREATE TABLE, ADD COLUMN, and the CHECK constraint expressions use camelCase (not snake_case). Verify the `firearm_serial_number_key` unique index declaration. Verify the check constraint expressions include all 9 (document) and 7 (valuation) FK columns with correct quoted camelCase names.
-6. `bun run db:migrate` to apply
-7. Verify RLS and table existence
-
-**What to audit in the generated migration SQL:**
-- Column names in `CREATE TABLE "firearm"` — must be `"serialNumber"`, `"firearmType"`, `"isNfa"`, `"nfaClass"`, `"atfFormType"`, `"atfControlNumber"`, `"taxStampDate"`, `"nfaTransferStatus"`, `"acquisitionDate"`, `"acquisitionCost"`, `"dodValue"`, `"dodValueDate"`, `"dodValueType"`, `"firearmCondition"`, `"entityId"`, `"barrelLength"`, `"createdAt"`, `"updatedAt"` — all camelCase
-- `ALTER TABLE "document" ADD COLUMN "firearmId"` — must be `"firearmId"` not `"firearm_id"`
-- `ALTER TABLE "valuation" ADD COLUMN "firearmId"` — must be `"firearmId"`
-- The `DROP CONSTRAINT` + `ADD CONSTRAINT` blocks for `document_single_owner_check` and `valuation_single_asset_check` — verify the new CHECK expression uses `"firearmId"` not `"firearm_id"` in the CASE WHEN clauses
-- The enum type names: `'FirearmType'`, `'NfaClass'`, `'AtfFormType'`, `'FirearmCondition'`, `'NfaTransferStatus'`
-
-**How to surface migration errors when db:migrate exits with bare exit code 1:**
-Use `getClient()` (postgres.js, `db/index.ts:132`) — not `getSql()` (Neon HTTP, `db/index.ts:119`). `getSql()` reports DDL success even when nothing persists; `getClient()` surfaces the real Postgres error. [VERIFIED: MEMORY.md + db/index.ts]
-
-**Test-branch sync:** Per the Phase 26 precedent (STATE.md decision + `scripts/apply-0013-testbranch.ts`), a committed idempotent postgres.js transaction script should be created at `scripts/apply-0014-testbranch.ts`. The script pattern is established: postgres.js `sql.begin(async (tx) => {...})` with `IF NOT EXISTS` guards on ADD COLUMN and `DO $$ BEGIN IF NOT EXISTS ... END $$` guards on ADD CONSTRAINT. The production DB guard pattern from `apply-0013-testbranch.ts` must be preserved.
-
-### RLS Policy Source of Truth
-
-[VERIFIED: db/rls.ts header comment] `db/rls.ts` is **documentation only** — no Drizzle pgRole/pgPolicy objects are used there. RLS policies for existing tables were applied via `db/migrations/add-rls-policies.sql` (a manual script, applied once).
-
-For the `firearm` table, the RLS policy approach is **different**: the four `pgPolicy()` declarations inside the `pgTable()` definition in `schema.ts` are the source of truth. `db:generate` + `db:migrate` will emit the `ALTER TABLE "firearm" ENABLE ROW LEVEL SECURITY` and `CREATE POLICY` statements into the migration SQL automatically. This is the same mechanism used for all other tables that have `pgPolicy` + `.enableRLS()` in the schema (confirmed by comparing `vehicle` schema declarations vs the `add-rls-policies.sql` content — vehicle appears there, meaning the policies were applied historically via that script, but new tables added via drizzle-kit will get policies inline in the generated migration).
-
-**Verification after migration:**
-```sql
--- Confirm RLS is enabled
-SELECT relname, relrowsecurity FROM pg_class WHERE relname = 'firearm';
--- relrowsecurity must be 't'
-
--- Confirm policies exist
-SELECT policyname, permissive, roles, cmd
-FROM pg_policies
-WHERE tablename = 'firearm';
--- Must have 4 rows: crud-authenticated-policy-select/insert/update/delete
-```
-
-### Recommended Project Structure
-
-This phase modifies 4 existing files and creates no new directories:
-
-```
-db/
-├── schema.ts        MODIFIED — 5 new pgEnums, firearm pgTable, document FK, valuation FK
-├── relations.ts     MODIFIED — firearmRelations, entityRelations.firearms
-├── validation.ts    MODIFIED — insertFirearmSchema, selectFirearmSchema, updateFirearmSchema
-drizzle/
-└── 0014_<name>.sql  NEW (generated by db:generate)
-scripts/
-└── apply-0014-testbranch.ts  NEW — idempotent test-branch sync script
+// Modify documentRelations — add after personalProperty:
+//     firearm: one(firearm, {
+//         fields: [document.firearmId],
+//         references: [firearm.id],
+//     }),
 ```
 
 ---
@@ -425,287 +662,75 @@ scripts/
 
 | Problem | Don't Build | Use Instead | Why |
 |---------|-------------|-------------|-----|
-| Zod schema for firearm table | Custom z.object() | `createInsertSchema(firearm, {...})` from drizzle-zod | Stays in sync with table type automatically; same pattern as all 25+ other schemas in validation.ts |
-| Serial number uniqueness | Application-level dedup check | `uniqueIndex` in pgTable + handle `23505` in tRPC create (Phase 29) | DB constraint is the only reliable guarantee; race conditions defeat app-level checks |
-| RLS policies | Raw SQL in a separate script | `pgPolicy()` inside `pgTable()` + `.enableRLS()` | Generates correctly into the migration; `add-rls-policies.sql` was a one-off for pre-existing tables, not the ongoing pattern |
-| Polymorphic ownership check | Separate ownership table or nullable discriminator | `check()` expression counting CASE WHEN IS NOT NULL | Established pattern in this codebase for both `document` and `valuation` |
-| Migration recovery | Delete stale `drizzle.__drizzle_migrations` row | Update hash field after manual SQL apply | Per MEMORY.md: DELETE causes re-run on next migrate; UPDATE hash is correct recovery |
-
----
-
-## Serialization Uniqueness: Global vs Per-Entity — Resolution
-
-**The discrepancy:** PITFALLS.md recommends a **global** unique index (serial numbers identify physical firearms regardless of ownership). Success criterion #2 in the phase description says "same `serialNumber` for the same entity" — implying a **per-entity** composite unique index.
-
-**Analysis:**
-- ATF serial numbers are manufacturer-assigned and globally unique on the specific firearm (the physical item). However: (a) different manufacturers can and do use the same serial number format, (b) the ATF identifies a specific firearm by the combination of manufacturer + model + serial number, not serial number alone, (c) the Hudson Trust is a single-entity app (entity ID 1) so global vs per-entity produces identical results today.
-- The `vehicle` precedent uses `uniqueIndex('Vehicle_vin_key').using('btree', table.vin...)` — a **global** unique index (VINs are globally unique by ISO standard).
-- Following the `vehicle` pattern exactly (as locked in STATE.md) means a **global** unique index.
-- However, the success criterion says "same serialNumber for the same entity" — this is the validation check the criterion wants to observe, not necessarily an architectural mandate for a composite index.
-
-**Recommendation:** Use a **global** unique index on `serialNumber`, consistent with the `vehicle` precedent and ATF recordkeeping semantics. The success criterion is still satisfied: if you insert two rows with the same `serialNumber` for the same entity, the global unique index raises the violation. The criterion does not say the constraint scope must be per-entity — it says the behavior (violation raised on duplicate) must occur. Global index produces that behavior.
-
-**Index declaration:**
-```typescript
-uniqueIndex('firearm_serial_number_key').using(
-    'btree',
-    table.serialNumber.asc().nullsLast().op('text_ops'),
-)
-```
-
----
-
-## NFA Conditional CHECK Constraint — Analysis
-
-FEATURES.md recommends a table-level CHECK: `CHECK (isNfa = false OR nfaClass IS NOT NULL)`.
-
-**How to declare in Drizzle:**
-```typescript
-// Inside the (table) => [...] array:
-check(
-    'firearm_nfa_class_required_check',
-    sql`(${table.isNfa} = false OR ${table.nfaClass} IS NOT NULL)`,
-)
-```
-
-**Should it ship in Phase 28?**
-
-Arguments for: Enforces data integrity at the DB level; `nfaClass` IS NULL when `isNfa = true` is a data model error; the schema knows about this constraint.
-
-Arguments against: (1) The tRPC router (Phase 29) will enforce this at the application layer anyway; (2) a DB-level CHECK means any bulk data edit or seed operation must also comply; (3) it adds one more thing to the CHECK constraint that can produce an opaque error if violated.
-
-**Recommendation:** Include it. DB-level enforcement is correct for a constraint that must hold across all write paths (tRPC, seeds, direct SQL). The error message from Postgres is reasonably clear. Declare it using the `check()` helper — same mechanism as `document_single_owner_check` and `valuation_single_asset_check`.
-
-The migration must verify: the emitted CHECK constraint SQL uses `"isNfa"` and `"nfaClass"` (camelCase), not `"is_nfa"` and `"nfa_class"`.
+| Serial number uniqueness | Custom duplicate-check query | Drizzle `uniqueIndex` on `serialNumber` | DB-enforced; handles race conditions |
+| Polymorphic FK tracking | Custom "asset type" enum on firearm | Drizzle `foreignKey` on document/valuation | Existing pattern; CHECK constraint guards integrity |
+| NFA status tracking | Custom status table | Single `nfaTransferStatus` column + enum | Simple 3-state lifecycle; no history needed in Phase 28 |
+| Conditional field validation | DB CHECK constraint | Zod `.refine()` in `insertFirearmSchema` | More flexible; CHECK prevents partial saves |
 
 ---
 
 ## Common Pitfalls
 
-### Pitfall 1: CHECK Constraint Column Reference Goes snake_case
-**What goes wrong:** drizzle-kit emits the CHECK expression for `document_single_owner_check` with `"firearm_id"` instead of `"firearmId"`. Migration applies, but every subsequent INSERT to `document` with `firearmId` set fails with `column "firearm_id" does not exist` (Postgres evaluates the CHECK at runtime).
-**Why it happens:** Same root cause as the 0008 migration failure — drizzle-kit raw SQL blocks sometimes use snake_case even when schema is camelCase.
-**How to avoid:** Open `drizzle/0014_<name>.sql` after generation. Find every `CASE WHEN` clause in the document and valuation constraint expressions. Verify `"firearmId"` not `"firearm_id"`. Same check for the NFA conditional CHECK on the `firearm` table itself.
-**Warning signs:** Migration applies cleanly but `INSERT INTO document (firearmId, ...) VALUES (...)` fails immediately.
+### Pitfall 1: camelCase Migration Column References
+**What goes wrong:** drizzle-kit emits snake_case column refs (`"firearm_id"`, `"serial_number"`, `"nfa_class"`) in DROP/ADD CONSTRAINT expressions even when the schema uses camelCase column names. The migration fails with `column "firearm_id" does not exist`.
+**Why it happens:** drizzle-kit sometimes generates snake_case in raw SQL blocks. Documented failure: migration 0008.
+**How to avoid:** Hand-audit every column reference in the generated SQL — especially in the CHECK constraint expressions for `document` and `valuation`. The CREATE TABLE DDL is typically correct; the constraint re-expressions are the risk.
+**Warning signs:** `bun run db:migrate` exits with code 1 and no message. Run via `getClient()` postgres.js to surface the real Postgres error.
 
-### Pitfall 2: Missing `.enableRLS()` on firearm Table
-**What goes wrong:** `pgPolicy()` entries are present inside the `pgTable()` call but `.enableRLS()` is omitted from the chain. Policies are registered but RLS is not enabled — effectively a no-op protection. `pg_class.relrowsecurity` will be `f`.
-**How to avoid:** The `.enableRLS()` must be the last chained call: `}).enableRLS()`. Verify with `SELECT relrowsecurity FROM pg_class WHERE relname = 'firearm'` after migration.
+### Pitfall 2: Missing `.enableRLS()`
+**What goes wrong:** Firearm table exists but `relrowsecurity = false`. RLS policies are registered but have no effect.
+**How to avoid:** Verify after migration: `SELECT relrowsecurity FROM pg_class WHERE relname = 'firearm'` must return `true`.
 
-### Pitfall 3: db:push Used Instead of db:deploy
-**What goes wrong:** `bun run db:push` mishandles RLS policies on this schema (documented failure). The `db:push` script itself prints a warning but proceeds.
-**How to avoid:** Always `bun run db:deploy`. Never `bun run db:push`. The warning in `package.json` is there for a reason.
+### Pitfall 3: Updating CHECK Constraint Without Dropping First
+**What goes wrong:** Adding `firearmId` to the CASE WHEN sum without dropping and re-creating the constraint. Postgres does not support `ALTER TABLE ... ALTER CONSTRAINT` for CHECK constraints. The generated migration should DROP + ADD. Verify this is what drizzle-kit emitted.
 
-### Pitfall 4: CHECK Constraint Not Updated When Adding FK to document/valuation
-**What goes wrong:** `firearmId` FK column is added to `document` but the `document_single_owner_check` is not updated (still requires 8 FKs = 1). Every INSERT to `document` with `firearmId` set now violates the CHECK (8 FKs = 0, 9 is impossible with old check counting only 8). Every INSERT without `firearmId` is unaffected. Result: ATF document attachment silently fails.
-**How to avoid:** The schema edit must update the `check()` call to add the ninth CASE WHEN. Drizzle-kit will detect the changed constraint and emit DROP + ADD in the migration. Verify the migration contains both the DROP and ADD for both `document_single_owner_check` and `valuation_single_asset_check`.
+### Pitfall 4: `db:push` Instead of `db:deploy`
+**What goes wrong:** RLS policies are mishandled or dropped. Documented failure in CLAUDE.md.
+**How to avoid:** Always `bun run db:deploy`. The `db:push` script now prints a warning and exits. Never override it.
 
-### Pitfall 5: Migration Output Directory Confusion
-**What goes wrong:** Developer looks in `db/migrations/` for the generated migration file. It is not there. `db/migrations/` contains manually applied one-off scripts (numbered 0001-004 and named add-rls-*.sql). drizzle-kit output goes to `./drizzle/` per `drizzle.config.ts`.
-**How to avoid:** Generated migration is at `./drizzle/0014_<name>.sql`. The meta directory is `./drizzle/meta/`.
+### Pitfall 5: Forgetting Test Branch Sync
+**What goes wrong:** Phase 29 tRPC tests fail with `relation "firearm" does not exist` because the test branch DB (`ep-gentle-salad-aef4mc4y`) doesn't have the migration applied.
+**How to avoid:** Phase 28 must include a task to create and run a test-branch sync script, following the Phase 23/26 precedent.
 
-### Pitfall 6: Stale __drizzle_migrations Row
-**What goes wrong:** Migration fails partway through. The `drizzle.__drizzle_migrations` table has a row with the migration hash but the schema changes are partially applied. Re-running `db:migrate` skips the migration (it's already recorded). The schema is in a broken state.
-**Recovery:** Per MEMORY.md — apply remaining SQL manually via `getClient()` (postgres.js), then UPDATE the hash in `drizzle.__drizzle_migrations` to the correct sha256 of the file. Do NOT delete the row.
+### Pitfall 6: SURRENDERED in transferStatus Enum
+**What goes wrong:** Temptation to add `SURRENDERED` to the generic `transferStatus` enum for unregistered NFA items.
+**How to avoid:** STATE.md explicitly locks this out of scope. The `nfaRegistered` boolean + notes covers unregistered NFA items. Do not modify `transferStatus`.
 
----
-
-## Code Examples
-
-### Vehicle Table Declaration (exact template) [VERIFIED: db/schema.ts:413–491]
-
-```typescript
-export const vehicle = pgTable(
-    'vehicle',
-    (t) => ({
-        id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
-        entityId: bigint({ mode: 'number' }).notNull(),
-        name: t.text().notNull(),
-        description: t.text(),
-        year: t.integer().notNull(),
-        make: t.text().notNull(),
-        model: t.text().notNull(),
-        vin: t.text().notNull(),
-        color: t.text(),
-        titleStatus: titleStatus().default('CLEAR').notNull(),
-        licensePlate: t.text(),
-        mileage: t.integer(),
-        acquisitionDate: t.timestamp({ precision: 3, mode: 'string', withTimezone: true }),
-        acquisitionCost: t.numeric({ precision: 12, scale: 2 }),
-        dodValue: t.numeric({ precision: 14, scale: 2 }),
-        dodValueDate: t.timestamp({ precision: 3, mode: 'string', withTimezone: true }),
-        dodValueType: valuationType(),
-        status: recordStatus().default('ACTIVE').notNull(),
-        transferStatus: transferStatus().default('PENDING').notNull(),
-        notes: t.text(),
-        createdAt: t.timestamp({ precision: 3, mode: 'string', withTimezone: true })
-            .default(sql`CURRENT_TIMESTAMP`).notNull(),
-        updatedAt: t.timestamp({ precision: 3, mode: 'string', withTimezone: true }).notNull(),
-    }),
-    (table) => [
-        uniqueIndex('Vehicle_vin_key').using('btree', table.vin.asc().nullsLast().op('text_ops')),
-        index('idx_vehicle_entity_id').on(table.entityId),
-        index('idx_vehicle_status').on(table.status),
-        foreignKey({ columns: [table.entityId], foreignColumns: [entity.id], name: 'vehicle_entity_id_fkey' })
-            .onUpdate('cascade').onDelete('restrict'),
-        pgPolicy('crud-authenticated-policy-select', { as: 'permissive', for: 'select', to: ['authenticated'], using: sql`( SELECT app.is_admin() AS is_admin)` }),
-        pgPolicy('crud-authenticated-policy-insert', { as: 'permissive', for: 'insert', to: ['authenticated'] }),
-        pgPolicy('crud-authenticated-policy-update', { as: 'permissive', for: 'update', to: ['authenticated'] }),
-        pgPolicy('crud-authenticated-policy-delete', { as: 'permissive', for: 'delete', to: ['authenticated'] }),
-    ],
-).enableRLS()
-```
-
-### requireAtLeastOneField Pattern [VERIFIED: db/validation.ts:42–49]
-
-```typescript
-function requireAtLeastOneField<T extends z.ZodObject<z.ZodRawShape>>(schema: T) {
-    return schema.refine(
-        (data) => Object.values(data).some((v) => v !== undefined),
-        { message: 'Update requires at least one field to be provided' },
-    )
-}
-// Usage:
-export const updateFirearmSchema = requireAtLeastOneField(insertFirearmSchema.partial())
-```
-
-### Migration 0013 Generated SQL Pattern [VERIFIED: drizzle/0013_kpi_schema_completeness.sql]
-
-drizzle-kit emits camelCase for columns declared camelCase in the schema:
-
-```sql
--- camelCase column names emitted correctly:
-ALTER TABLE "liability" ADD COLUMN IF NOT EXISTS "bankAccountId" bigint;
-ALTER TABLE "personal_property" ADD COLUMN IF NOT EXISTS "insured" boolean DEFAULT false NOT NULL;
-ALTER TABLE "liability" ADD CONSTRAINT "liability_bank_account_id_fkey"
-    FOREIGN KEY ("bankAccountId") REFERENCES "public"."bank_account"("id")
-    ON DELETE set null ON UPDATE cascade;
-CREATE INDEX IF NOT EXISTS "idx_liability_bank_account_id" ON "liability" USING btree ("bankAccountId");
-```
-
-Note: FK constraint names use snake_case (`liability_bank_account_id_fkey`) while column references use camelCase (`"bankAccountId"`). The Phase 28 migration must follow the same pattern.
-
-### Test-Branch Sync Script Pattern [VERIFIED: scripts/apply-0013-testbranch.ts]
-
-```typescript
-// scripts/apply-0014-testbranch.ts
-import postgres from 'postgres'
-
-const url = process.env.DATABASE_URL
-if (!url) { console.error('DATABASE_URL not set'); process.exit(1) }
-
-// Production guard (mirrors db-guard pattern)
-const isProductionDb = url.includes('-pooler.') && !url.includes('/br-') && !process.env.ALLOW_PRODUCTION_DB
-if (isProductionDb) { console.error('Refusing: production DB detected'); process.exit(1) }
-
-const sql = postgres(url, { max: 1 })
-
-try {
-    await sql.begin(async (tx) => {
-        // CREATE TYPE must come before CREATE TABLE
-        await tx`CREATE TYPE IF NOT EXISTS "FirearmType" AS ENUM ('PISTOL', 'REVOLVER', 'RIFLE', 'SHOTGUN', 'OTHER')`
-        // ... other enums
-        await tx`CREATE TABLE IF NOT EXISTS "firearm" (...)`
-        // ADD COLUMN to document and valuation with IF NOT EXISTS
-        await tx`ALTER TABLE "document" ADD COLUMN IF NOT EXISTS "firearmId" bigint`
-        // FK with DO $$ existence guard
-        await tx`DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'document_firearm_id_fkey') THEN ALTER TABLE "document" ADD CONSTRAINT "document_firearm_id_fkey" FOREIGN KEY ("firearmId") REFERENCES "public"."firearm"("id") ON DELETE set null ON UPDATE cascade; END IF; END $$`
-        // DROP OLD CHECK + ADD NEW CHECK for document
-        // DROP OLD CHECK + ADD NEW CHECK for valuation
-    })
-    console.log('Migration 0014 applied to test branch')
-} finally {
-    await sql.end()
-}
-```
-
----
-
-## State of the Art
-
-| Old Approach | Current Approach | When Changed | Impact |
-|--------------|------------------|--------------|--------|
-| Drizzle-kit push for new tables | `db:generate` + `db:migrate` (`db:deploy`) | v4.0 (RLS corruption discovered) | All schema changes must use deploy path; push is broken |
-| Snake_case column names | camelCase everywhere in Postgres | Pre-existing convention | Every migration column reference must be quoted camelCase |
-| RLS via separate `add-rls-policies.sql` | `pgPolicy()` inline in `pgTable()` → emitted by drizzle-kit | v4.0 onward for new tables | New tables get RLS policy SQL automatically in generated migration |
-
----
-
-## Assumptions Log
-
-| # | Claim | Section | Risk if Wrong |
-|---|-------|---------|---------------|
-| A1 | `pgPolicy()` inline in new `pgTable()` definitions causes drizzle-kit to emit `ALTER TABLE ENABLE ROW LEVEL SECURITY` + `CREATE POLICY` statements in the generated migration | Migration Mechanics, RLS section | If drizzle-kit does NOT emit these statements, the firearm table will be unprotected; must manually verify migration SQL before applying |
-| A2 | drizzle-kit will emit `DROP CONSTRAINT` + `ADD CONSTRAINT` for the altered CHECK constraints on document and valuation | CHECK Constraint sections | If it emits only `ADD COLUMN` without updating the constraints, the polymorphic CHECK will be wrong; must verify in generated SQL |
-
-**All schema-level claims (column types, exact constraint expressions, enum values, table structure) are VERIFIED from direct codebase inspection.**
-
----
-
-## Open Questions
-
-1. **NFA Conditional CHECK — include or defer?**
-   - What we know: The `isNfa = false OR nfaClass IS NOT NULL` constraint is technically sound and follows the CHECK pattern in this codebase.
-   - What's unclear: Whether the planner wants DB enforcement or application-layer enforcement only (Phase 29 router can enforce).
-   - Recommendation: Include the DB CHECK. Schema enforcement is the right layer for invariants that should hold across all write paths.
-
-2. **`prohibitedPersonCheck` boolean field — include or defer?**
-   - PITFALLS.md recommends a `prohibitedPersonCheck` boolean to record trustee attestation before setting `transferStatus = COMPLETE`. FEATURES.md does not include it in the table stakes field list; it's listed as a Phase 2 concern there.
-   - STATE.md has no locked decision on this field.
-   - Recommendation: Include it. It's one boolean column (`prohibitedPersonCheck: t.boolean().default(false).notNull()`), costs nothing in schema complexity, and PITFALLS.md rates omitting it as "never acceptable" for trustee liability reasons. Easier to add now than in a later migration.
-
-3. **`nfaRegistered` boolean field — include or defer?**
-   - PITFALLS.md recommends this boolean to distinguish registered NFA items (legal to transfer via Form 5) from unregistered (contraband, must surrender). STATE.md has no explicit decision on it.
-   - FEATURES.md does not include it in the table stakes field list.
-   - Recommendation: Include it as `nfaRegistered: t.boolean()` (nullable — NULL for non-NFA items, true/false for NFA items). Complements `isNfa` and gates the warning logic in Phase 30 UI. Adding it later requires another migration.
-
----
-
-## Environment Availability
-
-> This phase is pure code/config — no external CLI tools beyond what's already installed.
-
-| Dependency | Required By | Available | Version | Fallback |
-|------------|------------|-----------|---------|----------|
-| drizzle-kit | `bun run db:deploy` | ✓ | 0.31.10 | — |
-| bun | All scripts | ✓ | runtime | — |
-| Neon Postgres (production branch) | `db:migrate` | ✓ | — | — |
-| Neon Postgres (test branch) | `scripts/apply-0014-testbranch.ts` | ✓ | — | — |
+### Pitfall 7: `valuation_single_asset_check` Count Mismatch
+**What goes wrong:** The live DB has 6 FKs in `valuation_single_asset_check` (verified from snapshot 0013). The baseline migration 0000 has 7 (included `artworkId`). Using the baseline migration as the reference would produce the wrong count.
+**How to avoid:** Use the snapshot (`drizzle/meta/0013_snapshot.json`) as ground truth, not the baseline SQL. The snapshot confirms: 6 FKs. Adding `firearmId` → 7 FKs.
 
 ---
 
 ## Validation Architecture
 
-> `workflow.nyquist_validation` is absent from `.planning/config.json` — treating as enabled.
-
 ### Test Framework
 
 | Property | Value |
 |----------|-------|
-| Framework | bun test (built-in) |
-| Config file | `package.json` `test` script |
+| Framework | Bun test (built-in) |
+| Config file | none — `bun test` script in `package.json` targets explicit dirs |
 | Quick run command | `bun test tests/trpc` |
-| Full suite command | `bun test --timeout 30000 tests/api tests/components tests/lib tests/trpc tests/*.test.ts` |
+| Full suite command | `bun test tests/api tests/components tests/lib tests/trpc tests/*.test.ts` |
 
 ### Phase Requirements → Test Map
 
-| Req ID | Behavior | Test Type | Automated Command | Exists? |
-|--------|----------|-----------|-------------------|---------|
-| FIRE-01..05 | `insertFirearmSchema` accepts valid firearm, rejects missing required fields | unit | `bun test tests/trpc` (schema test) | ❌ Wave 0 |
-| FIRE-01 | `serialNumber` uniqueness — DB raises 23505 on duplicate | integration | manual via `bun run db:studio` or seed insert | ❌ |
-| FIRE-08 | `document` with `firearmId` set passes CHECK constraint | integration | manual SQL insert test | ❌ |
-| FIRE-08 | `document` with `firearmId` + another FK raises CHECK violation | integration | manual SQL insert test | ❌ |
-| FIRE-09 | `valuation` with `firearmId` set passes CHECK constraint | integration | manual SQL insert test | ❌ |
-| FIRE-05 | `updateFirearmSchema.partial()` rejects empty object | unit | `bun test tests/trpc` | ❌ Wave 0 |
+Phase 28 is schema-only. No tRPC router yet (Phase 29). Automated tests for firearm CRUD are Phase 29's concern. Phase 28 has one automation target:
 
-> Phase 28 has no router or UI — automated tests are limited to Zod schema validation unit tests and manual DB verification. The success criteria (#1-#5) are all verified via direct DB inspection after migration, which is the appropriate validation method for a pure schema phase.
+| Req ID | Behavior | Test Type | Automated Command | File Exists? |
+|--------|----------|-----------|-------------------|-------------|
+| FIRE-01..05 | `insertFirearmSchema` accepts valid firearm fields | unit | `bun test tests/lib` or new `tests/lib/validation.firearm.test.ts` | No — Wave 0 |
+| FIRE-01..05 | `insertFirearmSchema` rejects isNfa=true with null nfaClass | unit | same | No — Wave 0 |
+| FIRE-08 | document FK column exists in DB | smoke (post-migration SQL) | manual verify via psql/studio | N/A |
+| FIRE-09 | valuation FK column exists in DB | smoke (post-migration SQL) | manual verify via psql/studio | N/A |
 
 ### Sampling Rate
-- **Per task commit:** `bun run typecheck` (schema types must compile clean before any subsequent phase can start)
-- **Phase gate:** `bun run typecheck && bun run lint` green + all 5 success criteria verified via DB queries
+- **Per task commit:** `bun run typecheck` (schema types must compile clean before router work in Phase 29)
+- **Per wave merge:** `bun test tests/lib` (Zod schema unit tests)
+- **Phase gate:** `bun run typecheck` passes with 0 errors; `bun run db:migrate` applied cleanly; RLS verified
 
 ### Wave 0 Gaps
-- [ ] `tests/trpc/firearm-schema.test.ts` — Zod schema unit tests for `insertFirearmSchema` and `updateFirearmSchema`
+- [ ] `tests/lib/validation.firearm.test.ts` — covers Zod schema behavior (valid insert, NFA refine, serial number validation)
 
 ---
 
@@ -715,57 +740,98 @@ try {
 
 | ASVS Category | Applies | Standard Control |
 |---------------|---------|-----------------|
-| V2 Authentication | no | — |
-| V3 Session Management | no | — |
-| V4 Access Control | yes | RLS via pgPolicy + `.enableRLS()`; `app.is_admin()` function gates all 4 ops |
-| V5 Input Validation | yes | Zod schemas in `db/validation.ts` with `positiveNumberValidation`, `min(1)`, `max(50)` on serialNumber |
-| V6 Cryptography | no | — |
+| V2 Authentication | No | Not applicable — schema-only phase |
+| V3 Session Management | No | Not applicable |
+| V4 Access Control | Yes | `pgPolicy` + `.enableRLS()` on `firearm` table; `app.is_admin()` SELECT guard; all tRPC procedures use `adminProcedure` (Phase 29) |
+| V5 Input Validation | Yes | `insertFirearmSchema` with `positiveNumberValidation` for money fields, trim on caliber, serial number regex |
+| V6 Cryptography | No | No cryptographic operations |
 
-### Known Threat Patterns for Schema Phase
+### Known Threat Patterns
 
 | Pattern | STRIDE | Standard Mitigation |
 |---------|--------|---------------------|
-| Beneficiary reads firearm location/serialNumber | Information Disclosure | RLS `app.is_admin()` on ALL 4 ops — beneficiary role returns empty set |
-| SQL injection via CHECK constraint column names | Tampering | Drizzle parameterized template — `sql\`...\`` template literals, not string interpolation |
-| Missing `.enableRLS()` silently disables RLS | Elevation of Privilege | Post-migration verification: `SELECT relrowsecurity FROM pg_class WHERE relname = 'firearm'` |
+| Serial number + location in exported CSV | Information Disclosure | `location` excluded from default CSV export columns (Phase 30 concern); RLS restricts `firearm` to admin role |
+| Cross-entity firearm data access | Elevation of Privilege | `entityId` filter required on all tRPC list/byId/update/delete (Phase 29); RLS is defense-in-depth |
+| NFA status spoofing (COMPLETE before ATF approval) | Tampering | `nfaTransferStatus` field exposes status; UI enforcement is Phase 30's concern; schema doesn't auto-set |
+| Duplicate serial number insert | Tampering | `uniqueIndex('firearm_serial_number_key')` — DB-enforced globally |
+
+---
+
+## Open Questions
+
+1. **`nfaRegistered` field default value**
+   - What we know: Pitfall 3 (PITFALLS.md) recommends `nfaRegistered boolean nullable` with `default null` for `nfaClass = 'NONE'`.
+   - What's unclear: Should Phase 28 include this field at all? It's not explicitly listed in FIRE-01 through FIRE-05. The `notes` field substitutes per STATE.md OUT OF SCOPE section.
+   - Recommendation: **Include `nfaRegistered boolean` with no default (nullable).** Costs nothing to add in Phase 28 and avoids a future migration for a high-value field. Confirm with plan/human before finalizing.
+
+2. **`action` field (bolt-action, semi-auto, etc.)**
+   - What we know: FEATURES.md lists `action: text` as optional but "useful for valuation."
+   - What's unclear: Is it in scope for Phase 28?
+   - Recommendation: **Include as nullable text column.** Very low cost, no enum needed, useful for insurance and appraisal context. Confirm with plan.
+
+3. **Test-branch sync timing**
+   - What we know: Phase 26 used `scripts/apply-0013-testbranch.ts` committed with the migration.
+   - What's unclear: Should the script be in the same commit as the migration or a separate task?
+   - Recommendation: Same commit as migration, follow Phase 26 pattern exactly.
+
+---
+
+## Environment Availability
+
+No external dependencies for Phase 28. All tooling (drizzle-kit, postgres.js, bun) is already installed.
+
+| Dependency | Required By | Available | Version | Fallback |
+|------------|------------|-----------|---------|----------|
+| `drizzle-kit` | `db:generate`, `db:migrate` | ✓ | 0.31.10 (devDep) | — |
+| `postgres` (postgres.js) | manual migration recovery | ✓ | via `db/index.ts` `getClient()` | — |
+| Neon production DB | `db:migrate` | ✓ | Live (DATABASE_URL) | — |
+| Neon test branch DB | test-branch sync script | ✓ | `.env.test.local` branch | — |
+
+---
+
+## Assumptions Log
+
+| # | Claim | Section | Risk if Wrong |
+|---|-------|---------|---------------|
+| A1 | `action` (bolt-action/semi-auto field) should be included in `firearm` table | Key Technical Decisions §2 | Minor — removable before migration is applied |
+| A2 | `nfaRegistered` boolean should be included despite not being explicitly in FIRE-01..05 | Open Questions #1 | Minor — removable before migration is applied; or requires a future ALTER TABLE migration |
+| A3 | Drizzle-kit will emit the DROP CONSTRAINT + ADD CONSTRAINT pair for CHECK updates rather than requiring a manual SQL edit | Migration Mechanics | Medium — if drizzle-kit doesn't emit the DROP/ADD pair, the migration must be hand-edited to include it |
 
 ---
 
 ## Sources
 
-### Primary (HIGH confidence — direct codebase inspection)
-- `db/schema.ts` — vehicle table (lines 413–491), document table (lines 1481–1622), valuation table (lines 1129–1243), personalProperty table (lines 1320–1413), all enum definitions (lines 23–261), exact CHECK constraint expressions
-- `db/validation.ts` — `createInsertSchema` pattern, `requireAtLeastOneField`, `positiveNumberValidation`, `vinValidation`, all existing schemas
-- `db/relations.ts` — `vehicleRelations` pattern, `entityRelations` many() declarations
-- `db/index.ts` — `getClient()` vs `getSql()` distinction, `getPublicDb()`
-- `db/rls.ts` — documentation-only header confirms pgPolicy in schema.ts is the active pattern for new tables
-- `drizzle/0013_kpi_schema_completeness.sql` — confirms camelCase column identifiers in drizzle-kit generated ADD COLUMN statements
-- `drizzle/0008_add_name_description_to_assets.sql` — confirms hand-edit was needed for older migration (historical); 0013 shows the auto-generation now works correctly for camelCase columns
-- `drizzle/meta/_journal.json` — confirms next migration will be `0014_<name>.sql`
-- `drizzle.config.ts` — confirms `out: './drizzle'` (not `./db/migrations/`)
-- `package.json` — exact `db:generate`, `db:migrate`, `db:deploy` script definitions; drizzle-orm 0.45.2, drizzle-kit 0.31.10, drizzle-zod 0.8.3
-- `scripts/apply-0013-testbranch.ts` — exact test-branch sync pattern for Phase 28 to replicate
-- `.planning/STATE.md` — locked v5.0 decisions: enum names, valuation FK scope, SURRENDERED exclusion
-- `CLAUDE.md` — db:deploy vs db:push, camelCase column convention, migration gotcha, db:studio verification
+### Primary (HIGH confidence)
+- `db/schema.ts` — all asset table patterns, existing enum definitions, document/valuation CHECK constraints [VERIFIED: direct read]
+- `db/validation.ts` — createInsertSchema patterns, requireAtLeastOneField, positiveNumberValidation [VERIFIED: direct read]
+- `db/relations.ts` — vehicleRelations, entityRelations, documentRelations, valuationRelations patterns [VERIFIED: direct read]
+- `drizzle/meta/0013_snapshot.json` — confirmed live document (8 FK) and valuation (6 FK) CHECK constraint column counts [VERIFIED: direct read + python extraction]
+- `drizzle/0013_kpi_schema_completeness.sql` — confirmed camelCase emission from drizzle-kit for ADD COLUMN [VERIFIED: direct read]
+- `drizzle/0000_high_ares.sql` — baseline CREATE TABLE vehicle DDL, pgPolicy pattern, uniqueIndex pattern [VERIFIED: direct read]
+- `package.json` — exact `db:generate`, `db:migrate`, `db:deploy`, `db:push` scripts [VERIFIED: direct read]
+- `drizzle.config.ts` — output directory `./drizzle/`, schema source `./db/schema.ts` [VERIFIED: direct read]
+- `db/index.ts` — `getClient()`, `getSql()`, `getPublicDb()` for migration recovery [VERIFIED: direct read]
+- `.planning/STATE.md` — all [v5.0] key decisions [VERIFIED: direct read]
+- `.planning/REQUIREMENTS.md` — FIRE-01..09 requirement text [VERIFIED: direct read]
+- `.planning/research/FEATURES.md` — firearm field list, enum values, NFA legal domain [VERIFIED: direct read]
+- `.planning/research/PITFALLS.md` — 15 pitfalls, migration/schema ones extracted [VERIFIED: direct read]
+- `./CLAUDE.md` — db:deploy vs db:push, camelCase migration gotcha, RLS section [VERIFIED: direct read]
+- MEMORY.md — camelCase migration failure (0008), stale __drizzle_migrations row recovery [VERIFIED: direct read via CLAUDE.md context]
 
-### Secondary (MEDIUM confidence — milestone research docs)
-- `.planning/research/FEATURES.md` — authoritative field list, NFA domain research, ATF source citations
-- `.planning/research/ARCHITECTURE.md` — component boundaries, migration sequencing
-- `.planning/research/PITFALLS.md` — 15 pitfalls including serialNumber uniqueness scope recommendation
-- `.planning/research/SUMMARY.md` — executive reconciliation across all researchers
-
-### Tertiary (LOW confidence — flagged)
-- A1, A2 in Assumptions Log — drizzle-kit behavior regarding pgPolicy and CHECK constraint updates; must be verified by inspecting generated SQL before `db:migrate`
+### Secondary (MEDIUM confidence)
+- `.planning/research/SUMMARY.md` — milestone research synthesis, confidence levels [CITED: project planning docs]
+- `.planning/research/ARCHITECTURE.md` — component boundaries, migration sequencing [CITED: project planning docs]
 
 ---
 
 ## Metadata
 
 **Confidence breakdown:**
-- Schema design: HIGH — all column types, constraint expressions, and enum values verified from codebase
-- Migration mechanics: HIGH — verified from 0013 SQL, drizzle.config.ts, package.json scripts
-- RLS: MEDIUM-HIGH — pgPolicy in schema.ts is confirmed pattern; exact SQL emitted by drizzle-kit for new pgPolicy entries is ASSUMED (A1 above)
-- Pitfalls: HIGH — drawn directly from documented failures (MEMORY.md, 0008 header) + codebase inspection
+- Standard stack: HIGH — all pre-existing dependencies, no new packages
+- Schema design: HIGH — verified against live schema.ts and drizzle snapshot
+- CHECK constraint expressions: HIGH — exact current expressions extracted from snapshot
+- Migration mechanics: HIGH — 0013 provides direct precedent for camelCase ADD COLUMN; DROP/ADD for CHECK is standard Postgres DDL
+- Pitfalls: HIGH (codebase) — all pitfalls sourced from documented production failures in CLAUDE.md/MEMORY.md
 
 **Research date:** 2026-05-21
-**Valid until:** 2026-06-21 (stable stack; drizzle-kit behavior unlikely to change within 30 days)
+**Valid until:** 2026-06-21 (stable schema; no fast-moving dependencies)
