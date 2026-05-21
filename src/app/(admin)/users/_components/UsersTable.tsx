@@ -80,6 +80,8 @@ export function UsersTable({
                         emptyMessage="No users found"
                         enableColumnVisibility={true}
                         enablePagination={true}
+                        exportable
+                        exportResource="users"
                     />
                 </CardContent>
             </Card>
