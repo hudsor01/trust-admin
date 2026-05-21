@@ -250,6 +250,35 @@ describe.skipIf(isProductionDb)('asset.listAll aggregator', () => {
         expect(v?.description).toBe('Black · VIN ABCDEFGH123456789')
     })
 
+    test('surfaces transferStatus from the six transferable asset kinds', async () => {
+        const rows = await adminCaller().asset.listAll({
+            entityId: ids.entityId!,
+        })
+        // All six transferable kinds were seeded with transferStatus 'PENDING'.
+        const transferable: Array<[string, number | null]> = [
+            ['vehicle', ids.vehicleId],
+            ['homestead', ids.homesteadId],
+            ['rentalProperty', ids.rentalId],
+            ['bankAccount', ids.bankId],
+            ['investmentAccount', ids.investmentId],
+            ['personalProperty', ids.personalId],
+        ]
+        for (const [kind, id] of transferable) {
+            const row = rows.find((r) => r.kind === kind && r.id === id)
+            expect(row?.transferStatus).toBe('PENDING')
+        }
+    })
+
+    test('insurancePolicy rows expose transferStatus as null (no such column)', async () => {
+        const rows = await adminCaller().asset.listAll({
+            entityId: ids.entityId!,
+        })
+        const ins = rows.find(
+            (r) => r.kind === 'insurancePolicy' && r.id === ids.insuranceId,
+        )
+        expect(ins?.transferStatus).toBeNull()
+    })
+
     test('routes ART personalProperty rows to /artwork, others to /personal-property', async () => {
         const rows = await adminCaller().asset.listAll({
             entityId: ids.entityId!,

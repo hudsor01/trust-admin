@@ -1,8 +1,12 @@
-/** tRPC tests for liability router — specifically the batched payoffProjections query (PR-B / 23-03). */
+/**
+ * tRPC tests for liability router — the batched payoffProjections query
+ * (PR-B / 23-03) and the account-linkage cross-entity FK guard + getLinked
+ * query (26-02).
+ */
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import { eq } from 'drizzle-orm'
 import { db } from '@/db'
-import { entity, liability } from '@/db/schema'
+import { bankAccount, entity, investmentAccount, liability } from '@/db/schema'
 import { createCallerFactory } from '@/server/trpc/init'
 import { appRouter } from '@/server/trpc/router'
 import { isProductionDb } from '../helpers/db-guard'
@@ -318,6 +322,246 @@ describe.skipIf(isProductionDb)('liability.payoffProjections', () => {
                 entityId: 999999999,
             })
             expect(result).toEqual([])
+        },
+        TEST_TIMEOUT,
+    )
+})
+
+// ============================================================
+// Liability ↔ account linkage — cross-entity FK guard + getLinked (26-02)
+// ============================================================
+
+const LTS = `${Date.now().toString().slice(-8)}L`
+
+const linkIds = {
+    entityA: null as number | null,
+    entityB: null as number | null,
+    bankA: null as number | null,
+    investmentA: null as number | null,
+    bankB: null as number | null,
+}
+
+describe.skipIf(isProductionDb)('liability account linkage', () => {
+    beforeAll(async () => {
+        const now = new Date().toISOString()
+
+        const [eA] = await db
+            .insert(entity)
+            .values({
+                name: `Linkage Entity A ${LTS}`,
+                entityType: 'TRUST',
+                trustType: 'IRREVOCABLE',
+                status: 'ACTIVE',
+                updatedAt: now,
+            })
+            .returning()
+        linkIds.entityA = eA.id
+
+        const [eB] = await db
+            .insert(entity)
+            .values({
+                name: `Linkage Entity B ${LTS}`,
+                entityType: 'TRUST',
+                trustType: 'IRREVOCABLE',
+                status: 'ACTIVE',
+                updatedAt: now,
+            })
+            .returning()
+        linkIds.entityB = eB.id
+
+        const [bA] = await db
+            .insert(bankAccount)
+            .values({
+                entityId: eA.id,
+                name: `Linkage Bank A ${LTS}`,
+                institution: 'TestBank',
+                accountType: 'CHECKING',
+                accountNumber: `BNKA${LTS}`,
+                currentBalance: '5000.00',
+                status: 'ACTIVE',
+                transferStatus: 'PENDING',
+                updatedAt: now,
+            })
+            .returning()
+        linkIds.bankA = bA.id
+
+        const [iA] = await db
+            .insert(investmentAccount)
+            .values({
+                entityId: eA.id,
+                name: `Linkage Invest A ${LTS}`,
+                institution: 'TestBrokerage',
+                accountType: 'BROKERAGE',
+                accountNumber: `INVA${LTS}`,
+                currentBalance: '25000.00',
+                status: 'ACTIVE',
+                transferStatus: 'PENDING',
+                updatedAt: now,
+            })
+            .returning()
+        linkIds.investmentA = iA.id
+
+        const [bB] = await db
+            .insert(bankAccount)
+            .values({
+                entityId: eB.id,
+                name: `Linkage Bank B ${LTS}`,
+                institution: 'TestBank',
+                accountType: 'CHECKING',
+                accountNumber: `BNKB${LTS}`,
+                currentBalance: '7500.00',
+                status: 'ACTIVE',
+                transferStatus: 'PENDING',
+                updatedAt: now,
+            })
+            .returning()
+        linkIds.bankB = bB.id
+    }, TEST_TIMEOUT)
+
+    afterAll(async () => {
+        // Delete by entityId to catch any auto-created rows.
+        if (linkIds.entityA) {
+            await db
+                .delete(liability)
+                .where(eq(liability.entityId, linkIds.entityA))
+            await db
+                .delete(bankAccount)
+                .where(eq(bankAccount.entityId, linkIds.entityA))
+            await db
+                .delete(investmentAccount)
+                .where(eq(investmentAccount.entityId, linkIds.entityA))
+        }
+        if (linkIds.entityB) {
+            await db
+                .delete(liability)
+                .where(eq(liability.entityId, linkIds.entityB))
+            await db
+                .delete(bankAccount)
+                .where(eq(bankAccount.entityId, linkIds.entityB))
+        }
+        if (linkIds.entityA)
+            await db.delete(entity).where(eq(entity.id, linkIds.entityA))
+        if (linkIds.entityB)
+            await db.delete(entity).where(eq(entity.id, linkIds.entityB))
+    }, TEST_TIMEOUT)
+
+    test(
+        'create links bank account belonging to the same entity',
+        async () => {
+            const caller = adminCaller()
+            const created = await caller.liability.create({
+                entityId: linkIds.entityA!,
+                liabilityType: 'LOAN',
+                creditor: `Same-Entity Bank Loan ${LTS}`,
+                originalAmount: '10000.00',
+                currentBalance: '9000.00',
+                isRevolvingCredit: false,
+                status: 'ACTIVE',
+                bankAccountId: linkIds.bankA!,
+            })
+            expect(created.bankAccountId).toBe(linkIds.bankA!)
+        },
+        TEST_TIMEOUT,
+    )
+
+    test(
+        'create rejects cross-entity bank account FK with BAD_REQUEST',
+        async () => {
+            const caller = adminCaller()
+            await expect(
+                caller.liability.create({
+                    entityId: linkIds.entityA!,
+                    liabilityType: 'LOAN',
+                    creditor: `Cross-Entity Bank Loan ${LTS}`,
+                    originalAmount: '10000.00',
+                    currentBalance: '9000.00',
+                    isRevolvingCredit: false,
+                    status: 'ACTIVE',
+                    bankAccountId: linkIds.bankB!,
+                }),
+            ).rejects.toThrow(/does not belong to this entity/i)
+        },
+        TEST_TIMEOUT,
+    )
+
+    test(
+        'create links investment account belonging to the same entity',
+        async () => {
+            const caller = adminCaller()
+            const created = await caller.liability.create({
+                entityId: linkIds.entityA!,
+                liabilityType: 'LOAN',
+                creditor: `Same-Entity Investment Loan ${LTS}`,
+                originalAmount: '20000.00',
+                currentBalance: '18000.00',
+                isRevolvingCredit: false,
+                status: 'ACTIVE',
+                investmentAccountId: linkIds.investmentA!,
+            })
+            expect(created.investmentAccountId).toBe(linkIds.investmentA!)
+        },
+        TEST_TIMEOUT,
+    )
+
+    test(
+        'update rejects setting a cross-entity bank account FK with BAD_REQUEST',
+        async () => {
+            const caller = adminCaller()
+            const created = await caller.liability.create({
+                entityId: linkIds.entityA!,
+                liabilityType: 'LOAN',
+                creditor: `Update Target Loan ${LTS}`,
+                originalAmount: '5000.00',
+                currentBalance: '4500.00',
+                isRevolvingCredit: false,
+                status: 'ACTIVE',
+            })
+            await expect(
+                caller.liability.update({
+                    id: created.id,
+                    entityId: linkIds.entityA!,
+                    data: { bankAccountId: linkIds.bankB! },
+                }),
+            ).rejects.toThrow(/does not belong to this entity/i)
+        },
+        TEST_TIMEOUT,
+    )
+
+    test(
+        'getLinked returns only liabilities linked to the given bank account',
+        async () => {
+            const caller = adminCaller()
+            const linked = await caller.liability.create({
+                entityId: linkIds.entityA!,
+                liabilityType: 'LOAN',
+                creditor: `getLinked Match ${LTS}`,
+                originalAmount: '3000.00',
+                currentBalance: '2800.00',
+                isRevolvingCredit: false,
+                status: 'ACTIVE',
+                bankAccountId: linkIds.bankA!,
+            })
+            const unlinked = await caller.liability.create({
+                entityId: linkIds.entityA!,
+                liabilityType: 'LOAN',
+                creditor: `getLinked NonMatch ${LTS}`,
+                originalAmount: '4000.00',
+                currentBalance: '3800.00',
+                isRevolvingCredit: false,
+                status: 'ACTIVE',
+            })
+
+            const result = await caller.liability.getLinked({
+                entityId: linkIds.entityA!,
+                bankAccountId: linkIds.bankA!,
+            })
+            const resultIds = result.map((r) => r.id)
+            expect(resultIds).toContain(linked.id)
+            expect(resultIds).not.toContain(unlinked.id)
+            for (const row of result) {
+                expect(row.bankAccountId).toBe(linkIds.bankA!)
+                expect(row.entityId).toBe(linkIds.entityA!)
+            }
         },
         TEST_TIMEOUT,
     )

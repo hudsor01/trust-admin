@@ -11,6 +11,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { WizardStepGroup } from '@/components/wizard-step-group'
 import type {
@@ -412,6 +413,31 @@ export function PersonalPropertyDialog({
                                     )}
                                 </formInstance.Field>
                             </div>
+
+                            {/* Insured — toggle covering both personal-property
+                                and artwork; drives the /artwork Insured count KPI */}
+                            <formInstance.Field name="insured">
+                                {(field) => (
+                                    <div className="mt-4 flex items-center justify-between rounded-md border p-3">
+                                        <div className="space-y-0.5">
+                                            <Label htmlFor="insured">
+                                                Insured
+                                            </Label>
+                                            <p className="text-xs text-muted-foreground">
+                                                Item is covered by an insurance
+                                                policy
+                                            </p>
+                                        </div>
+                                        <Switch
+                                            id="insured"
+                                            checked={field.state.value}
+                                            onCheckedChange={(checked) =>
+                                                field.handleChange(checked)
+                                            }
+                                        />
+                                    </div>
+                                )}
+                            </formInstance.Field>
                         </div>
 
                         {/* Notes */}

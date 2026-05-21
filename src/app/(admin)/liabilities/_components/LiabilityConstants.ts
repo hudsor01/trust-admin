@@ -36,6 +36,8 @@ export interface LiabilityFormData {
     loanTermMonths: string
     loanStartDate: string | null
     escrowMonthly: string
+    bankAccountId: string
+    investmentAccountId: string
     status: string
     notes: string
 }
@@ -72,6 +74,8 @@ export const defaultFormData = (): LiabilityFormData => ({
     loanTermMonths: '',
     loanStartDate: null,
     escrowMonthly: '',
+    bankAccountId: '',
+    investmentAccountId: '',
     status: 'ACTIVE',
     notes: '',
 })

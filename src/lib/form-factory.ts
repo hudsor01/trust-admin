@@ -161,6 +161,7 @@ export const personalPropertyFormDefaults = createFormDefaults({
     dodValueType: '',
     status: 'ACTIVE',
     transferStatus: 'PENDING',
+    insured: false,
     notes: '',
 })
 

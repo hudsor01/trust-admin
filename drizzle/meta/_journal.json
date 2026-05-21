@@ -92,6 +92,13 @@
       "when": 1779239718652,
       "tag": "0012_add_sort_index",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1779320084261,
+      "tag": "0013_kpi_schema_completeness",
+      "breakpoints": true
     }
   ]
 }

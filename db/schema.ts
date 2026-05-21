@@ -1341,6 +1341,9 @@ export const personalProperty = pgTable(
         dodValueType: valuationType(), // Consolidated
         status: recordStatus().default('ACTIVE').notNull(), // Consolidated status
         transferStatus: transferStatus().default('PENDING').notNull(),
+        // Whether this item is covered by an insurance policy — boolean so the
+        // /artwork "Insured count" KPI can count covered items.
+        insured: t.boolean().default(false).notNull(),
         notes: t.text(),
         // Photos (UploadThing CDN URLs) — attached when item is added via
         // /forms/inventory. Up to 5 photos per item.
@@ -1999,6 +2002,10 @@ export const specificBequest = pgTable(
         beneficiaryId: bigint({ mode: 'number' }),
         description: t.text().notNull(),
         category: t.text(),
+        // Estimated monetary value — money column (numeric, string-typed per
+        // CLAUDE.md convention) so the /bequests "Total value" KPI can
+        // aggregate. Nullable: most bequests are non-monetary item descriptions.
+        estimatedValue: t.numeric({ precision: 14, scale: 2 }),
         recipientName: t.text(),
         dateDistributed: t.timestamp({
             precision: 3,
@@ -2287,6 +2294,11 @@ export const liability = pgTable(
         homesteadId: bigint({ mode: 'number' }),
         // For vehicle loans
         vehicleId: bigint({ mode: 'number' }),
+        // For debts secured by / linked to a financial account — nullable FKs
+        // mirroring the property/vehicle FKs above so a liability can be tied
+        // to a bank or investment account (used by /accounts row-detail).
+        bankAccountId: bigint({ mode: 'number' }),
+        investmentAccountId: bigint({ mode: 'number' }),
         status: recordStatus().default('ACTIVE').notNull(), // Consolidated status
         allocationClass: allocationClass().default('PRINCIPAL'), // Texas 116.152 - Principal vs Income
         notes: t.text(),
@@ -2309,6 +2321,10 @@ export const liability = pgTable(
         index('idx_liability_entity_id').on(table.entityId),
         index('idx_liability_status').on(table.status),
         index('idx_liability_entity_status').on(table.entityId, table.status),
+        index('idx_liability_bank_account_id').on(table.bankAccountId),
+        index('idx_liability_investment_account_id').on(
+            table.investmentAccountId,
+        ),
         foreignKey({
             columns: [table.entityId],
             foreignColumns: [entity.id],
@@ -2334,6 +2350,20 @@ export const liability = pgTable(
             columns: [table.vehicleId],
             foreignColumns: [vehicle.id],
             name: 'liability_vehicle_id_fkey',
+        })
+            .onUpdate('cascade')
+            .onDelete('set null'),
+        foreignKey({
+            columns: [table.bankAccountId],
+            foreignColumns: [bankAccount.id],
+            name: 'liability_bank_account_id_fkey',
+        })
+            .onUpdate('cascade')
+            .onDelete('set null'),
+        foreignKey({
+            columns: [table.investmentAccountId],
+            foreignColumns: [investmentAccount.id],
+            name: 'liability_investment_account_id_fkey',
         })
             .onUpdate('cascade')
             .onDelete('set null'),

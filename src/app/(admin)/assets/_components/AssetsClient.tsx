@@ -171,20 +171,26 @@ export function AssetsClient() {
     )
 
     // AssetRow aggregates seven asset tables; `value` is per-kind best-effort
-    // (dodValue or currentBalance or coverageAmount). transferStatus isn't
-    // exposed through listAll, so "Transfer-status progress" approximates with
-    // % of rows where status === 'ACTIVE'. Real transfer-progress requires a
-    // future listAll extension to surface transferStatus per row.
+    // (dodValue or currentBalance or coverageAmount). There is no separate
+    // post-DOD revaluation source, so a distinct "estimated current" KPI
+    // would just duplicate this figure — only the one DOD total is shown.
     const assetCount = rows.length
     const totalDod = sumStrings(rows.map((r) => r.value ?? '0'))
-    const totalCurrent = totalDod // listAll returns best-effort value already
-    const activeRows = rows.filter((r) => r.status === 'ACTIVE')
+    // "Transfer-status progress" = share of transferable assets whose transfer
+    // is COMPLETE. transferStatus is null for insurance policies (no such
+    // column) — they are not transferable estate assets, so exclude them from
+    // the denominator. Progress = COMPLETE transfers / transferable assets.
+    const transferableRows = rows.filter((r) => r.transferStatus !== null)
+    const completedTransfers = transferableRows.filter(
+        (r) => r.transferStatus === 'COMPLETE',
+    )
     const transferPct =
-        rows.length > 0 ? (activeRows.length / rows.length) * 100 : 0
+        transferableRows.length > 0
+            ? (completedTransfers.length / transferableRows.length) * 100
+            : 0
     const kpiData: KpiStripItem[] = [
         { label: 'Asset count', value: assetCount },
         { label: 'DOD total', value: formatCurrency(totalDod) },
-        { label: 'Estimated current', value: formatCurrency(totalCurrent) },
         {
             label: 'Transfer-status progress',
             value: formatPercent(transferPct),

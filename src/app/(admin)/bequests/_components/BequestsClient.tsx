@@ -9,8 +9,9 @@ import { Button } from '@/components/ui/button'
 import type { SpecificBequest } from '@/db/schema'
 import { useResourceForm } from '@/hooks/use-resource-form'
 import { logger } from '@/lib/logger'
+import { sumStrings } from '@/lib/money'
 import { trpc } from '@/lib/trpc'
-import { formatPercent } from '@/utils/formatters'
+import { formatCurrency, formatPercent } from '@/utils/formatters'
 import { BequestDialog } from './BequestDialog'
 import { BequestTable } from './BequestTable'
 import type { BequestFormData } from './types'
@@ -57,20 +58,25 @@ export function BequestsClient() {
             category: 'OTHER',
             beneficiaryId: '',
             recipientName: '',
+            estimatedValue: '',
             dateDistributed: '',
             notes: '',
         },
         onSubmit: async (data) => {
+            // Empty optional form fields coalesce to `null` for the nullable
+            // DB columns — consistent with LiabilitiesClient / PersonalProperty
+            // -Client (IN-02). FK fields use `value ? Number(value) : null`.
             const payload = {
                 entityId: entityId!,
                 description: data.description,
                 category: data.category || 'OTHER',
                 beneficiaryId: data.beneficiaryId
                     ? Number(data.beneficiaryId)
-                    : undefined,
-                recipientName: data.recipientName || undefined,
-                dateDistributed: data.dateDistributed || undefined,
-                notes: data.notes || undefined,
+                    : null,
+                recipientName: data.recipientName || null,
+                estimatedValue: data.estimatedValue || null,
+                dateDistributed: data.dateDistributed || null,
+                notes: data.notes || null,
             }
             if (bequestForm.isEditing && editingBequestId) {
                 await updateBequestMutation.mutateAsync({
@@ -144,6 +150,7 @@ export function BequestsClient() {
                 ? String(bequest.beneficiaryId)
                 : '',
             recipientName: bequest.recipientName || '',
+            estimatedValue: bequest.estimatedValue || '',
             dateDistributed: bequest.dateDistributed?.split('T')[0] || '',
             notes: bequest.notes || '',
         })
@@ -156,13 +163,13 @@ export function BequestsClient() {
             ? (distributedBequests.length / bequests.length) * 100
             : 0
 
-    // `specific_bequest` has no monetary value column — bequest description
-    // typically encodes the item ("antique watch", "$5,000 to nephew"), so
-    // "Total value" is shown as the bequest count for now. Future enhancement:
-    // add `value: numeric` to specific_bequest and aggregate via sumStrings.
+    // Sum the per-bequest `estimatedValue` money strings (nullable — non-monetary
+    // bequests carry no value and contribute 0).
+    const totalValue = sumStrings(bequests.map((b) => b.estimatedValue))
+
     const kpiData: KpiStripItem[] = [
         { label: 'Bequest count', value: bequests.length },
-        { label: 'Total value', value: '—' },
+        { label: 'Total value', value: formatCurrency(totalValue) },
         { label: 'Distributed %', value: formatPercent(distributedPct) },
         { label: 'Pending count', value: pendingBequests.length },
     ]
