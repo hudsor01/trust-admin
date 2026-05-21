@@ -119,6 +119,8 @@ export function WithdrawalsPanel({ withdrawalData }: WithdrawalsPanelProps) {
                 emptyMessage="No grandchild beneficiaries with withdrawal schedules found."
                 enableColumnVisibility={true}
                 enablePagination={true}
+                exportable
+                exportResource="withdrawal-eligibility"
             />
         </div>
     )

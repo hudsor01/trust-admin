@@ -188,6 +188,89 @@ describe('buildCsvBody', () => {
         expect(body).not.toContain('Bob, Esq.')
         expect(body).not.toContain('Carol')
     })
+
+    test('excludes columns flagged meta.excludeFromExport (UI-only columns)', () => {
+        const withActions: ColumnDef<Row>[] = [
+            ...columns,
+            {
+                id: 'actions',
+                header: 'Actions',
+                meta: { excludeFromExport: true },
+                cell: () => null,
+            },
+        ]
+        const { result } = renderHook(() =>
+            useReactTable<Row>({
+                data,
+                columns: withActions,
+                getCoreRowModel: getCoreRowModel(),
+                getFilteredRowModel: getFilteredRowModel(),
+            }),
+        )
+        const { body } = buildCsvBody(result.current)
+        const lines = body.split('\n')
+        // "Actions" header gone, every row keeps only the 4 data columns.
+        expect(lines[0]).toBe('Name,Amount,Date,Secret')
+        expect(lines[1].split(',').length).toBe(4)
+    })
+
+    test('uses meta.exportHeader for columns with a render-function header', () => {
+        const withFnHeader: ColumnDef<Row>[] = [
+            {
+                id: 'name',
+                accessorKey: 'name',
+                meta: { exportHeader: 'Full Name' },
+                // Render-function header: without exportHeader the exporter
+                // would fall back to the raw column id "name".
+                header: () => null,
+            },
+            helper.accessor('amount', { id: 'amount', header: 'Amount' }),
+        ]
+        const { result } = renderHook(() =>
+            useReactTable<Row>({
+                data,
+                columns: withFnHeader,
+                getCoreRowModel: getCoreRowModel(),
+                getFilteredRowModel: getFilteredRowModel(),
+            }),
+        )
+        const { body } = buildCsvBody(result.current)
+        expect(body.split('\n')[0]).toBe('Full Name,Amount')
+    })
+
+    test('excludes the select/utility column (id: "select") — no spurious header or leading empty cell', () => {
+        // A table whose first column is the UI-only select column. A plain
+        // ColumnDef with id "select" exercises the same `c.id !== 'select'`
+        // filter the real `selectColumn()` helper relies on. `enableHiding:
+        // false` keeps it out of the visibility *menu* — it stays visible,
+        // so the exporter must filter it explicitly.
+        const withSelect: ColumnDef<Row>[] = [
+            {
+                id: 'select',
+                header: 'select',
+                enableHiding: false,
+                cell: () => null,
+            },
+            ...columns,
+        ]
+        const { result } = renderHook(() =>
+            useReactTable<Row>({
+                data,
+                columns: withSelect,
+                getCoreRowModel: getCoreRowModel(),
+                getFilteredRowModel: getFilteredRowModel(),
+            }),
+        )
+        const { body } = buildCsvBody(result.current)
+        const lines = body.split('\n')
+        // Header row has no "select" header and starts with the first data column.
+        expect(lines[0]).toBe('Name,Amount,Date,Secret')
+        expect(lines[0].startsWith('select')).toBe(false)
+        // Body rows start with the first data column's value — no leading empty cell.
+        expect(lines[1].startsWith('Alice,')).toBe(true)
+        // Column count per row equals the data columns only (4), not 5.
+        expect(lines[1].split(',').length).toBe(4)
+    })
 })
 
 describe('exportTableToCsv', () => {

@@ -209,6 +209,8 @@ export function WithdrawalsTable({
                     columns={withdrawalColumns}
                     isLoading={isLoading}
                     emptyMessage="No grandchild withdrawal schedules found."
+                    exportable
+                    exportResource="withdrawals"
                 />
             </CardContent>
         </Card>

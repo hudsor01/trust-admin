@@ -153,6 +153,8 @@ export function HemsTable({
                         columns={hemsColumns}
                         isLoading={isLoading}
                         emptyMessage="No HEMS distributions recorded"
+                        exportable
+                        exportResource="hems-distributions"
                     />
                 </CardContent>
             </Card>

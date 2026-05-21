@@ -13,6 +13,7 @@ import {
     getPaginationRowModel,
     getSortedRowModel,
     type Row,
+    type RowData,
     type SortingState,
     type Table as TanStackTable,
     useReactTable,
@@ -47,6 +48,17 @@ import { ResizeHandle } from './data-table-resize-handle'
 import { DataTableViewOptions } from './data-table-view-options'
 import { Input } from './input'
 import { Skeleton } from './skeleton'
+
+// Per-column metadata read by the CSV exporter (`src/lib/csv-export.ts`).
+// `excludeFromExport` drops UI-only columns (row actions) from the CSV;
+// `exportHeader` gives a human label to columns whose `header` is a render
+// function rather than a plain string.
+declare module '@tanstack/react-table' {
+    interface ColumnMeta<TData extends RowData, TValue> {
+        excludeFromExport?: boolean
+        exportHeader?: string
+    }
+}
 
 interface DataTableProps<TData, TValue> {
     columns: ColumnDef<TData, TValue>[]

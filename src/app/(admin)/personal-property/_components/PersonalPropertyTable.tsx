@@ -9,7 +9,9 @@ import {
 } from '@/components/editable-cells'
 import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/ui/data-table'
+import type { BulkAction } from '@/components/ui/data-table-bulk-actions'
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
+import { selectColumn } from '@/components/ui/data-table-select-column'
 import type { PersonalProperty } from '@/db/schema'
 import { STATUS_VARIANTS, TRANSFER_STATUS } from '@/lib/constants'
 import {
@@ -35,6 +37,7 @@ interface PersonalPropertyTableProps {
         id: number,
         updates: Partial<PersonalProperty>,
     ) => Promise<void>
+    onBulkDelete: (rows: PersonalProperty[]) => Promise<void>
     categoryOptions?: { value: string; label: string }[]
     searchPlaceholder?: string
     emptyMessage?: string
@@ -46,11 +49,13 @@ export function PersonalPropertyTable({
     onEdit,
     onDelete,
     onInlineUpdate,
+    onBulkDelete,
     categoryOptions = CATEGORY_OPTIONS,
     searchPlaceholder = 'Search personal property...',
     emptyMessage = 'No personal property. Click Add Personal Property to create one.',
 }: PersonalPropertyTableProps) {
     const columns: ColumnDef<PersonalProperty>[] = [
+        selectColumn<PersonalProperty>(),
         {
             accessorKey: 'name',
             header: ({ column }) => (
@@ -187,6 +192,15 @@ export function PersonalPropertyTable({
         },
     ]
 
+    const bulkActions: BulkAction<PersonalProperty>[] = [
+        {
+            label: 'Delete',
+            icon: Trash2,
+            variant: 'destructive',
+            onClick: onBulkDelete,
+        },
+    ]
+
     return (
         <DataTable
             tableId="personal-property"
@@ -197,6 +211,10 @@ export function PersonalPropertyTable({
             isLoading={isLoading}
             emptyMessage={emptyMessage}
             enablePagination={true}
+            enableRowSelection
+            bulkActions={bulkActions}
+            exportable
+            exportResource="personal-property"
         />
     )
 }

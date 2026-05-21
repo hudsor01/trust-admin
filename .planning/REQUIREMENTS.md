@@ -16,7 +16,7 @@ Requirements derived from comprehensive critical review of 45 findings across se
 - [x] **SEC-05**: reset-password route validates input types, enforces token format (64 hex chars), caps password length at 128
 - [x] **SEC-06**: /api/e2e/setup route requires pre-shared secret header, strips internal IDs from response
 - [x] **SEC-07**: Inventory upload uses UploadThing instead of public/ filesystem (fixes Vercel read-only + unauthenticated serving)
-- [x] **SEC-08**: /api/inventory removed from proxy publicPaths; analyze route enforces base64 size limit (10MB max)
+- [x] **SEC-08**: /api/inventory base64 payloads capped at 10MB on the analyze route. NOTE: the proxy-level removal from publicPaths was deliberately reverted (commit 0a62754) so the public /forms inventory submission keeps working; route-level auth carries the requirement instead — SEC-09's hasInventoryAccess timing-safe access code + 10MB cap + requireTrustAdmin guard the endpoint.
 - [x] **SEC-09**: INVENTORY_ACCESS_CODE comparison uses timingSafeEqual with failed-attempt counter
 
 ### Performance

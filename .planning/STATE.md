@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Production Hardening & Completeness
-status: ready_to_plan
-stopped_at: Completed 26-03-transfer-status-through-asset-aggregator-PLAN.md
-last_updated: "2026-05-21T00:40:13.852Z"
+status: milestone_complete
+stopped_at: Completed 27-04-financial-and-distribution-table-rollout-PLAN.md
+last_updated: "2026-05-21T04:07:49.720Z"
 last_activity: 2026-05-20
 progress:
   total_phases: 13
-  completed_phases: 12
-  total_plans: 28
-  completed_plans: 28
-  percent: 92
+  completed_phases: 13
+  total_plans: 32
+  completed_plans: 32
+  percent: 100
 ---
 
 # State: Trust Admin
@@ -21,7 +21,7 @@ progress:
 Milestone: v4.0 Production Hardening & Completeness
 Phase: 27
 Plan: Not started
-Status: Ready to plan
+Status: Milestone complete
 Last activity: 2026-05-21
 
 Progress: [██████████] 100%
@@ -120,6 +120,8 @@ Progress: [██████████] 100%
 - [Phase 26] liability router gains a cross-entity FK guard (assertLinkedAccountsInEntity) -- verifies each non-null bankAccountId/investmentAccountId belongs to the request's entity, throws BAD_REQUEST otherwise; mirrors the recordPayment guard (T-26-01 mitigation), runs before insert/update
 - [Phase 26] liability.getLinked is a tested forward API NOT consumed by phase-26 UI -- /accounts row-detail filters trpc.liability.list client-side to avoid an N+1 query per expanded row; getLinked reserved for a future single-account view (not dead code)
 - [Phase 26] /bequests Total value KPI sums estimatedValue via sumStrings; /artwork Insured count KPI counts the real insured boolean -- both phase-23 placeholder KPIs (em-dash, hardcoded 0) replaced with real data; liability create/edit form links to bank/investment accounts via nullable-FK Selects
+- [Phase 27] --milestone OKLCH semantic token added (violet hue 295): light :root L 58% (white fg), .dark L 70% (dark-violet fg) -- mirrors the L-shift pattern of --warning/--success; exposed as Tailwind utilities via --color-milestone in @theme inline
+- [Phase 27] --milestone gets NO prefers-contrast: more override -- the high-contrast media block only redefines --border/--muted-foreground, so semantic color tokens (warning/success/milestone) inherit base values; new semantic tokens follow the :root + .dark + @theme convention only
 
 ### Auth API Patterns That Work
 
@@ -162,9 +164,16 @@ const rows = await sql`SELECT id, name, email FROM neon_auth."user" WHERE lower(
 
 ## Session Continuity
 
-Last session: 2026-05-20T00:00:00.000Z
-Stopped at: Completed 26-02-router-form-and-kpi-wiring-PLAN.md — phase 26 complete
+Last session: 2026-05-21T04:07:49.715Z
+Stopped at: Completed 27-04-financial-and-distribution-table-rollout-PLAN.md
 Resume file: None
+
+**Phase 27 progress:** COMPLETE (4/4)
+
+- [x] 27-01-datatable-foundation-and-docs (Wave 1) — Built selectColumn<TData>() (src/components/ui/data-table-select-column.tsx): the missing selection-UI primitive for the phase-23 bulkActions toolbar — a ColumnDef (id 'select', size 40, no sorting/hiding/resizing) with a header "select all" Checkbox + per-row Checkbox bound to TanStack rowSelection; the cell stops click propagation so a select click never fires onRowClick. Fixed csv-export.ts buildCsvBody to filter c.id !== 'select' (enableHiding:false only hides from the visibility menu — getVisibleLeafColumns still returns the column), so no exported CSV gains a spurious select column (T-27-04). Corrected REQUIREMENTS.md SEC-08 — INT-G1 closed (proxy publicPaths removal was deliberately reverted in 0a62754; route-level auth carries the requirement). Refreshed stale 23-VERIFICATION.md frontmatter (review_followups block, 5 WR Anti-Patterns rows marked resolved). 1016 unit tests passing (pre-commit hook, 0 fail) — 2026-05-20 (commits 9df8c94, 4b16c88, 767dc04 on feat/27-datatable-rollout)
+- [x] 27-02-milestone-theme-token (Wave 1) — Added a dedicated --milestone / --milestone-foreground OKLCH semantic token (violet hue 295) to globals.css :root (light, L 58% / white fg) + .dark (L 70% / dark-violet fg), exposed as Tailwind utilities via --color-milestone in @theme inline — mirrors the --warning/--success declaration pattern, no prefers-contrast override (consistent with existing semantic color tokens). Repointed the two phase-23 elements that borrowed the neutral accent token: the dashboard upcoming-milestones Alert (DashboardAlerts.tsx — border/bg/icon/description) and the HEMS withdrawal Badge (hems/HistoryTable.tsx — distributionType column className) now render with bg-milestone / text-milestone-foreground / border-milestone, restoring the intended violet semantics. typecheck 0, lint 0 findings, build green, full unit suite green (pre-commit hook) — 2026-05-20 (commits 3823cac, 1242b76 on feat/27-datatable-rollout)
+- [x] 27-03-asset-table-rollout (Wave 2) — Rolled the phase-23 DataTable enhancements onto the five asset-domain admin tables. CSV export (exportable + exportResource) added to Vehicles, Properties, Personal Property, Insurance, and Beneficiaries. Row-selection bulk delete (selectColumn() prepended as columns[0] + enableRowSelection + a single { variant: 'destructive' } bulkActions entry) added to Vehicles, Properties, Personal Property, and Insurance — NOT Beneficiaries (deletion there is a deliberate single-record action) and no getRowDetail anywhere. Each parent client (VehiclesClient/PropertiesClient/PersonalPropertyClient/InsuranceClient) gained an onBulkDelete handler: a sequential for...of await loop (NOT Promise.all) over the existing entityId-scoped delete mutation with { id, entityId } per row, tracking a failed counter and surfacing toast.error("Failed to delete N of M …") on partial failure / toast.success otherwise; the destructive bulkActions entry routes through ConfirmDialog automatically (requiresConfirm defaults true for variant:destructive). Rule-1 auto-fix: VehicleTable.test.tsx onEdit test re-targeted to the Actions cell (td:last-child) since selectColumn shifted the first column to a checkbox; both VehicleTable + RentalPropertyTable tests gained the new required onBulkDelete prop. typecheck 0, lint 0 findings, tests/trpc 166/166 in isolation (3 EntityId-Validation full-run timeouts are the known Neon test-branch infra flake — out of scope) — 2026-05-20 (commits 316e4c2, d49fe10, 76b8481 on feat/27-datatable-rollout)
+- [x] 27-04-financial-and-distribution-table-rollout (Wave 2) — Completed the phase-23 DataTable-enhancement rollout across all remaining admin tables. CSV export (exportable + exportResource) added to Liabilities, Accounting, the HEMS-queue table tab, HemsTable (recent HEMS distributions), HistoryTable (all distributions), WithdrawalsTable + WithdrawalsPanel (grandchild withdrawal schedules), and Users. Row-selection bulk delete (selectColumn() prepended as columns[0] + enableRowSelection + a single { variant: 'destructive' } bulkActions entry) added to Liabilities and Accounting only — the two financial flat-list tables with a genuine delete mutation; LiabilitiesClient/AccountingClient each gained an onBulkDelete sequential for...of await loop over the existing entityId-scoped delete mutation with { id, entityId } per row, tracking a failed counter and surfacing toast.error("Failed to delete N of M …") on partial failure / toast.success otherwise (destructive bulkActions → ConfirmDialog automatic). The HEMS-queue table tab, HEMS/distribution/withdrawal tables, and Users got exportable only — bulk delete is not meaningful on kanban-driven, computed read-only, or Neon-Auth-managed surfaces; no getRowDetail anywhere. HistoryTable's bg-milestone Badge className (27-02's milestone-token work) left untouched; HemsQueueBoard kanban untouched. Rule-1 auto-fixes: LiabilityTable/AccountingTable tests gained the new required onBulkDelete prop; AccountingClient toast.error collapsed to one line for biome. typecheck 0, lint 0 findings, full unit suite 1016 pass / 0 fail (the lone error: ECONNREFUSED is the known Neon test-branch infra flake) — 2026-05-20 (commits da230a6, 300b701, f954396 on feat/27-datatable-rollout)
 
 **Phase 26 progress:** COMPLETE (3/3)
 
@@ -184,4 +193,4 @@ Resume file: None
 - [x] 23-04-datatable-and-settings-polish (Wave 3 / PR-C+D) — DataTable bulkActions/exportable/getRowDetail props, csv-export lib, PreferenceRow + 4-card settings refresh, Dice sortable installed, migration 0012 (beneficiary.sortIndex + 2 composite indexes) applied, trustee/beneficiary reorder mutations, sortable consumers, 40 plan tests + 965 unit tests passing — 2026-05-20 (commits 81009c8, aadb02e, 5894e57 on feat/23-04-datatable-and-settings-polish)
 - [ ] 23-05-asset-wizard (DEFERRED)
 
-**Planned Phase:** 26 (Schema completeness for KPI data) — 3 plans — 2026-05-20T23:26:28.184Z
+**Planned Phase:** 27 (DataTable rollout, theme token, and doc accuracy) — 4 plans — 2026-05-21T02:37:03.384Z

@@ -10,13 +10,43 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { DataTable } from '@/components/ui/data-table'
+import type { BulkAction } from '@/components/ui/data-table-bulk-actions'
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
+import { selectColumn } from '@/components/ui/data-table-select-column'
 import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { TrustAccounting } from '@/db/schema'
 import { cn } from '@/lib/utils'
 import { formatDate } from '@/utils/formatters'
 import { EXPENSE_TYPES, INCOME_TYPES } from './accounting-constants'
+
+// CSV-export value mappers for the display-only columns (`category`, `flags`,
+// `reconciled`) — those columns have no `accessorKey`, so `row.getValue`
+// returns `undefined` and the exporter must read from `row` here. Reproduces
+// exactly what the on-screen cell renders.
+const accountingExportFormatters: Record<
+    string,
+    (value: unknown, row: unknown) => string
+> = {
+    category: (_v, row) => {
+        const r = row as TrustAccounting
+        return r.entryType === 'INCOME'
+            ? (INCOME_TYPES.find((t) => t.value === r.incomeType)?.label ??
+                  r.incomeType ??
+                  '')
+            : (EXPENSE_TYPES.find((t) => t.value === r.expenseType)?.label ??
+                  r.expenseType ??
+                  '')
+    },
+    flags: (_v, row) => {
+        const r = row as TrustAccounting
+        return [r.isPrincipal && 'Principal', r.taxDeductible && 'Deductible']
+            .filter(Boolean)
+            .join('; ')
+    },
+    reconciled: (_v, row) =>
+        (row as TrustAccounting).reconciled ? 'Yes' : 'No',
+}
 
 interface AccountingTableProps {
     data: TrustAccounting[]
@@ -31,6 +61,7 @@ interface AccountingTableProps {
     onTabChange: (tab: string) => void
     onEditEntry: (entry: TrustAccounting) => void
     onDeleteEntry: (id: number) => void
+    onBulkDelete: (rows: TrustAccounting[]) => Promise<void>
     onUpdateEntry: (id: number, updates: Partial<TrustAccounting>) => void
 }
 
@@ -47,9 +78,11 @@ export function AccountingTable({
     onTabChange,
     onEditEntry,
     onDeleteEntry,
+    onBulkDelete,
     onUpdateEntry,
 }: AccountingTableProps) {
     const accountingColumns: ColumnDef<TrustAccounting>[] = [
+        selectColumn<TrustAccounting>(),
         {
             accessorKey: 'accountingDate',
             header: ({ column }) => (
@@ -181,6 +214,7 @@ export function AccountingTable({
         {
             id: 'actions',
             header: '',
+            meta: { excludeFromExport: true },
             cell: ({ row }) => (
                 <div className="flex items-center gap-1">
                     <Button
@@ -203,6 +237,15 @@ export function AccountingTable({
                     </Button>
                 </div>
             ),
+        },
+    ]
+
+    const bulkActions: BulkAction<TrustAccounting>[] = [
+        {
+            label: 'Delete',
+            icon: Trash2,
+            variant: 'destructive',
+            onClick: onBulkDelete,
         },
     ]
 
@@ -247,6 +290,11 @@ export function AccountingTable({
                             emptyMessage="No entries recorded yet. Click 'Add Entry' to start tracking."
                             enableColumnVisibility={true}
                             enablePagination={false}
+                            enableRowSelection
+                            bulkActions={bulkActions}
+                            exportable
+                            exportResource="accounting"
+                            exportFormatters={accountingExportFormatters}
                         />
                         {totalPages > 1 && (
                             <div className="flex items-center justify-between pt-4">

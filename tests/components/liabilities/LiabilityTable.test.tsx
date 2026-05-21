@@ -48,8 +48,8 @@ const defaultProps = {
     onRecordPayment: mock(() => {}),
     onBulkSave: mock(() => Promise.resolve()),
     onBulkCancel: mock(() => {}),
+    onBulkDelete: mock(() => Promise.resolve()),
     onUpdateLiability: mock(() => Promise.resolve()),
-    selectedEntity: 1 as number | undefined,
 }
 
 describe('LiabilityTable', () => {

@@ -9,7 +9,9 @@ import {
 } from '@/components/editable-cells'
 import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/ui/data-table'
+import type { BulkAction } from '@/components/ui/data-table-bulk-actions'
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
+import { selectColumn } from '@/components/ui/data-table-select-column'
 import type { Vehicle } from '@/db/schema'
 import { STATUS_VARIANTS, TRANSFER_STATUS } from '@/lib/constants'
 import {
@@ -32,6 +34,7 @@ interface VehicleTableProps {
     onEdit: (vehicle: Vehicle) => void
     onDelete: (vehicle: Vehicle) => void
     onInlineUpdate: (id: number, updates: Partial<Vehicle>) => Promise<void>
+    onBulkDelete: (rows: Vehicle[]) => Promise<void>
 }
 
 export function VehicleTable({
@@ -40,8 +43,10 @@ export function VehicleTable({
     onEdit,
     onDelete,
     onInlineUpdate,
+    onBulkDelete,
 }: VehicleTableProps) {
     const columns: ColumnDef<Vehicle>[] = [
+        selectColumn<Vehicle>(),
         {
             accessorKey: 'name',
             header: ({ column }) => (
@@ -215,6 +220,15 @@ export function VehicleTable({
         },
     ]
 
+    const bulkActions: BulkAction<Vehicle>[] = [
+        {
+            label: 'Delete',
+            icon: Trash2,
+            variant: 'destructive',
+            onClick: onBulkDelete,
+        },
+    ]
+
     return (
         <DataTable
             tableId="vehicles"
@@ -225,6 +239,10 @@ export function VehicleTable({
             isLoading={isLoading}
             emptyMessage="No vehicles. Click Add Vehicle to create one."
             enablePagination={true}
+            enableRowSelection
+            bulkActions={bulkActions}
+            exportable
+            exportResource="vehicles"
         />
     )
 }

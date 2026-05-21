@@ -51,6 +51,7 @@ const defaultProps = {
     onTabChange: mock(() => {}),
     onEditEntry: mock(() => {}),
     onDeleteEntry: mock(() => {}),
+    onBulkDelete: mock(async () => {}),
     onUpdateEntry: mock(async () => {}),
 }
 

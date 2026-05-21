@@ -73,9 +73,9 @@ export function DashboardAlerts({
             )}
 
             {upcomingMilestones.length > 0 && (
-                <Alert className="border-accent bg-accent">
-                    <Circle className="h-4 w-4 text-accent-foreground" />
-                    <AlertDescription className="text-accent-foreground font-medium">
+                <Alert className="border-milestone bg-milestone">
+                    <Circle className="h-4 w-4 text-milestone-foreground" />
+                    <AlertDescription className="text-milestone-foreground font-medium">
                         {upcomingMilestones.length} beneficiar
                         {upcomingMilestones.length > 1 ? 'ies' : 'y'}{' '}
                         approaching withdrawal eligibility in the next 90 days

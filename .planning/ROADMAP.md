@@ -222,7 +222,7 @@ Phases execute in numeric order: 15 -> 16 -> 17 -> 18 -> 19 -> 20 -> 21 -> 22
 | 24. test-suite-and-lint-hygiene | v4.0 | 0/0 | Complete (verified pre-resolved) | 2026-05-20 |
 | 25. reorder-ordering-and-dashboard-data-wiring | v4.0 | 1/1 | Complete    | 2026-05-20 |
 | 26. schema-completeness-for-kpi-data | v4.0 | 3/3 | Complete    | 2026-05-21 |
-| 27. datatable-rollout-theme-token-and-doc-accuracy | v4.0 | TBD | Planned | - |
+| 27. datatable-rollout-theme-token-and-doc-accuracy | v4.0 | 4/4 | Complete    | 2026-05-21 |
 
 ### Phase 23: Shadcn registry adoption and dashboard UX revamp
 
@@ -286,7 +286,10 @@ Plans:
 **Requirements:** Gap closure (INT-G1)
 **Depends on:** Phase 23
 **Gap Closure:** Closes v4.0-MILESTONE-AUDIT INT-G1 + phase-23 tech_debt (DataTable rollout, milestone token, doc hygiene)
-**Plans:** TBD (run /gsd-plan-phase 27 to break down)
+**Plans:** 4/4 plans complete
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 27 to break down)
+- [x] 27-01-PLAN.md — Build the shared selectColumn DataTable helper (unblocks bulkActions); correct REQUIREMENTS.md SEC-08 (INT-G1); refresh stale 23-VERIFICATION.md frontmatter ✅ 2026-05-20
+- [x] 27-02-PLAN.md — Add the dedicated --milestone OKLCH theme token (light + dark + @theme); repoint the dashboard milestone alert + HEMS withdrawal badge off accent ✅ 2026-05-20
+- [x] 27-03-PLAN.md — Roll exportable + bulk-delete onto the asset tables (Vehicles, Properties, Personal Property, Insurance) + exportable on Beneficiaries ✅ 2026-05-20
+- [ ] 27-04-PLAN.md — Roll exportable + bulk-delete onto Liabilities + Accounting; exportable on HEMS-queue table, HEMS/distribution/withdrawal tables, and Users

@@ -15,7 +15,9 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { DataTable } from '@/components/ui/data-table'
+import type { BulkAction } from '@/components/ui/data-table-bulk-actions'
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
+import { selectColumn } from '@/components/ui/data-table-select-column'
 import { Progress } from '@/components/ui/progress'
 import {
     Tooltip,
@@ -40,6 +42,7 @@ interface LiabilityTableProps {
     onRecordPayment: (l: Liability) => void
     onBulkSave: (rows: BulkLiabilityRow[]) => Promise<void>
     onBulkCancel: () => void
+    onBulkDelete: (rows: Liability[]) => Promise<void>
     onUpdateLiability: (id: number, data: Partial<Liability>) => Promise<void>
 }
 
@@ -55,9 +58,11 @@ export function LiabilityTable({
     onRecordPayment,
     onBulkSave,
     onBulkCancel,
+    onBulkDelete,
     onUpdateLiability,
 }: LiabilityTableProps) {
     const columns: ColumnDef<Liability>[] = [
+        selectColumn<Liability>(),
         {
             accessorKey: 'creditor',
             header: ({ column }) => (
@@ -256,6 +261,15 @@ export function LiabilityTable({
         },
     ]
 
+    const bulkActions: BulkAction<Liability>[] = [
+        {
+            label: 'Delete',
+            icon: Trash2,
+            variant: 'destructive',
+            onClick: onBulkDelete,
+        },
+    ]
+
     return (
         <>
             {/* Actions */}
@@ -315,6 +329,10 @@ export function LiabilityTable({
                     emptyMessage="No liabilities recorded. Click Add to create one."
                     enableColumnVisibility={true}
                     enablePagination={true}
+                    enableRowSelection
+                    bulkActions={bulkActions}
+                    exportable
+                    exportResource="liabilities"
                 />
             )}
         </>

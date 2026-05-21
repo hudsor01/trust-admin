@@ -2,6 +2,7 @@
 
 import { Plus } from 'lucide-react'
 import { useCallback, useState } from 'react'
+import { toast } from 'sonner'
 import { ConfirmDialog, useConfirmDialog } from '@/components/confirm-dialog'
 import { KpiStrip, type KpiStripItem } from '@/components/kpi-strip'
 import { PageHeader } from '@/components/page-header'
@@ -142,6 +143,33 @@ export function InsuranceClient() {
         [confirmDelete],
     )
 
+    // Sequential (NOT Promise.all) bulk delete: a mid-batch failure leaves a
+    // known committed set and an exact failure count to report.
+    const onBulkDelete = useCallback(
+        async (rows: InsurancePolicy[]) => {
+            let failed = 0
+            for (const row of rows) {
+                try {
+                    await deleteMutation.mutateAsync({
+                        id: row.id,
+                        entityId: entityId!,
+                    })
+                } catch (err) {
+                    failed++
+                    log.error('Bulk delete failed', { id: row.id, error: err })
+                }
+            }
+            if (failed > 0) {
+                toast.error(
+                    `Failed to delete ${failed} of ${rows.length} policies`,
+                )
+            } else {
+                toast.success(`Deleted ${rows.length} policies`)
+            }
+        },
+        [deleteMutation, entityId],
+    )
+
     const handleInlineUpdate = useCallback(
         async (id: number, updates: Partial<InsurancePolicy>) => {
             try {
@@ -188,6 +216,7 @@ export function InsuranceClient() {
                 onEdit={handleEdit}
                 onDelete={handleDelete}
                 onInlineUpdate={handleInlineUpdate}
+                onBulkDelete={onBulkDelete}
             />
 
             <InsuranceDialog

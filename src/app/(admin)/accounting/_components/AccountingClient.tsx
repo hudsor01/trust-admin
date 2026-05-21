@@ -239,6 +239,42 @@ export function AccountingClient() {
         confirmDelete()
     }
 
+    // Sequential (NOT Promise.all) bulk delete: a mid-batch failure leaves a
+    // known committed set and an exact failure count to report.
+    const onBulkDelete = async (rows: TrustAccounting[]) => {
+        let failed = 0
+        for (const row of rows) {
+            try {
+                await deleteEntryMutation.mutateAsync({
+                    id: row.id,
+                    entityId: entityId!,
+                })
+            } catch (error) {
+                failed++
+                log.error('Bulk delete failed', { id: row.id, error })
+            }
+        }
+        // This table is server-paginated by `offset`. Deleting every row on
+        // the last page leaves `offset` past the new row count, so the
+        // refetched query returns an empty page. Clamp `offset` back into
+        // range before the invalidation refetch lands. (The other 5
+        // bulk-delete tables are client-paginated and self-correct.)
+        const deleted = rows.length - failed
+        if (deleted > 0) {
+            const newCount = Math.max(0, totalCount - deleted)
+            const maxOffset =
+                newCount === 0
+                    ? 0
+                    : Math.floor((newCount - 1) / PAGE_SIZE) * PAGE_SIZE
+            if (offset > maxOffset) setOffset(maxOffset)
+        }
+        if (failed > 0) {
+            toast.error(`Failed to delete ${failed} of ${rows.length} entries`)
+        } else {
+            toast.success(`Deleted ${rows.length} entries`)
+        }
+    }
+
     const updateEntry = async (
         id: number,
         updates: Partial<TrustAccounting>,
@@ -393,6 +429,7 @@ export function AccountingClient() {
                 onTabChange={handleTabChange}
                 onEditEntry={openEditForm}
                 onDeleteEntry={deleteEntry}
+                onBulkDelete={onBulkDelete}
                 onUpdateEntry={updateEntry}
             />
 

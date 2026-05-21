@@ -56,11 +56,11 @@ describe('RentalPropertyTable', () => {
             <RentalPropertyTable
                 rentals={[]}
                 rentalsLoading={false}
-                selectedEntity={1}
                 onAdd={mock(() => {})}
                 onEdit={mock(() => {})}
                 onDelete={mock(() => {})}
                 onUpdateRental={mock(() => Promise.resolve())}
+                onBulkDelete={mock(() => Promise.resolve())}
             />,
         )
         expect(
@@ -88,11 +88,11 @@ describe('RentalPropertyTable', () => {
             <RentalPropertyTable
                 rentals={rentals}
                 rentalsLoading={false}
-                selectedEntity={1}
                 onAdd={mock(() => {})}
                 onEdit={mock(() => {})}
                 onDelete={mock(() => {})}
                 onUpdateRental={mock(() => Promise.resolve())}
+                onBulkDelete={mock(() => Promise.resolve())}
             />,
         )
 
@@ -105,11 +105,11 @@ describe('RentalPropertyTable', () => {
             <RentalPropertyTable
                 rentals={[]}
                 rentalsLoading={true}
-                selectedEntity={1}
                 onAdd={mock(() => {})}
                 onEdit={mock(() => {})}
                 onDelete={mock(() => {})}
                 onUpdateRental={mock(() => Promise.resolve())}
+                onBulkDelete={mock(() => Promise.resolve())}
             />,
         )
         // DataTable renders a table element even while loading
@@ -121,11 +121,11 @@ describe('RentalPropertyTable', () => {
             <RentalPropertyTable
                 rentals={[]}
                 rentalsLoading={false}
-                selectedEntity={1}
                 onAdd={mock(() => {})}
                 onEdit={mock(() => {})}
                 onDelete={mock(() => {})}
                 onUpdateRental={mock(() => Promise.resolve())}
+                onBulkDelete={mock(() => Promise.resolve())}
             />,
         )
         expect(screen.getByText('Add Rental Property')).toBeTruthy()
@@ -139,11 +139,11 @@ describe('RentalPropertyTable', () => {
             <RentalPropertyTable
                 rentals={[]}
                 rentalsLoading={false}
-                selectedEntity={1}
                 onAdd={onAdd}
                 onEdit={mock(() => {})}
                 onDelete={mock(() => {})}
                 onUpdateRental={mock(() => Promise.resolve())}
+                onBulkDelete={mock(() => Promise.resolve())}
             />,
         )
 
@@ -163,11 +163,11 @@ describe('RentalPropertyTable', () => {
             <RentalPropertyTable
                 rentals={[rental]}
                 rentalsLoading={false}
-                selectedEntity={1}
                 onAdd={mock(() => {})}
                 onEdit={mock(() => {})}
                 onDelete={mock(() => {})}
                 onUpdateRental={mock(() => Promise.resolve())}
+                onBulkDelete={mock(() => Promise.resolve())}
             />,
         )
 
@@ -180,11 +180,11 @@ describe('RentalPropertyTable', () => {
             <RentalPropertyTable
                 rentals={[makeRentalProperty()]}
                 rentalsLoading={false}
-                selectedEntity={1}
                 onAdd={mock(() => {})}
                 onEdit={mock(() => {})}
                 onDelete={mock(() => {})}
                 onUpdateRental={mock(() => Promise.resolve())}
+                onBulkDelete={mock(() => Promise.resolve())}
             />,
         )
         expect(screen.getByPlaceholderText('Filter by name...')).toBeTruthy()
@@ -195,11 +195,11 @@ describe('RentalPropertyTable', () => {
             <RentalPropertyTable
                 rentals={[]}
                 rentalsLoading={false}
-                selectedEntity={1}
                 onAdd={mock(() => {})}
                 onEdit={mock(() => {})}
                 onDelete={mock(() => {})}
                 onUpdateRental={mock(() => Promise.resolve())}
+                onBulkDelete={mock(() => Promise.resolve())}
             />,
         )
         expect(screen.getByText('Name')).toBeTruthy()
@@ -216,11 +216,11 @@ describe('RentalPropertyTable', () => {
             <RentalPropertyTable
                 rentals={[rental]}
                 rentalsLoading={false}
-                selectedEntity={1}
                 onAdd={mock(() => {})}
                 onEdit={mock(() => {})}
                 onDelete={onDelete}
                 onUpdateRental={mock(() => Promise.resolve())}
+                onBulkDelete={mock(() => Promise.resolve())}
             />,
         )
 
