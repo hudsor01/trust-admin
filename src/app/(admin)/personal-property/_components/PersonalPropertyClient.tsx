@@ -207,6 +207,33 @@ export function PersonalPropertyClient({
         [confirmDelete],
     )
 
+    // Sequential (NOT Promise.all) bulk delete: a mid-batch failure leaves a
+    // known committed set and an exact failure count to report.
+    const onBulkDelete = useCallback(
+        async (rows: PersonalProperty[]) => {
+            let failed = 0
+            for (const row of rows) {
+                try {
+                    await deleteMutation.mutateAsync({
+                        id: row.id,
+                        entityId: entityId!,
+                    })
+                } catch (err) {
+                    failed++
+                    log.error('Bulk delete failed', { id: row.id, error: err })
+                }
+            }
+            if (failed > 0) {
+                toast.error(
+                    `Failed to delete ${failed} of ${rows.length} items`,
+                )
+            } else {
+                toast.success(`Deleted ${rows.length} items`)
+            }
+        },
+        [deleteMutation, entityId, log],
+    )
+
     const handleInlineUpdate = useCallback(
         async (id: number, updates: Partial<PersonalProperty>) => {
             const previousCategory = items.find((p) => p.id === id)?.category
@@ -279,6 +306,7 @@ export function PersonalPropertyClient({
                 onEdit={handleEdit}
                 onDelete={handleDelete}
                 onInlineUpdate={handleInlineUpdate}
+                onBulkDelete={onBulkDelete}
                 categoryOptions={categoryOptions}
                 searchPlaceholder={copy.searchPlaceholder}
                 emptyMessage={copy.emptyMessage}

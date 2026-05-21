@@ -9,7 +9,9 @@ import {
 } from '@/components/editable-cells'
 import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/ui/data-table'
+import type { BulkAction } from '@/components/ui/data-table-bulk-actions'
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
+import { selectColumn } from '@/components/ui/data-table-select-column'
 import type { InsurancePolicy } from '@/db/schema'
 import { STATUS_VARIANTS } from '@/lib/constants'
 import {
@@ -37,6 +39,7 @@ interface InsuranceTableProps {
         id: number,
         updates: Partial<InsurancePolicy>,
     ) => Promise<void>
+    onBulkDelete: (rows: InsurancePolicy[]) => Promise<void>
 }
 
 export function InsuranceTable({
@@ -45,8 +48,10 @@ export function InsuranceTable({
     onEdit,
     onDelete,
     onInlineUpdate,
+    onBulkDelete,
 }: InsuranceTableProps) {
     const columns: ColumnDef<InsurancePolicy>[] = [
+        selectColumn<InsurancePolicy>(),
         {
             accessorKey: 'name',
             header: ({ column }) => (
@@ -204,6 +209,15 @@ export function InsuranceTable({
         },
     ]
 
+    const bulkActions: BulkAction<InsurancePolicy>[] = [
+        {
+            label: 'Delete',
+            icon: Trash2,
+            variant: 'destructive',
+            onClick: onBulkDelete,
+        },
+    ]
+
     return (
         <DataTable
             tableId="insurance"
@@ -214,6 +228,10 @@ export function InsuranceTable({
             isLoading={isLoading}
             emptyMessage="No insurance policies. Click Add Policy to create one."
             enablePagination={true}
+            enableRowSelection
+            bulkActions={bulkActions}
+            exportable
+            exportResource="insurance"
         />
     )
 }
