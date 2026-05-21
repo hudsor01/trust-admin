@@ -16,6 +16,10 @@ activated_after_verification:
   - truth: "Asset-creation 3-step wizard (@diceui/stepper, useResourceForm extension)"
     addressed_in: "Plan 23-05"
     note: "Initially deferred per UI-SPEC Note 13. The user reasserted on 2026-05-20 — the wizard is a locked CONTEXT.md Phase-3 decision — so 23-05 was executed and verified. All 8 plan-23-05 must-haves confirmed (see addendum). Phase 23 is now 5/5 plans complete."
+review_followups:
+  status: resolved
+  resolved_in: d646876
+  note: "The 6 WR code-review warnings (WR-01..WR-06) from 23-REVIEW.md were resolved in PR #91 — see commit d646876 plus follow-up fixes 9efdadd (WR-01/WR-02 money-math) and 96a7012 (review hardening). No open code-review follow-ups remain for phase 23."
 ---
 
 # Phase 23: Shadcn Registry Adoption and Dashboard UX Revamp — Verification Report
@@ -145,11 +149,11 @@ No explicit requirement IDs in ROADMAP for this phase; all plans declare `requir
 | File | Line | Pattern | Severity | Impact |
 | ---- | ---- | ------- | -------- | ------ |
 | src/app/(admin)/dashboard/_components/DashboardClient.tsx | 235-260 | 6× `hsl(...)` color literals | ✅ Resolved | Fixed in commit f193679 — replaced with var(--chart-1)..var(--chart-5) |
-| src/app/(admin)/dashboard/_components/DashboardClient.tsx | 234-298 | `parseFloat().reduce()` money math | ⚠️ Warning | WR-01 — float drift on liabilityPayoffPercent; advisory quality issue |
-| src/app/(admin)/liabilities/_components/LiabilitiesClient.tsx | 188-194 | raw parseFloat optimistic balance | ⚠️ Warning | WR-02 — brief 1-cent UI disagreement before refetch; advisory |
-| src/app/(admin)/hems-queue/_components/HemsQueueBoard.tsx | 119-136 | stale-closure confirm pattern | ⚠️ Warning | WR-03 — latent desync on rapid double-drag; guarded today, advisory |
-| src/app/(admin)/hems-queue/_components/HemsQueueClient.tsx | 83-103 | dead useOptimistic | ⚠️ Warning | WR-04 — unused machinery; advisory |
-| src/server/trpc/routers/{trustee,beneficiary}.ts | reorder | non-transactional Promise.all batch | ⚠️ Warning | WR-06 — partial-failure split order; advisory but worth a follow-up |
+| src/app/(admin)/dashboard/_components/DashboardClient.tsx | 234-298 | `parseFloat().reduce()` money math | ✅ Resolved | WR-01 — float drift on liabilityPayoffPercent; advisory quality issue — resolved in d646876 |
+| src/app/(admin)/liabilities/_components/LiabilitiesClient.tsx | 188-194 | raw parseFloat optimistic balance | ✅ Resolved | WR-02 — brief 1-cent UI disagreement before refetch; advisory — resolved in d646876 |
+| src/app/(admin)/hems-queue/_components/HemsQueueBoard.tsx | 119-136 | stale-closure confirm pattern | ✅ Resolved | WR-03 — latent desync on rapid double-drag; guarded today, advisory — resolved in d646876 |
+| src/app/(admin)/hems-queue/_components/HemsQueueClient.tsx | 83-103 | dead useOptimistic | ✅ Resolved | WR-04 — unused machinery; advisory — resolved in d646876 |
+| src/server/trpc/routers/{trustee,beneficiary}.ts | reorder | non-transactional Promise.all batch | ✅ Resolved | WR-06 — partial-failure split order; advisory but worth a follow-up — resolved in d646876 |
 | src/app/(admin)/artwork/_components/ArtworkClient.tsx | 15-23 | re-export to satisfy verifier grep | ℹ️ Info | IN-05 — code shaped for harness; KpiStrip rollout itself is real (via PersonalPropertyClient) |
 
 The 6 warnings + 9 info findings from 23-REVIEW.md are advisory quality issues and do not by themselves constitute phase-goal gaps — EXCEPT IN-01 (DashboardClient hsl literals), which the review classified as info but which maps to a **locked** CONTEXT.md constraint and is therefore escalated to a blocker gap here.
@@ -168,7 +172,7 @@ The two items that initially blocked a clean pass were both closed before phase 
 
 2. **getRowDetail content mismatch — ACCEPTED via override.** `/accounts` IS the first `getRowDetail` consumer and row expansion is fully functional — the expanded region renders account metadata (routing number, DOD date, notes) rather than "linked liabilities" as the must-have specified. The schema has no FK from `liability` to `bankAccount`/`investmentAccount` (liability links only to homestead/rentalProperty/vehicle, per CLAUDE.md Data Model). The row-detail *capability* requirement is fully met; the originally-specified "linked liabilities" content is not implementable without a new schema FK, which is out of scope for a UX-revamp phase. Accepted via override (see frontmatter).
 
-The 6 advisory warnings from 23-REVIEW.md (non-transactional reorder mutations, `parseFloat` money math in 2 consumers, a stale-closure confirm pattern, dead `useOptimistic`, a double-cast) remain open as quality follow-ups — none are phase-goal gaps. Consider `/gsd-code-review-fix 23` to address them.
+The 6 advisory warnings from 23-REVIEW.md (non-transactional reorder mutations, `parseFloat` money math in 2 consumers, a stale-closure confirm pattern, dead `useOptimistic`, a double-cast) were resolved in PR #91 (commit d646876) — none are phase-goal gaps.
 
 ---
 
