@@ -103,7 +103,8 @@ Audit: [`milestones/v4.0-MILESTONE-AUDIT.md`](milestones/v4.0-MILESTONE-AUDIT.md
   3. `trpc.firearm.byId` throws `NOT_FOUND` when the requested id does not belong to the specified entity
   4. All five procedures (`list`, `byId`, `create`, `update`, `delete`) require `adminProcedure` — a beneficiary JWT cannot invoke them
   5. `bun run typecheck` passes with 0 errors after router registration in `router.ts`
-**Plans**: TBD
+**Plans**: 1 plan
+- [ ] 29-01-PLAN.md — Firearm tRPC router: export `insertFirearmSchemaBase`, create `firearmRouter` (6 procedures + serial-conflict predicate + NFA guard), register in appRouter, and add integration tests for SC-1..SC-4 + setNfaTransferStatus + D-03 regression
 
 ### Phase 30: firearms-admin-page
 **Goal**: Admin can fully manage firearm records — create, view, edit, delete, sort, filter, and export — from a dedicated `/firearms` page.
