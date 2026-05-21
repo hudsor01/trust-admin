@@ -221,7 +221,7 @@ Phases execute in numeric order: 15 -> 16 -> 17 -> 18 -> 19 -> 20 -> 21 -> 22
 | 23. shadcn-registry-adoption-and-dashboard-ux-revamp | v4.0 | 5/5 | Complete | 2026-05-20 |
 | 24. test-suite-and-lint-hygiene | v4.0 | 0/0 | Complete (verified pre-resolved) | 2026-05-20 |
 | 25. reorder-ordering-and-dashboard-data-wiring | v4.0 | 1/1 | Complete    | 2026-05-20 |
-| 26. schema-completeness-for-kpi-data | v4.0 | 3/3 | Complete | 2026-05-20 |
+| 26. schema-completeness-for-kpi-data | v4.0 | 3/3 | Complete    | 2026-05-21 |
 | 27. datatable-rollout-theme-token-and-doc-accuracy | v4.0 | TBD | Planned | - |
 
 ### Phase 23: Shadcn registry adoption and dashboard UX revamp
@@ -273,7 +273,7 @@ Plans:
 **Requirements:** Gap closure (no new REQ-IDs)
 **Depends on:** Phase 23
 **Gap Closure:** Closes v4.0-MILESTONE-AUDIT phase-23 tech_debt (placeholder KPI columns, /accounts getRowDetail override)
-**Plans:** 3 plans
+**Plans:** 3/3 plans complete
 
 Plans:
 - [x] 26-01-schema-and-migration-PLAN.md — Add estimatedValue / insured / liability FK columns to db/schema.ts + relations, generate + hand-edit migration 0013, [BLOCKING] db:deploy with live-DB column-existence check ✅ 2026-05-20
