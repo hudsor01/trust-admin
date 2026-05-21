@@ -1,30 +1,26 @@
 ---
 gsd_state_version: 1.0
-milestone: v4.0
-milestone_name: Production Hardening & Completeness
-status: completed
-stopped_at: Completed 27-04-financial-and-distribution-table-rollout-PLAN.md
-last_updated: "2026-05-21T14:40:26.901Z"
+milestone: v5.0
+milestone_name: Firearms Tracking & Beneficiary UX Refinement
+status: planning
+last_updated: "2026-05-21T15:05:24.353Z"
 last_activity: 2026-05-21
 progress:
-  total_phases: 13
-  completed_phases: 12
-  total_plans: 32
-  completed_plans: 32
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # State: Trust Admin
 
 ## Current Position
 
-Milestone: v4.0 Production Hardening & Completeness
-Phase: 27
-Plan: Not started
-Status: Milestone complete
-Last activity: 2026-05-21
-
-Progress: [██████████] 100%
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-05-21 — Milestone v5.0 started
 
 ## Accumulated Context
 
