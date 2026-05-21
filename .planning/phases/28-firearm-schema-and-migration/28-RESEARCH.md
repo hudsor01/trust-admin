@@ -757,7 +757,10 @@ Phase 28 is schema-only. No tRPC router yet (Phase 29). Automated tests for fire
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
+
+> All three resolved in 28-01-PLAN.md / 28-02-PLAN.md actions: `nfaRegistered` and `action`
+> columns INCLUDED; test-branch sync follows the Phase 26 precedent.
 
 1. **`nfaRegistered` field default value**
    - What we know: Pitfall 3 (PITFALLS.md) recommends `nfaRegistered boolean nullable` with `default null` for `nfaClass = 'NONE'`.
