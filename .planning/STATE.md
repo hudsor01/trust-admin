@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Production Hardening & Completeness
 status: executing
-stopped_at: Completed 27-02-milestone-theme-token-PLAN.md
-last_updated: "2026-05-20T03:44:00.000Z"
+stopped_at: Completed 27-03-asset-table-rollout-PLAN.md
+last_updated: "2026-05-21T03:48:29.612Z"
 last_activity: 2026-05-20
 progress:
   total_phases: 13
   completed_phases: 11
   total_plans: 32
-  completed_plans: 30
-  percent: 94
+  completed_plans: 31
+  percent: 97
 ---
 
 # State: Trust Admin
@@ -20,11 +20,11 @@ progress:
 
 Milestone: v4.0 Production Hardening & Completeness
 Phase: 27
-Plan: 27-02 complete (2/4)
+Plan: 27-03 complete (3/4)
 Status: In progress
 Last activity: 2026-05-20
 
-Progress: [█████████░] 94%
+Progress: [██████████] 97%
 
 ## Accumulated Context
 
@@ -164,14 +164,15 @@ const rows = await sql`SELECT id, name, email FROM neon_auth."user" WHERE lower(
 
 ## Session Continuity
 
-Last session: 2026-05-20T03:44:00.000Z
-Stopped at: Completed 27-02-milestone-theme-token-PLAN.md
+Last session: 2026-05-21T03:48:29.607Z
+Stopped at: Completed 27-03-asset-table-rollout-PLAN.md
 Resume file: None
 
-**Phase 27 progress:** IN PROGRESS (2/4)
+**Phase 27 progress:** IN PROGRESS (3/4)
 
 - [x] 27-01-datatable-foundation-and-docs (Wave 1) — Built selectColumn<TData>() (src/components/ui/data-table-select-column.tsx): the missing selection-UI primitive for the phase-23 bulkActions toolbar — a ColumnDef (id 'select', size 40, no sorting/hiding/resizing) with a header "select all" Checkbox + per-row Checkbox bound to TanStack rowSelection; the cell stops click propagation so a select click never fires onRowClick. Fixed csv-export.ts buildCsvBody to filter c.id !== 'select' (enableHiding:false only hides from the visibility menu — getVisibleLeafColumns still returns the column), so no exported CSV gains a spurious select column (T-27-04). Corrected REQUIREMENTS.md SEC-08 — INT-G1 closed (proxy publicPaths removal was deliberately reverted in 0a62754; route-level auth carries the requirement). Refreshed stale 23-VERIFICATION.md frontmatter (review_followups block, 5 WR Anti-Patterns rows marked resolved). 1016 unit tests passing (pre-commit hook, 0 fail) — 2026-05-20 (commits 9df8c94, 4b16c88, 767dc04 on feat/27-datatable-rollout)
 - [x] 27-02-milestone-theme-token (Wave 1) — Added a dedicated --milestone / --milestone-foreground OKLCH semantic token (violet hue 295) to globals.css :root (light, L 58% / white fg) + .dark (L 70% / dark-violet fg), exposed as Tailwind utilities via --color-milestone in @theme inline — mirrors the --warning/--success declaration pattern, no prefers-contrast override (consistent with existing semantic color tokens). Repointed the two phase-23 elements that borrowed the neutral accent token: the dashboard upcoming-milestones Alert (DashboardAlerts.tsx — border/bg/icon/description) and the HEMS withdrawal Badge (hems/HistoryTable.tsx — distributionType column className) now render with bg-milestone / text-milestone-foreground / border-milestone, restoring the intended violet semantics. typecheck 0, lint 0 findings, build green, full unit suite green (pre-commit hook) — 2026-05-20 (commits 3823cac, 1242b76 on feat/27-datatable-rollout)
+- [x] 27-03-asset-table-rollout (Wave 2) — Rolled the phase-23 DataTable enhancements onto the five asset-domain admin tables. CSV export (exportable + exportResource) added to Vehicles, Properties, Personal Property, Insurance, and Beneficiaries. Row-selection bulk delete (selectColumn() prepended as columns[0] + enableRowSelection + a single { variant: 'destructive' } bulkActions entry) added to Vehicles, Properties, Personal Property, and Insurance — NOT Beneficiaries (deletion there is a deliberate single-record action) and no getRowDetail anywhere. Each parent client (VehiclesClient/PropertiesClient/PersonalPropertyClient/InsuranceClient) gained an onBulkDelete handler: a sequential for...of await loop (NOT Promise.all) over the existing entityId-scoped delete mutation with { id, entityId } per row, tracking a failed counter and surfacing toast.error("Failed to delete N of M …") on partial failure / toast.success otherwise; the destructive bulkActions entry routes through ConfirmDialog automatically (requiresConfirm defaults true for variant:destructive). Rule-1 auto-fix: VehicleTable.test.tsx onEdit test re-targeted to the Actions cell (td:last-child) since selectColumn shifted the first column to a checkbox; both VehicleTable + RentalPropertyTable tests gained the new required onBulkDelete prop. typecheck 0, lint 0 findings, tests/trpc 166/166 in isolation (3 EntityId-Validation full-run timeouts are the known Neon test-branch infra flake — out of scope) — 2026-05-20 (commits 316e4c2, d49fe10, 76b8481 on feat/27-datatable-rollout)
 
 **Phase 26 progress:** COMPLETE (3/3)
 
