@@ -61,6 +61,7 @@ describe('RentalPropertyTable', () => {
                 onEdit={mock(() => {})}
                 onDelete={mock(() => {})}
                 onUpdateRental={mock(() => Promise.resolve())}
+                onBulkDelete={mock(() => Promise.resolve())}
             />,
         )
         expect(
@@ -93,6 +94,7 @@ describe('RentalPropertyTable', () => {
                 onEdit={mock(() => {})}
                 onDelete={mock(() => {})}
                 onUpdateRental={mock(() => Promise.resolve())}
+                onBulkDelete={mock(() => Promise.resolve())}
             />,
         )
 
@@ -110,6 +112,7 @@ describe('RentalPropertyTable', () => {
                 onEdit={mock(() => {})}
                 onDelete={mock(() => {})}
                 onUpdateRental={mock(() => Promise.resolve())}
+                onBulkDelete={mock(() => Promise.resolve())}
             />,
         )
         // DataTable renders a table element even while loading
@@ -126,6 +129,7 @@ describe('RentalPropertyTable', () => {
                 onEdit={mock(() => {})}
                 onDelete={mock(() => {})}
                 onUpdateRental={mock(() => Promise.resolve())}
+                onBulkDelete={mock(() => Promise.resolve())}
             />,
         )
         expect(screen.getByText('Add Rental Property')).toBeTruthy()
@@ -144,6 +148,7 @@ describe('RentalPropertyTable', () => {
                 onEdit={mock(() => {})}
                 onDelete={mock(() => {})}
                 onUpdateRental={mock(() => Promise.resolve())}
+                onBulkDelete={mock(() => Promise.resolve())}
             />,
         )
 
@@ -168,6 +173,7 @@ describe('RentalPropertyTable', () => {
                 onEdit={mock(() => {})}
                 onDelete={mock(() => {})}
                 onUpdateRental={mock(() => Promise.resolve())}
+                onBulkDelete={mock(() => Promise.resolve())}
             />,
         )
 
@@ -185,6 +191,7 @@ describe('RentalPropertyTable', () => {
                 onEdit={mock(() => {})}
                 onDelete={mock(() => {})}
                 onUpdateRental={mock(() => Promise.resolve())}
+                onBulkDelete={mock(() => Promise.resolve())}
             />,
         )
         expect(screen.getByPlaceholderText('Filter by name...')).toBeTruthy()
@@ -200,6 +207,7 @@ describe('RentalPropertyTable', () => {
                 onEdit={mock(() => {})}
                 onDelete={mock(() => {})}
                 onUpdateRental={mock(() => Promise.resolve())}
+                onBulkDelete={mock(() => Promise.resolve())}
             />,
         )
         expect(screen.getByText('Name')).toBeTruthy()
@@ -221,6 +229,7 @@ describe('RentalPropertyTable', () => {
                 onEdit={mock(() => {})}
                 onDelete={onDelete}
                 onUpdateRental={mock(() => Promise.resolve())}
+                onBulkDelete={mock(() => Promise.resolve())}
             />,
         )
 

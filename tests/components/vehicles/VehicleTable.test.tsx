@@ -46,6 +46,7 @@ describe('VehicleTable', () => {
                 onEdit={mock(() => {})}
                 onDelete={mock(() => {})}
                 onInlineUpdate={mock(async () => {})}
+                onBulkDelete={mock(async () => {})}
             />,
         )
         expect(
@@ -72,6 +73,7 @@ describe('VehicleTable', () => {
                 onEdit={mock(() => {})}
                 onDelete={mock(() => {})}
                 onInlineUpdate={mock(async () => {})}
+                onBulkDelete={mock(async () => {})}
             />,
         )
 
@@ -87,6 +89,7 @@ describe('VehicleTable', () => {
                 onEdit={mock(() => {})}
                 onDelete={mock(() => {})}
                 onInlineUpdate={mock(async () => {})}
+                onBulkDelete={mock(async () => {})}
             />,
         )
         // Table renders in loading state - just verify it does not crash
@@ -103,6 +106,7 @@ describe('VehicleTable', () => {
                 onEdit={mock(() => {})}
                 onDelete={mock(() => {})}
                 onInlineUpdate={mock(async () => {})}
+                onBulkDelete={mock(async () => {})}
             />,
         )
 
@@ -119,6 +123,7 @@ describe('VehicleTable', () => {
                 onEdit={mock(() => {})}
                 onDelete={mock(() => {})}
                 onInlineUpdate={mock(async () => {})}
+                onBulkDelete={mock(async () => {})}
             />,
         )
 
@@ -142,14 +147,17 @@ describe('VehicleTable', () => {
                 onEdit={onEdit}
                 onDelete={mock(() => {})}
                 onInlineUpdate={mock(async () => {})}
+                onBulkDelete={mock(async () => {})}
             />,
         )
 
-        // The action buttons are in the last column (Actions) of the data row.
-        // Find the table body rows and click the first icon button in the Actions cell.
-        const tbody = container.querySelector('tbody')
-        const actionButtons = tbody?.querySelectorAll('button')
-        // First action button in the row is the Edit (pencil) button
+        // The action buttons live in the last column (Actions) of the data
+        // row — the first column is now the row-selection checkbox added by
+        // selectColumn(), so target the last cell's buttons explicitly.
+        const dataRow = container.querySelector('tbody tr')
+        const actionsCell = dataRow?.querySelector('td:last-child')
+        const actionButtons = actionsCell?.querySelectorAll('button')
+        // First button in the Actions cell is the Edit (pencil) button.
         if (actionButtons && actionButtons.length > 0) {
             await user.click(actionButtons[0] as HTMLElement)
         }
@@ -166,6 +174,7 @@ describe('VehicleTable', () => {
                 onEdit={mock(() => {})}
                 onDelete={mock(() => {})}
                 onInlineUpdate={mock(async () => {})}
+                onBulkDelete={mock(async () => {})}
             />,
         )
 
@@ -180,6 +189,7 @@ describe('VehicleTable', () => {
                 onEdit={mock(() => {})}
                 onDelete={mock(() => {})}
                 onInlineUpdate={mock(async () => {})}
+                onBulkDelete={mock(async () => {})}
             />,
         )
 

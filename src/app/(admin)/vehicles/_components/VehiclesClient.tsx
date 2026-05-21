@@ -2,6 +2,7 @@
 
 import { Plus } from 'lucide-react'
 import { useCallback, useState } from 'react'
+import { toast } from 'sonner'
 import { ConfirmDialog, useConfirmDialog } from '@/components/confirm-dialog'
 import { KpiStrip, type KpiStripItem } from '@/components/kpi-strip'
 import { PageHeader } from '@/components/page-header'
@@ -154,6 +155,33 @@ export function VehiclesClient() {
         [updateVehicleMutation, entityId],
     )
 
+    // Sequential (NOT Promise.all) bulk delete: a mid-batch failure leaves a
+    // known committed set and an exact failure count to report.
+    const onBulkDelete = useCallback(
+        async (rows: Vehicle[]) => {
+            let failed = 0
+            for (const row of rows) {
+                try {
+                    await deleteVehicleMutation.mutateAsync({
+                        id: row.id,
+                        entityId: entityId!,
+                    })
+                } catch (err) {
+                    failed++
+                    log.error('Bulk delete failed', { id: row.id, error: err })
+                }
+            }
+            if (failed > 0) {
+                toast.error(
+                    `Failed to delete ${failed} of ${rows.length} vehicles`,
+                )
+            } else {
+                toast.success(`Deleted ${rows.length} vehicles`)
+            }
+        },
+        [deleteVehicleMutation, entityId],
+    )
+
     const totalValue = sumStrings(vehicles.map((v) => v.dodValue))
     const activeCount = vehicles.filter((v) => v.status === 'ACTIVE').length
     const transferredCount = vehicles.filter(
@@ -189,6 +217,7 @@ export function VehiclesClient() {
                 onEdit={handleEdit}
                 onDelete={handleDelete}
                 onInlineUpdate={handleInlineUpdate}
+                onBulkDelete={onBulkDelete}
             />
 
             <VehicleDialog

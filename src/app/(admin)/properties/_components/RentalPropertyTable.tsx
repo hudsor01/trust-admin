@@ -11,7 +11,9 @@ import {
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { DataTable } from '@/components/ui/data-table'
+import type { BulkAction } from '@/components/ui/data-table-bulk-actions'
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
+import { selectColumn } from '@/components/ui/data-table-select-column'
 import type { RentalProperty } from '@/db/schema'
 import {
     RENTAL_STATUS,
@@ -27,6 +29,7 @@ interface RentalPropertyTableProps {
     onEdit: (r: RentalProperty) => void
     onDelete: (id: number) => void
     onUpdateRental: (id: number, data: Partial<RentalProperty>) => Promise<void>
+    onBulkDelete: (rows: RentalProperty[]) => Promise<void>
 }
 
 export function RentalPropertyTable({
@@ -36,8 +39,10 @@ export function RentalPropertyTable({
     onEdit,
     onDelete,
     onUpdateRental,
+    onBulkDelete,
 }: RentalPropertyTableProps) {
     const columns: ColumnDef<RentalProperty>[] = [
+        selectColumn<RentalProperty>(),
         {
             accessorKey: 'name',
             header: ({ column }) => (
@@ -188,6 +193,15 @@ export function RentalPropertyTable({
         },
     ]
 
+    const bulkActions: BulkAction<RentalProperty>[] = [
+        {
+            label: 'Delete',
+            icon: Trash2,
+            variant: 'destructive',
+            onClick: onBulkDelete,
+        },
+    ]
+
     return (
         <>
             <div className="mb-4 flex justify-end">
@@ -209,6 +223,10 @@ export function RentalPropertyTable({
                         emptyMessage="No rental properties. Click Add to create one."
                         enableColumnVisibility={true}
                         enablePagination={true}
+                        enableRowSelection
+                        bulkActions={bulkActions}
+                        exportable
+                        exportResource="properties"
                     />
                 </CardContent>
             </Card>

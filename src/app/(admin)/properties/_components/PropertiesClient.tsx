@@ -2,6 +2,7 @@
 
 import { Loader2 } from 'lucide-react'
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { ConfirmDialog, useConfirmDialog } from '@/components/confirm-dialog'
 import { KpiStrip, type KpiStripItem } from '@/components/kpi-strip'
 import { PageHeader } from '@/components/page-header'
@@ -317,6 +318,30 @@ export function PropertiesClient() {
         confirmDeleteRental()
     }
 
+    // Sequential (NOT Promise.all) bulk delete: a mid-batch failure leaves a
+    // known committed set and an exact failure count to report.
+    const onBulkDeleteRental = async (rows: RentalProperty[]) => {
+        let failed = 0
+        for (const row of rows) {
+            try {
+                await deleteRentalMutation.mutateAsync({
+                    id: row.id,
+                    entityId: entityId!,
+                })
+            } catch (err) {
+                failed++
+                log.error('Bulk delete failed', { id: row.id, error: err })
+            }
+        }
+        if (failed > 0) {
+            toast.error(
+                `Failed to delete ${failed} of ${rows.length} properties`,
+            )
+        } else {
+            toast.success(`Deleted ${rows.length} properties`)
+        }
+    }
+
     if (loading) {
         return (
             <div className="flex h-[400px] items-center justify-center">
@@ -387,6 +412,7 @@ export function PropertiesClient() {
                         onEdit={handleEditRental}
                         onDelete={handleDeleteRental}
                         onUpdateRental={updateRental}
+                        onBulkDelete={onBulkDeleteRental}
                     />
                 </TabsContent>
             </Tabs>
