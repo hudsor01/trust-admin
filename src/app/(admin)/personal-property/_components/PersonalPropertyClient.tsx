@@ -152,6 +152,7 @@ export function PersonalPropertyClient({
                 dodValueType: asValuationType(data.dodValueType || null),
                 status: asRecordStatus(data.status),
                 transferStatus: asTransferStatus(data.transferStatus),
+                insured: data.insured ?? false,
                 notes: data.notes || null,
             }
 
@@ -191,6 +192,7 @@ export function PersonalPropertyClient({
                 dodValue: p.dodValue || '',
                 dodValueDate: toDateInput(p.dodValueDate),
                 dodValueType: p.dodValueType || '',
+                insured: p.insured,
                 notes: p.notes || '',
             })
         },
@@ -239,10 +241,8 @@ export function PersonalPropertyClient({
     const totalValue = sumStrings(items.map((p) => p.dodValue))
     const totalCurrent = totalValue
     const categoriesTracked = new Set(items.map((p) => p.category)).size
-    // personalProperty has no `insured` column or insurancePolicy FK — surface
-    // 0 for now and document the gap. A future schema migration can add a
-    // pivot table or link and the artwork view will pick it up.
-    const insuredCount = 0
+    // Count of items flagged as insured (real `personal_property.insured` column).
+    const insuredCount = items.filter((p) => p.insured).length
     const kpiData: KpiStripItem[] =
         mode === 'artwork'
             ? [
