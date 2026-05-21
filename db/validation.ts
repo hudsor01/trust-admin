@@ -66,6 +66,19 @@ const phoneValidation = z
 const MAX_CURRENCY_VALUE = 999_999_999_999.99
 
 /**
+ * Magnitude ceiling for the widest money columns — numeric(14,2), whose
+ * true max is 99,999,999,999,999.99 (~100 trillion). That exact value is
+ * not representable as an IEEE-754 double, so the bound is expressed as
+ * 1e14 — an exact power of ten just above the column max. The DB column
+ * itself still rejects an actual overflow on write; this bound only keeps
+ * Zod from rejecting a value the 14,2 column would accept.
+ * `positiveNumberValidation` (applied to estimatedValue, dodValue, etc.)
+ * uses this. Narrower columns (numeric(12,2), 10,2) remain protected by
+ * their own DB precision on write.
+ */
+const MAX_CURRENCY_VALUE_14 = 1e14
+
+/**
  * Required (non-nullable) money string. Anchored shape regex first — that
  * rejects "abc", "", "1e9" (scientific notation bypass), "NaN", "Infinity",
  * "+5", "5.", ".5", whitespace — before any parseFloat math gets a chance
@@ -94,12 +107,12 @@ const positiveNumberValidation = z
             !Number.isNaN(num) &&
             Number.isFinite(num) &&
             num >= 0 &&
-            num <= MAX_CURRENCY_VALUE
+            num <= MAX_CURRENCY_VALUE_14
         )
-    }, `Must be a valid positive number (max ${MAX_CURRENCY_VALUE.toLocaleString()})`)
+    }, `Must be a valid positive number (max ${MAX_CURRENCY_VALUE_14.toLocaleString()})`)
     .refine((val) => {
         if (!val) return true
-        return !/\.\d{3,}/.test(val) // DB columns are numeric(12,2)
+        return !/\.\d{3,}/.test(val) // DB money columns are numeric(14,2)
     }, 'Must have at most 2 decimal places')
     .nullable()
     .optional()

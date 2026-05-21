@@ -189,6 +189,23 @@ export const liabilityRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ input }) => {
+            // Verify the target liability exists in the caller's entity FIRST,
+            // so a probe for a row the caller does not own always 404s rather
+            // than leaking entity-membership signal via the cross-entity FK
+            // guard's BAD_REQUEST (WR-01). Only after the row is confirmed in
+            // scope do we validate the linked-account FKs.
+            const existing = await db.query.liability.findFirst({
+                where: and(
+                    eq(liability.id, input.id),
+                    eq(liability.entityId, input.entityId),
+                ),
+            })
+            if (!existing) {
+                throw new TRPCError({
+                    code: 'NOT_FOUND',
+                    message: 'Record not found in this entity',
+                })
+            }
             await assertLinkedAccountsInEntity({
                 entityId: input.entityId,
                 bankAccountId: input.data.bankAccountId,
