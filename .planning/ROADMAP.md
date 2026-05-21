@@ -290,6 +290,6 @@ Plans:
 
 Plans:
 - [x] 27-01-PLAN.md — Build the shared selectColumn DataTable helper (unblocks bulkActions); correct REQUIREMENTS.md SEC-08 (INT-G1); refresh stale 23-VERIFICATION.md frontmatter ✅ 2026-05-20
-- [ ] 27-02-PLAN.md — Add the dedicated --milestone OKLCH theme token (light + dark + @theme); repoint the dashboard milestone alert + HEMS withdrawal badge off accent
+- [x] 27-02-PLAN.md — Add the dedicated --milestone OKLCH theme token (light + dark + @theme); repoint the dashboard milestone alert + HEMS withdrawal badge off accent ✅ 2026-05-20
 - [ ] 27-03-PLAN.md — Roll exportable + bulk-delete onto the asset tables (Vehicles, Properties, Personal Property, Insurance) + exportable on Beneficiaries
 - [ ] 27-04-PLAN.md — Roll exportable + bulk-delete onto Liabilities + Accounting; exportable on HEMS-queue table, HEMS/distribution/withdrawal tables, and Users
