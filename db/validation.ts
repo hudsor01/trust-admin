@@ -254,7 +254,7 @@ export const selectEntitySchema = createSelectSchema(entity)
 // Base schema (no .refine()) so insertFirearmSchema.partial() — used by
 // updateFirearmSchema below — does not throw in Zod v4, which forbids
 // .partial() on refined object schemas.
-const insertFirearmSchemaBase = createInsertSchema(firearm, {
+export const insertFirearmSchemaBase = createInsertSchema(firearm, {
     createdAt: (schema) => schema.optional(),
     updatedAt: (schema) => schema.optional(),
     name: (schema) => schema.min(1, 'Name is required'),
