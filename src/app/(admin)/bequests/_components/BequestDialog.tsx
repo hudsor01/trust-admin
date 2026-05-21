@@ -103,6 +103,30 @@ export function BequestDialog({
                     )}
                 </formInstance.Field>
 
+                {/* Estimated Value — string-typed money, optional */}
+                <formInstance.Field name="estimatedValue">
+                    {(field) => (
+                        <div className="space-y-2">
+                            <Label htmlFor="estimatedValue">
+                                Estimated value
+                            </Label>
+                            <Input
+                                id="estimatedValue"
+                                inputMode="decimal"
+                                placeholder="0.00"
+                                value={field.state.value}
+                                onChange={(e) =>
+                                    field.handleChange(e.target.value)
+                                }
+                                onBlur={field.handleBlur}
+                            />
+                            <p className="text-xs text-muted-foreground">
+                                Optional — leave blank for non-monetary bequests
+                            </p>
+                        </div>
+                    )}
+                </formInstance.Field>
+
                 {/* Beneficiary */}
                 <formInstance.Field name="beneficiaryId">
                     {(field) => (

@@ -3,6 +3,7 @@ export interface BequestFormData {
     category: string
     beneficiaryId: string
     recipientName: string
+    estimatedValue: string
     dateDistributed: string
     notes: string
 }

@@ -23,7 +23,7 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip'
 import type { SpecificBequest } from '@/db/schema'
-import { formatDate } from '@/utils/formatters'
+import { formatCurrency, formatDate } from '@/utils/formatters'
 
 export const BEQUEST_CATEGORIES = [
     { value: 'PET', label: 'Pet' },
@@ -88,6 +88,9 @@ export function BequestTable({
                                         <TableHead>Item</TableHead>
                                         <TableHead>Category</TableHead>
                                         <TableHead>Recipient</TableHead>
+                                        <TableHead className="text-right">
+                                            Estimated value
+                                        </TableHead>
                                         <TableHead>Notes</TableHead>
                                         <TableHead className="w-[120px]">
                                             Actions
@@ -151,6 +154,13 @@ export function BequestTable({
                                                             placeholder="Add recipient"
                                                         />
                                                     )}
+                                                </TableCell>
+                                                <TableCell className="text-right tabular-nums">
+                                                    {b.estimatedValue
+                                                        ? formatCurrency(
+                                                              b.estimatedValue,
+                                                          )
+                                                        : '—'}
                                                 </TableCell>
                                                 <TableCell>
                                                     <EditableTextCell
@@ -265,6 +275,9 @@ export function BequestTable({
                                         <TableHead>Item</TableHead>
                                         <TableHead>Category</TableHead>
                                         <TableHead>Recipient</TableHead>
+                                        <TableHead className="text-right">
+                                            Estimated value
+                                        </TableHead>
                                         <TableHead>Date Distributed</TableHead>
                                     </TableRow>
                                 </TableHeader>
@@ -296,6 +309,13 @@ export function BequestTable({
                                                         ? `${recipient.firstName} ${recipient.lastName}`
                                                         : b.recipientName ||
                                                           '—'}
+                                                </TableCell>
+                                                <TableCell className="text-right tabular-nums">
+                                                    {b.estimatedValue
+                                                        ? formatCurrency(
+                                                              b.estimatedValue,
+                                                          )
+                                                        : '—'}
                                                 </TableCell>
                                                 <TableCell>
                                                     {formatDate(
