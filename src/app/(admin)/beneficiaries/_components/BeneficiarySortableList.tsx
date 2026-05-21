@@ -48,6 +48,10 @@ export function BeneficiarySortableList({
     const reorderMutation = trpc.beneficiary.reorder.useMutation({
         onSuccess: () => {
             utils.beneficiary.list.invalidate()
+            // The beneficiaries page renders its main table from
+            // listWithDistributions, so invalidate that too — otherwise the
+            // table keeps the pre-reorder order until the next mutation.
+            utils.beneficiary.listWithDistributions.invalidate()
             toast.success('Reordered.')
         },
         onError: () => {
