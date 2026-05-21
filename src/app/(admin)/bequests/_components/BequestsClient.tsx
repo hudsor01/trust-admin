@@ -63,17 +63,20 @@ export function BequestsClient() {
             notes: '',
         },
         onSubmit: async (data) => {
+            // Empty optional form fields coalesce to `null` for the nullable
+            // DB columns — consistent with LiabilitiesClient / PersonalProperty
+            // -Client (IN-02). FK fields use `value ? Number(value) : null`.
             const payload = {
                 entityId: entityId!,
                 description: data.description,
                 category: data.category || 'OTHER',
                 beneficiaryId: data.beneficiaryId
                     ? Number(data.beneficiaryId)
-                    : undefined,
-                recipientName: data.recipientName || undefined,
-                estimatedValue: data.estimatedValue || undefined,
-                dateDistributed: data.dateDistributed || undefined,
-                notes: data.notes || undefined,
+                    : null,
+                recipientName: data.recipientName || null,
+                estimatedValue: data.estimatedValue || null,
+                dateDistributed: data.dateDistributed || null,
+                notes: data.notes || null,
             }
             if (bequestForm.isEditing && editingBequestId) {
                 await updateBequestMutation.mutateAsync({

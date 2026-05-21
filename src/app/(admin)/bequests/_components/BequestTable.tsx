@@ -263,7 +263,11 @@ export function BequestTable({
                     <CardTitle>Distributed Bequests</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    {distributedBequests.length === 0 ? (
+                    {isLoading ? (
+                        <div className="flex justify-center py-12">
+                            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                        </div>
+                    ) : distributedBequests.length === 0 ? (
                         <p className="text-center py-8 text-muted-foreground">
                             No distributed bequests
                         </p>

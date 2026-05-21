@@ -14,6 +14,23 @@ if (!url) {
     process.exit(1)
 }
 
+// Defense-in-depth (IN-01): this script applies DDL and must only ever touch a
+// Neon test branch, never production. Mirror tests/helpers/db-guard.ts — a
+// pooled URL with no branch ref ("/br-") is production. ALLOW_PRODUCTION_DB
+// is the explicit, deliberate escape hatch.
+const isProductionDb =
+    url.includes('-pooler.') &&
+    !url.includes('/br-') &&
+    !process.env.ALLOW_PRODUCTION_DB
+if (isProductionDb) {
+    console.error(
+        'Refusing to run: DATABASE_URL points at the production database. ' +
+            'Use a Neon test-branch URL (.env.test.local), or set ' +
+            'ALLOW_PRODUCTION_DB=1 to override deliberately.',
+    )
+    process.exit(1)
+}
+
 const sql = postgres(url, { max: 1 })
 
 try {

@@ -238,8 +238,10 @@ export function PersonalPropertyClient({
         [mode],
     )
 
+    // `dodValue` is the only valuation column on personal_property — there is
+    // no separate post-DOD revaluation source, so a distinct "estimated
+    // current" KPI would just duplicate the DOD total; only one is shown.
     const totalValue = sumStrings(items.map((p) => p.dodValue))
-    const totalCurrent = totalValue
     const categoriesTracked = new Set(items.map((p) => p.category)).size
     // Count of items flagged as insured (real `personal_property.insured` column).
     const insuredCount = items.filter((p) => p.insured).length
@@ -248,19 +250,11 @@ export function PersonalPropertyClient({
             ? [
                   { label: 'Item count', value: items.length },
                   { label: 'DOD total', value: formatCurrency(totalValue) },
-                  {
-                      label: 'Estimated current',
-                      value: formatCurrency(totalCurrent),
-                  },
                   { label: 'Insured count', value: insuredCount },
               ]
             : [
                   { label: 'Item count', value: items.length },
                   { label: 'DOD total', value: formatCurrency(totalValue) },
-                  {
-                      label: 'Estimated current',
-                      value: formatCurrency(totalCurrent),
-                  },
                   { label: 'Categories tracked', value: categoriesTracked },
               ]
 
