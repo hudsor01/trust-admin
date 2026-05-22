@@ -21,8 +21,8 @@ Requirements for milestone v5.0. Each maps to a roadmap phase.
 
 ### Asset Integration
 
-- [ ] **ASSET-01**: Firearm values are included in the dashboard asset-value KPIs and allocation charts
-- [ ] **ASSET-02**: Firearms appear in the unified `/assets` view alongside the other 7 asset types
+- [x] **ASSET-01**: Firearm values are included in the dashboard asset-value KPIs and allocation charts
+- [x] **ASSET-02**: Firearms appear in the unified `/assets` view alongside the other 7 asset types
 - [ ] **ASSET-03**: A "Firearms" page is reachable from the Assets navigation group
 - [ ] **ASSET-04**: The Assets navigation sub-items are alphabetically ordered — Accounts, Artwork, Firearms, Insurance, Personal Property, Properties, Vehicles
 
@@ -69,8 +69,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FIRE-07 | Phase 30 | Complete |
 | FIRE-08 | Phase 28 | Complete |
 | FIRE-09 | Phase 28 | Complete |
-| ASSET-01 | Phase 31 | Pending |
-| ASSET-02 | Phase 31 | Pending |
+| ASSET-01 | Phase 31 | Complete |
+| ASSET-02 | Phase 31 | Complete |
 | ASSET-03 | Phase 32 | Pending |
 | ASSET-04 | Phase 32 | Pending |
 | BENE-01 | Phase 33 | Pending |
