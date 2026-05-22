@@ -74,7 +74,7 @@ Audit: [`milestones/v4.0-MILESTONE-AUDIT.md`](milestones/v4.0-MILESTONE-AUDIT.md
 - [x] **Phase 29: firearm-trpc-router** - Implement `firearmRouter` with list/byId/create/update/delete (all adminProcedure, entityId-gated) (completed 2026-05-21)
 - [x] **Phase 30: firearms-admin-page** - Dedicated `/firearms` admin page with DataTable, KPI strip, create/edit form, and NFA-conditional fields (completed 2026-05-22)
 - [x] **Phase 31: asset-aggregator-integration** - Wire `firearm` into `asset.ts:listAll` and `dashboard.ts:summary` so totals and allocation charts include firearms (completed 2026-05-22)
-- [ ] **Phase 32: sidebar-nav-alphabetization** - Reorder Assets sub-nav to alphabetical and add Firearms link
+- [x] **Phase 32: sidebar-nav-alphabetization** - Reorder Assets sub-nav to alphabetical and add Firearms link (completed 2026-05-22)
 - [ ] **Phase 33: beneficiary-ux-cleanup** - Remove avatar-stack card, Display Order section, and withdrawal-milestone gantt from Beneficiaries page
 
 ## Phase Details
@@ -142,7 +142,7 @@ Audit: [`milestones/v4.0-MILESTONE-AUDIT.md`](milestones/v4.0-MILESTONE-AUDIT.md
   2. Clicking "Firearms" in the sidebar navigates to `/firearms`
   3. The `/firearms` link is prefetched alongside the other asset links in the sidebar
 **Plans**: 1 plan
-- [ ] 32-01-PLAN.md — Sidebar Assets alphabetization + Firearms entry (single file edit: prefetch handler + SidebarMenuSub block rewrite + admin UAT)
+- [x] 32-01-PLAN.md — Sidebar Assets alphabetization + Firearms entry (single file edit: prefetch handler + SidebarMenuSub block rewrite + admin UAT)
 **UI hint**: yes
 
 ### Phase 33: beneficiary-ux-cleanup
@@ -165,5 +165,5 @@ Audit: [`milestones/v4.0-MILESTONE-AUDIT.md`](milestones/v4.0-MILESTONE-AUDIT.md
 | 29. firearm-trpc-router | 1/1 | Complete    | 2026-05-21 |
 | 30. firearms-admin-page | 1/1 | Complete    | 2026-05-22 |
 | 31. asset-aggregator-integration | 0/1 | Complete    | 2026-05-22 |
-| 32. sidebar-nav-alphabetization | 0/1 | Not started | - |
+| 32. sidebar-nav-alphabetization | 1/1 | Complete    | 2026-05-22 |
 | 33. beneficiary-ux-cleanup | 0/? | Not started | - |
