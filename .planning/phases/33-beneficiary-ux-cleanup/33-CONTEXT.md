@@ -49,7 +49,37 @@ Delete three components no longer needed and the tRPC mutation that backed one o
 - **D-12:** No new tests. Static gates (`bun run typecheck` exit 0 + `bun run lint` exit 0) plus an admin UAT cover the deletion. Rationale: matches Phase 32 D-06 / Phase 19 precedent for pure UI prunes. The procedure deletion is type-system-enforced (any reintroduction of `utils.beneficiary.reorder` would fail typecheck immediately) — runtime regression test offers low marginal value.
 
 ### Execution order (Claude's discretion, locked here for the planner)
-- **D-13:** Edit `BeneficiariesClient.tsx` first (remove all 3 imports + dangling derived vars + JSX). Then delete the 3 component files. Then delete the procedure + test. Then `bun run typecheck` + `bun run lint`. This sequence matches STATE.md's locked decision ("edit BeneficiariesClient.tsx first, then delete files, then typecheck + lint") and avoids transient broken-import states.
+- **D-13:** Execute in this exact order so no transient broken-state is committed:
+  1. **Fix `src/components/kpi-strip.tsx` skeleton (D-17 below)** — must land BEFORE the BeneficiariesClient KPI insertion, otherwise the very first dev-mode reload of `/beneficiaries` flashes a 4-tile skeleton followed by a 5-tile loaded state.
+  2. Edit `BeneficiariesClient.tsx` (remove all 3 imports + dangling derived vars + JSX, add the 5th KPI, rewrite PageHeader description).
+  3. Delete the 3 component files (`BeneficiaryAvatarStack.tsx`, `BeneficiarySortableList.tsx`, `WithdrawalMilestoneGantt.tsx`).
+  4. Delete `beneficiary.reorder` procedure in `src/server/trpc/routers/beneficiary.ts` + the `tests/trpc/beneficiary-reorder.test.ts` file.
+  5. `bun run typecheck` + `bun run lint` exit 0.
+
+  This sequence matches STATE.md's locked decision ("edit BeneficiariesClient.tsx first, then delete files, then typecheck + lint") and avoids the dangling-import window. Step 1 is added to honor the UI-SPEC FLAG before the user-visible KPI change ships.
+
+### KpiStrip skeleton fix (in-scope, locked from UI-SPEC FLAG)
+- **D-17 [MANDATORY TASK]:** Update `src/components/kpi-strip.tsx` so the skeleton branch (currently lines 22-23) derives its tile count and column class from `data.length` instead of hardcoding 4. Without this, every consumer that goes from cold load → 5-item strip flashes a 4-tile skeleton (≤4-col grid) → 5-tile loaded state (still ≤4-col grid; 5th tile wraps to row 2) — a visible layout jump on first render of the Beneficiaries page.
+
+  **Required edit shape (UI-SPEC Option A):**
+  ```diff
+  - <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">  // skeleton wrapper line 22
+  -   {Array.from({ length: 4 }).map((_, i) => (                              // line 23
+  + <div
+  +   className={cn(
+  +     "grid grid-cols-1 md:grid-cols-2 gap-4",
+  +     data.length === 5 ? "lg:grid-cols-5" : "lg:grid-cols-4",
+  +   )}
+  + >
+  +   {Array.from({ length: data.length }).map((_, i) => (
+  ```
+  Apply the same conditional column class to the loaded-state wrapper (line 40) so cold and warm both pick `lg:grid-cols-5` when the strip has 5 items.
+
+  **Scope fence on D-17:**
+  - Only `lg:grid-cols-5` is added as a new responsive col class — 5 is the cap this phase introduces. Existing KpiStrip consumers across the app use 2-4 tiles each (verified by inventory: TrusteesClient 3, ContactsClient 4, ActivityLogClient 4, DashboardClient 3, PropertiesClient 2, AccountsClient 2, PersonalPropertyClient 3, FirearmsClient 4, VehiclesClient 4, BequestsClient 4, AssetsClient 2, InsuranceClient 4, LiabilityKpiStrip 4 internally). Future strips with 6+ items will get their own decision.
+  - All existing consumers keep their current visual because `data.length === 4` (or fewer) still routes to `lg:grid-cols-4` — the existing branch behavior. **No regression on other pages** — verify in Phase 33's admin UAT by eyeballing /dashboard, /accounts, /accounting, /artwork, /firearms, /insurance, /personal-property, /properties, /vehicles, /liabilities, /hems, /hems-queue, /bequests, /trustees, /contacts. 3-tile and 2-tile strips routing to `lg:grid-cols-4` is unchanged from today's behavior.
+  - `cn` helper is NOT currently imported in `kpi-strip.tsx` (only 3 imports: LucideIcon, recharts Line/LineChart, SummaryCard). The D-17 edit MUST add `import { cn } from '@/lib/utils'` — canonical path used by 5+ other src/components/ files.
+  - NO changes to the `KpiStripItem` type or the public prop surface — internal-only refactor.
 
 ### Out of scope (boundary fence)
 - **D-14:** The `beneficiary.sortIndex` column, the `idx_beneficiary_entity_sort` composite index, and the `asc(beneficiary.sortIndex)` ORDER BY in `beneficiary.list` are NOT touched. BENE-04 makes this a verified success criterion — list ordering everywhere else in the app (portal, HEMS queue, distributions, BeneficiaryTable's default order) must remain identical.
