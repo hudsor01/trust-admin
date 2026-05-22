@@ -6,6 +6,7 @@ import {
     bankAccount,
     beneficiary,
     distribution,
+    firearm,
     hemsRequest,
     homestead,
     insurancePolicy,
@@ -73,6 +74,7 @@ export const dashboardRouter = createTRPCRouter({
                 vehicles,
                 personalProperties,
                 insurancePolicies,
+                firearms,
                 liabilities,
                 tasks,
             ] = await Promise.all([
@@ -135,6 +137,7 @@ export const dashboardRouter = createTRPCRouter({
                     .select()
                     .from(insurancePolicy)
                     .where(eq(insurancePolicy.entityId, entityId)),
+                db.select().from(firearm).where(eq(firearm.entityId, entityId)),
                 db
                     .select()
                     .from(liability)
@@ -158,6 +161,7 @@ export const dashboardRouter = createTRPCRouter({
                 vehicles,
                 personalProperties,
                 insurancePolicies,
+                firearms,
                 liabilities,
                 tasks,
             }

@@ -10,4 +10,5 @@ export const KIND_LABELS: Record<AssetKind, string> = {
     investmentAccount: 'Investment',
     personalProperty: 'Personal Property',
     insurancePolicy: 'Insurance',
+    firearm: 'Firearm',
 }

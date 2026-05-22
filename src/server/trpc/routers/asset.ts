@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { db } from '@/db'
 import {
     bankAccount,
+    firearm,
     homestead,
     insurancePolicy,
     investmentAccount,
@@ -27,6 +28,7 @@ export type AssetKind =
     | 'investmentAccount'
     | 'personalProperty'
     | 'insurancePolicy'
+    | 'firearm'
 
 export interface AssetRow {
     id: number
@@ -91,6 +93,7 @@ export const assetRouter = createTRPCRouter({
                 investments,
                 personal,
                 insurance,
+                firearms,
             ] = await Promise.all([
                 db.select().from(vehicle).where(eq(vehicle.entityId, entityId)),
                 db
@@ -117,6 +120,7 @@ export const assetRouter = createTRPCRouter({
                     .select()
                     .from(insurancePolicy)
                     .where(eq(insurancePolicy.entityId, entityId)),
+                db.select().from(firearm).where(eq(firearm.entityId, entityId)),
             ])
 
             // Per-type mappers. name/description are real columns; the
@@ -232,6 +236,21 @@ export const assetRouter = createTRPCRouter({
                     // is not a transferable estate asset.
                     transferStatus: null,
                     updatedAt: ins.updatedAt,
+                })
+            }
+
+            for (const f of firearms) {
+                rows.push({
+                    id: f.id,
+                    kind: 'firearm',
+                    name: f.name,
+                    description: f.description,
+                    category: 'Firearm',
+                    value: f.dodValue,
+                    status: f.status,
+                    href: '/firearms',
+                    transferStatus: f.transferStatus,
+                    updatedAt: f.updatedAt,
                 })
             }
 

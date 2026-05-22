@@ -75,6 +75,7 @@ export function DashboardClient() {
     const vehicles = summary?.vehicles ?? []
     const personalProperties = summary?.personalProperties ?? []
     const insurancePolicies = summary?.insurancePolicies ?? []
+    const firearms = summary?.firearms ?? []
     const tasks = summary?.tasks ?? []
     const beneficiaries = summary?.beneficiaries ?? []
     const withdrawalRecords = summary?.withdrawalRecords ?? []
@@ -217,6 +218,9 @@ export function DashboardClient() {
             const insuranceTotal = sumStrings(
                 insurancePolicies.map((p) => p.coverageAmount ?? '0'),
             )
+            const firearmTotal = sumStrings(
+                firearms.map((f) => f.dodValue ?? '0'),
+            )
             const liabilityTotal = sumStrings(
                 liabilities.map((l) => l.currentBalance ?? '0'),
             )
@@ -227,6 +231,7 @@ export function DashboardClient() {
                 vehicleTotal,
                 personalPropertyTotal,
                 insuranceTotal,
+                firearmTotal,
             ])
             // Chart values derive from integer cents (toCents) to avoid the
             // float drift parseFloat reintroduces — see src/lib/money.ts.
@@ -261,6 +266,11 @@ export function DashboardClient() {
                     value: toCents(insuranceTotal) / 100,
                     fill: 'var(--chart-1)',
                 },
+                {
+                    name: 'Firearms',
+                    value: toCents(firearmTotal) / 100,
+                    fill: 'var(--chart-2)',
+                },
             ].filter((item) => item.value > 0)
 
             return {
@@ -276,6 +286,7 @@ export function DashboardClient() {
             vehicles,
             personalProperties,
             insurancePolicies,
+            firearms,
             liabilities,
         ])
 
