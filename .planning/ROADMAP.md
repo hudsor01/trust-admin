@@ -130,7 +130,7 @@ Audit: [`milestones/v4.0-MILESTONE-AUDIT.md`](milestones/v4.0-MILESTONE-AUDIT.md
   3. Firearm rows appear in the `/assets` unified view with an `href` linking to `/firearms`
   4. Removing all firearm records causes the Firearms slice to disappear from the pie chart and the "Total Assets" KPI to decrease accordingly
 **Plans**: 1 plan
-- [ ] 31-01-PLAN.md — Wire firearm into asset.ts:listAll + dashboard.ts:summary + DashboardClient (3 files, 4 tasks: 3 surgical edits + admin UAT)
+- [x] 31-01-PLAN.md — Wire firearm into asset.ts:listAll + dashboard.ts:summary + DashboardClient (3 files, 4 tasks: 3 surgical edits + admin UAT)
 **UI hint**: yes
 
 ### Phase 32: sidebar-nav-alphabetization
@@ -164,6 +164,6 @@ Audit: [`milestones/v4.0-MILESTONE-AUDIT.md`](milestones/v4.0-MILESTONE-AUDIT.md
 | 28. firearm-schema-and-migration | 2/2 | Complete    | 2026-05-21 |
 | 29. firearm-trpc-router | 1/1 | Complete    | 2026-05-21 |
 | 30. firearms-admin-page | 1/1 | Complete    | 2026-05-22 |
-| 31. asset-aggregator-integration | 0/1 | Complete    | 2026-05-22 |
+| 31. asset-aggregator-integration | 1/1 | Complete    | 2026-05-22 |
 | 32. sidebar-nav-alphabetization | 1/1 | Complete    | 2026-05-22 |
 | 33. beneficiary-ux-cleanup | 0/? | Not started | - |
