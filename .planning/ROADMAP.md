@@ -141,7 +141,8 @@ Audit: [`milestones/v4.0-MILESTONE-AUDIT.md`](milestones/v4.0-MILESTONE-AUDIT.md
   1. The Assets dropdown sub-items appear in the order: Accounts, Artwork, Firearms, Insurance, Personal Property, Properties, Vehicles
   2. Clicking "Firearms" in the sidebar navigates to `/firearms`
   3. The `/firearms` link is prefetched alongside the other asset links in the sidebar
-**Plans**: TBD
+**Plans**: 1 plan
+- [ ] 32-01-PLAN.md — Sidebar Assets alphabetization + Firearms entry (single file edit: prefetch handler + SidebarMenuSub block rewrite + admin UAT)
 **UI hint**: yes
 
 ### Phase 33: beneficiary-ux-cleanup
@@ -164,5 +165,5 @@ Audit: [`milestones/v4.0-MILESTONE-AUDIT.md`](milestones/v4.0-MILESTONE-AUDIT.md
 | 29. firearm-trpc-router | 1/1 | Complete    | 2026-05-21 |
 | 30. firearms-admin-page | 1/1 | Complete    | 2026-05-22 |
 | 31. asset-aggregator-integration | 0/1 | Complete    | 2026-05-22 |
-| 32. sidebar-nav-alphabetization | 0/? | Not started | - |
+| 32. sidebar-nav-alphabetization | 0/1 | Not started | - |
 | 33. beneficiary-ux-cleanup | 0/? | Not started | - |
