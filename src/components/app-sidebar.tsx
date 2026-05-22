@@ -108,6 +108,10 @@ export function AppSidebar({ role }: { role: AppRole }) {
             })
             utils.entity.list.prefetch()
         },
+        firearms: () => {
+            utils.firearm.list.prefetch({ entityId })
+            utils.entity.list.prefetch()
+        },
         insurance: () => {
             utils.insurancePolicy.list.prefetch({ entityId })
             utils.entity.list.prefetch()
