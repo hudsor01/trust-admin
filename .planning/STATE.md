@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v5.0
 milestone_name: Firearms Tracking & Beneficiary UX Refinement
-status: ready_to_plan
-stopped_at: Phase 31 complete (0/1) — ready to discuss Phase 32
-last_updated: 2026-05-22T03:07:53.613Z
-last_activity: 2026-05-22 -- Phase 31 execution started
+status: planning
+stopped_at: Phase 32 context gathered
+last_updated: "2026-05-22T03:15:54.347Z"
+last_activity: 2026-05-22
 progress:
   total_phases: 6
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 5
-  completed_plans: 4
-  percent: 50
+  completed_plans: 5
+  percent: 67
 ---
 
 # State: Trust Admin
@@ -170,8 +170,8 @@ const rows = await sql`SELECT id, name, email FROM neon_auth."user" WHERE lower(
 
 ## Session Continuity
 
-Last session: 2026-05-22T01:00:15.623Z
-Stopped at: Phase 31 context gathered
-Resume file: .planning/phases/31-asset-aggregator-integration/31-CONTEXT.md
+Last session: 2026-05-22T03:15:54.343Z
+Stopped at: Phase 32 context gathered
+Resume file: .planning/phases/32-sidebar-nav-alphabetization/32-CONTEXT.md
 
 **Next:** Run `/gsd:plan-phase 28` to begin firearm-schema-and-migration.
