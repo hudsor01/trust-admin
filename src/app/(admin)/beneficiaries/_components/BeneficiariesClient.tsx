@@ -12,7 +12,6 @@ import { trpc } from '@/lib/trpc'
 import { formatCurrency } from '@/utils/formatters'
 import { AddBeneficiaryDialog } from './AddBeneficiaryDialog'
 import { BeneficiaryDialog } from './BeneficiaryDialog'
-import { BeneficiaryShareDonuts } from './BeneficiaryShareDonuts'
 import { BeneficiaryTable } from './BeneficiaryTable'
 import type { BeneficiaryWithDistributions } from './types'
 
@@ -142,18 +141,6 @@ export function BeneficiariesClient() {
         [hemsRequests],
     )
 
-    // Donut row uses derived `name = firstName + lastName` shape.
-    const donutItems = useMemo(
-        () =>
-            beneficiaries.map((b) => ({
-                id: b.id,
-                name: `${b.firstName} ${b.lastName}`.trim(),
-                sharePercent: b.sharePercent,
-                relationship: b.relationship,
-            })),
-        [beneficiaries],
-    )
-
     const kpiData: KpiStripItem[] = [
         { label: 'Beneficiary count', value: beneficiaries.length },
         { label: 'Total share %', value: `${totalShares}%` },
@@ -185,11 +172,6 @@ export function BeneficiariesClient() {
             />
 
             <KpiStrip data={kpiData} isLoading={loading} />
-
-            <BeneficiaryShareDonuts
-                beneficiaries={donutItems}
-                isLoading={loading}
-            />
 
             <BeneficiaryTable
                 beneficiaries={beneficiaries}
