@@ -66,3 +66,8 @@ valuations/
 # The canonical home for PR-review reasoning is GitHub PR comments;
 # these files are session-local working notes.
 .review/
+
+# Local workspaces — not project state, never committed
+.local-data/firearm-images/*
+!.local-data/firearm-images/.gitkeep
+!.local-data/firearm-images/README.md
