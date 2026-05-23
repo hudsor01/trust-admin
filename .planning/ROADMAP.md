@@ -10,7 +10,7 @@ Trust administration application for managing the Hudson Living Trust. Systemati
 - ✅ **v2.0 Public Inventory Form** — Phases 7-8 (shipped 2026-01-22)
 - ✅ **v3.0 Email/Password Auth Migration** — Phases 9-14 (shipped 2026-02-22)
 - ✅ **v4.0 Production Hardening & Completeness** — Phases 15-27 (shipped 2026-05-21)
-- 🚧 **v5.0 Firearms Tracking & Beneficiary UX Refinement** — Phases 28-33 (in progress)
+- ✅ **v5.0 Firearms Tracking & Beneficiary UX Refinement** — Phases 28-33 (shipped 2026-05-22)
 
 ## Phases
 
@@ -68,103 +68,17 @@ Audit: [`milestones/v4.0-MILESTONE-AUDIT.md`](milestones/v4.0-MILESTONE-AUDIT.md
 
 </details>
 
-### v5.0 Firearms Tracking & Beneficiary UX Refinement
+<details>
+<summary>✅ v5.0 Firearms Tracking & Beneficiary UX Refinement (Phases 28-33) - SHIPPED 2026-05-22</summary>
 
-- [x] **Phase 28: firearm-schema-and-migration** - Add `firearm` table, 5 enums, RLS policies, and document/valuation FK extensions to Postgres (completed 2026-05-21)
-- [x] **Phase 29: firearm-trpc-router** - Implement `firearmRouter` with list/byId/create/update/delete (all adminProcedure, entityId-gated) (completed 2026-05-21)
-- [x] **Phase 30: firearms-admin-page** - Dedicated `/firearms` admin page with DataTable, KPI strip, create/edit form, and NFA-conditional fields (completed 2026-05-22)
-- [x] **Phase 31: asset-aggregator-integration** - Wire `firearm` into `asset.ts:listAll` and `dashboard.ts:summary` so totals and allocation charts include firearms (completed 2026-05-22)
-- [x] **Phase 32: sidebar-nav-alphabetization** - Reorder Assets sub-nav to alphabetical and add Firearms link (completed 2026-05-22)
-- [x] **Phase 33: beneficiary-ux-cleanup** - Remove avatar-stack card, Display Order section, and withdrawal-milestone gantt from Beneficiaries page (completed 2026-05-22)
+Full phase detail archived in [`milestones/v5.0-ROADMAP.md`](milestones/v5.0-ROADMAP.md).
+Requirements register archived in [`milestones/v5.0-REQUIREMENTS.md`](milestones/v5.0-REQUIREMENTS.md).
 
-## Phase Details
+- [x] **Phase 28: firearm-schema-and-migration** - `firearm` table + 5 enums + RLS + document/valuation FK extensions + migration 0014
+- [x] **Phase 29: firearm-trpc-router** - `firearmRouter` (6 procedures incl. `setNfaTransferStatus` CQS mutation)
+- [x] **Phase 30: firearms-admin-page** - `/firearms` page with 3-step wizard + DataTable + NFA row-detail + `NfaStatusDialog`
+- [x] **Phase 31: asset-aggregator-integration** - firearm wired into `asset.listAll` + `dashboard.summary` + `/assets` view
+- [x] **Phase 32: sidebar-nav-alphabetization** - alphabetized Assets sub-nav + Firearms entry with hover-prefetch
+- [x] **Phase 33: beneficiary-ux-cleanup** - removed avatar-stack + Display Order + Gantt; added 5th KPI; deleted `beneficiary.reorder` mutation; KpiStrip skeleton fix
 
-### Phase 28: firearm-schema-and-migration
-**Goal**: The `firearm` table exists in Postgres with all regulatory fields, RLS isolation, and FK hooks for document and valuation attachment.
-**Depends on**: Phase 27 (shipped)
-**Requirements**: FIRE-01, FIRE-02, FIRE-03, FIRE-04, FIRE-05, FIRE-08, FIRE-09
-**Success Criteria** (what must be TRUE):
-  1. `db:deploy` applies the migration without error; `\d firearm` shows all columns including `serialNumber`, `nfaClass`, `nfaTransferStatus`, `condition`, and `acquisitionCost`
-  2. A unique-index violation is raised when inserting two firearm rows with the same `serialNumber` for the same entity
-  3. `document` and `valuation` tables accept a `firearmId` FK and their single-owner CHECK constraints still pass (inserting a document with two non-null asset FKs is rejected)
-  4. `db/validation.ts` exports `insertFirearmSchema` / `updateFirearmSchema` with correct types; `bun run typecheck` passes with 0 errors
-  5. The `nfaTransferStatus` enum has exactly the values `NOT_FILED`, `FILED`, `APPROVED`; the generic `transferStatus` enum is unchanged
-**Plans**: 2 plans
-- [x] 28-01-PLAN.md — Schema, relations, and Zod validation: 5 firearm enums, the `firearm` pgTable with RLS, `document`/`valuation` `firearmId` FK columns + updated CHECK constraints, and `insert/select/updateFirearmSchema` + unit test
-- [x] 28-02-PLAN.md — Migration: generate + [BLOCKING] hand-audit `0014_*.sql`, apply via `db:deploy` with DB introspection verification, and the idempotent test-branch sync script
-
-### Phase 29: firearm-trpc-router
-**Goal**: A complete tRPC router for firearms is registered and typechecks cleanly, ready for UI consumption.
-**Depends on**: Phase 28
-**Requirements**: (none — dependency phase enabling Phase 30)
-**Success Criteria** (what must be TRUE):
-  1. `trpc.firearm.list.useQuery({ entityId })` returns an array of firearm rows scoped to the entity
-  2. `trpc.firearm.create.useMutation()` rejects a duplicate serial number with `TRPCError({ code: 'CONFLICT' })`
-  3. `trpc.firearm.byId` throws `NOT_FOUND` when the requested id does not belong to the specified entity
-  4. All five procedures (`list`, `byId`, `create`, `update`, `delete`) require `adminProcedure` — a beneficiary JWT cannot invoke them
-  5. `bun run typecheck` passes with 0 errors after router registration in `router.ts`
-**Plans**: 1 plan
-- [x] 29-01-PLAN.md — Firearm tRPC router: export `insertFirearmSchemaBase`, create `firearmRouter` (6 procedures + serial-conflict predicate + NFA guard), register in appRouter, and add integration tests for SC-1..SC-4 + setNfaTransferStatus + D-03 regression
-
-### Phase 30: firearms-admin-page
-**Goal**: Admin can fully manage firearm records — create, view, edit, delete, sort, filter, and export — from a dedicated `/firearms` page.
-**Depends on**: Phase 29
-**Requirements**: FIRE-06, FIRE-07
-**Success Criteria** (what must be TRUE):
-  1. Admin navigates to `/firearms` and sees a DataTable listing all firearm records for the selected entity
-  2. Admin can create a new firearm record using the create form; the row appears in the table on success
-  3. Admin can edit any field of an existing firearm record; the table row updates on save
-  4. Admin can delete a firearm record; the row is removed and a success toast is shown
-  5. Admin can sort the table by any column, filter rows by text, and download a CSV of the current view
-**Plans**: 1 plan
-- [x] 30-01-PLAN.md — Firearms admin page: /firearms route + 3-step wizard FirearmDialog + DataTable with 9 visible/21 hidden columns + NFA row-detail + NfaStatusDialog (setNfaTransferStatus CQS affordance) + CSV export with location excluded
-**UI hint**: yes
-
-### Phase 31: asset-aggregator-integration
-**Goal**: Firearm values appear in the dashboard KPIs and the `/assets` unified view alongside the other 7 asset types.
-**Depends on**: Phase 29
-**Requirements**: ASSET-01, ASSET-02
-**Success Criteria** (what must be TRUE):
-  1. After adding a firearm record with a non-zero `dodValue`, the dashboard "Total Assets" KPI increases by that amount
-  2. The dashboard allocation pie chart includes a "Firearms" slice when at least one firearm record exists
-  3. Firearm rows appear in the `/assets` unified view with an `href` linking to `/firearms`
-  4. Removing all firearm records causes the Firearms slice to disappear from the pie chart and the "Total Assets" KPI to decrease accordingly
-**Plans**: 1 plan
-- [x] 31-01-PLAN.md — Wire firearm into asset.ts:listAll + dashboard.ts:summary + DashboardClient (3 files, 4 tasks: 3 surgical edits + admin UAT)
-**UI hint**: yes
-
-### Phase 32: sidebar-nav-alphabetization
-**Goal**: The Assets navigation group lists all 7 (now 8) asset types in alphabetical order, and Firearms is reachable from the sidebar.
-**Depends on**: Phase 30
-**Requirements**: ASSET-03, ASSET-04
-**Success Criteria** (what must be TRUE):
-  1. The Assets dropdown sub-items appear in the order: Accounts, Artwork, Firearms, Insurance, Personal Property, Properties, Vehicles
-  2. Clicking "Firearms" in the sidebar navigates to `/firearms`
-  3. The `/firearms` link is prefetched alongside the other asset links in the sidebar
-**Plans**: 1 plan
-- [x] 32-01-PLAN.md — Sidebar Assets alphabetization + Firearms entry (single file edit: prefetch handler + SidebarMenuSub block rewrite + admin UAT)
-**UI hint**: yes
-
-### Phase 33: beneficiary-ux-cleanup
-**Goal**: The Beneficiaries page shows only the table and share-donut charts; redundant avatar, display-order, and gantt sections are gone without affecting sort order.
-**Depends on**: Phase 27 (shipped) — fully independent of firearms phases
-**Requirements**: BENE-01, BENE-02, BENE-03, BENE-04
-**Success Criteria** (what must be TRUE):
-  1. The Beneficiaries page renders without an avatar-stack card
-  2. The Beneficiaries page renders without a "Display Order" drag-to-reorder section
-  3. The Beneficiaries page renders without a withdrawal-milestone gantt chart
-  4. The beneficiary list in the table and in all other app views (portal, HEMS queue, distributions) is ordered by `sortIndex` — identical to the order before this phase
-**Plans**: 1 plan
-- [x] 33-01-PLAN.md — Beneficiaries page prune: fix KpiStrip skeleton (D-17), edit BeneficiariesClient (3 imports + entityDetail + 2 useMemos + 3 JSX blocks removed, 5th KPI added, PageHeader rewritten), delete 3 components, delete beneficiary.reorder procedure + test, admin UAT
-**UI hint**: yes
-
-## Progress Table
-
-| Phase | Plans Complete | Status | Completed |
-|-------|----------------|--------|-----------|
-| 28. firearm-schema-and-migration | 2/2 | Complete    | 2026-05-21 |
-| 29. firearm-trpc-router | 1/1 | Complete    | 2026-05-21 |
-| 30. firearms-admin-page | 1/1 | Complete    | 2026-05-22 |
-| 31. asset-aggregator-integration | 1/1 | Complete    | 2026-05-22 |
-| 32. sidebar-nav-alphabetization | 1/1 | Complete    | 2026-05-22 |
-| 33. beneficiary-ux-cleanup | 1/1 | Complete    | 2026-05-22 |
+</details>

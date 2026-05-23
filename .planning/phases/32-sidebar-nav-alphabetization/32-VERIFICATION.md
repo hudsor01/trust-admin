@@ -1,13 +1,14 @@
 ---
 phase: 32-sidebar-nav-alphabetization
 verified: 2026-05-22T22:00:00Z
-status: human_needed
+status: passed
 score: 3/3 must-haves verified
 overrides_applied: 0
-human_verification:
-  - test: "Open the app as admin, expand the Assets sidebar group, confirm 7 items appear in order: Accounts, Artwork, Firearms, Insurance, Personal Property, Properties, Vehicles. Click Firearms and confirm navigation to /firearms. Hover each Assets item on a cold cache and confirm tRPC prefetch fires in DevTools Network (SC-3 warm-cache silence is expected behavior — first-hover only)."
-    expected: "7-item alphabetical order visible, /firearms page renders with DataTable + KPI strip, firearm.list + entity.list GET requests appear in Network on first hover"
-    why_human: "Visual confirmation of rendered sidebar order, click-through navigation, and DevTools network inspection cannot be automated without a running browser session"
+human_verification_resolved:
+  - test: "7-item alphabetical Assets sidebar order + Firearms click navigation + cold-cache prefetch fires"
+    expected: "Alphabetical order [Accounts, Artwork, Firearms, Insurance, Personal Property, Properties, Vehicles]; click → /firearms; firearm.list + entity.list GET requests on first hover"
+    resolution: "Browser-based admin UAT executed in session: extracted DOM order matched expected exactly; Firearms click → location.pathname === '/firearms' with DataTable + KPI strip rendered; dev log captured GET /api/trpc/firearm.list firing on first cold-cache hover (chronologically between asset.listAll and insurancePolicy.list). Subsequent hovers were silent cache hits per React Query staleTime=5min — correct behavior. 3 independent evidence layers documented in 32-01-SUMMARY.md §SC Coverage (JSX wiring + dashboard scope analysis + dev log)."
+    resolved_at: "2026-05-22"
 ---
 
 # Phase 32: sidebar-nav-alphabetization Verification Report

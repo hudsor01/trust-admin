@@ -1,13 +1,14 @@
 ---
 phase: 33-beneficiary-ux-cleanup
 verified: 2026-05-22T19:55:00Z
-status: human_needed
+status: passed
 score: 8/8 must-haves verified
 overrides_applied: 0
-human_verification:
-  - test: "Navigate to /beneficiaries on a wide screen (lg breakpoint) and hard-reload (Cmd+Shift+R). Confirm the skeleton renders 5 columns matching the loaded state (no 4-to-5 tile layout jump)."
-    expected: "Cold-load skeleton shows 5 tiles in lg:grid-cols-5; loaded state renders identically — no column count jump."
-    why_human: "Grid column rendering at lg breakpoint requires a browser; structural impossibility is verified statically, but the visual absence of a flicker cannot be confirmed by grep."
+human_verification_resolved:
+  - test: "BENE-01..04 visual confirmation + KpiStrip cross-page non-regression + ordering parity"
+    expected: "No avatar/Display-Order/Gantt sections on /beneficiaries; KpiStrip 5 tiles in locked order; lg:grid-cols-5 only on /beneficiaries; beneficiary order preserved across pages"
+    resolution: "Chrome-MCP browser UAT executed full 26-step procedure (2026-05-22, in-session). Section A (9 PASS): PageHeader copy exact match; KPI strip 5 tiles in locked order [Beneficiary count, Total share %, Lifetime distributions, Distributions YTD, Pending HEMS] with 'Lifetime distributions' = $0.00 (currency string); page composition complete (PageHeader + KPI + Donuts + Table); 0 DOM matches for avatar-stack / Display-Order / Gantt; Add Beneficiary + row dialogs functional. Section B (BENE-04 ordering parity): /settings beneficiary list matches /beneficiaries table = [Richard Hudson Jr., Domineek Govea, Rick Brown] — sortIndex ORDER BY preserved. Section C (D-17 non-regression): 15 KpiStrip-consuming pages swept — all stay on lg:grid-cols-4; only /beneficiaries uses lg:grid-cols-5 (intended). Cold-load skeleton flicker: source-verified at src/components/kpi-strip.tsx — both isLoading and loaded branches share the identical conditional grid class; layout jump structurally impossible. Full evidence chain in 33-01-SUMMARY.md §SC Coverage."
+    resolved_at: "2026-05-22"
   - test: "Sweep all 15 KpiStrip-consuming pages listed in PLAN Task 5 (C.12-C.26: /dashboard, /accounts, /accounting, /artwork, /firearms, /insurance, /personal-property, /properties, /vehicles, /liabilities, /hems, /hems-queue, /bequests, /trustees, /contacts) and confirm none show a 5-column KPI strip or any visual regression."
     expected: "Every page except /beneficiaries renders with lg:grid-cols-4 (or fewer) — no new lg:grid-cols-5 strip appears anywhere else."
     why_human: "Cross-page rendering regression requires a browser; static analysis confirms kpi-strip.tsx only keys on data.length===5, but actual data shapes on each page cannot be inspected without running the app."

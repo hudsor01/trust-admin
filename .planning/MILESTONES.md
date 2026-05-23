@@ -1,5 +1,25 @@
 # Milestones
 
+## v5.0 Firearms Tracking & Beneficiary UX Refinement (Shipped: 2026-05-22)
+
+**Phases completed:** 6 phases, 7 plans, 17 v1 requirements
+
+**Key accomplishments:**
+
+- New `firearm` Drizzle table (8th asset class) with all regulatory fields — serial number, NFA classification, FFL/ATF Form 5 transfer status, condition grade, acquisition cost — plus RLS isolation, `document.firearmId` + `valuation.firearmId` FKs with updated single-owner CHECK constraints, and migration 0014 applied to live DB + test branch.
+- Complete `firearmRouter` tRPC (6 procedures: list, byId, create, update, delete, setNfaTransferStatus) with serial-number CONFLICT predicate, NFA-class guard, and adminProcedure gating; integration tests for every success criterion.
+- Dedicated `/firearms` admin page: 3-step `FirearmDialog` wizard with NFA-conditional fields, DataTable (9 visible + 21 hidden columns) with location excluded from CSV, NFA row-detail panel, and `NfaStatusDialog` as the CQS-style single path to mutate `nfaTransferStatus`.
+- Firearm values surfaced through `asset.listAll` + `dashboard.summary` aggregators — dashboard "Total Assets" KPI + allocation pie chart now include firearms; firearms appear in the `/assets` unified view with deep-link to `/firearms`.
+- Assets sidebar group alphabetized to 7 items [Accounts, Artwork, Firearms, Insurance, Personal Property, Properties, Vehicles] with hover-prefetch wired for the new Firearms slot via `utils.firearm.list.prefetch` + `utils.entity.list.prefetch`.
+- Beneficiaries page pruned from 9 sections to 5 (PageHeader → KPI strip → ShareDonuts → Table → dialogs); avatar-stack card, "Display Order" drag-reorder section, and withdrawal-milestone Gantt chart removed; `beneficiary.reorder` adminProcedure and its test deleted.
+- KpiStrip skeleton + loaded grid class now derive from `data.length` (eliminates the first-render layout jump when a strip exceeds 4 tiles); new 5th KPI "Lifetime distributions" added to /beneficiaries between "Total share %" and "Distributions YTD".
+- Sentry DEP0205 deprecation suppressed via `NODE_OPTIONS='--disable-warning=DEP0205'` on `dev`/`build`/`build:analyze`/`start` scripts — removable once `@sentry/node-core` ships the `module.registerHooks()` migration.
+- `next-env.d.ts` regenerated for Next.js 16 dev types path (`.next/types/` → `.next/dev/types/`) to eliminate spurious working-tree dirty-state on fresh clones.
+
+See [`milestones/v5.0-ROADMAP.md`](milestones/v5.0-ROADMAP.md) for full phase details and [`milestones/v5.0-REQUIREMENTS.md`](milestones/v5.0-REQUIREMENTS.md) for the requirements register.
+
+---
+
 ## v4.0 Production Hardening & Completeness (Shipped: 2026-05-21)
 
 **Phases completed:** 13 phases, 32 plans, 71 tasks
