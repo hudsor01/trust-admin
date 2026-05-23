@@ -23,6 +23,7 @@ import {
 import { formatCurrency, formatPercent } from '@/utils/formatters'
 import { FirearmDialog } from './FirearmDialog'
 import { FirearmTable } from './FirearmTable'
+import { NfaStatusDialog } from './NfaStatusDialog'
 
 const log = logger.create('Firearms')
 
@@ -54,6 +55,14 @@ export function FirearmsClient() {
     })
 
     const [pendingDelete, setPendingDelete] = useState<Firearm | null>(null)
+    // NfaStatusDialog is owned at the FirearmsClient level so it can be opened
+    // from either FirearmTable's row action column (top-level, 1 click) or
+    // FirearmRowDetail's "Update Form 5 Status" button (expanded row, 2 clicks).
+    // The dialog enforces D-02: it is still the sole UI path to mutate
+    // nfaTransferStatus — only the entry point is duplicated, not the mutation.
+    const [nfaStatusFirearm, setNfaStatusFirearm] = useState<Firearm | null>(
+        null,
+    )
 
     const { dialogProps: deleteDialogProps, confirm: confirmDelete } =
         useConfirmDialog({
@@ -258,6 +267,7 @@ export function FirearmsClient() {
                 entityId={entityId!}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
+                onUpdateNfaStatus={setNfaStatusFirearm}
                 onBulkDelete={onBulkDelete}
                 onInlineUpdate={handleInlineUpdate}
             />
@@ -271,6 +281,25 @@ export function FirearmsClient() {
                 formInstance={firearmForm.formInstance}
                 wizard={firearmForm}
             />
+
+            {nfaStatusFirearm && (
+                <NfaStatusDialog
+                    firearm={{
+                        id: nfaStatusFirearm.id,
+                        entityId: nfaStatusFirearm.entityId,
+                        nfaTransferStatus:
+                            (nfaStatusFirearm.nfaTransferStatus as
+                                | 'NOT_FILED'
+                                | 'FILED'
+                                | 'APPROVED'
+                                | null) ?? 'NOT_FILED',
+                    }}
+                    open={!!nfaStatusFirearm}
+                    onOpenChange={(open) => {
+                        if (!open) setNfaStatusFirearm(null)
+                    }}
+                />
+            )}
 
             <ConfirmDialog {...deleteDialogProps} />
         </div>
