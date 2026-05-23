@@ -1,5 +1,28 @@
 # Milestones
 
+## v5.0.1 Post-v5.0 Closeout & Cleanup (Shipped: 2026-05-23)
+
+**Type:** Patch — audit, tech-debt cleanup, hardening, bug fixes
+**PRs:** 9 (#127–#135), git range `fcd72a7..3351d25`
+**Code delta:** 86 files, **+2,814 / −8,659 LOC (net −5,845)**
+
+**Key accomplishments:**
+
+- v5.0 milestone audit run retroactively (PR #127) — 17/17 requirements, 7/7 E2E flows, 9/9 invariants confirmed by gsd-integration-checker; produced `.planning/milestones/v5.0-MILESTONE-AUDIT.md`.
+- Tech debt items 1-4 closed (PR #128): NFA quick-action button on FirearmTable lifts `NfaStatusDialog` state to FirearmsClient (1-click access instead of 2); `beneficiary.create`/`update` schemas tightened with `.omit({ sortIndex: true })`; KpiStrip generalized to 1-6 tiles via explicit Tailwind class map; `@sentry/node-core@10.53.1` confirmed still upstream-broken for DEP0205.
+- Nyquist `VALIDATION.md` retroactive backfill for phases 30-33 (PR #129) — closes v4.0 carry-over Nyquist gap.
+- Phase 30/31 deferred test backfill (PR #130) — 5 firearm component test files (47 tests) + asset/dashboard tRPC firearm coverage (5 tests). Net +52 tests; test count 1031 → 1083.
+- Removed `BeneficiaryShareDonuts` from `/beneficiaries` (PR #131) — donut row rendered empty placeholders when shares weren't set.
+- Removed Trustees "Order of Service" drag-reorder card (PR #132) — analogous Phase 33 pattern; `trustee.order` column + ORDER BY preserved (display order unchanged).
+- Added `.local-data/firearm-images/` workspace (PR #133) — gitignored directory + README documenting autonomous image-validation workflow against firearm DB records.
+- Dead-code sweep (PR #134) — knip audit + targeted greps. 36 orphan files deleted, 8 unused dependencies dropped (`@diceui/*`, `@radix-ui/react-avatar`, `@uploadthing/react`, `react-day-picker`, `react-dropzone`, `bcryptjs`, `@types/bcryptjs`), 165 unused exports + 43 unused types pruned across `src/lib/`, `db/`, `src/server/trpc/`. Net −724 lines, ~50MB dev `node_modules` shrink.
+- `createContext` RSC cookie-write denial fix (PR #135) — Neon Auth `getSession()` opportunistically refreshes the session cookie via Set-Cookie response headers; Next.js 16 forbids cookie mutation in RSC. Targeted try/catch in `createContext` falls through to layout-guard redirect via Route Handler context. Eliminates `⨯ Cookies can only be modified in a Server Action or Route Handler` from every `/dashboard` SSR log line.
+- All 3 steady-state lint warnings cleared (PR #135) — `trustee.ts` orphan imports from PR #132 leftovers, `NfaStatusDialog.test.tsx` unused capture vars from PR #130.
+
+See [`milestones/v5.0.1-CLOSEOUT.md`](milestones/v5.0.1-CLOSEOUT.md) for the full archive.
+
+---
+
 ## v5.0 Firearms Tracking & Beneficiary UX Refinement (Shipped: 2026-05-22)
 
 **Phases completed:** 6 phases, 7 plans, 17 v1 requirements
