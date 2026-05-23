@@ -1,7 +1,7 @@
 'use client'
 
 import type { ColumnDef } from '@tanstack/react-table'
-import { Pencil, Trash2 } from 'lucide-react'
+import { FileCheck2, Pencil, Trash2 } from 'lucide-react'
 import {
     EditableCurrencyCell,
     EditableSelectCell,
@@ -52,6 +52,13 @@ interface FirearmTableProps {
     entityId: number
     onEdit: (firearm: Firearm) => void
     onDelete: (firearm: Firearm) => void
+    /**
+     * Opens NfaStatusDialog for the given firearm. Only invoked for rows where
+     * `isNfa === true`; rendered as a third action button between Edit and Delete.
+     * Dialog state lives in FirearmsClient (lifted in 2026-05-23 audit follow-up)
+     * so the same dialog can also fire from FirearmRowDetail when the row is expanded.
+     */
+    onUpdateNfaStatus: (firearm: Firearm) => void
     onBulkDelete: (rows: Firearm[]) => Promise<void>
     onInlineUpdate: (id: number, updates: Partial<Firearm>) => Promise<void>
 }
@@ -61,6 +68,7 @@ export function FirearmTable({
     isLoading,
     onEdit,
     onDelete,
+    onUpdateNfaStatus,
     onBulkDelete,
     onInlineUpdate,
 }: FirearmTableProps) {
@@ -203,6 +211,26 @@ export function FirearmTable({
                             </TooltipTrigger>
                             <TooltipContent>Edit firearm</TooltipContent>
                         </Tooltip>
+                        {row.original.isNfa && (
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8"
+                                        aria-label="Update Form 5 status"
+                                        onClick={() =>
+                                            onUpdateNfaStatus(row.original)
+                                        }
+                                    >
+                                        <FileCheck2 className="h-4 w-4" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    Update Form 5 status
+                                </TooltipContent>
+                            </Tooltip>
+                        )}
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <Button
@@ -407,7 +435,12 @@ export function FirearmTable({
                 createdAt: false,
                 updatedAt: false,
             }}
-            getRowDetail={(firearm) => <FirearmRowDetail firearm={firearm} />}
+            getRowDetail={(firearm) => (
+                <FirearmRowDetail
+                    firearm={firearm}
+                    onUpdateNfaStatus={onUpdateNfaStatus}
+                />
+            )}
         />
     )
 }
