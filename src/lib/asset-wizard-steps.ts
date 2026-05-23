@@ -29,6 +29,7 @@ import type {
 import type { WizardStep } from '@/hooks/use-resource-form'
 import type {
     bankAccountFormDefaults,
+    firearmFormDefaults,
     insurancePolicyFormDefaults,
     investmentAccountFormDefaults,
     personalPropertyFormDefaults,
@@ -36,6 +37,7 @@ import type {
 } from '@/lib/form-factory'
 
 type VehicleForm = ReturnType<typeof vehicleFormDefaults>
+type FirearmForm = ReturnType<typeof firearmFormDefaults>
 type BankForm = ReturnType<typeof bankAccountFormDefaults>
 type InvestmentForm = ReturnType<typeof investmentAccountFormDefaults>
 type PersonalPropertyForm = ReturnType<typeof personalPropertyFormDefaults>
@@ -107,6 +109,64 @@ export const VEHICLE_WIZARD_STEPS: WizardStep<VehicleForm>[] = [
         id: 'ownership',
         label: 'Ownership',
         fields: ['status', 'transferStatus', 'notes'],
+        schema: z.object({
+            status: nonEmpty,
+            transferStatus: nonEmpty,
+        }),
+    },
+]
+
+/** Firearm (v5.0 Phase 30): Identity+NFA / Valuation / Ownership. */
+export const FIREARM_WIZARD_STEPS: WizardStep<FirearmForm>[] = [
+    {
+        id: 'identity',
+        label: 'Identity',
+        fields: [
+            'name',
+            'description',
+            'make',
+            'model',
+            'firearmType',
+            'serialNumber',
+            'caliber',
+            'barrelLength',
+            'action',
+            'isNfa',
+            'nfaClass',
+            'atfFormType',
+            'nfaRegistered',
+            'atfControlNumber',
+            'taxStampDate',
+            'nfrtrSerial',
+        ],
+        schema: z.object({
+            name: nonEmpty,
+            make: nonEmpty,
+            model: nonEmpty,
+            serialNumber: nonEmpty,
+            firearmType: nonEmpty,
+        }),
+    },
+    {
+        id: 'valuation',
+        label: 'Valuation',
+        fields: [
+            'condition',
+            'acquisitionDate',
+            'acquisitionCost',
+            'dodValue',
+            'dodValueDate',
+            'dodValueType',
+        ],
+        schema: z.object({
+            acquisitionCost: optionalMoney,
+            dodValue: optionalMoney,
+        }),
+    },
+    {
+        id: 'ownership',
+        label: 'Ownership',
+        fields: ['status', 'transferStatus', 'insured', 'location', 'notes'],
         schema: z.object({
             status: nonEmpty,
             transferStatus: nonEmpty,
