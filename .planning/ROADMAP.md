@@ -75,7 +75,7 @@ Audit: [`milestones/v4.0-MILESTONE-AUDIT.md`](milestones/v4.0-MILESTONE-AUDIT.md
 - [x] **Phase 30: firearms-admin-page** - Dedicated `/firearms` admin page with DataTable, KPI strip, create/edit form, and NFA-conditional fields (completed 2026-05-22)
 - [x] **Phase 31: asset-aggregator-integration** - Wire `firearm` into `asset.ts:listAll` and `dashboard.ts:summary` so totals and allocation charts include firearms (completed 2026-05-22)
 - [x] **Phase 32: sidebar-nav-alphabetization** - Reorder Assets sub-nav to alphabetical and add Firearms link (completed 2026-05-22)
-- [ ] **Phase 33: beneficiary-ux-cleanup** - Remove avatar-stack card, Display Order section, and withdrawal-milestone gantt from Beneficiaries page
+- [x] **Phase 33: beneficiary-ux-cleanup** - Remove avatar-stack card, Display Order section, and withdrawal-milestone gantt from Beneficiaries page (completed 2026-05-22)
 
 ## Phase Details
 
@@ -154,7 +154,8 @@ Audit: [`milestones/v4.0-MILESTONE-AUDIT.md`](milestones/v4.0-MILESTONE-AUDIT.md
   2. The Beneficiaries page renders without a "Display Order" drag-to-reorder section
   3. The Beneficiaries page renders without a withdrawal-milestone gantt chart
   4. The beneficiary list in the table and in all other app views (portal, HEMS queue, distributions) is ordered by `sortIndex` — identical to the order before this phase
-**Plans**: TBD
+**Plans**: 1 plan
+- [x] 33-01-PLAN.md — Beneficiaries page prune: fix KpiStrip skeleton (D-17), edit BeneficiariesClient (3 imports + entityDetail + 2 useMemos + 3 JSX blocks removed, 5th KPI added, PageHeader rewritten), delete 3 components, delete beneficiary.reorder procedure + test, admin UAT
 **UI hint**: yes
 
 ## Progress Table
@@ -166,4 +167,4 @@ Audit: [`milestones/v4.0-MILESTONE-AUDIT.md`](milestones/v4.0-MILESTONE-AUDIT.md
 | 30. firearms-admin-page | 1/1 | Complete    | 2026-05-22 |
 | 31. asset-aggregator-integration | 1/1 | Complete    | 2026-05-22 |
 | 32. sidebar-nav-alphabetization | 1/1 | Complete    | 2026-05-22 |
-| 33. beneficiary-ux-cleanup | 0/? | Not started | - |
+| 33. beneficiary-ux-cleanup | 1/1 | Complete    | 2026-05-22 |

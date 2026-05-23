@@ -91,7 +91,17 @@ describe('KpiStrip', () => {
     })
 
     test('renders loading skeletons when isLoading is true', () => {
-        const { container } = render(<KpiStrip data={[]} isLoading />)
+        const { container } = render(
+            <KpiStrip
+                data={[
+                    { label: 'A', value: 1 },
+                    { label: 'B', value: 2 },
+                    { label: 'C', value: 3 },
+                    { label: 'D', value: 4 },
+                ]}
+                isLoading
+            />,
+        )
         const skeletons = container.querySelectorAll(
             '[data-slot="skeleton"], .animate-pulse',
         )

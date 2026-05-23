@@ -1,6 +1,7 @@
 import type { LucideIcon } from 'lucide-react'
 import { Line, LineChart } from 'recharts'
 import { SummaryCard } from '@/components/summary-card'
+import { cn } from '@/lib/utils'
 
 export interface KpiStripItem {
     label: string
@@ -19,8 +20,13 @@ export interface KpiStripProps {
 export function KpiStrip({ data, isLoading = false }: KpiStripProps) {
     if (isLoading) {
         return (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {Array.from({ length: 4 }).map((_, i) => (
+            <div
+                className={cn(
+                    'grid grid-cols-1 md:grid-cols-2 gap-4',
+                    data.length === 5 ? 'lg:grid-cols-5' : 'lg:grid-cols-4',
+                )}
+            >
+                {Array.from({ length: data.length }).map((_, i) => (
                     <SummaryCard
                         key={`kpi-skeleton-${i}`}
                         title=""
@@ -37,7 +43,12 @@ export function KpiStrip({ data, isLoading = false }: KpiStripProps) {
     }
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div
+            className={cn(
+                'grid grid-cols-1 md:grid-cols-2 gap-4',
+                data.length === 5 ? 'lg:grid-cols-5' : 'lg:grid-cols-4',
+            )}
+        >
             {data.map((item) => {
                 // Color inversion rule (UI-SPEC §Color): when invertDelta is
                 // true, flip isPositive — e.g. a shrinking liability balance is

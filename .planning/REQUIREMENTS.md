@@ -28,10 +28,10 @@ Requirements for milestone v5.0. Each maps to a roadmap phase.
 
 ### Beneficiaries View
 
-- [ ] **BENE-01**: The Beneficiaries page no longer shows the redundant avatar-stack card
-- [ ] **BENE-02**: The Beneficiaries page no longer shows the "Display Order" drag-to-reorder section
-- [ ] **BENE-03**: The Beneficiaries page no longer shows the withdrawal-milestone gantt chart
-- [ ] **BENE-04**: Beneficiary sort order — in the table and everywhere else in the app — is unchanged after the cleanup (the `sortIndex` column and its ORDER BY are preserved)
+- [x] **BENE-01**: The Beneficiaries page no longer shows the redundant avatar-stack card
+- [x] **BENE-02**: The Beneficiaries page no longer shows the "Display Order" drag-to-reorder section
+- [x] **BENE-03**: The Beneficiaries page no longer shows the withdrawal-milestone gantt chart
+- [x] **BENE-04**: Beneficiary sort order — in the table and everywhere else in the app — is unchanged after the cleanup (the `sortIndex` column and its ORDER BY are preserved)
 
 ## v2 Requirements
 
@@ -73,10 +73,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ASSET-02 | Phase 31 | Complete |
 | ASSET-03 | Phase 32 | Complete |
 | ASSET-04 | Phase 32 | Complete |
-| BENE-01 | Phase 33 | Pending |
-| BENE-02 | Phase 33 | Pending |
-| BENE-03 | Phase 33 | Pending |
-| BENE-04 | Phase 33 | Pending |
+| BENE-01 | Phase 33 | Complete |
+| BENE-02 | Phase 33 | Complete |
+| BENE-03 | Phase 33 | Complete |
+| BENE-04 | Phase 33 | Complete |
 
 **Coverage:**
 - v1 requirements: 17 total
@@ -85,4 +85,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-05-21*
-*Last updated: 2026-05-22 — Phase 32 complete (ASSET-03, ASSET-04)*
+*Last updated: 2026-05-22 — Phase 33 complete (BENE-01..04) — v5.0 milestone closeout*
