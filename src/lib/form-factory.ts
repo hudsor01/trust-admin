@@ -1,9 +1,9 @@
 /**
- * Form Factory: default value generators, reset functions, and entity-to-form mappers.
+ * Form Factory: default value generators and entity-to-form mappers.
  */
 
 /** Returns fresh defaults each call. Function values are invoked for dynamic defaults. */
-export function createFormDefaults<T extends Record<string, unknown>>(
+function createFormDefaults<T extends Record<string, unknown>>(
     defaults: { [K in keyof T]: T[K] | (() => T[K]) },
 ): () => T {
     return () => {
@@ -20,38 +20,10 @@ export function createFormDefaults<T extends Record<string, unknown>>(
     }
 }
 
-/** Maps a DB entity to form values using per-field transform functions. */
-export function createEntityMapper<E, F extends Record<string, unknown>>(
-    mappers: { [K in keyof F]: (entity: E) => F[K] },
-): (entity: E) => F {
-    return (entity: E) => {
-        const result = {} as F
-        for (const key in mappers) {
-            result[key] = mappers[key](entity)
-        }
-        return result
-    }
-}
-
 /** Extract YYYY-MM-DD from an ISO date string for form inputs. */
 export function toDateInput(date: string | null | undefined): string | null {
     if (!date) return null
     return date.split('T')[0] ?? null
-}
-
-/** Parse a number string, returning null for empty/NaN. */
-export function toNumberOrNull(
-    value: string | null | undefined,
-): number | null {
-    if (!value || value.trim() === '') return null
-    const num = parseFloat(value)
-    return Number.isNaN(num) ? null : num
-}
-
-/** Convert empty/whitespace strings to null. */
-export function emptyToNull(value: string | null | undefined): string | null {
-    if (!value || value.trim() === '') return null
-    return value
 }
 
 // =============================================================================
@@ -166,22 +138,6 @@ export const contactFormDefaults = createFormDefaults({
     barNo: '',
 })
 
-export const artworkFormDefaults = createFormDefaults({
-    title: '',
-    artist: '',
-    medium: '',
-    dimensions: '',
-    acquisitionDate: null as string | null,
-    acquisitionCost: '',
-    location: '',
-    dodValue: '',
-    dodValueDate: null as string | null,
-    dodValueType: '',
-    status: 'ACTIVE',
-    transferStatus: 'PENDING',
-    notes: '',
-})
-
 export const personalPropertyFormDefaults = createFormDefaults({
     name: '',
     description: '',
@@ -213,20 +169,4 @@ export const insurancePolicyFormDefaults = createFormDefaults({
     beneficiaries: '',
     status: 'ACTIVE',
     notes: '',
-})
-
-export const beneficiaryFormDefaults = createFormDefaults({
-    firstName: '',
-    lastName: '',
-    relationship: '',
-    relationshipType: '',
-    dob: null as string | null,
-    email: '',
-    phone: '',
-    streetAddress: '',
-    city: '',
-    state: '',
-    zip: '',
-    sharePercent: '',
-    distributionStandard: 'HEMS',
 })

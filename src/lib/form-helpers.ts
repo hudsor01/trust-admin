@@ -22,12 +22,3 @@ export function getFieldError(field: {
 
     return String(firstError)
 }
-
-/** Check if a field has any errors. */
-export function hasFieldError(field: {
-    state: { meta: { errors?: unknown[] } }
-}): boolean {
-    return Boolean(
-        field.state.meta.errors && field.state.meta.errors.length > 0,
-    )
-}

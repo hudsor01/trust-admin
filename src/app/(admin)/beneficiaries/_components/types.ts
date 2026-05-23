@@ -1,7 +1,7 @@
 import type { Beneficiary } from '@/db/schema'
 import { calculateAge } from '@/utils/formatters'
 
-export interface Distribution {
+interface Distribution {
     id: number
     distributionDate: string
     amount: string

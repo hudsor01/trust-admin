@@ -1,4 +1,4 @@
-export interface WithdrawalStatus {
+interface WithdrawalStatus {
     status: string
     daysUntil: number
 }

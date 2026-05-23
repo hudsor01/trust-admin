@@ -1,41 +1,6 @@
-/** Sentry tracing helpers for DB queries, tRPC procedures, and business operations. */
+/** Sentry tracing helpers for business operations, user context, and breadcrumbs. */
 
 import * as Sentry from '@sentry/nextjs'
-
-/** Wrap a DB operation with Sentry tracing. */
-export async function traceDbQuery<T>(
-    name: string,
-    operation: () => Promise<T>,
-): Promise<T> {
-    return Sentry.startSpan(
-        {
-            name,
-            op: 'db.query',
-            attributes: {
-                'db.system': 'postgresql',
-            },
-        },
-        operation,
-    )
-}
-
-/** Wrap a tRPC procedure with Sentry tracing. */
-export async function traceTrpcProcedure<T>(
-    procedureName: string,
-    operation: () => Promise<T>,
-): Promise<T> {
-    return Sentry.startSpan(
-        {
-            name: `trpc.${procedureName}`,
-            op: 'rpc.server',
-            attributes: {
-                'rpc.system': 'trpc',
-                'rpc.method': procedureName,
-            },
-        },
-        operation,
-    )
-}
 
 /** Wrap a business operation (HEMS, distributions, etc.) with Sentry tracing. */
 export async function traceBusinessOperation<T>(
@@ -90,31 +55,4 @@ export function addBreadcrumb(
         data,
         level: 'info',
     })
-}
-
-/** Capture a custom metric (distribution, in milliseconds). */
-export function captureMetric(
-    name: string,
-    value: number,
-    tags?: Record<string, string>,
-) {
-    if (tags) {
-        for (const [key, val] of Object.entries(tags)) {
-            Sentry.setTag(key, val)
-        }
-    }
-    Sentry.metrics.distribution(name, value, {
-        unit: 'millisecond',
-    })
-}
-
-/** Start a timer; call the returned function to report duration to Sentry. */
-export function startTimer(name: string, tags?: Record<string, string>) {
-    const start = performance.now()
-
-    return () => {
-        const duration = performance.now() - start
-        captureMetric(name, duration, tags)
-        return duration
-    }
 }

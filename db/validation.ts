@@ -1,11 +1,9 @@
-import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
+import { createInsertSchema } from 'drizzle-zod'
 import { z } from 'zod'
 import {
-    activityLog,
     bankAccount,
     beneficiary,
     contact,
-    contactAssociation,
     distribution,
     document,
     entity,
@@ -20,14 +18,12 @@ import {
     rentalProperty,
     specificBequest,
     task,
-    transaction,
     trustAccounting,
     trustee,
     trusteeFeeEntry,
     trusteeFeeSchedule,
     userProfile,
     valuation,
-    valuationCorrection,
     vehicle,
     withdrawalRecord,
 } from './schema'
@@ -178,17 +174,11 @@ const streetAddressValidation = z
     .nullable()
     .optional()
 
-export const insertActivityLogSchema = createInsertSchema(activityLog, {
-    createdAt: (schema) => schema.optional(),
-})
-export const selectActivityLogSchema = createSelectSchema(activityLog)
-
 export const insertBankAccountSchema = createInsertSchema(bankAccount, {
     createdAt: (schema) => schema.optional(),
     updatedAt: (schema) => schema.optional(),
     name: (schema) => schema.min(1, 'Name is required'),
 })
-export const selectBankAccountSchema = createSelectSchema(bankAccount)
 
 // `sortIndex` is omitted from the input surface: the drag-to-reorder UI and
 // `beneficiary.reorder` adminProcedure were removed in Phase 33 (D-04), but
@@ -209,7 +199,6 @@ export const insertBeneficiarySchema = createInsertSchema(beneficiary, {
     streetAddress: () => streetAddressValidation,
     sharePercent: () => percentageValidation,
 }).omit({ sortIndex: true })
-export const selectBeneficiarySchema = createSelectSchema(beneficiary)
 
 export const insertContactSchema = createInsertSchema(contact, {
     createdAt: (schema) => schema.optional(),
@@ -218,16 +207,6 @@ export const insertContactSchema = createInsertSchema(contact, {
     phone: () => phoneValidation,
     zip: () => zipValidation,
 })
-export const selectContactSchema = createSelectSchema(contact)
-
-export const insertContactAssociationSchema = createInsertSchema(
-    contactAssociation,
-    {
-        createdAt: (schema) => schema.optional(),
-    },
-)
-export const selectContactAssociationSchema =
-    createSelectSchema(contactAssociation)
 
 export const insertDistributionSchema = createInsertSchema(distribution, {
     createdAt: (schema) => schema.optional(),
@@ -238,13 +217,11 @@ export const insertDistributionSchema = createInsertSchema(distribution, {
             'Distribution amount must be positive',
         ),
 })
-export const selectDistributionSchema = createSelectSchema(distribution)
 
-export const insertDocumentSchema = createInsertSchema(document, {
+const insertDocumentSchema = createInsertSchema(document, {
     createdAt: (schema) => schema.optional(),
     updatedAt: (schema) => schema.optional(),
 })
-export const selectDocumentSchema = createSelectSchema(document)
 
 export const insertEntitySchema = createInsertSchema(entity, {
     createdAt: (schema) => schema.optional(),
@@ -257,7 +234,6 @@ export const insertEntitySchema = createInsertSchema(entity, {
             )
             .optional(),
 })
-export const selectEntitySchema = createSelectSchema(entity)
 
 // Base schema (no .refine()) so insertFirearmSchema.partial() — used by
 // updateFirearmSchema below — does not throw in Zod v4, which forbids
@@ -280,13 +256,11 @@ export const insertFirearmSchema = insertFirearmSchemaBase.refine(
         path: ['nfaClass'],
     },
 )
-export const selectFirearmSchema = createSelectSchema(firearm)
 
 export const insertHemsRequestSchema = createInsertSchema(hemsRequest, {
     createdAt: (schema) => schema.optional(),
     updatedAt: (schema) => schema.optional(),
 })
-export const selectHemsRequestSchema = createSelectSchema(hemsRequest)
 
 export const insertHomesteadSchema = createInsertSchema(homestead, {
     createdAt: (schema) => schema.optional(),
@@ -296,14 +270,12 @@ export const insertHomesteadSchema = createInsertSchema(homestead, {
     dodValue: () => positiveNumberValidation,
     name: (schema) => schema.min(1, 'Name is required'),
 })
-export const selectHomesteadSchema = createSelectSchema(homestead)
 
 export const insertInsurancePolicySchema = createInsertSchema(insurancePolicy, {
     createdAt: (schema) => schema.optional(),
     updatedAt: (schema) => schema.optional(),
     name: (schema) => schema.min(1, 'Name is required'),
 })
-export const selectInsurancePolicySchema = createSelectSchema(insurancePolicy)
 
 export const insertInvestmentAccountSchema = createInsertSchema(
     investmentAccount,
@@ -313,8 +285,6 @@ export const insertInvestmentAccountSchema = createInsertSchema(
         name: (schema) => schema.min(1, 'Name is required'),
     },
 )
-export const selectInvestmentAccountSchema =
-    createSelectSchema(investmentAccount)
 
 export const insertLiabilitySchema = createInsertSchema(liability, {
     createdAt: (schema) => schema.optional(),
@@ -340,7 +310,6 @@ export const insertLiabilitySchema = createInsertSchema(liability, {
             .optional(),
     escrowMonthly: () => positiveNumberValidation,
 })
-export const selectLiabilitySchema = createSelectSchema(liability)
 
 export const insertLiabilityPaymentSchema = createInsertSchema(
     liabilityPayment,
@@ -348,7 +317,6 @@ export const insertLiabilityPaymentSchema = createInsertSchema(
         createdAt: (schema) => schema.optional(),
     },
 )
-export const selectLiabilityPaymentSchema = createSelectSchema(liabilityPayment)
 
 export const insertPersonalPropertySchema = createInsertSchema(
     personalProperty,
@@ -358,7 +326,6 @@ export const insertPersonalPropertySchema = createInsertSchema(
         name: (schema) => schema.min(1, 'Name is required'),
     },
 )
-export const selectPersonalPropertySchema = createSelectSchema(personalProperty)
 
 export const insertRentalPropertySchema = createInsertSchema(rentalProperty, {
     createdAt: (schema) => schema.optional(),
@@ -370,7 +337,6 @@ export const insertRentalPropertySchema = createInsertSchema(rentalProperty, {
     mortgageBalance: () => positiveNumberValidation,
     name: (schema) => schema.min(1, 'Name is required'),
 })
-export const selectRentalPropertySchema = createSelectSchema(rentalProperty)
 
 export const insertSpecificBequestSchema = createInsertSchema(specificBequest, {
     createdAt: (schema) => schema.optional(),
@@ -379,19 +345,11 @@ export const insertSpecificBequestSchema = createInsertSchema(specificBequest, {
     // allows null/empty (most bequests are non-monetary item descriptions).
     estimatedValue: () => positiveNumberValidation,
 })
-export const selectSpecificBequestSchema = createSelectSchema(specificBequest)
 
 export const insertTaskSchema = createInsertSchema(task, {
     createdAt: (schema) => schema.optional(),
     updatedAt: (schema) => schema.optional(),
 })
-export const selectTaskSchema = createSelectSchema(task)
-
-export const insertTransactionSchema = createInsertSchema(transaction, {
-    createdAt: (schema) => schema.optional(),
-    updatedAt: (schema) => schema.optional(),
-})
-export const selectTransactionSchema = createSelectSchema(transaction)
 
 export const insertTrustAccountingSchema = createInsertSchema(trustAccounting, {
     createdAt: (schema) => schema.optional(),
@@ -402,7 +360,6 @@ export const insertTrustAccountingSchema = createInsertSchema(trustAccounting, {
             'Amount must be greater than zero',
         ),
 })
-export const selectTrustAccountingSchema = createSelectSchema(trustAccounting)
 
 // NOTE: Unlike `beneficiary.sortIndex` (which has `.default(0)` at the DB
 // level so it can be omitted from the insert schema), `trustee.order` is
@@ -417,37 +374,18 @@ export const insertTrusteeSchema = createInsertSchema(trustee, {
     createdAt: (schema) => schema.optional(),
     updatedAt: (schema) => schema.optional(),
 })
-export const selectTrusteeSchema = createSelectSchema(trustee)
-
-export const insertTrusteeFeeEntrySchema = createInsertSchema(trusteeFeeEntry, {
+const insertTrusteeFeeEntrySchema = createInsertSchema(trusteeFeeEntry, {
     createdAt: (schema) => schema.optional(),
     updatedAt: (schema) => schema.optional(),
 })
-export const selectTrusteeFeeEntrySchema = createSelectSchema(trusteeFeeEntry)
 
-export const insertTrusteeFeeScheduleSchema = createInsertSchema(
-    trusteeFeeSchedule,
-    {
-        createdAt: (schema) => schema.optional(),
-    },
-)
-export const selectTrusteeFeeScheduleSchema =
-    createSelectSchema(trusteeFeeSchedule)
+const insertTrusteeFeeScheduleSchema = createInsertSchema(trusteeFeeSchedule, {
+    createdAt: (schema) => schema.optional(),
+})
 
 export const insertValuationSchema = createInsertSchema(valuation, {
     createdAt: (schema) => schema.optional(),
 })
-export const selectValuationSchema = createSelectSchema(valuation)
-
-export const insertValuationCorrectionSchema = createInsertSchema(
-    valuationCorrection,
-    {
-        createdAt: (schema) => schema.optional(),
-    },
-).omit({
-    correctionRatio: true,
-})
-
 export const insertVehicleSchema = createInsertSchema(vehicle, {
     createdAt: (schema) => schema.optional(),
     updatedAt: (schema) => schema.optional(),
@@ -456,7 +394,6 @@ export const insertVehicleSchema = createInsertSchema(vehicle, {
     dodValue: () => positiveNumberValidation,
     name: (schema) => schema.min(1, 'Name is required'),
 })
-export const selectVehicleSchema = createSelectSchema(vehicle)
 
 export const insertWithdrawalRecordSchema = createInsertSchema(
     withdrawalRecord,
@@ -465,7 +402,6 @@ export const insertWithdrawalRecordSchema = createInsertSchema(
         updatedAt: (schema) => schema.optional(),
     },
 )
-export const selectWithdrawalRecordSchema = createSelectSchema(withdrawalRecord)
 
 export const updateTrusteeSchema = requireAtLeastOneField(
     insertTrusteeSchema.partial(),
@@ -548,11 +484,10 @@ export const updateInsurancePolicySchema = requireAtLeastOneField(
     insertInsurancePolicySchema.partial(),
 )
 
-export const insertUserProfileSchema = createInsertSchema(userProfile, {
+const insertUserProfileSchema = createInsertSchema(userProfile, {
     createdAt: (schema) => schema.optional(),
     updatedAt: (schema) => schema.optional(),
 })
-export const selectUserProfileSchema = createSelectSchema(userProfile)
 export const updateUserProfileSchema = requireAtLeastOneField(
     insertUserProfileSchema.partial(),
 )
