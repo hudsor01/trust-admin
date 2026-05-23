@@ -108,6 +108,10 @@ export function AppSidebar({ role }: { role: AppRole }) {
             })
             utils.entity.list.prefetch()
         },
+        firearms: () => {
+            utils.firearm.list.prefetch({ entityId })
+            utils.entity.list.prefetch()
+        },
         insurance: () => {
             utils.insurancePolicy.list.prefetch({ entityId })
             utils.entity.list.prefetch()
@@ -381,23 +385,6 @@ export function AppSidebar({ role }: { role: AppRole }) {
                                             <SidebarMenuSubButton
                                                 asChild
                                                 isActive={
-                                                    pathname === '/properties'
-                                                }
-                                            >
-                                                <Link
-                                                    href="/properties"
-                                                    onMouseEnter={
-                                                        prefetch.properties
-                                                    }
-                                                >
-                                                    <span>Properties</span>
-                                                </Link>
-                                            </SidebarMenuSubButton>
-                                        </SidebarMenuSubItem>
-                                        <SidebarMenuSubItem>
-                                            <SidebarMenuSubButton
-                                                asChild
-                                                isActive={
                                                     pathname === '/accounts'
                                                 }
                                             >
@@ -415,16 +402,50 @@ export function AppSidebar({ role }: { role: AppRole }) {
                                             <SidebarMenuSubButton
                                                 asChild
                                                 isActive={
-                                                    pathname === '/vehicles'
+                                                    pathname === '/artwork'
                                                 }
                                             >
                                                 <Link
-                                                    href="/vehicles"
+                                                    href="/artwork"
                                                     onMouseEnter={
-                                                        prefetch.vehicles
+                                                        prefetch.artwork
                                                     }
                                                 >
-                                                    <span>Vehicles</span>
+                                                    <span>Artwork</span>
+                                                </Link>
+                                            </SidebarMenuSubButton>
+                                        </SidebarMenuSubItem>
+                                        <SidebarMenuSubItem>
+                                            <SidebarMenuSubButton
+                                                asChild
+                                                isActive={
+                                                    pathname === '/firearms'
+                                                }
+                                            >
+                                                <Link
+                                                    href="/firearms"
+                                                    onMouseEnter={
+                                                        prefetch.firearms
+                                                    }
+                                                >
+                                                    <span>Firearms</span>
+                                                </Link>
+                                            </SidebarMenuSubButton>
+                                        </SidebarMenuSubItem>
+                                        <SidebarMenuSubItem>
+                                            <SidebarMenuSubButton
+                                                asChild
+                                                isActive={
+                                                    pathname === '/insurance'
+                                                }
+                                            >
+                                                <Link
+                                                    href="/insurance"
+                                                    onMouseEnter={
+                                                        prefetch.insurance
+                                                    }
+                                                >
+                                                    <span>Insurance</span>
                                                 </Link>
                                             </SidebarMenuSubButton>
                                         </SidebarMenuSubItem>
@@ -452,16 +473,16 @@ export function AppSidebar({ role }: { role: AppRole }) {
                                             <SidebarMenuSubButton
                                                 asChild
                                                 isActive={
-                                                    pathname === '/artwork'
+                                                    pathname === '/properties'
                                                 }
                                             >
                                                 <Link
-                                                    href="/artwork"
+                                                    href="/properties"
                                                     onMouseEnter={
-                                                        prefetch.artwork
+                                                        prefetch.properties
                                                     }
                                                 >
-                                                    <span>Artwork</span>
+                                                    <span>Properties</span>
                                                 </Link>
                                             </SidebarMenuSubButton>
                                         </SidebarMenuSubItem>
@@ -469,16 +490,16 @@ export function AppSidebar({ role }: { role: AppRole }) {
                                             <SidebarMenuSubButton
                                                 asChild
                                                 isActive={
-                                                    pathname === '/insurance'
+                                                    pathname === '/vehicles'
                                                 }
                                             >
                                                 <Link
-                                                    href="/insurance"
+                                                    href="/vehicles"
                                                     onMouseEnter={
-                                                        prefetch.insurance
+                                                        prefetch.vehicles
                                                     }
                                                 >
-                                                    <span>Insurance</span>
+                                                    <span>Vehicles</span>
                                                 </Link>
                                             </SidebarMenuSubButton>
                                         </SidebarMenuSubItem>

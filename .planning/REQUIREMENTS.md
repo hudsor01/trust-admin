@@ -23,8 +23,8 @@ Requirements for milestone v5.0. Each maps to a roadmap phase.
 
 - [x] **ASSET-01**: Firearm values are included in the dashboard asset-value KPIs and allocation charts
 - [x] **ASSET-02**: Firearms appear in the unified `/assets` view alongside the other 7 asset types
-- [ ] **ASSET-03**: A "Firearms" page is reachable from the Assets navigation group
-- [ ] **ASSET-04**: The Assets navigation sub-items are alphabetically ordered — Accounts, Artwork, Firearms, Insurance, Personal Property, Properties, Vehicles
+- [x] **ASSET-03**: A "Firearms" page is reachable from the Assets navigation group
+- [x] **ASSET-04**: The Assets navigation sub-items are alphabetically ordered — Accounts, Artwork, Firearms, Insurance, Personal Property, Properties, Vehicles
 
 ### Beneficiaries View
 
@@ -71,8 +71,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FIRE-09 | Phase 28 | Complete |
 | ASSET-01 | Phase 31 | Complete |
 | ASSET-02 | Phase 31 | Complete |
-| ASSET-03 | Phase 32 | Pending |
-| ASSET-04 | Phase 32 | Pending |
+| ASSET-03 | Phase 32 | Complete |
+| ASSET-04 | Phase 32 | Complete |
 | BENE-01 | Phase 33 | Pending |
 | BENE-02 | Phase 33 | Pending |
 | BENE-03 | Phase 33 | Pending |
@@ -85,4 +85,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-05-21*
-*Last updated: 2026-05-21 after roadmap creation (Phases 28-33)*
+*Last updated: 2026-05-22 — Phase 32 complete (ASSET-03, ASSET-04)*

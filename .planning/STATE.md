@@ -2,26 +2,26 @@
 gsd_state_version: 1.0
 milestone: v5.0
 milestone_name: Firearms Tracking & Beneficiary UX Refinement
-status: ready_to_plan
-stopped_at: Phase 31 complete (0/1) — ready to discuss Phase 32
-last_updated: 2026-05-22T03:07:53.613Z
-last_activity: 2026-05-22 -- Phase 31 execution started
+status: executing
+stopped_at: Phase 32 complete -- ASSET-03 + ASSET-04 verified
+last_updated: "2026-05-22T21:40:53Z"
+last_activity: 2026-05-22 -- Phase 32 sidebar-nav-alphabetization complete
 progress:
   total_phases: 6
-  completed_phases: 3
-  total_plans: 5
-  completed_plans: 4
-  percent: 50
+  completed_phases: 5
+  total_plans: 6
+  completed_plans: 6
+  percent: 83
 ---
 
 # State: Trust Admin
 
 ## Current Position
 
-Phase: 32
+Phase: 33 (next)
 Plan: Not started
-Status: Ready to plan
-Last activity: 2026-05-22
+Status: Phase 32 complete; ready to plan Phase 33 (beneficiary-ux-cleanup)
+Last activity: 2026-05-22 -- Phase 32 sidebar-nav-alphabetization complete (ASSET-03, ASSET-04 ✓)
 
 ## Accumulated Context
 
@@ -128,6 +128,9 @@ Last activity: 2026-05-22
 - [v5.0] Beneficiary cleanup (Phase 33) is fully independent of firearms phases -- no shared files, no schema changes
 - [v5.0] BeneficiarySortableList.tsx and WithdrawalMilestoneGantt.tsx are deleted in Phase 33 -- edit BeneficiariesClient.tsx first (remove JSX + derived vars + imports), then delete files, then typecheck + lint
 - [v5.0] beneficiary.sortIndex column and orderBy(asc(beneficiary.sortIndex)) in beneficiary.list are NOT touched in Phase 33
+- [Phase 32] Sidebar prefetch handlers are cache-warming primitives — React Query staleTime=5min (src/lib/trpc-provider.tsx:33) makes hover network calls fire only on cold cache. UAT methodology for hover-prefetch must either hover on cold cache or verify wiring via JSX inspection + dev log of first-hover fire. SC-3-style "expect a request on every hover" assumptions are wrong.
+- [Phase 32] tRPC v11 httpBatchLink uses GET for queries, POST for mutations — sidebar prefetches are GETs (e.g. /api/trpc/firearm.list?batch=1&input=...). Plan/UAT specs should reflect this.
+- [Phase 32] Sentry @sentry/node-core@10.53.1 still calls module.register() instead of module.registerHooks(), tripping DEP0205 on Node 26. Suppressed via NODE_OPTIONS='--disable-warning=DEP0205' on dev/build/build:analyze/start scripts; removable once upstream Sentry releases the migration.
 
 ### Auth API Patterns That Work
 
@@ -170,8 +173,8 @@ const rows = await sql`SELECT id, name, email FROM neon_auth."user" WHERE lower(
 
 ## Session Continuity
 
-Last session: 2026-05-22T01:00:15.623Z
-Stopped at: Phase 31 context gathered
-Resume file: .planning/phases/31-asset-aggregator-integration/31-CONTEXT.md
+Last session: 2026-05-22T21:40:53Z
+Stopped at: Phase 32 complete -- ASSET-03 + ASSET-04 verified
+Resume file: .planning/phases/32-sidebar-nav-alphabetization/32-01-SUMMARY.md
 
-**Next:** Run `/gsd:plan-phase 28` to begin firearm-schema-and-migration.
+**Next:** Run `/gsd:plan-phase 33` to begin beneficiary-ux-cleanup (the final v5.0 phase).
