@@ -8,6 +8,7 @@ import { contactRouter } from './routers/contact'
 import { dashboardRouter } from './routers/dashboard'
 import { distributionRouter } from './routers/distribution'
 import { entityRouter } from './routers/entity'
+import { firearmRouter } from './routers/firearm'
 import { hemsRequestRouter } from './routers/hemsRequest'
 import { homesteadRouter } from './routers/homestead'
 import { insurancePolicyRouter } from './routers/insurancePolicy'
@@ -35,6 +36,7 @@ export const appRouter = createTRPCRouter({
     // Assets (pure CRUD)
     bankAccount: bankAccountRouter,
     investmentAccount: investmentAccountRouter,
+    firearm: firearmRouter,
     homestead: homesteadRouter,
     rentalProperty: rentalPropertyRouter,
     vehicle: vehicleRouter,

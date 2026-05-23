@@ -71,7 +71,7 @@ Audit: [`milestones/v4.0-MILESTONE-AUDIT.md`](milestones/v4.0-MILESTONE-AUDIT.md
 ### v5.0 Firearms Tracking & Beneficiary UX Refinement
 
 - [x] **Phase 28: firearm-schema-and-migration** - Add `firearm` table, 5 enums, RLS policies, and document/valuation FK extensions to Postgres (completed 2026-05-21)
-- [ ] **Phase 29: firearm-trpc-router** - Implement `firearmRouter` with list/byId/create/update/delete (all adminProcedure, entityId-gated)
+- [x] **Phase 29: firearm-trpc-router** - Implement `firearmRouter` with list/byId/create/update/delete (all adminProcedure, entityId-gated) (completed 2026-05-21)
 - [ ] **Phase 30: firearms-admin-page** - Dedicated `/firearms` admin page with DataTable, KPI strip, create/edit form, and NFA-conditional fields
 - [ ] **Phase 31: asset-aggregator-integration** - Wire `firearm` into `asset.ts:listAll` and `dashboard.ts:summary` so totals and allocation charts include firearms
 - [ ] **Phase 32: sidebar-nav-alphabetization** - Reorder Assets sub-nav to alphabetical and add Firearms link
@@ -103,7 +103,8 @@ Audit: [`milestones/v4.0-MILESTONE-AUDIT.md`](milestones/v4.0-MILESTONE-AUDIT.md
   3. `trpc.firearm.byId` throws `NOT_FOUND` when the requested id does not belong to the specified entity
   4. All five procedures (`list`, `byId`, `create`, `update`, `delete`) require `adminProcedure` — a beneficiary JWT cannot invoke them
   5. `bun run typecheck` passes with 0 errors after router registration in `router.ts`
-**Plans**: TBD
+**Plans**: 1 plan
+- [x] 29-01-PLAN.md — Firearm tRPC router: export `insertFirearmSchemaBase`, create `firearmRouter` (6 procedures + serial-conflict predicate + NFA guard), register in appRouter, and add integration tests for SC-1..SC-4 + setNfaTransferStatus + D-03 regression
 
 ### Phase 30: firearms-admin-page
 **Goal**: Admin can fully manage firearm records — create, view, edit, delete, sort, filter, and export — from a dedicated `/firearms` page.
@@ -158,7 +159,7 @@ Audit: [`milestones/v4.0-MILESTONE-AUDIT.md`](milestones/v4.0-MILESTONE-AUDIT.md
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 28. firearm-schema-and-migration | 2/2 | Complete    | 2026-05-21 |
-| 29. firearm-trpc-router | 0/? | Not started | - |
+| 29. firearm-trpc-router | 1/1 | Complete    | 2026-05-21 |
 | 30. firearms-admin-page | 0/? | Not started | - |
 | 31. asset-aggregator-integration | 0/? | Not started | - |
 | 32. sidebar-nav-alphabetization | 0/? | Not started | - |
