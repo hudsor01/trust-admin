@@ -6,8 +6,8 @@
  */
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import { eq, inArray } from 'drizzle-orm'
-import { getPublicDb } from '@/db'
-import { activityLog, bankAccount, entity } from '@/db/schema'
+import { db, getPublicDb } from '@/db'
+import { activityLog, bankAccount, entity, firearm } from '@/db/schema'
 import { createCallerFactory } from '@/server/trpc/init'
 import { appRouter } from '@/server/trpc/router'
 import { isProductionDb } from '../helpers/db-guard'
@@ -271,3 +271,179 @@ describe.skipIf(isProductionDb)('dashboard.activityCounts', () => {
         TEST_TIMEOUT,
     )
 })
+
+// =============================================================================
+// dashboard.summary — firearm aggregator coverage (GAP-31-02 + GAP-31-03)
+// =============================================================================
+//
+// Phase 31 wired the `firearm` table into `dashboard.summary` so totals and
+// allocation charts include firearms. The original verification was a
+// programmatic UAT script (`scripts/verify-phase-31.ts`) that was created,
+// run, and removed — leaving a transcript-only audit trail. This describe
+// block formalizes that probe as a permanent regression test (GAP-31-03)
+// and closes GAP-31-02 (no automated dashboard.summary coverage).
+//
+// What's covered:
+// - dashboard.summary response shape includes the `firearms` array (ASSET-01)
+// - The array is entity-scoped: foreign-entity firearms do not leak
+// - Firearm row fields needed by DashboardClient downstream (dodValue, name)
+//   round-trip through the wire correctly
+// =============================================================================
+
+describe.skipIf(isProductionDb)(
+    'dashboard.summary — firearm aggregator (Phase 31)',
+    () => {
+        const summaryIds = {
+            entityId: null as number | null,
+            otherEntityId: null as number | null,
+            firearmId: null as number | null,
+            otherFirearmId: null as number | null,
+        }
+
+        beforeAll(async () => {
+            const pub = getPublicDb()
+            const now = new Date().toISOString()
+
+            const [e1] = await pub
+                .insert(entity)
+                .values({
+                    name: `Dashboard Firearm Test ${TS}`,
+                    entityType: 'TRUST',
+                    updatedAt: now,
+                })
+                .returning()
+            summaryIds.entityId = e1.id
+
+            const [e2] = await pub
+                .insert(entity)
+                .values({
+                    name: `Dashboard Firearm Other ${TS}`,
+                    entityType: 'TRUST',
+                    updatedAt: now,
+                })
+                .returning()
+            summaryIds.otherEntityId = e2.id
+
+            const [fa] = await db
+                .insert(firearm)
+                .values({
+                    entityId: e1.id,
+                    name: `Dashboard FA ${TS}`,
+                    make: 'Glock',
+                    model: '17',
+                    serialNumber: `DASH-FA-${TS}`,
+                    firearmType: 'PISTOL',
+                    isNfa: false,
+                    status: 'ACTIVE',
+                    transferStatus: 'PENDING',
+                    dodValue: '1234.56',
+                    updatedAt: now,
+                })
+                .returning()
+            summaryIds.firearmId = fa.id
+
+            const [otherFa] = await db
+                .insert(firearm)
+                .values({
+                    entityId: e2.id,
+                    name: `Dashboard Other FA ${TS}`,
+                    make: 'Ruger',
+                    model: '10/22',
+                    serialNumber: `DASH-OTHER-FA-${TS}`,
+                    firearmType: 'RIFLE',
+                    isNfa: false,
+                    status: 'ACTIVE',
+                    transferStatus: 'PENDING',
+                    dodValue: '9999.99',
+                    updatedAt: now,
+                })
+                .returning()
+            summaryIds.otherFirearmId = otherFa.id
+        }, TEST_TIMEOUT)
+
+        afterAll(async () => {
+            const pub = getPublicDb()
+            if (summaryIds.firearmId || summaryIds.otherFirearmId) {
+                const fids = [
+                    summaryIds.firearmId,
+                    summaryIds.otherFirearmId,
+                ].filter((x): x is number => x !== null)
+                if (fids.length > 0) {
+                    await db.delete(firearm).where(inArray(firearm.id, fids))
+                }
+            }
+            const eids = [summaryIds.entityId, summaryIds.otherEntityId].filter(
+                (x): x is number => x !== null,
+            )
+            if (eids.length > 0) {
+                await pub.delete(entity).where(inArray(entity.id, eids))
+            }
+        }, TEST_TIMEOUT)
+
+        test('response includes firearms field with seeded row', async () => {
+            const result = await adminCaller().dashboard.summary({
+                entityId: summaryIds.entityId as number,
+            })
+            // GAP-31-02: dashboard.summary returns the firearms array — Phase 31
+            // Task 2 wired this in; without this assertion the wiring could
+            // silently regress.
+            expect(Array.isArray(result.firearms)).toBe(true)
+            expect(result.firearms.length).toBeGreaterThanOrEqual(1)
+            const fa = result.firearms.find(
+                (f) => f.id === summaryIds.firearmId,
+            )
+            expect(fa).toBeDefined()
+            expect(fa?.name).toBe(`Dashboard FA ${TS}`)
+            expect(fa?.dodValue).toBe('1234.56')
+        })
+
+        test('firearms array is entity-scoped (cross-entity isolation)', async () => {
+            // GAP-31-03: replaces the removed programmatic UAT script — proves
+            // the WHERE clause on the firearm fetch is entity-correct.
+            const inScope = await adminCaller().dashboard.summary({
+                entityId: summaryIds.entityId as number,
+            })
+            const otherScope = await adminCaller().dashboard.summary({
+                entityId: summaryIds.otherEntityId as number,
+            })
+
+            const inScopeFirearmIds = new Set(inScope.firearms.map((f) => f.id))
+            const otherScopeFirearmIds = new Set(
+                otherScope.firearms.map((f) => f.id),
+            )
+
+            // entity 1 sees only its own firearm, never entity 2's.
+            expect(inScopeFirearmIds.has(summaryIds.firearmId as number)).toBe(
+                true,
+            )
+            expect(
+                inScopeFirearmIds.has(summaryIds.otherFirearmId as number),
+            ).toBe(false)
+            // entity 2 sees only its own firearm, never entity 1's.
+            expect(
+                otherScopeFirearmIds.has(summaryIds.otherFirearmId as number),
+            ).toBe(true)
+            expect(
+                otherScopeFirearmIds.has(summaryIds.firearmId as number),
+            ).toBe(false)
+        })
+
+        test('firearm dodValue can be summed alongside other asset class values', async () => {
+            // GAP-31-03: DashboardClient computes totalAssetValue by summing
+            // dodValue/currentBalance/coverageAmount across all asset arrays
+            // returned by summary. Verify the firearm row exposes a numeric
+            // string parseable by parseFloat — the same contract every other
+            // asset class follows.
+            const result = await adminCaller().dashboard.summary({
+                entityId: summaryIds.entityId as number,
+            })
+            const fa = result.firearms.find(
+                (f) => f.id === summaryIds.firearmId,
+            )
+            expect(fa).toBeDefined()
+            expect(typeof fa?.dodValue).toBe('string')
+            expect(parseFloat(fa?.dodValue ?? '0')).toBeCloseTo(1234.56)
+            expect(parseFloat(fa?.dodValue ?? '0')).toBeGreaterThan(0)
+        })
+    },
+)
