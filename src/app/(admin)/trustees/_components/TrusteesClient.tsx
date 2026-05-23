@@ -14,7 +14,6 @@ import { logger } from '@/lib/logger'
 import { trpc } from '@/lib/trpc'
 import { asTrusteeStatus } from '@/lib/type-utils'
 import { TrusteeDialog } from './TrusteeDialog'
-import { TrusteeSortableList } from './TrusteeSortableList'
 import { type TrusteeRow, TrusteeTable } from './TrusteeTable'
 
 const log = logger.create('Trustees')
@@ -178,31 +177,6 @@ export function TrusteesClient() {
             />
 
             <KpiStrip data={kpiData} isLoading={trusteesLoading} />
-
-            {!loading && currentTrustees.length > 1 && entityId && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="text-lg">
-                            Order of Service
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="mb-3 text-sm text-muted-foreground">
-                            Drag to reorder how trustees are listed throughout
-                            the app.
-                        </p>
-                        <TrusteeSortableList
-                            trustees={currentTrustees.map((t) => ({
-                                id: t.id,
-                                name: t.name,
-                                status: t.status ?? null,
-                                order: t.order,
-                            }))}
-                            entityId={entityId}
-                        />
-                    </CardContent>
-                </Card>
-            )}
 
             <Card>
                 <CardHeader>

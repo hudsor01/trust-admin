@@ -404,6 +404,15 @@ export const insertTrustAccountingSchema = createInsertSchema(trustAccounting, {
 })
 export const selectTrustAccountingSchema = createSelectSchema(trustAccounting)
 
+// NOTE: Unlike `beneficiary.sortIndex` (which has `.default(0)` at the DB
+// level so it can be omitted from the insert schema), `trustee.order` is
+// `notNull` with no DB default — omitting it from the schema breaks the
+// `trustee.create` callers (TrusteeDialog passes `order: <count>` for the
+// new row). The drag-to-reorder UI and the `trustee.reorder` adminProcedure
+// are gone, so the only remaining writer is `trustee.create` itself which
+// supplies the value at insert time. Hardening to schema-level omission
+// would require migration 0015 adding `.default(0)`; deferred until a
+// future cleanup phase.
 export const insertTrusteeSchema = createInsertSchema(trustee, {
     createdAt: (schema) => schema.optional(),
     updatedAt: (schema) => schema.optional(),
