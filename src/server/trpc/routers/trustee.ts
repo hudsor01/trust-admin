@@ -1,7 +1,7 @@
 import { TRPCError } from '@trpc/server'
 import { and, asc, eq } from 'drizzle-orm'
 import { z } from 'zod'
-import { db, getClient, type TxSql } from '@/db'
+import { db } from '@/db'
 import { trustee } from '@/db/schema'
 import { insertTrusteeSchema, updateTrusteeSchema } from '@/db/validation'
 import { adminProcedure, createTRPCRouter } from '../init'
