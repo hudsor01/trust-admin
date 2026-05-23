@@ -6,19 +6,15 @@ import { toast } from 'sonner'
 import { KpiStrip, type KpiStripItem } from '@/components/kpi-strip'
 import { PageHeader } from '@/components/page-header'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { Beneficiary } from '@/db/schema'
 import { sumStrings } from '@/lib/money'
 import { trpc } from '@/lib/trpc'
 import { formatCurrency } from '@/utils/formatters'
 import { AddBeneficiaryDialog } from './AddBeneficiaryDialog'
-import { BeneficiaryAvatarStack } from './BeneficiaryAvatarStack'
 import { BeneficiaryDialog } from './BeneficiaryDialog'
 import { BeneficiaryShareDonuts } from './BeneficiaryShareDonuts'
-import { BeneficiarySortableList } from './BeneficiarySortableList'
 import { BeneficiaryTable } from './BeneficiaryTable'
 import type { BeneficiaryWithDistributions } from './types'
-import { WithdrawalMilestoneGantt } from './WithdrawalMilestoneGantt'
 
 export function BeneficiariesClient() {
     const utils = trpc.useUtils()
@@ -38,12 +34,6 @@ export function BeneficiariesClient() {
         { entityId: entityId! },
         { enabled: !!entityId },
     )
-
-    // Entity dod for WithdrawalMilestoneGantt reference point when a
-    // beneficiary has no dob on file.
-    const { data: entityDetail } = trpc.entity.byId.useQuery(entityId!, {
-        enabled: !!entityId,
-    })
 
     const updateBeneficiaryMutation = trpc.beneficiary.update.useMutation({
         onSuccess: () => {
@@ -164,32 +154,13 @@ export function BeneficiariesClient() {
         [beneficiaries],
     )
 
-    const avatarItems = useMemo(
-        () =>
-            beneficiaries.map((b) => ({
-                id: b.id,
-                name: `${b.firstName} ${b.lastName}`.trim(),
-            })),
-        [beneficiaries],
-    )
-
-    const milestoneItems = useMemo(
-        () =>
-            beneficiaries.map((b) => ({
-                id: b.id,
-                name: `${b.firstName} ${b.lastName}`.trim(),
-                dob: b.dob,
-                withdrawalAge1: b.withdrawalAge1,
-                withdrawalPct1: b.withdrawalPct1,
-                withdrawalAge2: b.withdrawalAge2,
-                withdrawalPct2: b.withdrawalPct2,
-            })),
-        [beneficiaries],
-    )
-
     const kpiData: KpiStripItem[] = [
         { label: 'Beneficiary count', value: beneficiaries.length },
         { label: 'Total share %', value: `${totalShares}%` },
+        {
+            label: 'Lifetime distributions',
+            value: formatCurrency(totalDistributed),
+        },
         {
             label: 'Distributions YTD',
             value: formatCurrency(totalDistributedYtd),
@@ -201,7 +172,7 @@ export function BeneficiariesClient() {
         <div className="space-y-6">
             <PageHeader
                 title="Beneficiaries"
-                description="Trust beneficiaries with share allocations and withdrawal milestones."
+                description="Trust beneficiaries with share allocations and distribution history."
                 actions={
                     <Button
                         onClick={() => setAddDialogOpen(true)}
@@ -215,49 +186,8 @@ export function BeneficiariesClient() {
 
             <KpiStrip data={kpiData} isLoading={loading} />
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
-                <div className="md:col-span-1">
-                    <BeneficiaryAvatarStack beneficiaries={avatarItems} />
-                </div>
-                <div className="md:col-span-2 text-sm text-muted-foreground">
-                    {beneficiaries.length} beneficiaries ·{' '}
-                    {formatCurrency(totalDistributed)} distributed lifetime ·{' '}
-                    {formatCurrency(totalDistributedYtd)} YTD
-                </div>
-            </div>
-
             <BeneficiaryShareDonuts
                 beneficiaries={donutItems}
-                isLoading={loading}
-            />
-
-            {!loading && beneficiaries.length > 1 && entityId && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="text-lg">Display Order</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="mb-3 text-sm text-muted-foreground">
-                            Drag to reorder how beneficiaries are listed
-                            throughout the app.
-                        </p>
-                        <BeneficiarySortableList
-                            beneficiaries={beneficiaries.map((b) => ({
-                                id: b.id,
-                                firstName: b.firstName,
-                                lastName: b.lastName,
-                                relationship: b.relationship,
-                                sortIndex: b.sortIndex ?? 0,
-                            }))}
-                            entityId={entityId}
-                        />
-                    </CardContent>
-                </Card>
-            )}
-
-            <WithdrawalMilestoneGantt
-                beneficiaries={milestoneItems}
-                entityDod={entityDetail?.dod ?? null}
                 isLoading={loading}
             />
 
