@@ -44,10 +44,11 @@ Secure, auditable trust administration with role-based access control and Texas 
 - **v3.0 Email/Password Auth Migration** (2026-02-22) — email/password auth, user provisioning, beneficiary RLS isolation
 - **v4.0 Production Hardening & Completeness** (2026-05-21) — 13 phases: security/perf/correctness hardening, feature completeness, code-quality cleanup, dashboard UX revamp, gap-closure. Audit `passed`, 40/40 requirements. See `milestones/v4.0-ROADMAP.md`.
 - **v5.0 Firearms Tracking & Beneficiary UX Refinement** (2026-05-22) — 6 phases: firearm schema + tRPC router + admin page + aggregator integration + sidebar alphabetization + beneficiaries page prune. 17/17 requirements (FIRE-01..09, ASSET-01..04, BENE-01..04). See `milestones/v5.0-ROADMAP.md`.
+- **v5.0.1 Post-v5.0 Closeout & Cleanup** (2026-05-23) — patch milestone capturing the 9 closeout PRs (#127-#135): retroactive audit, Nyquist backfill, deferred test backfill (+52 tests), 2 UI prunes (BeneficiaryShareDonuts, Trustees Order of Service), firearm-images workspace, dead-code sweep (-39 files / -8 deps / -724 lines), and the `createContext` RSC cookie-write runtime fix. See `milestones/v5.0.1-CLOSEOUT.md`.
 
 ## Next Milestone
 
-No active milestone. v5.0 closeout completed the firearms work and the beneficiaries cleanup; the project is at a clean shipping point.
+No active milestone. v5.0 + v5.0.1 closed out the firearms work, beneficiaries cleanup, and accumulated tech debt. The project is at a clean, hardened shipping point.
 
 When the next milestone begins:
 - Run `/gsd:new-milestone` to define scope, requirements, and roadmap
@@ -72,4 +73,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-22 after v5.0 milestone complete*
+*Last updated: 2026-05-23 after v5.0.1 closeout milestone complete*

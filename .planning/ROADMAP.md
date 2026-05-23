@@ -11,6 +11,7 @@ Trust administration application for managing the Hudson Living Trust. Systemati
 - ✅ **v3.0 Email/Password Auth Migration** — Phases 9-14 (shipped 2026-02-22)
 - ✅ **v4.0 Production Hardening & Completeness** — Phases 15-27 (shipped 2026-05-21)
 - ✅ **v5.0 Firearms Tracking & Beneficiary UX Refinement** — Phases 28-33 (shipped 2026-05-22)
+- ✅ **v5.0.1 Post-v5.0 Closeout & Cleanup** — 9 PRs (#127–#135), patch milestone (shipped 2026-05-23)
 
 ## Phases
 

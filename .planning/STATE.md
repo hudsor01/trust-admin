@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: null
 milestone_name: null
 status: between-milestones
-stopped_at: v5.0 milestone archived -- ready for /gsd:new-milestone
-last_updated: "2026-05-23T02:30:00Z"
-last_activity: 2026-05-22 -- v5.0 Firearms Tracking & Beneficiary UX Refinement shipped (6 PRs merged to main, milestone archived)
+stopped_at: v5.0.1 closeout milestone archived -- ready for /gsd:new-milestone
+last_updated: "2026-05-23T22:30:00Z"
+last_activity: 2026-05-23 -- v5.0.1 Post-v5.0 Closeout & Cleanup shipped (9 PRs merged to main, milestone archived)
 progress:
   total_phases: 0
   completed_phases: 0
@@ -18,10 +18,10 @@ progress:
 
 ## Current Position
 
-Milestone: between-milestones (v5.0 archived 2026-05-22)
+Milestone: between-milestones (v5.0 archived 2026-05-22; v5.0.1 closeout archived 2026-05-23)
 Phase: none active
 Status: Ready for `/gsd:new-milestone` to begin the next milestone
-Last activity: 2026-05-22 -- v5.0 shipped + archived; 6 PRs merged to main (e05f21c); milestone artifacts in `.planning/milestones/v5.0-{ROADMAP,REQUIREMENTS}.md`
+Last activity: 2026-05-23 -- v5.0.1 Post-v5.0 Closeout & Cleanup shipped (9 PRs #127-#135, net -5,845 LOC / -8 deps / +52 tests / 1 runtime bug fixed); milestone artifact in `.planning/milestones/v5.0.1-CLOSEOUT.md`
 
 ## Accumulated Context
 
@@ -175,11 +175,12 @@ const rows = await sql`SELECT id, name, email FROM neon_auth."user" WHERE lower(
 - 2026-05-19: Phase 23 added -- Shadcn registry adoption and dashboard UX revamp (full revamp per approved plan at ~/.claude/plans/yes-i-would-live-bright-pumpkin.md; 5 sub-PRs covering registry foundation, headline page redesigns, and DataTable/settings polish)
 - 2026-05-21: v5.0 roadmap created -- Firearms Tracking & Beneficiary UX Refinement (phases 28-33)
 - 2026-05-22: v5.0 shipped + archived -- all 6 phases merged to main, 17/17 requirements complete, milestone artifacts archived to .planning/milestones/v5.0-{ROADMAP,REQUIREMENTS}.md
+- 2026-05-23: v5.0.1 Post-v5.0 Closeout & Cleanup shipped + archived -- 9 PRs (#127-#135) including v5.0 milestone audit, Nyquist VALIDATION backfill, +52 test backfill, BeneficiaryShareDonuts + Trustees-Order-of-Service UI prunes, firearm-images workspace, dead-code sweep (-39 files / -8 deps / -724 lines), and createContext RSC cookie-write fix; archive in .planning/milestones/v5.0.1-CLOSEOUT.md
 
 ## Session Continuity
 
-Last session: 2026-05-23T02:30:00Z
-Stopped at: v5.0 archived -- between milestones
-Resume file: .planning/milestones/v5.0-ROADMAP.md
+Last session: 2026-05-23T22:30:00Z
+Stopped at: v5.0.1 archived -- between milestones
+Resume file: .planning/milestones/v5.0.1-CLOSEOUT.md
 
-**Next:** Run `/gsd:new-milestone` to begin the next milestone. Fresh `REQUIREMENTS.md` will be created at that time (the v5.0 one was archived).
+**Next:** Run `/gsd:new-milestone` to begin the next milestone. Fresh `REQUIREMENTS.md` will be created at that time (v5.0's was archived; v5.0.1 was a patch milestone with no new requirements).
