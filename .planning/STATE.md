@@ -1,27 +1,27 @@
 ---
 gsd_state_version: 1.0
-milestone: v5.0
-milestone_name: Firearms Tracking & Beneficiary UX Refinement
-status: milestone-complete
-stopped_at: v5.0 milestone complete -- all 6 phases shipped (Phase 33 BENE-01..04 verified)
-last_updated: "2026-05-22T23:30:00Z"
-last_activity: 2026-05-22 -- Phase 33 beneficiary-ux-cleanup complete (v5.0 milestone closeout)
+milestone: null
+milestone_name: null
+status: between-milestones
+stopped_at: v5.0 milestone archived -- ready for /gsd:new-milestone
+last_updated: "2026-05-23T02:30:00Z"
+last_activity: 2026-05-22 -- v5.0 Firearms Tracking & Beneficiary UX Refinement shipped (6 PRs merged to main, milestone archived)
 progress:
-  total_phases: 6
-  completed_phases: 6
-  total_plans: 7
-  completed_plans: 7
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # State: Trust Admin
 
 ## Current Position
 
-Phase: v5.0 milestone complete (Phases 28-33 all shipped)
-Plan: All plans complete (7/7)
-Status: Ready for milestone-complete workflow
-Last activity: 2026-05-22 -- Phase 33 beneficiary-ux-cleanup complete (BENE-01..04 ✓)
+Milestone: between-milestones (v5.0 archived 2026-05-22)
+Phase: none active
+Status: Ready for `/gsd:new-milestone` to begin the next milestone
+Last activity: 2026-05-22 -- v5.0 shipped + archived; 6 PRs merged to main (e05f21c); milestone artifacts in `.planning/milestones/v5.0-{ROADMAP,REQUIREMENTS}.md`
 
 ## Accumulated Context
 
@@ -174,11 +174,12 @@ const rows = await sql`SELECT id, name, email FROM neon_auth."user" WHERE lower(
 - 2026-03-08: v4.0 roadmap created -- Production Hardening & Completeness (phases 15-22)
 - 2026-05-19: Phase 23 added -- Shadcn registry adoption and dashboard UX revamp (full revamp per approved plan at ~/.claude/plans/yes-i-would-live-bright-pumpkin.md; 5 sub-PRs covering registry foundation, headline page redesigns, and DataTable/settings polish)
 - 2026-05-21: v5.0 roadmap created -- Firearms Tracking & Beneficiary UX Refinement (phases 28-33)
+- 2026-05-22: v5.0 shipped + archived -- all 6 phases merged to main, 17/17 requirements complete, milestone artifacts archived to .planning/milestones/v5.0-{ROADMAP,REQUIREMENTS}.md
 
 ## Session Continuity
 
-Last session: 2026-05-22T23:30:00Z
-Stopped at: v5.0 milestone complete -- all 6 phases shipped
-Resume file: .planning/phases/33-beneficiary-ux-cleanup/33-01-SUMMARY.md
+Last session: 2026-05-23T02:30:00Z
+Stopped at: v5.0 archived -- between milestones
+Resume file: .planning/milestones/v5.0-ROADMAP.md
 
-**Next:** Run `/gsd:complete-milestone` (or whichever closing workflow the project uses) to archive v5.0 and prepare for the next milestone.
+**Next:** Run `/gsd:new-milestone` to begin the next milestone. Fresh `REQUIREMENTS.md` will be created at that time (the v5.0 one was archived).
