@@ -80,7 +80,38 @@ async function fetchJwt(sessionToken: string): Promise<string | null> {
 
 /** Per-request context: fetches JWT for RLS + resolves userProfile role. */
 export async function createContext(_opts: { headers: Headers }) {
-    const { data: session } = await authServer.getSession()
+    // Neon Auth's getSession() opportunistically refreshes the session cookie
+    // when the server response carries Set-Cookie headers (see
+    // @neondatabase/auth/.../next/server/index.mjs:812 — `ctx.setCookie(...)`
+    // is invoked unconditionally on every refresh response). In a React Server
+    // Component render context, Next.js 16 forbids cookie mutation
+    // ("Cookies can only be modified in a Server Action or Route Handler") and
+    // the entire getSession() call rejects BEFORE returning the session data —
+    // even though the session itself is still valid.
+    //
+    // Catch that one specific error and treat it as "no session this render".
+    // The page-level guard (admin/portal layout) will redirect to /auth/sign-in,
+    // which is a Route Handler context where the cookie write succeeds cleanly
+    // on the redirect-back round-trip. Other errors (real auth failures,
+    // network issues) still propagate.
+    let session: Awaited<ReturnType<typeof authServer.getSession>>['data'] =
+        null
+    try {
+        const result = await authServer.getSession()
+        session = result.data
+    } catch (err) {
+        if (
+            !(err instanceof Error) ||
+            !err.message.includes('Cookies can only be modified')
+        ) {
+            throw err
+        }
+        // Swallowed: RSC cookie-refresh denial. session stays null;
+        // downstream guards redirect through a Route Handler that will
+        // succeed in refreshing. Removable once Neon Auth gates its
+        // setCookie hook behind a "skip-on-readonly-store" check
+        // (tracked upstream).
+    }
 
     let appUser: AppUser | null = null
     if (session?.user && session?.session?.token) {

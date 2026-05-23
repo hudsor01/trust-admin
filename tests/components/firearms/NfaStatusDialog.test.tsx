@@ -16,10 +16,6 @@ import userEvent from '@testing-library/user-event'
 const mutateMock = mock(() => {})
 const invalidateMock = mock(() => Promise.resolve())
 
-// We store the callbacks passed to useMutation so tests can invoke them.
-let capturedOnSuccess: (() => void) | undefined
-let capturedOnError: ((err: { message: string }) => void) | undefined
-
 mock.module('@/lib/trpc', () => ({
     trpc: {
         useUtils: () => ({
@@ -30,17 +26,10 @@ mock.module('@/lib/trpc', () => ({
         }),
         firearm: {
             setNfaTransferStatus: {
-                useMutation: (opts: {
-                    onSuccess?: () => void
-                    onError?: (err: { message: string }) => void
-                }) => {
-                    capturedOnSuccess = opts?.onSuccess
-                    capturedOnError = opts?.onError
-                    return {
-                        mutate: mutateMock,
-                        isPending: false,
-                    }
-                },
+                useMutation: () => ({
+                    mutate: mutateMock,
+                    isPending: false,
+                }),
             },
         },
     },
@@ -68,8 +57,6 @@ describe('NfaStatusDialog', () => {
         cleanup()
         mutateMock.mockReset()
         invalidateMock.mockReset()
-        capturedOnSuccess = undefined
-        capturedOnError = undefined
     })
 
     // 1. Closed state
