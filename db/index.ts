@@ -102,7 +102,7 @@ function initializePostgresClient(): ReturnType<typeof postgres> {
 // =============================================================================
 
 /** Routes to auth-enabled or public Drizzle based on whether a JWT is in the async context. */
-export function getDb(): NeonHttpDatabase<Schema> {
+function getDb(): NeonHttpDatabase<Schema> {
     const store = authTokenStore.getStore()
     if (store?.token) {
         return getAuthDb(store)

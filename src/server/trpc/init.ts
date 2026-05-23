@@ -190,9 +190,6 @@ const t = initTRPC.context<Context>().create({
 export const createTRPCRouter = t.router
 export const createCallerFactory = t.createCallerFactory
 
-/** No auth required. */
-export const publicProcedure = t.procedure
-
 /** Requires authenticated session. */
 export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
     if (!ctx.session || !ctx.user) {

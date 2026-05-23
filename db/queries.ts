@@ -16,7 +16,6 @@ import {
     entity,
     hemsRequest,
     liabilityPayment,
-    personalProperty,
     trustAccounting,
     valuation,
 } from './schema'
@@ -138,50 +137,6 @@ export async function getValuationsForAsset(
         where: eq(column, assetId),
         orderBy: (v, { desc }) => [desc(v.valuationDate)],
     })
-}
-
-// =============================================================================
-// PERSONAL PROPERTY QUERIES (used by personalPropertyCrud)
-// =============================================================================
-
-async function getPersonalProperties(entityId?: number) {
-    if (entityId) {
-        return db
-            .select()
-            .from(personalProperty)
-            .where(eq(personalProperty.entityId, entityId))
-    }
-    return db.select().from(personalProperty)
-}
-
-async function createPersonalProperty(
-    data: typeof personalProperty.$inferInsert,
-) {
-    const [created] = await db
-        .insert(personalProperty)
-        .values({ ...data, updatedAt: new Date().toISOString() })
-        .returning()
-    return created
-}
-
-async function updatePersonalProperty(
-    id: number,
-    data: Partial<typeof personalProperty.$inferInsert>,
-) {
-    const [updated] = await db
-        .update(personalProperty)
-        .set({ ...data, updatedAt: new Date().toISOString() })
-        .where(eq(personalProperty.id, id))
-        .returning()
-    return updated
-}
-
-async function deletePersonalProperty(id: number) {
-    const [deleted] = await db
-        .delete(personalProperty)
-        .where(eq(personalProperty.id, id))
-        .returning()
-    return deleted
 }
 
 // =============================================================================
@@ -600,7 +555,7 @@ export const SEARCHABLE_ACTIVITY_LOG_FIELDS = [
 export type SearchableActivityLogField =
     (typeof SEARCHABLE_ACTIVITY_LOG_FIELDS)[number]
 
-export function isSearchableActivityLogField(
+function isSearchableActivityLogField(
     field: string,
 ): field is SearchableActivityLogField {
     return SEARCHABLE_ACTIVITY_LOG_FIELDS.includes(
@@ -928,17 +883,6 @@ export async function getUnconvertedIncomeSummary(entityId: number) {
 // =============================================================================
 // CRUD OBJECTS (aggregated for router consumption)
 // =============================================================================
-
-export const personalPropertyCrud = {
-    getAllArray: getPersonalProperties,
-    getById: async (id: number) =>
-        db.query.personalProperty.findFirst({
-            where: eq(personalProperty.id, id),
-        }),
-    create: createPersonalProperty,
-    update: updatePersonalProperty,
-    delete: deletePersonalProperty,
-}
 
 export const valuationCrud = {
     getAllArray: async () => db.select().from(valuation),

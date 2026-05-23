@@ -23,7 +23,6 @@
  * whose `header` is a render function rather than a string.
  */
 import type { Table } from '@tanstack/react-table'
-import { formatCurrency, formatDate, formatPercent } from '@/utils/formatters'
 
 export interface ExportTableToCsvOptions {
     filename: string
@@ -122,5 +121,3 @@ export function makeCsvFilename(
     const iso = date.toISOString().slice(0, 10)
     return `${resource}-${iso}.csv`
 }
-
-export { formatCurrency, formatDate, formatPercent }

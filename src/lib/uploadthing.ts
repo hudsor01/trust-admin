@@ -13,5 +13,3 @@ export const uploadRouter = {
         return { url: file.ufsUrl }
     }),
 } satisfies FileRouter
-
-export type UploadRouter = typeof uploadRouter

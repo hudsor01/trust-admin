@@ -4,11 +4,8 @@ import { logger } from './logger'
 
 export {
     type AppRole,
-    isAdmin,
-    isBeneficiary,
     isTrustAdmin,
     TRUST_ADMIN_ROLES,
-    type TrustAdminRole,
 } from './auth/roles'
 
 import type { AppRole } from './auth/roles'
@@ -18,18 +15,6 @@ const log = logger.auth
 // =============================================================================
 // TYPE DEFINITIONS
 // =============================================================================
-
-/** Neon Auth session (from neon_auth.session table). */
-export interface NeonAuthSession {
-    id: string
-    expiresAt: Date
-    token: string
-    createdAt: Date
-    updatedAt: Date
-    ipAddress?: string | null
-    userAgent?: string | null
-    userId: string
-}
 
 /** Neon Auth user. Custom fields (beneficiaryId) live in user_profile. */
 export interface NeonAuthUser {
@@ -51,11 +36,6 @@ export type AppUser = NeonAuthUser & {
     role: AppRole
     beneficiaryId?: number | null
 }
-
-/** Session data returned by neonAuth(). */
-export type SessionData =
-    | { session: NeonAuthSession; user: NeonAuthUser }
-    | { session: null; user: null }
 
 // =============================================================================
 // IP ADDRESS VALIDATION (for audit logging)
@@ -90,5 +70,4 @@ export function extractClientIP(req: Request): string {
 // AUTH CLIENT/SERVER EXPORTS
 // =============================================================================
 
-export { authClient } from './auth/client'
 export { authServer } from './auth/server'

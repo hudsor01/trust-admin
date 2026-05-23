@@ -21,7 +21,7 @@ export function toCents(amount: MoneyString): number {
 }
 
 /** Convert integer cents back to a string for DB storage. */
-export function fromCents(cents: number): string {
+function fromCents(cents: number): string {
     return (cents / 100).toFixed(2)
 }
 
@@ -46,19 +46,6 @@ export function subtractMoney(a: MoneyString, b: MoneyString): string {
     return fromCents(toCents(a) - toCents(b))
 }
 
-/** @returns -1 if a < b, 0 if equal, 1 if a > b */
-export function compareMoney(a: MoneyString, b: MoneyString): -1 | 0 | 1 {
-    const aCents = toCents(a)
-    const bCents = toCents(b)
-    if (aCents < bCents) return -1
-    if (aCents > bCents) return 1
-    return 0
-}
-
-export function isZero(amount: MoneyString): boolean {
-    return toCents(amount) === 0
-}
-
 export function isPositive(amount: MoneyString): boolean {
     return toCents(amount) > 0
 }
@@ -66,6 +53,3 @@ export function isPositive(amount: MoneyString): boolean {
 export function isNegative(amount: MoneyString): boolean {
     return toCents(amount) < 0
 }
-
-// Legacy aliases
-export { fromCents as toMoneyString, toCents as toDinero }

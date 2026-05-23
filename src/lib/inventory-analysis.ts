@@ -170,7 +170,6 @@ const REVIEW_STATUSES = [
     'needs_admin_review',
     'needs_professional_appraisal',
 ] as const
-export type ReviewStatus = (typeof REVIEW_STATUSES)[number]
 
 export const InventoryAnalysisSchema = z.object({
     name: z.string(),
@@ -190,7 +189,7 @@ export const InventoryAnalysisSchema = z.object({
     reviewNotes: z.string(),
 })
 
-export type InventoryAnalysis = z.infer<typeof InventoryAnalysisSchema>
+type InventoryAnalysis = z.infer<typeof InventoryAnalysisSchema>
 
 /** Analysis result with DB-mapped category. */
 export interface InventoryAnalysisResult extends InventoryAnalysis {

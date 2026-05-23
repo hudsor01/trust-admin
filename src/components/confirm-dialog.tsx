@@ -113,24 +113,3 @@ export function useConfirmDialog(
         close: () => setOpen(false),
     }
 }
-
-/** Pre-configured for delete operations with destructive styling. */
-export function DeleteConfirmDialog({
-    itemName,
-    onConfirm,
-    ...props
-}: {
-    itemName: string
-    onConfirm: () => void | Promise<void>
-} & Partial<Omit<ConfirmDialogProps, 'title' | 'description' | 'onConfirm'>>) {
-    return (
-        <ConfirmDialog
-            title={`Delete ${itemName}`}
-            description={`Are you sure you want to delete this ${itemName.toLowerCase()}? This action cannot be undone.`}
-            confirmText="Delete"
-            variant="destructive"
-            onConfirm={onConfirm}
-            {...props}
-        />
-    )
-}
