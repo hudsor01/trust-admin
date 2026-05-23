@@ -2,26 +2,26 @@
 gsd_state_version: 1.0
 milestone: v5.0
 milestone_name: Firearms Tracking & Beneficiary UX Refinement
-status: executing
-stopped_at: Phase 32 complete -- ASSET-03 + ASSET-04 verified
-last_updated: "2026-05-22T21:40:53Z"
-last_activity: 2026-05-22 -- Phase 32 sidebar-nav-alphabetization complete
+status: milestone-complete
+stopped_at: v5.0 milestone complete -- all 6 phases shipped (Phase 33 BENE-01..04 verified)
+last_updated: "2026-05-22T23:30:00Z"
+last_activity: 2026-05-22 -- Phase 33 beneficiary-ux-cleanup complete (v5.0 milestone closeout)
 progress:
   total_phases: 6
-  completed_phases: 5
-  total_plans: 6
-  completed_plans: 6
-  percent: 83
+  completed_phases: 6
+  total_plans: 7
+  completed_plans: 7
+  percent: 100
 ---
 
 # State: Trust Admin
 
 ## Current Position
 
-Phase: 33 (next)
-Plan: Not started
-Status: Phase 32 complete; ready to plan Phase 33 (beneficiary-ux-cleanup)
-Last activity: 2026-05-22 -- Phase 32 sidebar-nav-alphabetization complete (ASSET-03, ASSET-04 ✓)
+Phase: v5.0 milestone complete (Phases 28-33 all shipped)
+Plan: All plans complete (7/7)
+Status: Ready for milestone-complete workflow
+Last activity: 2026-05-22 -- Phase 33 beneficiary-ux-cleanup complete (BENE-01..04 ✓)
 
 ## Accumulated Context
 
@@ -131,6 +131,10 @@ Last activity: 2026-05-22 -- Phase 32 sidebar-nav-alphabetization complete (ASSE
 - [Phase 32] Sidebar prefetch handlers are cache-warming primitives — React Query staleTime=5min (src/lib/trpc-provider.tsx:33) makes hover network calls fire only on cold cache. UAT methodology for hover-prefetch must either hover on cold cache or verify wiring via JSX inspection + dev log of first-hover fire. SC-3-style "expect a request on every hover" assumptions are wrong.
 - [Phase 32] tRPC v11 httpBatchLink uses GET for queries, POST for mutations — sidebar prefetches are GETs (e.g. /api/trpc/firearm.list?batch=1&input=...). Plan/UAT specs should reflect this.
 - [Phase 32] Sentry @sentry/node-core@10.53.1 still calls module.register() instead of module.registerHooks(), tripping DEP0205 on Node 26. Suppressed via NODE_OPTIONS='--disable-warning=DEP0205' on dev/build/build:analyze/start scripts; removable once upstream Sentry releases the migration.
+- [Phase 33] KpiStrip skeleton + loaded-state branches both use `cn('grid grid-cols-1 md:grid-cols-2 gap-4', data.length === 5 ? 'lg:grid-cols-5' : 'lg:grid-cols-4')` with tile count derived from `data.length`. Reusable pattern for any future 5+ tile strip — extend the conditional or generalize to `cn(..., \`lg:grid-cols-\${Math.min(data.length, 5)}\`)` when going beyond 5.
+- [Phase 33] beneficiary.reorder adminProcedure was deleted along with BeneficiarySortableList.tsx, BeneficiaryAvatarStack.tsx, WithdrawalMilestoneGantt.tsx, and tests/trpc/beneficiary-reorder.test.ts. beneficiary.sortIndex column + idx_beneficiary_entity_sort + asc(sortIndex) ORDER BY in beneficiary.list and beneficiary.listWithDistributions are PRESERVED (BENE-04 acceptance criterion). Display order across portal/HEMS/distributions is unchanged.
+- [Phase 33] UI-SPEC FLAGs are advisory by GSD convention — planner may treat as out-of-scope. To make a FLAG mandatory, promote it to a CONTEXT.md `[MANDATORY TASK]` decision with verbatim diff shape BEFORE dispatching the planner. CONTEXT is the planner's source of truth. Verified: D-17 was a UI-SPEC FLAG promoted to CONTEXT, then planner included it as Task 1 with concrete acceptance gates.
+- [Phase 33] Surgical-delete execution order: edit consumer first (remove imports + JSX), then `git rm` the orphaned components, then prune downstream server-side surface (the now-dead tRPC procedure + its tests). Avoids the transient broken-import window that would fail typecheck between steps.
 
 ### Auth API Patterns That Work
 
@@ -173,8 +177,8 @@ const rows = await sql`SELECT id, name, email FROM neon_auth."user" WHERE lower(
 
 ## Session Continuity
 
-Last session: 2026-05-22T21:40:53Z
-Stopped at: Phase 32 complete -- ASSET-03 + ASSET-04 verified
-Resume file: .planning/phases/32-sidebar-nav-alphabetization/32-01-SUMMARY.md
+Last session: 2026-05-22T23:30:00Z
+Stopped at: v5.0 milestone complete -- all 6 phases shipped
+Resume file: .planning/phases/33-beneficiary-ux-cleanup/33-01-SUMMARY.md
 
-**Next:** Run `/gsd:plan-phase 33` to begin beneficiary-ux-cleanup (the final v5.0 phase).
+**Next:** Run `/gsd:complete-milestone` (or whichever closing workflow the project uses) to archive v5.0 and prepare for the next milestone.
