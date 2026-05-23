@@ -99,6 +99,13 @@
       "when": 1779320084261,
       "tag": "0013_kpi_schema_completeness",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1779396561930,
+      "tag": "0014_awesome_madripoor",
+      "breakpoints": true
     }
   ]
 }

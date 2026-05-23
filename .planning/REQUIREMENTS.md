@@ -9,15 +9,15 @@ Requirements for milestone v5.0. Each maps to a roadmap phase.
 
 ### Firearms Tracking
 
-- [ ] **FIRE-01**: Admin can add a firearm record with core identity fields — name, make, model, serial number, firearm type, caliber, barrel length
-- [ ] **FIRE-02**: Admin can classify a firearm as an NFA item and record its NFA class, ATF form type, ATF control number, and tax-stamp date
-- [ ] **FIRE-03**: Admin can record a firearm's date-of-death valuation, NRA condition grade, and acquisition details (date, cost)
-- [ ] **FIRE-04**: Admin can track a firearm's storage location, insured flag, and transfer status
-- [ ] **FIRE-05**: Admin can track ATF Form 5 transfer progress for an NFA item separately from the generic transfer status
+- [x] **FIRE-01**: Admin can add a firearm record with core identity fields — name, make, model, serial number, firearm type, caliber, barrel length
+- [x] **FIRE-02**: Admin can classify a firearm as an NFA item and record its NFA class, ATF form type, ATF control number, and tax-stamp date
+- [x] **FIRE-03**: Admin can record a firearm's date-of-death valuation, NRA condition grade, and acquisition details (date, cost)
+- [x] **FIRE-04**: Admin can track a firearm's storage location, insured flag, and transfer status
+- [x] **FIRE-05**: Admin can track ATF Form 5 transfer progress for an NFA item separately from the generic transfer status
 - [ ] **FIRE-06**: Admin can view, edit, and delete firearm records from a dedicated `/firearms` admin page
 - [ ] **FIRE-07**: Admin can sort, filter, and CSV-export the firearms table
-- [ ] **FIRE-08**: Admin can attach ATF-form and tax-stamp documents to a firearm record
-- [ ] **FIRE-09**: Admin can record appraisal / valuation history for a firearm
+- [x] **FIRE-08**: Admin can attach ATF-form and tax-stamp documents to a firearm record
+- [x] **FIRE-09**: Admin can record appraisal / valuation history for a firearm
 
 ### Asset Integration
 
@@ -60,15 +60,15 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FIRE-01 | Phase 28 | Pending |
-| FIRE-02 | Phase 28 | Pending |
-| FIRE-03 | Phase 28 | Pending |
-| FIRE-04 | Phase 28 | Pending |
-| FIRE-05 | Phase 28 | Pending |
+| FIRE-01 | Phase 28 | Complete |
+| FIRE-02 | Phase 28 | Complete |
+| FIRE-03 | Phase 28 | Complete |
+| FIRE-04 | Phase 28 | Complete |
+| FIRE-05 | Phase 28 | Complete |
 | FIRE-06 | Phase 30 | Pending |
 | FIRE-07 | Phase 30 | Pending |
-| FIRE-08 | Phase 28 | Pending |
-| FIRE-09 | Phase 28 | Pending |
+| FIRE-08 | Phase 28 | Complete |
+| FIRE-09 | Phase 28 | Complete |
 | ASSET-01 | Phase 31 | Pending |
 | ASSET-02 | Phase 31 | Pending |
 | ASSET-03 | Phase 32 | Pending |

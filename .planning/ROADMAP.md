@@ -70,7 +70,7 @@ Audit: [`milestones/v4.0-MILESTONE-AUDIT.md`](milestones/v4.0-MILESTONE-AUDIT.md
 
 ### v5.0 Firearms Tracking & Beneficiary UX Refinement
 
-- [ ] **Phase 28: firearm-schema-and-migration** - Add `firearm` table, 5 enums, RLS policies, and document/valuation FK extensions to Postgres
+- [x] **Phase 28: firearm-schema-and-migration** - Add `firearm` table, 5 enums, RLS policies, and document/valuation FK extensions to Postgres (completed 2026-05-21)
 - [ ] **Phase 29: firearm-trpc-router** - Implement `firearmRouter` with list/byId/create/update/delete (all adminProcedure, entityId-gated)
 - [ ] **Phase 30: firearms-admin-page** - Dedicated `/firearms` admin page with DataTable, KPI strip, create/edit form, and NFA-conditional fields
 - [ ] **Phase 31: asset-aggregator-integration** - Wire `firearm` into `asset.ts:listAll` and `dashboard.ts:summary` so totals and allocation charts include firearms
@@ -89,7 +89,9 @@ Audit: [`milestones/v4.0-MILESTONE-AUDIT.md`](milestones/v4.0-MILESTONE-AUDIT.md
   3. `document` and `valuation` tables accept a `firearmId` FK and their single-owner CHECK constraints still pass (inserting a document with two non-null asset FKs is rejected)
   4. `db/validation.ts` exports `insertFirearmSchema` / `updateFirearmSchema` with correct types; `bun run typecheck` passes with 0 errors
   5. The `nfaTransferStatus` enum has exactly the values `NOT_FILED`, `FILED`, `APPROVED`; the generic `transferStatus` enum is unchanged
-**Plans**: TBD
+**Plans**: 2 plans
+- [x] 28-01-PLAN.md — Schema, relations, and Zod validation: 5 firearm enums, the `firearm` pgTable with RLS, `document`/`valuation` `firearmId` FK columns + updated CHECK constraints, and `insert/select/updateFirearmSchema` + unit test
+- [x] 28-02-PLAN.md — Migration: generate + [BLOCKING] hand-audit `0014_*.sql`, apply via `db:deploy` with DB introspection verification, and the idempotent test-branch sync script
 
 ### Phase 29: firearm-trpc-router
 **Goal**: A complete tRPC router for firearms is registered and typechecks cleanly, ready for UI consumption.
@@ -155,7 +157,7 @@ Audit: [`milestones/v4.0-MILESTONE-AUDIT.md`](milestones/v4.0-MILESTONE-AUDIT.md
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 28. firearm-schema-and-migration | 0/? | Not started | - |
+| 28. firearm-schema-and-migration | 2/2 | Complete    | 2026-05-21 |
 | 29. firearm-trpc-router | 0/? | Not started | - |
 | 30. firearms-admin-page | 0/? | Not started | - |
 | 31. asset-aggregator-integration | 0/? | Not started | - |
