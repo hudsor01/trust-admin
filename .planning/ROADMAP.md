@@ -73,7 +73,7 @@ Audit: [`milestones/v4.0-MILESTONE-AUDIT.md`](milestones/v4.0-MILESTONE-AUDIT.md
 - [x] **Phase 28: firearm-schema-and-migration** - Add `firearm` table, 5 enums, RLS policies, and document/valuation FK extensions to Postgres (completed 2026-05-21)
 - [x] **Phase 29: firearm-trpc-router** - Implement `firearmRouter` with list/byId/create/update/delete (all adminProcedure, entityId-gated) (completed 2026-05-21)
 - [x] **Phase 30: firearms-admin-page** - Dedicated `/firearms` admin page with DataTable, KPI strip, create/edit form, and NFA-conditional fields (completed 2026-05-22)
-- [ ] **Phase 31: asset-aggregator-integration** - Wire `firearm` into `asset.ts:listAll` and `dashboard.ts:summary` so totals and allocation charts include firearms
+- [x] **Phase 31: asset-aggregator-integration** - Wire `firearm` into `asset.ts:listAll` and `dashboard.ts:summary` so totals and allocation charts include firearms (completed 2026-05-22)
 - [ ] **Phase 32: sidebar-nav-alphabetization** - Reorder Assets sub-nav to alphabetical and add Firearms link
 - [ ] **Phase 33: beneficiary-ux-cleanup** - Remove avatar-stack card, Display Order section, and withdrawal-milestone gantt from Beneficiaries page
 
@@ -129,7 +129,8 @@ Audit: [`milestones/v4.0-MILESTONE-AUDIT.md`](milestones/v4.0-MILESTONE-AUDIT.md
   2. The dashboard allocation pie chart includes a "Firearms" slice when at least one firearm record exists
   3. Firearm rows appear in the `/assets` unified view with an `href` linking to `/firearms`
   4. Removing all firearm records causes the Firearms slice to disappear from the pie chart and the "Total Assets" KPI to decrease accordingly
-**Plans**: TBD
+**Plans**: 1 plan
+- [ ] 31-01-PLAN.md — Wire firearm into asset.ts:listAll + dashboard.ts:summary + DashboardClient (3 files, 4 tasks: 3 surgical edits + admin UAT)
 **UI hint**: yes
 
 ### Phase 32: sidebar-nav-alphabetization
@@ -162,6 +163,6 @@ Audit: [`milestones/v4.0-MILESTONE-AUDIT.md`](milestones/v4.0-MILESTONE-AUDIT.md
 | 28. firearm-schema-and-migration | 2/2 | Complete    | 2026-05-21 |
 | 29. firearm-trpc-router | 1/1 | Complete    | 2026-05-21 |
 | 30. firearms-admin-page | 1/1 | Complete    | 2026-05-22 |
-| 31. asset-aggregator-integration | 0/? | Not started | - |
+| 31. asset-aggregator-integration | 0/1 | Complete    | 2026-05-22 |
 | 32. sidebar-nav-alphabetization | 0/? | Not started | - |
 | 33. beneficiary-ux-cleanup | 0/? | Not started | - |
