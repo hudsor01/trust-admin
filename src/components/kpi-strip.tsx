@@ -17,15 +17,34 @@ export interface KpiStripProps {
     isLoading?: boolean
 }
 
+/**
+ * Pick the lg-breakpoint grid-cols class for an N-tile strip.
+ *
+ * Each entry must be a literal string so Tailwind's JIT extractor picks it
+ * up; we cannot use template interpolation here. Strips with 7+ tiles fall
+ * through to lg:grid-cols-4 — they would wrap, but that's still better than
+ * a missing utility class.
+ */
+const LG_COLS: Record<number, string> = {
+    1: 'lg:grid-cols-1',
+    2: 'lg:grid-cols-2',
+    3: 'lg:grid-cols-3',
+    4: 'lg:grid-cols-4',
+    5: 'lg:grid-cols-5',
+    6: 'lg:grid-cols-6',
+}
+
+const lgColsFor = (count: number) => LG_COLS[count] ?? 'lg:grid-cols-4'
+
 export function KpiStrip({ data, isLoading = false }: KpiStripProps) {
+    const gridClass = cn(
+        'grid grid-cols-1 md:grid-cols-2 gap-4',
+        lgColsFor(data.length),
+    )
+
     if (isLoading) {
         return (
-            <div
-                className={cn(
-                    'grid grid-cols-1 md:grid-cols-2 gap-4',
-                    data.length === 5 ? 'lg:grid-cols-5' : 'lg:grid-cols-4',
-                )}
-            >
+            <div className={gridClass}>
                 {Array.from({ length: data.length }).map((_, i) => (
                     <SummaryCard
                         key={`kpi-skeleton-${i}`}
@@ -43,12 +62,7 @@ export function KpiStrip({ data, isLoading = false }: KpiStripProps) {
     }
 
     return (
-        <div
-            className={cn(
-                'grid grid-cols-1 md:grid-cols-2 gap-4',
-                data.length === 5 ? 'lg:grid-cols-5' : 'lg:grid-cols-4',
-            )}
-        >
+        <div className={gridClass}>
             {data.map((item) => {
                 // Color inversion rule (UI-SPEC §Color): when invertDelta is
                 // true, flip isPositive — e.g. a shrinking liability balance is

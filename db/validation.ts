@@ -190,6 +190,14 @@ export const insertBankAccountSchema = createInsertSchema(bankAccount, {
 })
 export const selectBankAccountSchema = createSelectSchema(bankAccount)
 
+// `sortIndex` is omitted from the input surface: the drag-to-reorder UI and
+// `beneficiary.reorder` adminProcedure were removed in Phase 33 (D-04), but
+// the column + its composite index + the `orderBy(asc(sortIndex))` clause in
+// beneficiary.list / beneficiary.listWithDistributions are preserved per
+// BENE-04. With no external writer left, accepting `sortIndex` on create or
+// update would be silently ignored (column has `default 0`) or worse — let a
+// future caller drift the persisted display order out of admin control. The
+// schema lock makes that contract enforced at the type system.
 export const insertBeneficiarySchema = createInsertSchema(beneficiary, {
     createdAt: (schema) => schema.optional(),
     updatedAt: (schema) => schema.optional(),
@@ -200,7 +208,7 @@ export const insertBeneficiarySchema = createInsertSchema(beneficiary, {
     state: () => stateValidation,
     streetAddress: () => streetAddressValidation,
     sharePercent: () => percentageValidation,
-})
+}).omit({ sortIndex: true })
 export const selectBeneficiarySchema = createSelectSchema(beneficiary)
 
 export const insertContactSchema = createInsertSchema(contact, {
