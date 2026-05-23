@@ -5,6 +5,7 @@ import { db } from '@/db'
 import {
     bankAccount,
     entity,
+    firearm,
     homestead,
     insurancePolicy,
     investmentAccount,
@@ -42,6 +43,7 @@ const ids = {
     artId: null as number | null,
     personalId: null as number | null,
     insuranceId: null as number | null,
+    firearmId: null as number | null,
 }
 
 describe.skipIf(isProductionDb)('asset.listAll aggregator', () => {
@@ -188,9 +190,33 @@ describe.skipIf(isProductionDb)('asset.listAll aggregator', () => {
             })
             .returning()
         ids.insuranceId = ins.id
+
+        // 8th asset class — added in Phase 31 (firearm wired into asset.listAll
+        // fan-out). Closes GAP-31-01 from the v5.0 milestone audit: without this
+        // seed + the corresponding `kinds.has('firearm')` assertion below, the
+        // firearm aggregator wiring could be silently reverted.
+        const [fa] = await db
+            .insert(firearm)
+            .values({
+                entityId: e1.id,
+                name: `Asset Test Firearm ${TS}`,
+                make: 'Smith & Wesson',
+                model: 'M&P9',
+                serialNumber: `ASSET-FA-${TS}`,
+                firearmType: 'PISTOL',
+                isNfa: false,
+                status: 'ACTIVE',
+                transferStatus: 'PENDING',
+                dodValue: '750.00',
+                updatedAt: now,
+            })
+            .returning()
+        ids.firearmId = fa.id
     }, TEST_TIMEOUT)
 
     afterAll(async () => {
+        if (ids.firearmId)
+            await db.delete(firearm).where(eq(firearm.id, ids.firearmId))
         if (ids.insuranceId)
             await db
                 .delete(insurancePolicy)
@@ -237,6 +263,31 @@ describe.skipIf(isProductionDb)('asset.listAll aggregator', () => {
         expect(kinds.has('investmentAccount')).toBe(true)
         expect(kinds.has('personalProperty')).toBe(true)
         expect(kinds.has('insurancePolicy')).toBe(true)
+        // GAP-31-01 (v5.0 audit): firearm is the 8th asset class wired into
+        // listAll in Phase 31. Without this assertion the wiring could regress
+        // silently.
+        expect(kinds.has('firearm')).toBe(true)
+    })
+
+    test('firearm row carries name, value (dodValue), href, and transferStatus', async () => {
+        // GAP-31-01 (v5.0 audit): one extra row-shape test pins down the
+        // firearm mapper output so any drift in src/server/trpc/routers/asset.ts
+        // shows up as a structural test failure (kind, href, name, value).
+        // Note: AssetRow uses `value` as the canonical value field; firearms
+        // map their `dodValue` column into it (matches the convention for
+        // vehicle/homestead/rentalProperty/personalProperty).
+        const rows = await adminCaller().asset.listAll({
+            entityId: ids.entityId!,
+        })
+        const fa = rows.find(
+            (r) => r.kind === 'firearm' && r.id === ids.firearmId,
+        )
+        expect(fa).toBeDefined()
+        expect(fa?.name).toBe(`Asset Test Firearm ${TS}`)
+        expect(fa?.value).toBe('750.00')
+        expect(fa?.category).toBe('Firearm')
+        expect(fa?.href).toBe('/firearms')
+        expect(fa?.transferStatus).toBe('PENDING')
     })
 
     test('passes through real `name` and `description` columns', async () => {
@@ -250,11 +301,13 @@ describe.skipIf(isProductionDb)('asset.listAll aggregator', () => {
         expect(v?.description).toBe('Black · VIN ABCDEFGH123456789')
     })
 
-    test('surfaces transferStatus from the six transferable asset kinds', async () => {
+    test('surfaces transferStatus from the seven transferable asset kinds', async () => {
         const rows = await adminCaller().asset.listAll({
             entityId: ids.entityId!,
         })
-        // All six transferable kinds were seeded with transferStatus 'PENDING'.
+        // All seven transferable kinds were seeded with transferStatus 'PENDING'.
+        // Phase 31 added `firearm` as the 7th — the test name was "six" before;
+        // bumping it to "seven" closes GAP-31-01.
         const transferable: Array<[string, number | null]> = [
             ['vehicle', ids.vehicleId],
             ['homestead', ids.homesteadId],
@@ -262,6 +315,7 @@ describe.skipIf(isProductionDb)('asset.listAll aggregator', () => {
             ['bankAccount', ids.bankId],
             ['investmentAccount', ids.investmentId],
             ['personalProperty', ids.personalId],
+            ['firearm', ids.firearmId],
         ]
         for (const [kind, id] of transferable) {
             const row = rows.find((r) => r.kind === kind && r.id === id)
