@@ -159,7 +159,6 @@ export const beneficiaryRelations = relations(beneficiary, ({ one, many }) => ({
     children: many(beneficiary, {
         relationName: 'beneficiary_parentId_beneficiary_id',
     }),
-    noteReceivables: many(noteReceivable),
 }))
 
 export const valuationRelations = relations(valuation, ({ one }) => ({
@@ -389,10 +388,6 @@ export const noteReceivableRelations = relations(
         entity: one(entity, {
             fields: [noteReceivable.entityId],
             references: [entity.id],
-        }),
-        beneficiary: one(beneficiary, {
-            fields: [noteReceivable.beneficiaryId],
-            references: [beneficiary.id],
         }),
         payments: many(receivablePayment),
     }),

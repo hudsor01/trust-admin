@@ -2660,10 +2660,6 @@ export const noteReceivable = pgTable(
         debtor: t.text().notNull(), // Who owes the trust
         debtorAddress: t.text(), // Tex. Estates Code §309.052(1) — List of Claims requires the debtor's address, if known
         noteType: noteType().default('NON_NEGOTIABLE').notNull(), // Drives the limitations period (4 yr vs 6 yr)
-        // Set when the debtor is also a beneficiary, so the unpaid balance can be
-        // tracked for offset against that beneficiary's distribution (the
-        // trustee's statutory right of offset, Tex. Prop. Code §114.031(b)).
-        beneficiaryId: bigint({ mode: 'number' }),
         description: t.text(),
         originalPrincipal: t.numeric({ precision: 14, scale: 2 }).notNull(), // Original amount lent/advanced
         currentBalance: t.numeric({ precision: 14, scale: 2 }).notNull(), // Outstanding balance owed to the trust
@@ -2717,7 +2713,6 @@ export const noteReceivable = pgTable(
             table.entityId,
             table.status,
         ),
-        index('idx_note_receivable_beneficiary_id').on(table.beneficiaryId),
         foreignKey({
             columns: [table.entityId],
             foreignColumns: [entity.id],
@@ -2725,13 +2720,6 @@ export const noteReceivable = pgTable(
         })
             .onUpdate('cascade')
             .onDelete('restrict'),
-        foreignKey({
-            columns: [table.beneficiaryId],
-            foreignColumns: [beneficiary.id],
-            name: 'note_receivable_beneficiary_id_fkey',
-        })
-            .onUpdate('cascade')
-            .onDelete('set null'),
         pgPolicy('crud-authenticated-policy-select', {
             as: 'permissive',
             for: 'select',

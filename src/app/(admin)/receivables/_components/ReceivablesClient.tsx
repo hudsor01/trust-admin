@@ -51,16 +51,6 @@ export function ReceivablesClient() {
         { enabled: !!entityId },
     )
 
-    const { data: beneficiaries = [] } = trpc.beneficiary.list.useQuery(
-        { entityId: entityId! },
-        { enabled: !!entityId },
-    )
-
-    const beneficiaryOptions = beneficiaries.map((b) => ({
-        id: b.id,
-        name: `${b.firstName ?? ''} ${b.lastName ?? ''}`.trim() || `#${b.id}`,
-    }))
-
     const createReceivableMutation = trpc.noteReceivable.create.useMutation({
         onSuccess: () => {
             utils.noteReceivable.list.invalidate()
@@ -109,7 +99,6 @@ export function ReceivablesClient() {
                 debtor: data.debtor,
                 debtorAddress: data.debtorAddress || null,
                 noteType: asNoteType(data.noteType),
-                beneficiaryId: Number(data.beneficiaryId) || null,
                 description: data.description || null,
                 originalPrincipal: data.originalPrincipal || '0',
                 currentBalance: data.currentBalance || '0',
@@ -199,7 +188,6 @@ export function ReceivablesClient() {
             debtor: r.debtor,
             debtorAddress: r.debtorAddress || '',
             noteType: r.noteType,
-            beneficiaryId: r.beneficiaryId ? String(r.beneficiaryId) : '',
             description: r.description || '',
             originalPrincipal: r.originalPrincipal?.toString() || '',
             currentBalance: r.currentBalance?.toString() || '',
@@ -295,7 +283,6 @@ export function ReceivablesClient() {
                 onOpenChange={receivableForm.close}
                 onSubmit={receivableForm.handleSave}
                 formInstance={receivableFormInstance}
-                beneficiaries={beneficiaryOptions}
             />
 
             <ReceivablePaymentDialog

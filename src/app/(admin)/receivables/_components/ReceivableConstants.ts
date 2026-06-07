@@ -30,7 +30,6 @@ export interface ReceivableFormData {
     debtor: string
     debtorAddress: string
     noteType: string
-    beneficiaryId: string
     description: string
     originalPrincipal: string
     currentBalance: string
@@ -67,7 +66,6 @@ export const defaultFormData = (): ReceivableFormData => ({
     debtor: '',
     debtorAddress: '',
     noteType: 'NON_NEGOTIABLE',
-    beneficiaryId: '',
     description: '',
     originalPrincipal: '',
     currentBalance: '',

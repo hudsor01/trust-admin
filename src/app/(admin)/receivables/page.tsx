@@ -7,7 +7,6 @@ export default async function ReceivablesPage() {
     await Promise.all([
         helpers.noteReceivable.list.prefetch({ entityId: 1 }),
         helpers.bankAccount.list.prefetch({ entityId: 1 }),
-        helpers.beneficiary.list.prefetch({ entityId: 1 }),
         helpers.entity.list.prefetch(),
     ])
     return (

@@ -3,7 +3,7 @@ import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '@/db'
 import { getReceivablePayments, recordReceivablePayment } from '@/db/queries'
-import { bankAccount, beneficiary, noteReceivable } from '@/db/schema'
+import { bankAccount, noteReceivable } from '@/db/schema'
 import {
     insertNoteReceivableSchema,
     updateNoteReceivableSchema,
@@ -26,32 +26,6 @@ const recordPaymentSchema = z.object({
     notes: z.string().optional(),
 })
 
-/**
- * When a receivable is linked to a beneficiary (debtor is also a beneficiary),
- * verify that beneficiary belongs to the SAME entity — same cross-entity
- * tampering guard used on liability's linked-account FKs.
- */
-async function assertBeneficiaryInEntity(params: {
-    entityId: number
-    beneficiaryId?: number | null
-}): Promise<void> {
-    if (params.beneficiaryId === null || params.beneficiaryId === undefined) {
-        return
-    }
-    const row = await db.query.beneficiary.findFirst({
-        where: and(
-            eq(beneficiary.id, params.beneficiaryId),
-            eq(beneficiary.entityId, params.entityId),
-        ),
-    })
-    if (!row) {
-        throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: 'Linked beneficiary does not belong to this entity',
-        })
-    }
-}
-
 export const noteReceivableRouter = createTRPCRouter({
     list: adminProcedure
         .input(z.object({ entityId: z.coerce.number() }))
@@ -70,17 +44,13 @@ export const noteReceivableRouter = createTRPCRouter({
                     eq(noteReceivable.id, input.id),
                     eq(noteReceivable.entityId, input.entityId),
                 ),
-                with: { entity: true, beneficiary: true, payments: true },
+                with: { entity: true, payments: true },
             })
         }),
 
     create: adminProcedure
         .input(insertNoteReceivableSchema)
         .mutation(async ({ input }) => {
-            await assertBeneficiaryInEntity({
-                entityId: input.entityId,
-                beneficiaryId: input.beneficiaryId,
-            })
             const [created] = await db
                 .insert(noteReceivable)
                 .values({ ...input, updatedAt: new Date().toISOString() })
@@ -102,9 +72,8 @@ export const noteReceivableRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ input }) => {
-            // Confirm the row exists in the caller's entity FIRST, so a probe for
-            // an out-of-scope row 404s rather than leaking entity membership via
-            // the beneficiary FK guard's BAD_REQUEST.
+            // Confirm the row exists in the caller's entity before updating, so a
+            // probe for an out-of-scope row 404s.
             const existing = await db.query.noteReceivable.findFirst({
                 where: and(
                     eq(noteReceivable.id, input.id),
@@ -117,10 +86,6 @@ export const noteReceivableRouter = createTRPCRouter({
                     message: 'Record not found in this entity',
                 })
             }
-            await assertBeneficiaryInEntity({
-                entityId: input.entityId,
-                beneficiaryId: input.data.beneficiaryId,
-            })
             const [updated] = await db
                 .update(noteReceivable)
                 .set({ ...input.data, updatedAt: new Date().toISOString() })

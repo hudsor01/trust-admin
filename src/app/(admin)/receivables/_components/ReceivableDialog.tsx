@@ -21,12 +21,6 @@ import {
     type ReceivableFormData,
 } from './ReceivableConstants'
 
-/** Minimal beneficiary shape for the optional debtor-link Select. */
-interface LinkableBeneficiary {
-    id: number
-    name: string
-}
-
 interface ReceivableDialogProps {
     isOpen: boolean
     isEditing: boolean
@@ -34,7 +28,6 @@ interface ReceivableDialogProps {
     onOpenChange: (open: boolean) => void
     onSubmit: () => void
     formInstance: UseResourceFormReturn<ReceivableFormData>['formInstance']
-    beneficiaries: LinkableBeneficiary[]
 }
 
 export function ReceivableDialog({
@@ -44,7 +37,6 @@ export function ReceivableDialog({
     onOpenChange,
     onSubmit,
     formInstance,
-    beneficiaries,
 }: ReceivableDialogProps) {
     return (
         <ResourceDialog
@@ -59,7 +51,7 @@ export function ReceivableDialog({
                     <h4 className="text-sm font-medium mb-3">
                         Receivable Information
                     </h4>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div>
                         <formInstance.Field name="receivableType">
                             {(field) => (
                                 <div className="space-y-2">
@@ -168,42 +160,6 @@ export function ReceivableDialog({
                                                     value={t.value}
                                                 >
                                                     {t.label}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            )}
-                        </formInstance.Field>
-                        {/* Optional beneficiary link — debtor is also a
-                            beneficiary. The "__none__" sentinel maps to ''. */}
-                        <formInstance.Field name="beneficiaryId">
-                            {(field) => (
-                                <div className="space-y-2">
-                                    <Label htmlFor="beneficiary">
-                                        Linked beneficiary
-                                    </Label>
-                                    <Select
-                                        value={field.state.value || '__none__'}
-                                        onValueChange={(v) =>
-                                            field.handleChange(
-                                                v === '__none__' ? '' : v,
-                                            )
-                                        }
-                                    >
-                                        <SelectTrigger id="beneficiary">
-                                            <SelectValue placeholder="— None —" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="__none__">
-                                                — None —
-                                            </SelectItem>
-                                            {beneficiaries.map((b) => (
-                                                <SelectItem
-                                                    key={b.id}
-                                                    value={String(b.id)}
-                                                >
-                                                    {b.name}
                                                 </SelectItem>
                                             ))}
                                         </SelectContent>

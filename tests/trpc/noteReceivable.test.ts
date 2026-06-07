@@ -1,7 +1,7 @@
 /**
  * tRPC tests for the noteReceivable router — the asset-side mirror of liability.
- * Covers CRUD + entity scoping, the cross-entity beneficiary FK guard, insert
- * validation, the repayment flow (principal/interest split → trust_accounting
+ * Covers CRUD + entity scoping, insert validation, the repayment flow
+ * (principal/interest split → trust_accounting
  * INCOME entries per Tex. Prop. Code §116.163, balance reduction, PAID_OFF
  * transition), and dashboard.summary integration.
  *
@@ -12,7 +12,6 @@ import { eq } from 'drizzle-orm'
 import { db } from '@/db'
 import {
     bankAccount,
-    beneficiary,
     entity,
     noteReceivable,
     receivablePayment,
@@ -38,15 +37,13 @@ function adminCaller() {
 }
 
 // ============================================================
-// CRUD + entity scoping + beneficiary FK guard + validation
+// CRUD + entity scoping + validation
 // ============================================================
 
 const ids = {
     entityA: null as number | null,
     entityB: null as number | null,
     bankA: null as number | null,
-    benA: null as number | null,
-    benB: null as number | null,
     inB: null as number | null,
 }
 
@@ -93,34 +90,6 @@ describe.skipIf(isProductionDb)('noteReceivable CRUD', () => {
             .returning()
         ids.bankA = bA.id
 
-        const [benArow] = await db
-            .insert(beneficiary)
-            .values({
-                entityId: eA.id,
-                firstName: 'Recv',
-                lastName: `BenA${TS}`,
-                email: `recv-bena-${TS}@example.com`,
-                relationship: 'CHILD',
-                sharePercent: '50.00',
-                updatedAt: now,
-            })
-            .returning()
-        ids.benA = benArow.id
-
-        const [benBrow] = await db
-            .insert(beneficiary)
-            .values({
-                entityId: eB.id,
-                firstName: 'Recv',
-                lastName: `BenB${TS}`,
-                email: `recv-benb-${TS}@example.com`,
-                relationship: 'CHILD',
-                sharePercent: '50.00',
-                updatedAt: now,
-            })
-            .returning()
-        ids.benB = benBrow.id
-
         // A receivable in entity B — must never appear in A's list.
         const [inB] = await db
             .insert(noteReceivable)
@@ -141,7 +110,7 @@ describe.skipIf(isProductionDb)('noteReceivable CRUD', () => {
     afterAll(async () => {
         for (const e of [ids.entityA, ids.entityB]) {
             if (!e) continue
-            // payments → receivables (reverse FK), then beneficiaries/bank/entity
+            // payments → receivables (reverse FK), then bank/entity
             const recs = await db
                 .select({ id: noteReceivable.id })
                 .from(noteReceivable)
@@ -154,7 +123,6 @@ describe.skipIf(isProductionDb)('noteReceivable CRUD', () => {
             await db
                 .delete(noteReceivable)
                 .where(eq(noteReceivable.entityId, e))
-            await db.delete(beneficiary).where(eq(beneficiary.entityId, e))
             await db.delete(bankAccount).where(eq(bankAccount.entityId, e))
             await db.delete(entity).where(eq(entity.id, e))
         }
@@ -214,45 +182,6 @@ describe.skipIf(isProductionDb)('noteReceivable CRUD', () => {
     )
 
     test(
-        'create links a beneficiary belonging to the same entity',
-        async () => {
-            const caller = adminCaller()
-            const created = await caller.noteReceivable.create({
-                entityId: ids.entityA!,
-                receivableType: 'ADVANCE',
-                debtor: `Beneficiary Debtor ${TS}`,
-                noteType: 'NON_NEGOTIABLE',
-                originalPrincipal: '8000.00',
-                currentBalance: '8000.00',
-                beneficiaryId: ids.benA!,
-                status: 'ACTIVE',
-            })
-            expect(created.beneficiaryId).toBe(ids.benA!)
-        },
-        TEST_TIMEOUT,
-    )
-
-    test(
-        'create rejects a cross-entity beneficiary FK with BAD_REQUEST',
-        async () => {
-            const caller = adminCaller()
-            await expect(
-                caller.noteReceivable.create({
-                    entityId: ids.entityA!,
-                    receivableType: 'ADVANCE',
-                    debtor: `Cross Entity Ben ${TS}`,
-                    noteType: 'NON_NEGOTIABLE',
-                    originalPrincipal: '8000.00',
-                    currentBalance: '8000.00',
-                    beneficiaryId: ids.benB!,
-                    status: 'ACTIVE',
-                }),
-            ).rejects.toThrow(/does not belong to this entity/i)
-        },
-        TEST_TIMEOUT,
-    )
-
-    test(
         'update modifies a receivable scoped to its entity',
         async () => {
             const caller = adminCaller()
@@ -287,30 +216,6 @@ describe.skipIf(isProductionDb)('noteReceivable CRUD', () => {
                     data: { currentBalance: '1.00' },
                 }),
             ).rejects.toThrow(/not found/i)
-        },
-        TEST_TIMEOUT,
-    )
-
-    test(
-        'update rejects setting a cross-entity beneficiary FK',
-        async () => {
-            const caller = adminCaller()
-            const created = await caller.noteReceivable.create({
-                entityId: ids.entityA!,
-                receivableType: 'PERSONAL_LOAN',
-                debtor: `Update Ben Guard ${TS}`,
-                noteType: 'NON_NEGOTIABLE',
-                originalPrincipal: '2000.00',
-                currentBalance: '2000.00',
-                status: 'ACTIVE',
-            })
-            await expect(
-                caller.noteReceivable.update({
-                    id: created.id,
-                    entityId: ids.entityA!,
-                    data: { beneficiaryId: ids.benB! },
-                }),
-            ).rejects.toThrow(/does not belong to this entity/i)
         },
         TEST_TIMEOUT,
     )

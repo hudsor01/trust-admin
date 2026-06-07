@@ -41,14 +41,7 @@ export function ReceivableTable({
                 <DataTableColumnHeader column={column} title="Debtor" />
             ),
             cell: ({ row }) => (
-                <div className="flex flex-col gap-0.5">
-                    <span className="font-medium">{row.original.debtor}</span>
-                    {row.original.beneficiaryId !== null && (
-                        <span className="text-xs text-muted-foreground">
-                            Beneficiary debt
-                        </span>
-                    )}
-                </div>
+                <span className="font-medium">{row.original.debtor}</span>
             ),
         },
         {
