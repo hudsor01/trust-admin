@@ -28,10 +28,7 @@ export function ReceivableKpiStrip({
     isLoading,
 }: ReceivableKpiStripProps) {
     const active = receivables.filter(
-        (r) =>
-            r.status === 'ACTIVE' ||
-            r.status === 'CURRENT' ||
-            r.status === 'OPEN',
+        (r) => r.status === 'ACTIVE' || r.status === 'OPEN',
     )
     const totalOriginal = sumStrings(
         receivables.map((r) => r.originalPrincipal),

@@ -17,6 +17,8 @@ import {
     receivablePayment,
     trustAccounting,
 } from '@/db/schema'
+import { calculatePaymentSplit } from '@/lib/amortization'
+import { toCents } from '@/lib/money'
 import { createCallerFactory } from '@/server/trpc/init'
 import { appRouter } from '@/server/trpc/router'
 import { isProductionDb } from '../helpers/db-guard'
@@ -110,7 +112,10 @@ describe.skipIf(isProductionDb)('noteReceivable CRUD', () => {
     afterAll(async () => {
         for (const e of [ids.entityA, ids.entityB]) {
             if (!e) continue
-            // payments → receivables (reverse FK), then bank/entity
+            // accounting → payments → receivables (reverse FK), then bank/entity
+            await db
+                .delete(trustAccounting)
+                .where(eq(trustAccounting.entityId, e))
             const recs = await db
                 .select({ id: noteReceivable.id })
                 .from(noteReceivable)
@@ -146,8 +151,11 @@ describe.skipIf(isProductionDb)('noteReceivable CRUD', () => {
             })
             expect(created.id).toBeGreaterThan(0)
             expect(created.debtor).toBe(`Acme Borrower ${TS}`)
+            expect(created.debtorAddress).toBe('123 Main St, Dallas, TX')
             expect(created.currentBalance).toBe('25000.00')
             expect(created.noteType).toBe('NON_NEGOTIABLE')
+            // dueDate round-trips (timestamptz string, prefix match)
+            expect(created.dueDate).toMatch(/^2025-01-01/)
             // allocationClass defaults to PRINCIPAL (note principal is a principal asset)
             expect(created.allocationClass).toBe('PRINCIPAL')
         },
@@ -301,6 +309,10 @@ const pay = {
     nonInterestId: null as number | null,
     payoffId: null as number | null,
     otherReceivableId: null as number | null,
+    autoCalcId: null as number | null,
+    interestOnlyId: null as number | null,
+    overpayId: null as number | null,
+    orderingId: null as number | null,
 }
 
 describe.skipIf(isProductionDb)('noteReceivable.recordPayment', () => {
@@ -421,6 +433,67 @@ describe.skipIf(isProductionDb)('noteReceivable.recordPayment', () => {
             })
             .returning()
         pay.otherReceivableId = otherRecv.id
+
+        const [autoCalc] = await db
+            .insert(noteReceivable)
+            .values({
+                entityId: e1.id,
+                receivableType: 'PROMISSORY_NOTE',
+                debtor: `AutoCalc Debtor ${TS}`,
+                noteType: 'NEGOTIABLE',
+                originalPrincipal: '12000.00',
+                currentBalance: '12000.00',
+                interestRate: '0.060',
+                status: 'ACTIVE',
+                updatedAt: now,
+            })
+            .returning()
+        pay.autoCalcId = autoCalc.id
+
+        const [interestOnly] = await db
+            .insert(noteReceivable)
+            .values({
+                entityId: e1.id,
+                receivableType: 'PROMISSORY_NOTE',
+                debtor: `InterestOnly Debtor ${TS}`,
+                noteType: 'NON_NEGOTIABLE',
+                originalPrincipal: '3000.00',
+                currentBalance: '3000.00',
+                status: 'ACTIVE',
+                updatedAt: now,
+            })
+            .returning()
+        pay.interestOnlyId = interestOnly.id
+
+        const [overpay] = await db
+            .insert(noteReceivable)
+            .values({
+                entityId: e1.id,
+                receivableType: 'PERSONAL_LOAN',
+                debtor: `Overpay Debtor ${TS}`,
+                noteType: 'NON_NEGOTIABLE',
+                originalPrincipal: '1000.00',
+                currentBalance: '1000.00',
+                status: 'ACTIVE',
+                updatedAt: now,
+            })
+            .returning()
+        pay.overpayId = overpay.id
+
+        const [ordering] = await db
+            .insert(noteReceivable)
+            .values({
+                entityId: e1.id,
+                receivableType: 'PERSONAL_LOAN',
+                debtor: `Ordering Debtor ${TS}`,
+                noteType: 'NON_NEGOTIABLE',
+                originalPrincipal: '5000.00',
+                currentBalance: '5000.00',
+                status: 'ACTIVE',
+                updatedAt: now,
+            })
+            .returning()
+        pay.orderingId = ordering.id
     }, TEST_TIMEOUT)
 
     afterAll(async () => {
@@ -491,6 +564,11 @@ describe.skipIf(isProductionDb)('noteReceivable.recordPayment', () => {
             expect(principal!.amount).toBe('800.00')
             // Returned principal is a principal receipt
             expect(principal!.isPrincipal).toBe(true)
+
+            // Reconcile invariant: the two INCOME entries sum to the deposit.
+            expect(toCents(interest!.amount) + toCents(principal!.amount)).toBe(
+                toCents(result.payment.amount),
+            )
         },
         TEST_TIMEOUT,
     )
@@ -556,6 +634,138 @@ describe.skipIf(isProductionDb)('noteReceivable.recordPayment', () => {
     )
 
     test(
+        'auto-calculates the interest/principal split for an interest-bearing note',
+        async () => {
+            const caller = adminCaller()
+            const today = new Date().toISOString().split('T')[0]!
+
+            // Fresh fixture (12000 @ 6%); amount only, no explicit portions.
+            const expected = calculatePaymentSplit(
+                '12000.00',
+                '0.060',
+                '1000.00',
+                undefined,
+            )
+            const result = await caller.noteReceivable.recordPayment({
+                entityId: pay.entityId!,
+                receivableId: pay.autoCalcId!,
+                bankAccountId: pay.bankId!,
+                amount: '1000.00',
+                paymentDate: today,
+                paymentMethod: 'CHECK',
+            })
+
+            expect(result.autoCalculated).not.toBeNull()
+            expect(result.autoCalculated!.interest).toBe(expected.interest)
+            expect(result.autoCalculated!.principal).toBe(expected.principal)
+
+            const entries = (
+                await caller.trustAccounting.list({ entityId: pay.entityId! })
+            ).filter(
+                (e) =>
+                    e.sourceAssetType === 'NOTE_RECEIVABLE' &&
+                    e.sourceAssetId === pay.autoCalcId,
+            )
+            const total = entries.reduce((s, e) => s + toCents(e.amount), 0)
+            // Auto-split entries still reconcile exactly to the deposit.
+            expect(total).toBe(toCents('1000.00'))
+        },
+        TEST_TIMEOUT,
+    )
+
+    test(
+        'interest-only payment posts one INCOME entry and leaves the balance unchanged',
+        async () => {
+            const caller = adminCaller()
+            const today = new Date().toISOString().split('T')[0]!
+
+            const result = await caller.noteReceivable.recordPayment({
+                entityId: pay.entityId!,
+                receivableId: pay.interestOnlyId!,
+                bankAccountId: pay.bankId!,
+                amount: '500.00',
+                interestPortion: '500.00',
+                paymentDate: today,
+                paymentMethod: 'ACH',
+            })
+
+            // All interest → balance unchanged, no SALE_PROCEEDS entry.
+            expect(result.receivable.currentBalance).toBe('3000.00')
+            const mine = (
+                await caller.trustAccounting.list({ entityId: pay.entityId! })
+            ).filter(
+                (e) =>
+                    e.sourceAssetType === 'NOTE_RECEIVABLE' &&
+                    e.sourceAssetId === pay.interestOnlyId,
+            )
+            expect(mine.length).toBe(1)
+            expect(mine[0]!.incomeType).toBe('INTEREST')
+            expect(mine[0]!.isPrincipal).toBe(false)
+            expect(mine[0]!.amount).toBe('500.00')
+        },
+        TEST_TIMEOUT,
+    )
+
+    test(
+        'rejects an overpayment whose principal exceeds the outstanding balance',
+        async () => {
+            const caller = adminCaller()
+            const today = new Date().toISOString().split('T')[0]!
+            await expect(
+                caller.noteReceivable.recordPayment({
+                    entityId: pay.entityId!,
+                    receivableId: pay.overpayId!,
+                    bankAccountId: pay.bankId!,
+                    amount: '1500.00',
+                    paymentDate: today,
+                    paymentMethod: 'CHECK',
+                }),
+            ).rejects.toThrow(/exceeds the outstanding balance/i)
+        },
+        TEST_TIMEOUT,
+    )
+
+    test(
+        'rejects an explicit split that does not sum to the amount',
+        async () => {
+            const caller = adminCaller()
+            const today = new Date().toISOString().split('T')[0]!
+            await expect(
+                caller.noteReceivable.recordPayment({
+                    entityId: pay.entityId!,
+                    receivableId: pay.interestBearingId!,
+                    bankAccountId: pay.bankId!,
+                    amount: '1000.00',
+                    principalPortion: '800.00',
+                    interestPortion: '100.00',
+                    paymentDate: today,
+                    paymentMethod: 'CHECK',
+                }),
+            ).rejects.toThrow(/must equal amount/i)
+        },
+        TEST_TIMEOUT,
+    )
+
+    test(
+        'rejects a non-positive payment amount',
+        async () => {
+            const caller = adminCaller()
+            const today = new Date().toISOString().split('T')[0]!
+            await expect(
+                caller.noteReceivable.recordPayment({
+                    entityId: pay.entityId!,
+                    receivableId: pay.interestBearingId!,
+                    bankAccountId: pay.bankId!,
+                    amount: '0',
+                    paymentDate: today,
+                    paymentMethod: 'CHECK',
+                }),
+            ).rejects.toThrow(/greater than 0/i)
+        },
+        TEST_TIMEOUT,
+    )
+
+    test(
         'rejects a bank account that does not belong to the entity',
         async () => {
             const caller = adminCaller()
@@ -597,12 +807,34 @@ describe.skipIf(isProductionDb)('noteReceivable.recordPayment', () => {
         'getPayments returns recorded payments newest-first',
         async () => {
             const caller = adminCaller()
+            // Two payments on distinct dates so ordering is actually exercised.
+            await caller.noteReceivable.recordPayment({
+                entityId: pay.entityId!,
+                receivableId: pay.orderingId!,
+                bankAccountId: pay.bankId!,
+                amount: '100.00',
+                paymentDate: '2025-01-15',
+                paymentMethod: 'CHECK',
+            })
+            await caller.noteReceivable.recordPayment({
+                entityId: pay.entityId!,
+                receivableId: pay.orderingId!,
+                bankAccountId: pay.bankId!,
+                amount: '200.00',
+                paymentDate: '2025-06-15',
+                paymentMethod: 'CHECK',
+            })
+
             const payments = await caller.noteReceivable.getPayments({
-                receivableId: pay.interestBearingId!,
+                receivableId: pay.orderingId!,
                 entityId: pay.entityId!,
             })
-            expect(payments.length).toBeGreaterThanOrEqual(1)
-            expect(payments[0]!.amount).toBe('1000.00')
+            expect(payments.length).toBeGreaterThanOrEqual(2)
+            // Newest (2025-06-15) first.
+            expect(payments[0]!.amount).toBe('200.00')
+            expect(
+                new Date(payments[0]!.paymentDate).getTime(),
+            ).toBeGreaterThan(new Date(payments[1]!.paymentDate).getTime())
         },
         TEST_TIMEOUT,
     )

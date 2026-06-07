@@ -8,23 +8,53 @@ import {
     insertNoteReceivableSchema,
     updateNoteReceivableSchema,
 } from '@/db/validation'
+import { toCents } from '@/lib/money'
 import { addBreadcrumb, traceBusinessOperation } from '@/lib/sentry'
 import { PAYMENT_METHOD_VALUES } from '@/lib/type-utils'
 import { adminProcedure, createTRPCRouter } from '../init'
 
-const recordPaymentSchema = z.object({
-    entityId: z.coerce.number(),
-    receivableId: z.coerce.number(),
-    paymentDate: z.string(),
-    amount: z.string(),
-    bankAccountId: z.coerce.number(),
-    principalPortion: z.string().optional(),
-    interestPortion: z.string().optional(),
-    paymentMethod: z.enum(PAYMENT_METHOD_VALUES),
-    checkNumber: z.string().optional(),
-    confirmationNumber: z.string().optional(),
-    notes: z.string().optional(),
-})
+/** Non-negative money string with at most 2 decimal places. */
+const moneyString = z
+    .string()
+    .regex(
+        /^\d+(\.\d{1,2})?$/,
+        'Must be a non-negative amount with at most 2 decimal places',
+    )
+
+const recordPaymentSchema = z
+    .object({
+        entityId: z.coerce.number(),
+        receivableId: z.coerce.number(),
+        paymentDate: z.string(),
+        amount: moneyString.refine(
+            (v) => parseFloat(v) > 0,
+            'Amount must be greater than 0',
+        ),
+        bankAccountId: z.coerce.number(),
+        principalPortion: moneyString.optional(),
+        interestPortion: moneyString.optional(),
+        paymentMethod: z.enum(PAYMENT_METHOD_VALUES),
+        checkNumber: z.string().optional(),
+        confirmationNumber: z.string().optional(),
+        notes: z.string().optional(),
+    })
+    // When BOTH portions are supplied they must reconcile to the deposit, so the
+    // stored split, the balance reduction, and the ledger entries can't diverge.
+    .superRefine((val, ctx) => {
+        if (val.principalPortion != null && val.interestPortion != null) {
+            if (
+                toCents(val.principalPortion) + toCents(val.interestPortion) !==
+                toCents(val.amount)
+            ) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message:
+                        'principalPortion + interestPortion must equal amount',
+                    path: ['principalPortion'],
+                })
+            }
+        }
+    })
 
 export const noteReceivableRouter = createTRPCRouter({
     list: adminProcedure

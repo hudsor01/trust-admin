@@ -51,7 +51,7 @@ export function ReceivableDialog({
                     <h4 className="text-sm font-medium mb-3">
                         Receivable Information
                     </h4>
-                    <div>
+                    <div className="grid grid-cols-2 gap-4">
                         <formInstance.Field name="receivableType">
                             {(field) => (
                                 <div className="space-y-2">
@@ -139,7 +139,7 @@ export function ReceivableDialog({
                             </div>
                         )}
                     </formInstance.Field>
-                    <div className="grid grid-cols-2 gap-4 mt-4">
+                    <div className="mt-4">
                         <formInstance.Field name="noteType">
                             {(field) => (
                                 <div className="space-y-2">

@@ -102,6 +102,28 @@ CREATE POLICY "crud-authenticated-policy-insert" ON liability_payment AS PERMISS
 CREATE POLICY "crud-authenticated-policy-update" ON liability_payment AS PERMISSIVE FOR UPDATE TO authenticated USING (( SELECT app.is_admin() AS is_admin)) WITH CHECK (( SELECT app.is_admin() AS is_admin));
 CREATE POLICY "crud-authenticated-policy-delete" ON liability_payment AS PERMISSIVE FOR DELETE TO authenticated USING (( SELECT app.is_admin() AS is_admin));
 
+-- Note receivables (asset-side mirror of liability) — admin-only writes.
+-- DROP-first because migration 0015 created bare predicate-less write policies.
+ALTER TABLE note_receivable ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "crud-authenticated-policy-select" ON note_receivable;
+DROP POLICY IF EXISTS "crud-authenticated-policy-insert" ON note_receivable;
+DROP POLICY IF EXISTS "crud-authenticated-policy-update" ON note_receivable;
+DROP POLICY IF EXISTS "crud-authenticated-policy-delete" ON note_receivable;
+CREATE POLICY "crud-authenticated-policy-select" ON note_receivable AS PERMISSIVE FOR SELECT TO authenticated USING (( SELECT app.is_admin() AS is_admin));
+CREATE POLICY "crud-authenticated-policy-insert" ON note_receivable AS PERMISSIVE FOR INSERT TO authenticated WITH CHECK (( SELECT app.is_admin() AS is_admin));
+CREATE POLICY "crud-authenticated-policy-update" ON note_receivable AS PERMISSIVE FOR UPDATE TO authenticated USING (( SELECT app.is_admin() AS is_admin)) WITH CHECK (( SELECT app.is_admin() AS is_admin));
+CREATE POLICY "crud-authenticated-policy-delete" ON note_receivable AS PERMISSIVE FOR DELETE TO authenticated USING (( SELECT app.is_admin() AS is_admin));
+
+ALTER TABLE receivable_payment ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "crud-authenticated-policy-select" ON receivable_payment;
+DROP POLICY IF EXISTS "crud-authenticated-policy-insert" ON receivable_payment;
+DROP POLICY IF EXISTS "crud-authenticated-policy-update" ON receivable_payment;
+DROP POLICY IF EXISTS "crud-authenticated-policy-delete" ON receivable_payment;
+CREATE POLICY "crud-authenticated-policy-select" ON receivable_payment AS PERMISSIVE FOR SELECT TO authenticated USING (( SELECT app.is_admin() AS is_admin));
+CREATE POLICY "crud-authenticated-policy-insert" ON receivable_payment AS PERMISSIVE FOR INSERT TO authenticated WITH CHECK (( SELECT app.is_admin() AS is_admin));
+CREATE POLICY "crud-authenticated-policy-update" ON receivable_payment AS PERMISSIVE FOR UPDATE TO authenticated USING (( SELECT app.is_admin() AS is_admin)) WITH CHECK (( SELECT app.is_admin() AS is_admin));
+CREATE POLICY "crud-authenticated-policy-delete" ON receivable_payment AS PERMISSIVE FOR DELETE TO authenticated USING (( SELECT app.is_admin() AS is_admin));
+
 ALTER TABLE pending_inventory_item ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "crud-authenticated-policy-select" ON pending_inventory_item AS PERMISSIVE FOR SELECT TO authenticated USING (( SELECT app.is_admin() AS is_admin));
 CREATE POLICY "crud-authenticated-policy-insert" ON pending_inventory_item AS PERMISSIVE FOR INSERT TO authenticated WITH CHECK (( SELECT app.is_admin() AS is_admin));

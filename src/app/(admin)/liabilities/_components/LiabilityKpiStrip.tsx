@@ -23,10 +23,7 @@ export function LiabilityKpiStrip({
     isLoading,
 }: LiabilityKpiStripProps) {
     const active = liabilities.filter(
-        (l) =>
-            l.status === 'ACTIVE' ||
-            l.status === 'CURRENT' ||
-            l.status === 'OPEN',
+        (l) => l.status === 'ACTIVE' || l.status === 'OPEN',
     )
     const totalOriginal = sumStrings(liabilities.map((l) => l.originalAmount))
     const totalBalance = sumStrings(liabilities.map((l) => l.currentBalance))

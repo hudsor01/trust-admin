@@ -8,9 +8,14 @@ import type { NoteReceivable } from '@/db/schema'
 import { useResourceForm } from '@/hooks/use-resource-form'
 import { toDateInput } from '@/lib/form-factory'
 import { logger } from '@/lib/logger'
-import { isNegative, subtractMoney } from '@/lib/money'
+import { isNegative, subtractMoney, toCents } from '@/lib/money'
 import { trpc } from '@/lib/trpc'
-import { asNoteType, asReceivableType, asRecordStatus } from '@/lib/type-utils'
+import {
+    asAllocationClass,
+    asNoteType,
+    asReceivableType,
+    asRecordStatus,
+} from '@/lib/type-utils'
 import { formatCurrency } from '@/utils/formatters'
 import {
     defaultFormData,
@@ -113,7 +118,7 @@ export function ReceivablesClient() {
                 secured: data.secured,
                 collateralDescription: data.collateralDescription || null,
                 status: asRecordStatus(data.status),
-                allocationClass: data.allocationClass as 'PRINCIPAL' | 'INCOME',
+                allocationClass: asAllocationClass(data.allocationClass),
                 collectionNotes: data.collectionNotes || null,
                 notes: data.notes || null,
             }
@@ -141,16 +146,38 @@ export function ReceivablesClient() {
         onSubmit: async (data) => {
             if (!payingReceivableId) return
 
+            // When both portions are entered they must reconcile to the amount
+            // (mirrors the server superRefine) — fail fast with a clear message.
+            if (
+                data.principalPortion?.trim() &&
+                data.interestPortion?.trim() &&
+                toCents(data.principalPortion) +
+                    toCents(data.interestPortion) !==
+                    toCents(data.amount)
+            ) {
+                toast.error(
+                    'Principal + interest must equal the payment amount',
+                )
+                return
+            }
+
             const receivable = optimisticReceivables.find(
                 (r) => r.id === payingReceivableId,
             )
             if (receivable) {
-                // Cent-level subtraction keeps the optimistic value consistent
-                // with the server's cent math; clamp to '0.00' so an overpayment
-                // never shows negative.
+                // Mirror the server: only the PRINCIPAL portion reduces the
+                // balance (interest is income). When a split is supplied we can
+                // reproduce it; when neither portion is entered the server
+                // auto-calculates, so fall back to the full amount (a transient
+                // over-reduction that self-corrects on list.invalidate()).
+                const principalReduction = data.principalPortion?.trim()
+                    ? data.principalPortion
+                    : data.interestPortion?.trim()
+                      ? subtractMoney(data.amount, data.interestPortion)
+                      : data.amount
                 const next = subtractMoney(
                     receivable.currentBalance,
-                    data.amount,
+                    principalReduction,
                 )
                 const newBalance = isNegative(next) ? '0.00' : next
                 setOptimisticReceivable({ id: payingReceivableId, newBalance })

@@ -92,6 +92,10 @@ export function asReceivableType(value: string): ReceivableType {
     return validateEnum(value, RECEIVABLE_TYPE_VALUES, 'ReceivableType')
 }
 
+export function asAllocationClass(value: string): AllocationClass {
+    return validateEnum(value, ALLOCATION_CLASS_VALUES, 'AllocationClass')
+}
+
 export function asNoteType(value: string): NoteType {
     return validateEnum(value, NOTE_TYPE_VALUES, 'NoteType')
 }
