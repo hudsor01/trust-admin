@@ -21,7 +21,7 @@ export function toCents(amount: MoneyString): number {
 }
 
 /** Convert integer cents back to a string for DB storage. */
-function fromCents(cents: number): string {
+export function fromCents(cents: number): string {
     return (cents / 100).toFixed(2)
 }
 

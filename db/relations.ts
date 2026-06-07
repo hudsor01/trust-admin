@@ -14,7 +14,9 @@ import {
     investmentAccount,
     liability,
     liabilityPayment,
+    noteReceivable,
     personalProperty,
+    receivablePayment,
     rentalProperty,
     specificBequest,
     transaction,
@@ -57,6 +59,7 @@ export const entityRelations = relations(entity, ({ one, many }) => ({
     trusteeFeeEntries: many(trusteeFeeEntry),
     liabilities: many(liability),
     firearms: many(firearm),
+    noteReceivables: many(noteReceivable),
 }))
 
 export const vehicleRelations = relations(vehicle, ({ one, many }) => ({
@@ -375,6 +378,27 @@ export const liabilityPaymentRelations = relations(
         liability: one(liability, {
             fields: [liabilityPayment.liabilityId],
             references: [liability.id],
+        }),
+    }),
+)
+
+export const noteReceivableRelations = relations(
+    noteReceivable,
+    ({ one, many }) => ({
+        entity: one(entity, {
+            fields: [noteReceivable.entityId],
+            references: [entity.id],
+        }),
+        payments: many(receivablePayment),
+    }),
+)
+
+export const receivablePaymentRelations = relations(
+    receivablePayment,
+    ({ one }) => ({
+        noteReceivable: one(noteReceivable, {
+            fields: [receivablePayment.receivableId],
+            references: [noteReceivable.id],
         }),
     }),
 )

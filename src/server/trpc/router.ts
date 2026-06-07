@@ -15,6 +15,7 @@ import { insurancePolicyRouter } from './routers/insurancePolicy'
 import { investmentAccountRouter } from './routers/investmentAccount'
 import { liabilityRouter } from './routers/liability'
 import { liabilityPaymentRouter } from './routers/liabilityPayment'
+import { noteReceivableRouter } from './routers/noteReceivable'
 import { personalPropertyRouter } from './routers/personalProperty'
 import { rentalPropertyRouter } from './routers/rentalProperty'
 import { specificBequestRouter } from './routers/specificBequest'
@@ -49,6 +50,9 @@ export const appRouter = createTRPCRouter({
     // Liabilities (multi-table transactions)
     liability: liabilityRouter,
     liabilityPayment: liabilityPaymentRouter,
+
+    // Receivables — claims due TO the trust (asset-side mirror of liability)
+    noteReceivable: noteReceivableRouter,
 
     // Accounting (complex ledger logic)
     trustAccounting: trustAccountingRouter,

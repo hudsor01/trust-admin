@@ -8,6 +8,8 @@ import {
     distribution,
     entity,
     hemsRequest,
+    noteReceivable,
+    receivablePayment,
     userProfile,
 } from '@/db/schema'
 import { isProductionDb } from './helpers/db-guard'
@@ -867,6 +869,8 @@ describe.skipIf(isProductionDb)('Row-Level Security', () => {
             'trustee_fee_schedule',
             'trustee_fee_entry',
             'liability_payment',
+            'note_receivable',
+            'receivable_payment',
             'contact',
             'contact_association',
             'task',
@@ -924,6 +928,89 @@ describe.skipIf(isProductionDb)('Row-Level Security', () => {
                 threw = true
             }
             expect(threw).toBe(true)
+        })
+
+        // Regression for the note_receivable / receivable_payment write-gate:
+        // INSERT is rejected by the WITH CHECK (app.is_admin()) predicate.
+        test('beneficiary cannot INSERT into note_receivable', async () => {
+            let threw = false
+            try {
+                await runAsUser(testData.beneficiaryUserId1!, async (sql) => {
+                    await sql`
+                        INSERT INTO public.note_receivable
+                          ("entityId", "receivableType", debtor, "noteType", "originalPrincipal", "currentBalance", status, "updatedAt")
+                        VALUES (${testData.entityId!}, 'PROMISSORY_NOTE', 'Mallory', 'NON_NEGOTIABLE', '1000.00', '1000.00', 'ACTIVE', NOW())
+                    `
+                })
+            } catch {
+                threw = true
+            }
+            expect(threw).toBe(true)
+        })
+
+        // UPDATE/DELETE under RLS match zero rows (the USING predicate hides the
+        // row) rather than throwing, so assert the row is untouched. Also covers
+        // the receivable_payment INSERT gate against an owner-created note.
+        test('beneficiary cannot UPDATE/DELETE note_receivable or INSERT receivable_payment', async () => {
+            // Owner-create via `db` (BYPASSRLS, like the rest of the setup) so the
+            // FK is satisfied and RLS is the only thing that can block the
+            // beneficiary writes below.
+            const [note] = await db
+                .insert(noteReceivable)
+                .values({
+                    entityId: testData.entityId!,
+                    receivableType: 'PROMISSORY_NOTE',
+                    debtor: 'RLS Note',
+                    noteType: 'NON_NEGOTIABLE',
+                    originalPrincipal: '500.00',
+                    currentBalance: '500.00',
+                    status: 'ACTIVE',
+                    updatedAt: new Date().toISOString(),
+                })
+                .returning()
+            const noteId = note.id
+            try {
+                // UPDATE/DELETE under RLS match zero rows (no throw) — the row
+                // must survive unchanged.
+                await runAsUser(
+                    testData.beneficiaryUserId1!,
+                    (sql) =>
+                        sql`UPDATE public.note_receivable SET "currentBalance" = '0.00' WHERE id = ${noteId}`,
+                ).catch(() => {})
+                await runAsUser(
+                    testData.beneficiaryUserId1!,
+                    (sql) =>
+                        sql`DELETE FROM public.note_receivable WHERE id = ${noteId}`,
+                ).catch(() => {})
+
+                const after = await db.query.noteReceivable.findFirst({
+                    where: eq(noteReceivable.id, noteId),
+                })
+                expect(after).toBeDefined() // not deleted
+                expect(after!.currentBalance).toBe('500.00') // not updated
+
+                let payThrew = false
+                try {
+                    await runAsUser(
+                        testData.beneficiaryUserId1!,
+                        (sql) =>
+                            sql`
+                            INSERT INTO public.receivable_payment ("receivableId", "paymentDate", amount)
+                            VALUES (${noteId}, NOW(), '100.00')
+                        `,
+                    )
+                } catch {
+                    payThrew = true
+                }
+                expect(payThrew).toBe(true)
+            } finally {
+                await db
+                    .delete(receivablePayment)
+                    .where(eq(receivablePayment.receivableId, noteId))
+                await db
+                    .delete(noteReceivable)
+                    .where(eq(noteReceivable.id, noteId))
+            }
         })
     })
 })

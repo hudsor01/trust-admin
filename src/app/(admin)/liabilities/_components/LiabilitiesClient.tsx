@@ -11,7 +11,11 @@ import { toDateInput } from '@/lib/form-factory'
 import { logger } from '@/lib/logger'
 import { isNegative, subtractMoney, sumStrings } from '@/lib/money'
 import { trpc } from '@/lib/trpc'
-import { asLiabilityType, asRecordStatus } from '@/lib/type-utils'
+import {
+    asAllocationClass,
+    asLiabilityType,
+    asRecordStatus,
+} from '@/lib/type-utils'
 import { formatCurrency } from '@/utils/formatters'
 import { DebtToEquityDonut } from './DebtToEquityDonut'
 import {
@@ -224,7 +228,7 @@ export function LiabilitiesClient() {
                 paymentMethod,
                 checkNumber: data.checkNumber || undefined,
                 confirmationNumber: data.confirmationNumber || undefined,
-                allocationClass: data.allocationClass as 'PRINCIPAL' | 'INCOME',
+                allocationClass: asAllocationClass(data.allocationClass),
                 notes: data.notes || undefined,
             })
 
