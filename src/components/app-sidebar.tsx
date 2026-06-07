@@ -121,6 +121,11 @@ export function AppSidebar({ role }: { role: AppRole }) {
             utils.bankAccount.list.prefetch({ entityId })
             utils.entity.list.prefetch()
         },
+        receivables: () => {
+            utils.noteReceivable.list.prefetch({ entityId })
+            utils.bankAccount.list.prefetch({ entityId })
+            utils.entity.list.prefetch()
+        },
         activityLog: () => utils.activityLog.list.prefetch({}),
         settings: () => {
             utils.beneficiary.list.prefetch({ entityId })
@@ -519,6 +524,21 @@ export function AppSidebar({ role }: { role: AppRole }) {
                                     onMouseEnter={prefetch.liabilities}
                                 >
                                     <span>Liabilities</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+
+                        <SidebarMenuItem>
+                            <SidebarMenuButton
+                                asChild
+                                isActive={pathname === '/receivables'}
+                                tooltip="Receivables"
+                            >
+                                <Link
+                                    href="/receivables"
+                                    onMouseEnter={prefetch.receivables}
+                                >
+                                    <span>Receivables</span>
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>

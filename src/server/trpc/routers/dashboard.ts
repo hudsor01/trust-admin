@@ -12,6 +12,7 @@ import {
     insurancePolicy,
     investmentAccount,
     liability,
+    noteReceivable,
     personalProperty,
     rentalProperty,
     task,
@@ -76,6 +77,7 @@ export const dashboardRouter = createTRPCRouter({
                 insurancePolicies,
                 firearms,
                 liabilities,
+                noteReceivables,
                 tasks,
             ] = await Promise.all([
                 db
@@ -142,6 +144,10 @@ export const dashboardRouter = createTRPCRouter({
                     .select()
                     .from(liability)
                     .where(eq(liability.entityId, entityId)),
+                db
+                    .select()
+                    .from(noteReceivable)
+                    .where(eq(noteReceivable.entityId, entityId)),
                 // task table is global (no entityId column) -- intentional for single-trust app
                 db.select().from(task),
             ])
@@ -163,6 +169,7 @@ export const dashboardRouter = createTRPCRouter({
                 insurancePolicies,
                 firearms,
                 liabilities,
+                noteReceivables,
                 tasks,
             }
         }),

@@ -4,9 +4,11 @@ import {
     allocationClass,
     insurancePolicyType,
     liabilityType,
+    noteType,
     paymentMethod,
     personalPropertyCategory,
     premiumFrequency,
+    receivableType,
     recordStatus,
     rentalStatus,
     titleStatus,
@@ -17,6 +19,8 @@ import {
 
 export type RecordStatus = (typeof recordStatus.enumValues)[number]
 export type LiabilityType = (typeof liabilityType.enumValues)[number]
+export type ReceivableType = (typeof receivableType.enumValues)[number]
+export type NoteType = (typeof noteType.enumValues)[number]
 export type PaymentMethod = (typeof paymentMethod.enumValues)[number]
 export type RentalStatus = (typeof rentalStatus.enumValues)[number]
 export type TitleStatus = (typeof titleStatus.enumValues)[number]
@@ -32,6 +36,8 @@ export type PersonalPropertyCategory =
 
 export const RECORD_STATUS_VALUES = recordStatus.enumValues
 export const LIABILITY_TYPE_VALUES = liabilityType.enumValues
+export const RECEIVABLE_TYPE_VALUES = receivableType.enumValues
+export const NOTE_TYPE_VALUES = noteType.enumValues
 export const PAYMENT_METHOD_VALUES = paymentMethod.enumValues
 export const RENTAL_STATUS_VALUES = rentalStatus.enumValues
 export const TITLE_STATUS_VALUES = titleStatus.enumValues
@@ -80,6 +86,14 @@ export function asRecordStatus(value: string): RecordStatus {
 
 export function asLiabilityType(value: string): LiabilityType {
     return validateEnum(value, LIABILITY_TYPE_VALUES, 'LiabilityType')
+}
+
+export function asReceivableType(value: string): ReceivableType {
+    return validateEnum(value, RECEIVABLE_TYPE_VALUES, 'ReceivableType')
+}
+
+export function asNoteType(value: string): NoteType {
+    return validateEnum(value, NOTE_TYPE_VALUES, 'NoteType')
 }
 
 export function asPaymentMethod(value: string): PaymentMethod {

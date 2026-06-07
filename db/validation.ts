@@ -14,7 +14,9 @@ import {
     investmentAccount,
     liability,
     liabilityPayment,
+    noteReceivable,
     personalProperty,
+    receivablePayment,
     rentalProperty,
     specificBequest,
     task,
@@ -318,6 +320,38 @@ export const insertLiabilityPaymentSchema = createInsertSchema(
     },
 )
 
+export const insertNoteReceivableSchema = createInsertSchema(noteReceivable, {
+    createdAt: (schema) => schema.optional(),
+    updatedAt: (schema) => schema.optional(),
+    originalPrincipal: (schema) =>
+        schema.refine(
+            (val) => parseFloat(val) > 0,
+            'Original principal must be positive',
+        ),
+    currentBalance: (schema) =>
+        schema.refine(
+            (val) => parseFloat(val) >= 0,
+            'Current balance must be non-negative',
+        ),
+    dodValue: () => positiveNumberValidation,
+    monthlyPayment: () => positiveNumberValidation,
+    loanTermMonths: (schema) =>
+        schema
+            .refine(
+                (val) => val === null || val === undefined || val > 0,
+                'Loan term must be positive',
+            )
+            .nullable()
+            .optional(),
+})
+
+export const insertReceivablePaymentSchema = createInsertSchema(
+    receivablePayment,
+    {
+        createdAt: (schema) => schema.optional(),
+    },
+)
+
 export const insertPersonalPropertySchema = createInsertSchema(
     personalProperty,
     {
@@ -479,6 +513,12 @@ export const updateDocumentSchema = requireAtLeastOneField(
 )
 export const updateLiabilityPaymentSchema = requireAtLeastOneField(
     insertLiabilityPaymentSchema.partial(),
+)
+export const updateNoteReceivableSchema = requireAtLeastOneField(
+    insertNoteReceivableSchema.partial(),
+)
+export const updateReceivablePaymentSchema = requireAtLeastOneField(
+    insertReceivablePaymentSchema.partial(),
 )
 export const updateInsurancePolicySchema = requireAtLeastOneField(
     insertInsurancePolicySchema.partial(),

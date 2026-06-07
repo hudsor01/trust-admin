@@ -67,6 +67,18 @@ export const liabilityType = pgEnum('LiabilityType', [
     'LEGAL_JUDGMENT',
     'OTHER',
 ])
+// Receivables owed TO the trust — the asset-side mirror of LiabilityType.
+export const receivableType = pgEnum('ReceivableType', [
+    'PROMISSORY_NOTE',
+    'PERSONAL_LOAN',
+    'ADVANCE',
+    'ACCOUNT_RECEIVABLE',
+    'OTHER',
+])
+// Negotiability drives the limitations period to sue on a receivable:
+// non-negotiable debt/note = 4 yr (Tex. Civ. Prac. & Rem. Code §16.004(a)(3));
+// negotiable note = 6 yr (Tex. Bus. & Com. Code §3.118).
+export const noteType = pgEnum('NoteType', ['NEGOTIABLE', 'NON_NEGOTIABLE'])
 export const paymentMethod = pgEnum('PaymentMethod', [
     'CHECK',
     'ACH',
@@ -2627,6 +2639,187 @@ export const liabilityPayment = pgTable(
 
 export type LiabilityPayment = typeof liabilityPayment.$inferSelect
 export type InsertLiabilityPayment = typeof liabilityPayment.$inferInsert
+
+// ============================================
+// Note Receivables (claims DUE TO the trust)
+// ============================================
+// Asset-side mirror of `liability`: money owed TO the trust/estate
+// (promissory notes, personal loans, advances that should have been repaid).
+// In Texas these are "claims due to the estate," reported on the Inventory,
+// Appraisement & List of Claims (Tex. Estates Code Ch. 309). The trustee has a
+// duty to collect them (Tex. Prop. Code §113.006). A receivable balance ADDS to
+// net trust value; a repayment posts a trust_accounting INCOME entry with the
+// interest portion treated as income and the principal portion as principal
+// (Tex. Prop. Code Ch. 116, UPIA).
+export const noteReceivable = pgTable(
+    'note_receivable',
+    (t) => ({
+        id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
+        entityId: bigint({ mode: 'number' }).notNull(),
+        receivableType: receivableType().notNull(),
+        debtor: t.text().notNull(), // Who owes the trust
+        debtorAddress: t.text(), // Tex. Estates Code §309.052(1) — List of Claims requires the debtor's address, if known
+        noteType: noteType().default('NON_NEGOTIABLE').notNull(), // Drives the limitations period (4 yr vs 6 yr)
+        // Set when the debtor is also a beneficiary, so the unpaid balance can be
+        // tracked for offset against that beneficiary's distribution (the
+        // trustee's statutory right of offset, Tex. Prop. Code §114.031(b)).
+        beneficiaryId: bigint({ mode: 'number' }),
+        description: t.text(),
+        originalPrincipal: t.numeric({ precision: 14, scale: 2 }).notNull(), // Original amount lent/advanced
+        currentBalance: t.numeric({ precision: 14, scale: 2 }).notNull(), // Outstanding balance owed to the trust
+        currentBalanceDate: t.timestamp({
+            precision: 3,
+            mode: 'string',
+            withTimezone: true,
+        }), // When balance was last verified
+        // Value of the receivable at the grantor's date of death — for the estate
+        // inventory and cost-basis step-up.
+        dodValue: t.numeric({ precision: 14, scale: 2 }),
+        dodValueDate: t.timestamp({
+            precision: 3,
+            mode: 'string',
+            withTimezone: true,
+        }),
+        interestRate: t.numeric({ precision: 5, scale: 3 }), // Annual rate; null = non-interest-bearing
+        monthlyPayment: t.numeric({ precision: 12, scale: 2 }), // Scheduled payment, if amortizing
+        originationDate: t.timestamp({
+            precision: 3,
+            mode: 'string',
+            withTimezone: true,
+        }), // When the loan/note was made
+        dueDate: t.timestamp({
+            precision: 3,
+            mode: 'string',
+            withTimezone: true,
+        }), // When repayment was/is due (maturity) — drives PAST_DUE
+        loanTermMonths: t.integer(),
+        secured: t.boolean().default(false).notNull(), // Secured vs unsecured claim
+        collateralDescription: t.text(), // What secures the note, if anything
+        status: recordStatus().default('ACTIVE').notNull(),
+        allocationClass: allocationClass().default('PRINCIPAL'), // Note principal is a principal asset (Tex. Prop. Code Ch. 116)
+        // Trustee's duty-to-collect diligence trail (Tex. Prop. Code §113.051,
+        // §117.004; Tex. Estates Code §351.151) — failing to collect creates
+        // personal liability, so collection efforts are recorded here.
+        collectionNotes: t.text(),
+        notes: t.text(),
+        createdAt: t
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
+            .default(sql`CURRENT_TIMESTAMP`)
+            .notNull(),
+        updatedAt: t
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
+            .notNull(),
+    }),
+    (table) => [
+        index('idx_note_receivable_entity_id').on(table.entityId),
+        index('idx_note_receivable_status').on(table.status),
+        index('idx_note_receivable_entity_status').on(
+            table.entityId,
+            table.status,
+        ),
+        index('idx_note_receivable_beneficiary_id').on(table.beneficiaryId),
+        foreignKey({
+            columns: [table.entityId],
+            foreignColumns: [entity.id],
+            name: 'note_receivable_entity_id_fkey',
+        })
+            .onUpdate('cascade')
+            .onDelete('restrict'),
+        foreignKey({
+            columns: [table.beneficiaryId],
+            foreignColumns: [beneficiary.id],
+            name: 'note_receivable_beneficiary_id_fkey',
+        })
+            .onUpdate('cascade')
+            .onDelete('set null'),
+        pgPolicy('crud-authenticated-policy-select', {
+            as: 'permissive',
+            for: 'select',
+            to: ['authenticated'],
+            using: sql`( SELECT app.is_admin() AS is_admin)`,
+        }),
+        pgPolicy('crud-authenticated-policy-insert', {
+            as: 'permissive',
+            for: 'insert',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-update', {
+            as: 'permissive',
+            for: 'update',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-delete', {
+            as: 'permissive',
+            for: 'delete',
+            to: ['authenticated'],
+        }),
+    ],
+).enableRLS()
+
+export type NoteReceivable = typeof noteReceivable.$inferSelect
+export type InsertNoteReceivable = typeof noteReceivable.$inferInsert
+
+// Repayments received against a note receivable — mirror of liabilityPayment.
+export const receivablePayment = pgTable(
+    'receivable_payment',
+    (t) => ({
+        id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
+        receivableId: bigint({ mode: 'number' }).notNull(),
+        paymentDate: t
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
+            .notNull(),
+        amount: t.numeric({ precision: 12, scale: 2 }).notNull(),
+        principalPortion: t.numeric({ precision: 12, scale: 2 }), // Reduces the balance (principal receipt)
+        interestPortion: t.numeric({ precision: 12, scale: 2 }), // Income to the trust
+        paymentMethod: paymentMethod(),
+        checkNumber: t.text(),
+        confirmationNumber: t.text(),
+        notes: t.text(),
+        createdAt: t
+            .timestamp({ precision: 3, mode: 'string', withTimezone: true })
+            .default(sql`CURRENT_TIMESTAMP`)
+            .notNull(),
+    }),
+    (table) => [
+        index('idx_receivable_payment_receivable_id').on(table.receivableId),
+        index('idx_receivable_payment_date').on(table.paymentDate.desc()),
+        index('idx_receivable_payment_receivable_date').on(
+            table.receivableId,
+            table.paymentDate.desc(),
+        ),
+        foreignKey({
+            columns: [table.receivableId],
+            foreignColumns: [noteReceivable.id],
+            name: 'receivable_payment_receivable_id_fkey',
+        })
+            .onUpdate('cascade')
+            .onDelete('restrict'),
+        pgPolicy('crud-authenticated-policy-select', {
+            as: 'permissive',
+            for: 'select',
+            to: ['authenticated'],
+            using: sql`( SELECT app.is_admin() AS is_admin)`,
+        }),
+        pgPolicy('crud-authenticated-policy-insert', {
+            as: 'permissive',
+            for: 'insert',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-update', {
+            as: 'permissive',
+            for: 'update',
+            to: ['authenticated'],
+        }),
+        pgPolicy('crud-authenticated-policy-delete', {
+            as: 'permissive',
+            for: 'delete',
+            to: ['authenticated'],
+        }),
+    ],
+).enableRLS()
+
+export type ReceivablePayment = typeof receivablePayment.$inferSelect
+export type InsertReceivablePayment = typeof receivablePayment.$inferInsert
 
 // ============================================
 // HEMS Requests

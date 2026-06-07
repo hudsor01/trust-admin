@@ -82,6 +82,7 @@ export function DashboardClient() {
     const recentAccountingEntries = summary?.recentAccountingEntries ?? []
     const hemsRequests = summary?.hemsRequests ?? []
     const liabilities = summary?.liabilities ?? []
+    const noteReceivables = summary?.noteReceivables ?? []
 
     const [optimisticTasks, setOptimisticTask] = useOptimistic(
         tasks,
@@ -221,6 +222,11 @@ export function DashboardClient() {
             const firearmTotal = sumStrings(
                 firearms.map((f) => f.dodValue ?? '0'),
             )
+            // Notes/loans owed TO the trust are assets — their outstanding
+            // balance ADDS to net value (claims due to the estate).
+            const receivableTotal = sumStrings(
+                noteReceivables.map((r) => r.currentBalance ?? '0'),
+            )
             const liabilityTotal = sumStrings(
                 liabilities.map((l) => l.currentBalance ?? '0'),
             )
@@ -232,6 +238,7 @@ export function DashboardClient() {
                 personalPropertyTotal,
                 insuranceTotal,
                 firearmTotal,
+                receivableTotal,
             ])
             // Chart values derive from integer cents (toCents) to avoid the
             // float drift parseFloat reintroduces — see src/lib/money.ts.
@@ -271,6 +278,11 @@ export function DashboardClient() {
                     value: toCents(firearmTotal) / 100,
                     fill: 'var(--chart-2)',
                 },
+                {
+                    name: 'Receivables',
+                    value: toCents(receivableTotal) / 100,
+                    fill: 'var(--chart-3)',
+                },
             ].filter((item) => item.value > 0)
 
             return {
@@ -288,6 +300,7 @@ export function DashboardClient() {
             insurancePolicies,
             firearms,
             liabilities,
+            noteReceivables,
         ])
 
     const {

@@ -867,6 +867,8 @@ describe.skipIf(isProductionDb)('Row-Level Security', () => {
             'trustee_fee_schedule',
             'trustee_fee_entry',
             'liability_payment',
+            'note_receivable',
+            'receivable_payment',
             'contact',
             'contact_association',
             'task',

@@ -16,6 +16,7 @@ import {
     entity,
     hemsRequest,
     liabilityPayment,
+    receivablePayment,
     trustAccounting,
     valuation,
 } from './schema'
@@ -484,6 +485,215 @@ export async function getLiabilityPayments(
 ) {
     return db.query.liabilityPayment.findMany({
         where: eq(liabilityPayment.liabilityId, liabilityId),
+        orderBy: (p, { desc }) => [desc(p.paymentDate)],
+        limit: options?.limit ?? 50,
+        offset: options?.offset ?? 0,
+    })
+}
+
+// =============================================================================
+// RECEIVABLE PAYMENT QUERIES
+// =============================================================================
+
+interface RecordReceivablePaymentData {
+    receivableId: number
+    paymentDate: string
+    amount: string
+    bankAccountId: number // Trust account that RECEIVED the funds
+    principalPortion?: string | null
+    interestPortion?: string | null
+    paymentMethod?: 'CHECK' | 'ACH' | 'WIRE' | 'CASH' | 'OTHER' | null
+    checkNumber?: string | null
+    confirmationNumber?: string | null
+    notes?: string | null
+    createIncomeEntry?: boolean
+}
+
+/**
+ * Record a repayment received against a note receivable. Transactional, mirror
+ * of `recordLiabilityPayment` but on the asset side:
+ *  - locks the note, subtracts the principal portion from the balance,
+ *  - auto-marks the note PAID_OFF when the balance reaches zero,
+ *  - posts trust_accounting INCOME entries: the interest portion as income
+ *    (isPrincipal=false) and the returned principal as a principal receipt
+ *    (isPrincipal=true), per Tex. Prop. Code Ch. 116 (UPIA). The two entries
+ *    sum to the deposit so the receiving bank account reconciles.
+ */
+export async function recordReceivablePayment(
+    data: RecordReceivablePaymentData,
+) {
+    return traceBusinessOperation(
+        'receivable.recordPayment',
+        { receivableId: data.receivableId, amount: data.amount },
+        async () => {
+            const client = getClient()
+
+            return client.begin(async (_tx) => {
+                const tx = _tx as TxSql
+
+                addBreadcrumb(
+                    'db.transaction',
+                    'Acquiring lock on note_receivable row',
+                    { receivableId: data.receivableId },
+                )
+                const [receivable] = await tx`
+                    SELECT * FROM note_receivable
+                    WHERE id = ${data.receivableId}
+                    FOR UPDATE
+                `
+                if (!receivable) {
+                    throw new Error('Note receivable not found')
+                }
+
+                const shouldAutoCalculate =
+                    receivable.interestRate &&
+                    parseFloat(receivable.interestRate) > 0 &&
+                    data.principalPortion == null &&
+                    data.interestPortion == null
+
+                let calculatedSplit: {
+                    principal: string
+                    interest: string
+                    escrow: string
+                    newBalance: string
+                } | null = null
+
+                if (shouldAutoCalculate && receivable.interestRate) {
+                    calculatedSplit = calculatePaymentSplit(
+                        receivable.currentBalance ?? '0',
+                        receivable.interestRate,
+                        data.amount,
+                        undefined,
+                    )
+                }
+
+                const interestPortion =
+                    data.interestPortion ?? calculatedSplit?.interest ?? null
+                const interestAmt = parseFloat(interestPortion ?? '0') || 0
+                // Principal applied to the deposit (so interest + principal == amount).
+                const principalFromDeposit =
+                    (parseFloat(data.amount) || 0) - interestAmt
+                // Principal applied to the balance: an explicit/auto split wins,
+                // otherwise the deposit's principal share.
+                const principalPortion =
+                    data.principalPortion ??
+                    calculatedSplit?.principal ??
+                    principalFromDeposit.toFixed(2)
+
+                const currentBalance =
+                    parseFloat(receivable.currentBalance ?? '0') || 0
+                const newBalance = Math.max(
+                    0,
+                    currentBalance - (parseFloat(principalPortion) || 0),
+                )
+
+                addBreadcrumb(
+                    'db.transaction',
+                    'Inserting receivable payment',
+                    { amount: data.amount },
+                )
+                const [payment] = await tx`
+                    INSERT INTO receivable_payment (
+                        "receivableId", "paymentDate", amount,
+                        "principalPortion", "interestPortion",
+                        "paymentMethod", "checkNumber", "confirmationNumber", notes
+                    ) VALUES (
+                        ${data.receivableId}, ${data.paymentDate}, ${data.amount},
+                        ${principalPortion}, ${interestPortion},
+                        ${data.paymentMethod || null}, ${data.checkNumber || null},
+                        ${data.confirmationNumber || null}, ${data.notes || null}
+                    )
+                    RETURNING *
+                `
+                if (!payment) throw new Error('Failed to create payment record')
+
+                const newStatus =
+                    newBalance <= 0 ? 'PAID_OFF' : receivable.status
+                const now = new Date().toISOString()
+                await tx`
+                    UPDATE note_receivable
+                    SET "currentBalance" = ${newBalance.toFixed(2)},
+                        "currentBalanceDate" = ${data.paymentDate},
+                        status = ${newStatus},
+                        "updatedAt" = ${now}
+                    WHERE id = ${data.receivableId}
+                `
+
+                const accountingEntries: { id: number }[] = []
+                if (data.createIncomeEntry !== false) {
+                    const fiscalYear = new Date(data.paymentDate).getFullYear()
+                    const checkNum =
+                        data.checkNumber || data.confirmationNumber || null
+
+                    if (interestAmt > 0) {
+                        const [entry] = await tx`
+                            INSERT INTO trust_accounting (
+                                "entityId", "accountingDate", "entryType", "incomeType",
+                                amount, description, "bankAccountId", "isPrincipal",
+                                "checkNumber", "fiscalYear", "sourceAssetType",
+                                "sourceAssetId", "updatedAt"
+                            ) VALUES (
+                                ${receivable.entityId}, ${data.paymentDate}, 'INCOME', 'INTEREST',
+                                ${interestAmt.toFixed(2)}, ${`Interest on note from ${receivable.debtor}`},
+                                ${data.bankAccountId}, false, ${checkNum}, ${fiscalYear},
+                                'NOTE_RECEIVABLE', ${data.receivableId}, ${now}
+                            )
+                            RETURNING id
+                        `
+                        if (entry) accountingEntries.push({ id: entry.id })
+                    }
+
+                    if (principalFromDeposit > 0) {
+                        const [entry] = await tx`
+                            INSERT INTO trust_accounting (
+                                "entityId", "accountingDate", "entryType", "incomeType",
+                                amount, description, "bankAccountId", "isPrincipal",
+                                "checkNumber", "fiscalYear", "sourceAssetType",
+                                "sourceAssetId", "updatedAt"
+                            ) VALUES (
+                                ${receivable.entityId}, ${data.paymentDate}, 'INCOME', 'SALE_PROCEEDS',
+                                ${principalFromDeposit.toFixed(2)}, ${`Principal collected on note from ${receivable.debtor}`},
+                                ${data.bankAccountId}, true, ${checkNum}, ${fiscalYear},
+                                'NOTE_RECEIVABLE', ${data.receivableId}, ${now}
+                            )
+                            RETURNING id
+                        `
+                        if (entry) accountingEntries.push({ id: entry.id })
+                    }
+                }
+
+                return {
+                    payment: {
+                        id: payment.id,
+                        ...data,
+                        principalPortion,
+                        interestPortion,
+                    },
+                    receivable: {
+                        id: receivable.id,
+                        currentBalance: newBalance.toFixed(2),
+                        status: newStatus,
+                    },
+                    accountingEntries,
+                    autoCalculated: calculatedSplit
+                        ? {
+                              principal: calculatedSplit.principal,
+                              interest: calculatedSplit.interest,
+                          }
+                        : null,
+                }
+            })
+        },
+    )
+}
+
+/** Receivable payments ordered newest-first, paginated (default 50). */
+export async function getReceivablePayments(
+    receivableId: number,
+    options?: LiabilityPaymentOptions,
+) {
+    return db.query.receivablePayment.findMany({
+        where: eq(receivablePayment.receivableId, receivableId),
         orderBy: (p, { desc }) => [desc(p.paymentDate)],
         limit: options?.limit ?? 50,
         offset: options?.offset ?? 0,
