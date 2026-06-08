@@ -2111,7 +2111,7 @@ export const trustee = pgTable(
         phone: t.text(),
         dob: t.timestamp({ precision: 3, mode: 'string', withTimezone: true }),
         status: trusteeStatus().default('ACTIVE'),
-        order: t.integer().notNull(),
+        order: t.integer().default(0).notNull(),
         isCo: t.boolean().default(false),
         startDate: t.timestamp({
             precision: 3,

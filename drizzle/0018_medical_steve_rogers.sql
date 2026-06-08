@@ -1,0 +1,1 @@
+ALTER TABLE "trustee" ALTER COLUMN "order" SET DEFAULT 0;

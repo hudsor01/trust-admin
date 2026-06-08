@@ -117,7 +117,6 @@ export const investmentAccountFormDefaults = createFormDefaults({
 export const trusteeFormDefaults = createFormDefaults({
     name: '',
     status: 'ACTIVE',
-    order: 1,
     isCo: false,
     startDate: null as string | null,
     endDate: null as string | null,

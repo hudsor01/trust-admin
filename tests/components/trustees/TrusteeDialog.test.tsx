@@ -162,7 +162,9 @@ describe('TrusteeDialog', () => {
         // Status field is hidden on creates — button context determines status
         expect(screen.getByText('Name *')).toBeTruthy()
         expect(screen.queryByText('Status')).toBeNull()
-        expect(screen.getByText('Order')).toBeTruthy()
+        // Order field was removed — display order is no longer user-set
+        // (trustees sort via the table column headers).
+        expect(screen.queryByText('Order')).toBeNull()
     })
 
     test('shows Status field when editing', () => {
