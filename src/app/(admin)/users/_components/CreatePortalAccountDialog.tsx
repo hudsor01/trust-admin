@@ -25,9 +25,6 @@ import {
     ROLE_OPTIONS,
 } from './types'
 
-// Re-exported for callers that previously imported LinkableBeneficiary from this module.
-export type { LinkableBeneficiary } from './types'
-
 type CreatePortalAccountDialogProps = {
     open: boolean
     onOpenChange: (open: boolean) => void

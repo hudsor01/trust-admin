@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils'
 import { formatDate } from '@/utils/formatters'
 import type { WithdrawalRow } from './types'
 
-export const withdrawalColumns: ColumnDef<WithdrawalRow>[] = [
+const withdrawalColumns: ColumnDef<WithdrawalRow>[] = [
     {
         accessorKey: 'beneficiary',
         header: ({ column }) => (

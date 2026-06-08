@@ -19,7 +19,6 @@ export type AppRole = 'admin' | 'trustee' | 'arbiter' | 'beneficiary' | 'user'
 
 /** Roles that can administer the trust (everything except user management). */
 export const TRUST_ADMIN_ROLES = ['admin', 'trustee', 'arbiter'] as const
-export type TrustAdminRole = (typeof TRUST_ADMIN_ROLES)[number]
 
 export function isTrustAdmin(user: { role: AppRole }): boolean {
     return (TRUST_ADMIN_ROLES as readonly string[]).includes(user.role)
