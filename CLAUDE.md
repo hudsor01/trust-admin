@@ -81,12 +81,13 @@ Entity list is ordered by `asc(entity.id)` — `entities[0]` is always The Hudso
 1. Assets generate income → `trustAccounting` (INCOME entries)
 2. Liabilities require payments → `trustAccounting` (EXPENSE entries)
 3. Beneficiaries receive distributions → `distribution` records
+4. Receivables (notes owed to the trust) collect payments → `receivablePayment` (reduce `noteReceivable.currentBalance`)
 
 ---
 
 ## Data Model
 
-`db/schema.ts` defines **34 tables**. **27** have `.enableRLS()`.
+`db/schema.ts` defines **37 tables**. **30** have `.enableRLS()`.
 
 ### Core
 
@@ -97,9 +98,11 @@ Entity list is ordered by `asc(entity.id)` — `entities[0]` is always The Hudso
 | `trustAccounting` | Income/expense ledger | `entryType` (INCOME/EXPENSE), `isPrincipal`, `amount` |
 | `activityLog` | Audit trail | global, no `entityId` filter |
 
-### Assets (7 tables)
+### Assets (8 tables)
 
-`vehicle`, `homestead`, `rentalProperty`, `bankAccount`, `investmentAccount`, `personalProperty` share: `entityId`, `dodValue`, `dodValueDate`, `status`, `transferStatus`. **`insurancePolicy` is the exception** — it has `entityId` and `status` only (no DOD fields, no `transferStatus`; it carries `coverageAmount`, `premium`, `effectiveDate`, `expirationDate` instead).
+`vehicle`, `homestead`, `rentalProperty`, `bankAccount`, `investmentAccount`, `personalProperty`, `firearm` share: `entityId`, `dodValue`, `dodValueDate`, `status`, `transferStatus`. **`insurancePolicy` is the exception** — it has `entityId` and `status` only (no DOD fields, no `transferStatus`; it carries `coverageAmount`, `premium`, `effectiveDate`, `expirationDate` instead).
+
+> **`firearm`** also carries NFA/ATF compliance fields (`isNfa`, `nfaClass`, `atfFormType`, `atfControlNumber`, `taxStampDate`, `nfaTransferStatus`) on top of the shared asset pattern. The `/firearms` admin page manages it; `firearmRouter.setNfaTransferStatus` is a dedicated CQS mutation.
 
 > **No separate `artwork` table** — artwork is a category within `personalProperty` (the `/artwork` admin page filters that table). The mental model diagram is conceptual.
 
@@ -117,7 +120,9 @@ Entity list is ordered by `asc(entity.id)` — `entities[0]` is always The Hudso
 
 ### Supporting tables
 
-`liability`, `liabilityPayment`, `valuation`, `valuationCorrection`, `inventoryAnalysisCache` (AI agent results, TTL'd), `document`, `transaction`, `contact`, `contactAssociation`, `task`, `trustee`, `specificBequest`, `trusteeFeeSchedule`, `trusteeFeeEntry`.
+`liability`, `liabilityPayment`, `noteReceivable`, `receivablePayment`, `valuation`, `valuationCorrection`, `inventoryAnalysisCache` (AI agent results, TTL'd), `document`, `transaction`, `contact`, `contactAssociation`, `task`, `trustee`, `specificBequest`, `trusteeFeeSchedule`, `trusteeFeeEntry`.
+
+> **Receivables mirror liabilities, inverted:** `noteReceivable` = loans/notes owed *to* the trust (`debtor`, `originalPrincipal`, `currentBalance`, `dodValue`, `secured`/`collateralDescription`), with `receivablePayment` tracking inbound payments — the same shape as `liability`/`liabilityPayment` but money flowing in. Managed via the `/receivables` admin page + `noteReceivableRouter`.
 
 ### Auth Tables
 
@@ -135,7 +140,9 @@ Entity list is ordered by `asc(entity.id)` — `entities[0]` is always The Hudso
 
 ## Neon Auth
 
-Managed Better Auth — no local config. Packages: `@neondatabase/auth` (+ `/next`, `/next/server`, `/react`). Replaced Next.js's deprecated `middleware.ts` with `src/proxy.ts`.
+Managed Better Auth — no local config. Packages: `@neondatabase/auth` (+ `/next`, `/next/server`, `/react`), **pinned at `0.2.0-beta.1`**. Replaced Next.js's deprecated `middleware.ts` with `src/proxy.ts`.
+
+> **Do not bump `@neondatabase/auth` to 0.4.x casually.** 0.4 changed `getSession()` to mint a `session_data` cache cookie on every call (a cookie *write*), which Next.js forbids in the RSC render where the root page / layouts read the session — a sign-in loop is the likely result. A 0.4 bump was abandoned (PR #143, no feature driver). The breakage was code-analysis-only (never reproduced in Chrome — Safari confounded the test, see Proxy note); retest **in Chrome** before any future attempt.
 
 ### Layout
 
@@ -143,7 +150,7 @@ Managed Better Auth — no local config. Packages: `@neondatabase/auth` (+ `/nex
 src/
 ├── proxy.ts                            # Cookie check + x-pathname header
 ├── lib/auth.ts                         # Types (AppUser, SessionData), guards, re-exports
-├── lib/auth/{client,server}.ts         # createAuthClient() / createAuthServer()
+├── lib/auth/{client,server}.ts         # createAuthClient() / createNeonAuth()
 ├── app/auth/[path]/page.tsx            # AuthView; renders custom forms for /forgot-password, /reset-password
 ├── app/api/auth/[...path]/route.ts     # Neon Auth catch-all
 ├── app/api/auth/custom/{forgot,reset}-password/route.ts
@@ -184,7 +191,9 @@ Never `useSession` in layouts (use `authServer`); never `authClient` in Server C
 
 ### Proxy (`src/proxy.ts`)
 
-Optimistic — checks `__Secure-neon-auth.session_token` (works on localhost; `__Secure-` allows it), redirects unauthenticated to `/auth/sign-in`. Injects `x-pathname` into request headers so the portal layout can avoid redirect loops. Public paths: `/`, `/auth`, `/api/{auth,trpc,e2e,health,inventory}`, `/forms`, `/_next`. Real validation happens in Server Components and tRPC.
+Optimistic — checks `__Secure-neon-auth.session_token`, redirects unauthenticated to `/auth/sign-in`. Injects `x-pathname` into request headers so the portal layout can avoid redirect loops. Public paths: `/`, `/auth`, `/api/{auth,trpc,e2e,health,inventory}`, `/forms`, `/_next`. Real validation happens in Server Components and tRPC.
+
+> **Safari can't sign in over `http://localhost`.** The `__Secure-` prefix requires a secure context to store the cookie — **Chrome special-cases localhost as secure, Safari does not** and silently drops it, so sign-in loops in Safari local dev (works fine in Chrome; production is HTTPS so unaffected). **Test local auth in Chrome**, or serve dev over HTTPS (mkcert).
 
 ### Flows
 
@@ -220,7 +229,7 @@ Two drivers behind a Drizzle proxy: `@neondatabase/serverless` (HTTP, stateless)
 
 ### tRPC
 
-`src/server/trpc/init.ts` defines context, procedures, JWT cache, and role resolution. `src/server/trpc/router.ts` registers the 24 domain routers under `routers/`. Procedures: `publicProcedure`, `protectedProcedure`, `adminProcedure` (includes owner-email override), `ownerProcedure` (`ADMIN_EMAIL` only), `beneficiaryProcedure`.
+`src/server/trpc/init.ts` defines context, procedures, JWT cache, and role resolution. `src/server/trpc/router.ts` registers the 27 domain routers under `routers/` (includes `asset` and `dashboard` aggregators that fan out across the per-asset routers). Procedures: `publicProcedure`, `protectedProcedure`, `adminProcedure` (includes owner-email override), `ownerProcedure` (`ADMIN_EMAIL` only), `beneficiaryProcedure`.
 
 ```typescript
 // Router — most procedures inline a Drizzle query; `entityId` is always
@@ -248,7 +257,7 @@ Two domains pre-package their queries as a hand-written object: `personalPropert
 
 ### App layout
 
-Admin pages live under `src/app/(admin)/` (route group, hidden from URL): `accounting`, `accounts`, `activity-log`, `artwork`, `beneficiaries`, `bequests`, `contacts`, `dashboard`, `hems`, `hems-queue`, `insurance`, `liabilities`, `personal-property`, `properties`, `settings`, `trustees`, `users`, `vehicles`. Each admin page colocates its UI in `_components/`. Server-action subfolders (`_actions/`) only exist under `/portal/` and `/forms/`.
+Admin pages live under `src/app/(admin)/` (route group, hidden from URL): `accounting`, `accounts`, `activity-log`, `artwork`, `assets`, `beneficiaries`, `bequests`, `contacts`, `dashboard`, `firearms`, `hems`, `hems-queue`, `insurance`, `liabilities`, `personal-property`, `properties`, `receivables`, `settings`, `trustees`, `users`, `vehicles`. Each admin page colocates its UI in `_components/`. Server-action subfolders (`_actions/`) only exist under `/portal/` and `/forms/`. (`/assets` is the cross-asset aggregator view backed by `asset.listAll`.)
 
 ### Inventory Agent (Anthropic Managed Agents)
 
@@ -306,6 +315,8 @@ Admin       → marks distribution paid    → status: DISTRIBUTED (manual)
 | Stale data after mutation | Invalidate related queries in `onSuccess` |
 | Beneficiary sign-in 403 | Admin-created users need `emailVerified = true` in `neon_auth."user"` |
 | Wrong auth cookie | Cookie is `__Secure-neon-auth.session_token`, not `trust-admin.*` |
+| Safari sign-in loops locally | `__Secure-` cookie needs a secure context; Safari rejects it over `http://localhost` (Chrome allows it). Test local auth in **Chrome** or serve dev over HTTPS — not a code bug, production (HTTPS) is fine |
+| `@neondatabase/auth` 0.4 bump | Pinned at `0.2.0-beta.1`; 0.4 mints a cookie in `getSession()` that breaks RSC session reads — don't bump without retesting sign-in in Chrome (see Neon Auth section) |
 | `neon_auth.user` columns | camelCase: `"emailVerified"`, `"updatedAt"` — not snake_case |
 | Admin page routes | Live under `src/app/(admin)/` route group, not `src/app/` directly |
 | `useSession` in layouts | Use `authServer.getSession()` in Server Components instead |
