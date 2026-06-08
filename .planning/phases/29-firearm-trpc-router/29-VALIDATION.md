@@ -1,10 +1,11 @@
 ---
 phase: 29
 slug: firearm-trpc-router
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: validated
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-05-21
+validated: 2026-06-08
 ---
 
 # Phase 29 — Validation Strategy
@@ -46,11 +47,11 @@ typecheck.
 
 | ROADMAP SC | Behavior | Threat Ref | Test Type | Automated Command | File Exists | Status |
 |------------|----------|------------|-----------|-------------------|-------------|--------|
-| SC-1 | `firearm.list` returns entity-scoped rows | T-29-XEN | integration (tRPC caller) | `bun test tests/trpc/firearm.test.ts` | ❌ W0 | ⬜ pending |
-| SC-2 | `firearm.create` rejects duplicate `serialNumber` → `TRPCError(CONFLICT)` | T-29-SER | integration (tRPC caller) | same | ❌ W0 | ⬜ pending |
-| SC-3 | `firearm.byId` throws `NOT_FOUND` for cross-entity / nonexistent id | T-29-XEN | integration (tRPC caller) | same | ❌ W0 | ⬜ pending |
-| SC-4 | All 6 procedures reject beneficiary JWT with `FORBIDDEN` | T-29-AUTH | integration (tRPC caller) | same | ❌ W0 | ⬜ pending |
-| SC-5 | `bun run typecheck` passes with 0 errors after router registration | — | typecheck | `bun run typecheck` | ✅ existing | ⬜ pending |
+| SC-1 | `firearm.list` returns entity-scoped rows | T-29-XEN | integration (tRPC caller) | `bun test tests/trpc/firearm.test.ts` | ✅ existing | ✅ green |
+| SC-2 | `firearm.create` rejects duplicate `serialNumber` → `TRPCError(CONFLICT)` | T-29-SER | integration (tRPC caller) | same | ✅ existing | ✅ green |
+| SC-3 | `firearm.byId` throws `NOT_FOUND` for cross-entity / nonexistent id | T-29-XEN | integration (tRPC caller) | same | ✅ existing | ✅ green |
+| SC-4 | All 6 procedures reject beneficiary JWT with `FORBIDDEN` | T-29-AUTH | integration (tRPC caller) | same | ✅ existing | ✅ green |
+| SC-5 | `bun run typecheck` passes with 0 errors after router registration | — | typecheck | `bun run typecheck` | ✅ existing | ✅ green |
 
 Additional coverage beyond the 5 SCs (recommended in the test file):
 - `firearm.setNfaTransferStatus` happy-path transition (NOT_FILED → FILED → APPROVED)
@@ -64,12 +65,12 @@ Additional coverage beyond the 5 SCs (recommended in the test file):
 
 ## Wave 0 Requirements
 
-- [ ] `tests/trpc/firearm.test.ts` — new file covering SC-1..SC-4 + the
+- [x] `tests/trpc/firearm.test.ts` — covering SC-1..SC-4 + the
   `setNfaTransferStatus` + update-omit cases above. Uses
   `createCallerFactory(appRouter)` + the existing `createAdminContext()` /
-  `createBeneficiaryContext()` helpers in `tests/helpers/mock-context.ts`.
-  Wraps the entire suite in `describe.skipIf(isProductionDb)` (per the
-  existing tRPC test convention) so it never writes against production.
+  `createBeneficiaryContext()` helpers in `tests/helpers/mock-context.ts`,
+  wrapped in `describe.skipIf(isProductionDb)`. **Backfilled in v5.0.1 (PR #130);
+  green.**
 
 *Existing infrastructure (`bun test tests/trpc`, `tsc --noEmit`,
 `tests/helpers/mock-context.ts`) covers the rest — no additional helpers,
@@ -87,11 +88,29 @@ fixtures, or framework setup needed.*
 
 ## Validation Sign-Off
 
-- [ ] All 5 SCs have an `<automated>` verify OR a Wave 0 dependency
-- [ ] Sampling continuity: every task has automated verify; no 3-consecutive-without window
-- [ ] Wave 0 covers all MISSING references (`tests/trpc/firearm.test.ts`)
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 30s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All 5 SCs have an `<automated>` verify OR a Wave 0 dependency
+- [x] Sampling continuity: every task has automated verify; no 3-consecutive-without window
+- [x] Wave 0 covers all MISSING references (`tests/trpc/firearm.test.ts` exists + green)
+- [x] No watch-mode flags
+- [x] Feedback latency < 30s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** validated 2026-06-08
+
+---
+
+## Validation Audit 2026-06-08
+
+Retroactive Nyquist backfill (`/gsd:validate-phase 29`). The phase's automated
+contract — `tests/trpc/firearm.test.ts` covering SC-1..SC-4 (entity scoping,
+duplicate-serial CONFLICT, cross-entity NOT_FOUND, beneficiary FORBIDDEN) plus the
+NFA-transition and update-omit regressions — was already backfilled in v5.0.1
+(PR #130) and runs green; SC-5 is `bun run typecheck`. All 5 success criteria are
+COVERED. No tests were generated this pass; status updated to reflect existing
+coverage.
+
+| Metric | Count |
+|--------|-------|
+| Gaps found | 0 (all COVERED) |
+| Resolved | 0 (coverage pre-existing) |
+| Escalated | 0 |
