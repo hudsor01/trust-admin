@@ -102,35 +102,6 @@ export function TrusteeDialog({
                     </formInstance.Field>
                 )}
 
-                <formInstance.Field name="order">
-                    {(field) => (
-                        <div className="space-y-2">
-                            <Label htmlFor="order">Order</Label>
-                            <Input
-                                id="order"
-                                type="number"
-                                min={1}
-                                max={10}
-                                value={field.state.value}
-                                onChange={(e) =>
-                                    field.handleChange(
-                                        parseInt(e.target.value, 10) || 1,
-                                    )
-                                }
-                                onBlur={field.handleBlur}
-                            />
-                            <p className="text-xs text-muted-foreground">
-                                1 = Primary, 2 = First Successor, etc.
-                            </p>
-                            {field.state.meta.errors?.[0] && (
-                                <p className="text-sm text-destructive">
-                                    {field.state.meta.errors[0]}
-                                </p>
-                            )}
-                        </div>
-                    )}
-                </formInstance.Field>
-
                 <formInstance.Field name="startDate">
                     {(field) => (
                         <div className="space-y-2">

@@ -396,10 +396,13 @@ export const insertTrustAccountingSchema = createInsertSchema(trustAccounting, {
 // supplies the value at insert time. Hardening to schema-level omission
 // would require migration 0015 adding `.default(0)`; deferred until a
 // future cleanup phase.
+// `order` is omitted from the input surface (mirrors beneficiary.sortIndex,
+// D-04): display order is admin-controlled, not client-settable. The column now
+// carries a DB default(0) so create still works without it (migration 0018).
 export const insertTrusteeSchema = createInsertSchema(trustee, {
     createdAt: (schema) => schema.optional(),
     updatedAt: (schema) => schema.optional(),
-})
+}).omit({ order: true })
 const insertTrusteeFeeEntrySchema = createInsertSchema(trusteeFeeEntry, {
     createdAt: (schema) => schema.optional(),
     updatedAt: (schema) => schema.optional(),

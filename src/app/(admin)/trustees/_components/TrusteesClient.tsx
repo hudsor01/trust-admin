@@ -54,7 +54,6 @@ export function TrusteesClient() {
                     : createMode === 'ARBITER'
                       ? ('ARBITER' as const)
                       : ('ACTIVE' as const),
-                order: data.order,
                 startDate: data.startDate || null,
                 endDate: data.endDate || null,
             }
@@ -87,7 +86,6 @@ export function TrusteesClient() {
         trusteeForm.handleEdit({
             name: t.name,
             status: t.status ?? 'ACTIVE',
-            order: t.order,
             isCo: t.isCo ?? false,
             startDate: t.startDate?.split('T')[0] ?? null,
             endDate: t.endDate?.split('T')[0] ?? null,
