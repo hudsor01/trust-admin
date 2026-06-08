@@ -1,6 +1,6 @@
 /** Application-layer data isolation — verifies tRPC context scopes beneficiary data (layer 1 of 2; RLS is layer 2). */
 import { describe, expect, it } from 'bun:test'
-import type { AppUser } from '@/server/trpc'
+import type { AppUser } from '@/server/trpc/init'
 
 function makeBeneficiaryCtx(beneficiaryId: number) {
     const user: AppUser = {

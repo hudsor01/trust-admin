@@ -16,7 +16,6 @@ import {
     liabilityPayment,
     noteReceivable,
     personalProperty,
-    receivablePayment,
     rentalProperty,
     specificBequest,
     task,
@@ -345,13 +344,6 @@ export const insertNoteReceivableSchema = createInsertSchema(noteReceivable, {
             .optional(),
 })
 
-export const insertReceivablePaymentSchema = createInsertSchema(
-    receivablePayment,
-    {
-        createdAt: (schema) => schema.optional(),
-    },
-)
-
 export const insertPersonalPropertySchema = createInsertSchema(
     personalProperty,
     {
@@ -516,9 +508,6 @@ export const updateLiabilityPaymentSchema = requireAtLeastOneField(
 )
 export const updateNoteReceivableSchema = requireAtLeastOneField(
     insertNoteReceivableSchema.partial(),
-)
-export const updateReceivablePaymentSchema = requireAtLeastOneField(
-    insertReceivablePaymentSchema.partial(),
 )
 export const updateInsurancePolicySchema = requireAtLeastOneField(
     insertInsurancePolicySchema.partial(),

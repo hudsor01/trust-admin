@@ -25,7 +25,7 @@ import {
 } from './types'
 
 // Re-exported here for backwards compatibility with existing UsersClient imports.
-export { type AppRoleOption, ROLE_OPTIONS } from './types'
+export type { AppRoleOption } from './types'
 
 type ChangeRoleDialogProps = {
     open: boolean

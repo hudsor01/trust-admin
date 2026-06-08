@@ -6,7 +6,6 @@ import { toast } from 'sonner'
 import { EditableDateCell, EditableTextCell } from '@/components/editable-cells'
 import { PageHeader } from '@/components/page-header'
 import { ResourceDialog } from '@/components/resource-dialog'
-import { ThemeToggle } from '@/components/theme-toggle'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -258,26 +257,6 @@ export function SettingsClient() {
             <SettingsRolesAccessCard />
 
             <SettingsInventoryAccessCard />
-
-            <Card>
-                <CardHeader>
-                    <CardTitle>Appearance</CardTitle>
-                    <CardDescription>
-                        Customize how the application looks
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="font-medium">Theme</p>
-                            <p className="text-sm text-muted-foreground">
-                                Switch between light and dark mode
-                            </p>
-                        </div>
-                        <ThemeToggle />
-                    </div>
-                </CardContent>
-            </Card>
 
             <Card>
                 <CardHeader>

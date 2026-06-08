@@ -7,10 +7,10 @@ import { beneficiary, userProfile } from '@/db/schema'
 
 export const dynamic = 'force-dynamic'
 
-export const E2E_ADMIN_EMAIL = 'e2e-admin@e2e.local'
-export const E2E_ADMIN_PASSWORD = 'E2eTest@2026!'
-export const E2E_BENEFICIARY_EMAIL = 'e2e-ben@e2e.local'
-export const E2E_BENEFICIARY_PASSWORD = 'E2eTest@2026!'
+const E2E_ADMIN_EMAIL = 'e2e-admin@e2e.local'
+const E2E_ADMIN_PASSWORD = 'E2eTest@2026!'
+const E2E_BENEFICIARY_EMAIL = 'e2e-ben@e2e.local'
+const E2E_BENEFICIARY_PASSWORD = 'E2eTest@2026!'
 
 /** Better Auth scrypt format: N=16384, r=16, p=1, dkLen=64. Output: hex(salt):hex(key). */
 function hashPassword(password: string): string {
