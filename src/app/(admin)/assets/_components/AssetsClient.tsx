@@ -11,20 +11,12 @@ import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import { DataTableFacetedFilter } from '@/components/ui/data-table-faceted-filter'
 import { STATUS_VARIANTS } from '@/lib/constants'
 import { sumStrings } from '@/lib/money'
+import { includesArrayFilter } from '@/lib/table-filters'
 import { trpc } from '@/lib/trpc'
 import type { AssetRow } from '@/server/trpc/routers/asset'
 import { formatCurrency, formatPercent } from '@/utils/formatters'
 import { KIND_LABELS } from './_labels'
 import { ExportAssetsButton } from './ExportAssetsButton'
-
-const includesArrayFilter = <T,>(
-    row: { getValue: (id: string) => T },
-    id: string,
-    value: T[],
-): boolean =>
-    Array.isArray(value) && value.length > 0
-        ? value.includes(row.getValue(id))
-        : true
 
 export function AssetsClient() {
     const router = useRouter()
