@@ -15,10 +15,9 @@ import { listAssetRows } from './asset'
 export type BalanceSheetCategory = 'ASSET' | 'RECEIVABLE' | 'LIABILITY'
 
 export interface BalanceSheetRow {
-    /** Stable React key — `id` collides across the three source tables,
-     *  so namespace it by category. */
-    rowKey: string
-    /** Source-table primary key (not unique across categories). */
+    /** Source-table primary key (not unique across categories — the same
+     *  numeric id can appear under ASSET and LIABILITY. Safe because the
+     *  table keys rows by index, not id, and no per-row state is enabled). */
     id: number
     category: BalanceSheetCategory
     /** Sub-type label: asset category (Vehicle, Bank Account, …),
@@ -70,7 +69,6 @@ export const balanceSheetRouter = createTRPCRouter({
 
             for (const a of assets) {
                 rows.push({
-                    rowKey: `asset:${a.kind}:${a.id}`,
                     id: a.id,
                     category: 'ASSET',
                     type: a.category,
@@ -85,7 +83,6 @@ export const balanceSheetRouter = createTRPCRouter({
 
             for (const r of receivables) {
                 rows.push({
-                    rowKey: `receivable:${r.id}`,
                     id: r.id,
                     category: 'RECEIVABLE',
                     type: titleCaseEnum(r.receivableType),
@@ -100,7 +97,6 @@ export const balanceSheetRouter = createTRPCRouter({
 
             for (const l of liabilities) {
                 rows.push({
-                    rowKey: `liability:${l.id}`,
                     id: l.id,
                     category: 'LIABILITY',
                     type: titleCaseEnum(l.liabilityType),

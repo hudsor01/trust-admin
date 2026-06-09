@@ -11,6 +11,7 @@ import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import { DataTableFacetedFilter } from '@/components/ui/data-table-faceted-filter'
 import { STATUS_VARIANTS } from '@/lib/constants'
 import { fromCents, sumStrings, toCents } from '@/lib/money'
+import { includesArrayFilter } from '@/lib/table-filters'
 import { trpc } from '@/lib/trpc'
 import type {
     BalanceSheetCategory,
@@ -19,15 +20,6 @@ import type {
 import { formatCurrency } from '@/utils/formatters'
 import { CATEGORY_BADGE_VARIANT, CATEGORY_LABELS } from './_labels'
 import { ExportBalanceSheetButton } from './ExportBalanceSheetButton'
-
-const includesArrayFilter = <T,>(
-    row: { getValue: (id: string) => T },
-    id: string,
-    value: T[],
-): boolean =>
-    Array.isArray(value) && value.length > 0
-        ? value.includes(row.getValue(id))
-        : true
 
 const CATEGORY_ORDER: BalanceSheetCategory[] = [
     'ASSET',

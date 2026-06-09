@@ -138,7 +138,6 @@ describe.skipIf(isProductionDb)('balanceSheet.listAll aggregator', () => {
         expect(rec?.amount).toBe('4200.00')
         expect(rec?.type).toBe('Promissory Note')
         expect(rec?.href).toBe('/receivables')
-        expect(rec?.rowKey).toBe(`receivable:${ids.receivableId}`)
     })
 
     test('liability row maps creditor→party, currentBalance→amount, title-cased type', async () => {
@@ -152,14 +151,6 @@ describe.skipIf(isProductionDb)('balanceSheet.listAll aggregator', () => {
         expect(liab?.amount).toBe('32000.00')
         expect(liab?.type).toBe('Loan')
         expect(liab?.href).toBe('/liabilities')
-    })
-
-    test('rowKey is namespaced so ids never collide across categories', async () => {
-        const rows = await adminCaller().balanceSheet.listAll({
-            entityId: ids.entityId!,
-        })
-        const keys = rows.map((r) => r.rowKey)
-        expect(new Set(keys).size).toBe(keys.length)
     })
 
     test('rows are sorted by updatedAt desc by default', async () => {
