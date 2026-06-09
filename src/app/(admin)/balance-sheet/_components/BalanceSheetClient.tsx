@@ -236,6 +236,12 @@ export function BalanceSheetClient() {
                     </>
                 )}
             />
+
+            <p className="text-xs text-muted-foreground">
+                Insurance policies are listed but excluded from Total Assets and
+                Net Worth: a policy's coverage (face) amount is not a
+                balance-sheet asset. Manage coverage on the Insurance page.
+            </p>
         </div>
     )
 }

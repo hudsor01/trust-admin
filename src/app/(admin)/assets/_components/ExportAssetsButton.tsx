@@ -3,7 +3,7 @@
 import type { Table } from '@tanstack/react-table'
 import { Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { exportRowsToCsv } from '@/lib/csv'
+import { exportRowsToCsv, todayLocalIso } from '@/lib/csv'
 import type { AssetRow } from '@/server/trpc/routers/asset'
 import { KIND_LABELS } from './_labels'
 
@@ -32,16 +32,6 @@ function toRow(asset: AssetRow): (string | number | null)[] {
         asset.status,
         asset.updatedAt.slice(0, 10),
     ]
-}
-
-// Local date in YYYY-MM-DD, not UTC — a user clicking Export at 10 PM
-// Central time would otherwise get tomorrow's date in the filename.
-function todayLocalIso(): string {
-    const d = new Date()
-    const y = d.getFullYear()
-    const m = String(d.getMonth() + 1).padStart(2, '0')
-    const day = String(d.getDate()).padStart(2, '0')
-    return `${y}-${m}-${day}`
 }
 
 export function ExportAssetsButton({ table }: { table: Table<AssetRow> }) {

@@ -2,7 +2,13 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import { eq } from 'drizzle-orm'
 import { db } from '@/db'
-import { bankAccount, entity, liability, noteReceivable } from '@/db/schema'
+import {
+    bankAccount,
+    entity,
+    insurancePolicy,
+    liability,
+    noteReceivable,
+} from '@/db/schema'
 import { createCallerFactory } from '@/server/trpc/init'
 import { appRouter } from '@/server/trpc/router'
 import { isProductionDb } from '../helpers/db-guard'
@@ -28,6 +34,7 @@ const ids = {
     bankId: null as number | null,
     receivableId: null as number | null,
     liabilityId: null as number | null,
+    insuranceId: null as number | null,
 }
 
 describe.skipIf(isProductionDb)('balanceSheet.listAll aggregator', () => {
@@ -89,9 +96,28 @@ describe.skipIf(isProductionDb)('balanceSheet.listAll aggregator', () => {
             })
             .returning()
         ids.liabilityId = l.id
+
+        const [ins] = await db
+            .insert(insurancePolicy)
+            .values({
+                entityId: e1.id,
+                name: `BS Policy ${TS}`,
+                policyType: 'PROPERTY',
+                carrier: 'TestIns',
+                policyNumber: `BSPOL${TS}`,
+                coverageAmount: '250000.00',
+                status: 'ACTIVE',
+                updatedAt: now,
+            })
+            .returning()
+        ids.insuranceId = ins.id
     }, TEST_TIMEOUT)
 
     afterAll(async () => {
+        if (ids.insuranceId)
+            await db
+                .delete(insurancePolicy)
+                .where(eq(insurancePolicy.id, ids.insuranceId))
         if (ids.liabilityId)
             await db.delete(liability).where(eq(liability.id, ids.liabilityId))
         if (ids.receivableId)
@@ -151,6 +177,24 @@ describe.skipIf(isProductionDb)('balanceSheet.listAll aggregator', () => {
         expect(liab?.amount).toBe('32000.00')
         expect(liab?.type).toBe('Loan')
         expect(liab?.href).toBe('/liabilities')
+    })
+
+    test('insurance is listed but carries no balance-sheet value (amount null)', async () => {
+        // Canonical: a policy's coverageAmount is face/limit value, never a
+        // going-concern asset (ASC 325-30 / ASC 274; AICPA TIS 2240). The
+        // aggregator must null it so it never inflates Total Assets / Net Worth,
+        // even though asset.listAll surfaces coverageAmount as the asset value.
+        const rows = await adminCaller().balanceSheet.listAll({
+            entityId: ids.entityId!,
+        })
+        const ins = rows.find(
+            (r) =>
+                r.category === 'ASSET' &&
+                r.type === 'Insurance' &&
+                r.id === ids.insuranceId,
+        )
+        expect(ins).toBeDefined()
+        expect(ins?.amount).toBeNull()
     })
 
     test('rows are sorted by updatedAt desc by default', async () => {

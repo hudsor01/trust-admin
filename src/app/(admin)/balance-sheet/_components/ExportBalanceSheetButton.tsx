@@ -3,7 +3,7 @@
 import type { Table } from '@tanstack/react-table'
 import { Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { exportRowsToCsv } from '@/lib/csv'
+import { exportRowsToCsv, todayLocalIso } from '@/lib/csv'
 import type { BalanceSheetRow } from '@/server/trpc/routers/balanceSheet'
 import { CATEGORY_LABELS } from './_labels'
 
@@ -29,16 +29,6 @@ function toRow(r: BalanceSheetRow): (string | number | null)[] {
         r.status,
         r.updatedAt.slice(0, 10),
     ]
-}
-
-// Local date in YYYY-MM-DD (not UTC) — clicking Export at 10 PM Central
-// would otherwise stamp tomorrow's date in the filename.
-function todayLocalIso(): string {
-    const d = new Date()
-    const y = d.getFullYear()
-    const m = String(d.getMonth() + 1).padStart(2, '0')
-    const day = String(d.getDate()).padStart(2, '0')
-    return `${y}-${m}-${day}`
 }
 
 export function ExportBalanceSheetButton({

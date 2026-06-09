@@ -68,13 +68,26 @@ export const balanceSheetRouter = createTRPCRouter({
             const rows: BalanceSheetRow[] = []
 
             for (const a of assets) {
+                // Insurance carries no balance-sheet value here. `asset.listAll`
+                // maps an insurance policy's value to `coverageAmount` (face /
+                // policy limit), but face value is NEVER a going-concern asset:
+                // an owned life policy is carried at cash surrender value net of
+                // loans (FASB ASC 325-30 / ASC 274 estimated current value;
+                // AICPA TIS 2240.06), and a P&C coverage limit is not an asset
+                // at all. We don't track cash surrender value, so insurance
+                // contributes $0 to Net Worth — surfacing `coverageAmount` would
+                // overstate it. (A death benefit payable to the trust belongs in
+                // the Receivables lane at face until collected, not here. The
+                // /assets "DOD total" may still show face value — that is the
+                // separate IRC §2042 estate-tax basis, a different standard.)
+                const isInsurance = a.kind === 'insurancePolicy'
                 rows.push({
                     id: a.id,
                     category: 'ASSET',
                     type: a.category,
                     party: a.name,
                     description: a.description,
-                    amount: a.value,
+                    amount: isInsurance ? null : a.value,
                     status: a.status,
                     href: a.href,
                     updatedAt: a.updatedAt,
