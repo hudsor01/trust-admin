@@ -77,186 +77,187 @@ const PERSONAL_PROPERTY_CATEGORY_LABELS: Record<string, string> = {
 const personalPropertyCategoryLabel = (cat: string | null): string =>
     PERSONAL_PROPERTY_CATEGORY_LABELS[cat ?? 'OTHER'] ?? 'Other'
 
+/**
+ * Aggregate every asset table into the unified `AssetRow` envelope. Exported
+ * as a plain function (not just a procedure) so the balance-sheet aggregator
+ * (`balanceSheet.listAll`) can reuse the 8-table fan-out without duplicating
+ * it. Each query is entityId-scoped so RLS still applies.
+ */
+export async function listAssetRows(entityId: number): Promise<AssetRow[]> {
+    // Fan out the eight asset tables in parallel.
+    const [
+        vehicles,
+        homesteads,
+        rentals,
+        banks,
+        investments,
+        personal,
+        insurance,
+        firearms,
+    ] = await Promise.all([
+        db.select().from(vehicle).where(eq(vehicle.entityId, entityId)),
+        db.select().from(homestead).where(eq(homestead.entityId, entityId)),
+        db
+            .select()
+            .from(rentalProperty)
+            .where(eq(rentalProperty.entityId, entityId)),
+        db.select().from(bankAccount).where(eq(bankAccount.entityId, entityId)),
+        db
+            .select()
+            .from(investmentAccount)
+            .where(eq(investmentAccount.entityId, entityId)),
+        db
+            .select()
+            .from(personalProperty)
+            .where(eq(personalProperty.entityId, entityId)),
+        db
+            .select()
+            .from(insurancePolicy)
+            .where(eq(insurancePolicy.entityId, entityId)),
+        db.select().from(firearm).where(eq(firearm.entityId, entityId)),
+    ])
+
+    // Per-type mappers. name/description are real columns; the mappers only
+    // set the type-specific fields (kind, category, value, href) and pass
+    // name/description through.
+    const rows: AssetRow[] = []
+
+    for (const v of vehicles) {
+        rows.push({
+            id: v.id,
+            kind: 'vehicle',
+            name: v.name,
+            description: v.description,
+            category: 'Vehicle',
+            value: v.dodValue,
+            status: v.status,
+            href: '/vehicles',
+            transferStatus: v.transferStatus,
+            updatedAt: v.updatedAt,
+        })
+    }
+
+    for (const h of homesteads) {
+        rows.push({
+            id: h.id,
+            kind: 'homestead',
+            name: h.name,
+            description: h.description,
+            category: 'Homestead',
+            value: h.dodValue,
+            status: h.status,
+            href: '/properties',
+            transferStatus: h.transferStatus,
+            updatedAt: h.updatedAt,
+        })
+    }
+
+    for (const r of rentals) {
+        rows.push({
+            id: r.id,
+            kind: 'rentalProperty',
+            name: r.name,
+            description: r.description,
+            category: 'Rental Property',
+            value: r.dodValue,
+            status: r.status,
+            href: '/properties',
+            transferStatus: r.transferStatus,
+            updatedAt: r.updatedAt,
+        })
+    }
+
+    for (const b of banks) {
+        rows.push({
+            id: b.id,
+            kind: 'bankAccount',
+            name: b.name,
+            description: b.description,
+            category: 'Bank Account',
+            value: b.currentBalance ?? b.dodValue,
+            status: b.status,
+            href: '/accounts',
+            transferStatus: b.transferStatus,
+            updatedAt: b.updatedAt,
+        })
+    }
+
+    for (const i of investments) {
+        rows.push({
+            id: i.id,
+            kind: 'investmentAccount',
+            name: i.name,
+            description: i.description,
+            category: 'Investment',
+            value: i.currentBalance ?? i.dodValue,
+            status: i.status,
+            href: '/accounts',
+            transferStatus: i.transferStatus,
+            updatedAt: i.updatedAt,
+        })
+    }
+
+    for (const p of personal) {
+        // Artwork is just personalProperty filtered by category=ART; route
+        // the row click to the right admin page so the user lands where
+        // edits actually happen.
+        const isArt = p.category === 'ART'
+        rows.push({
+            id: p.id,
+            kind: 'personalProperty',
+            name: p.name,
+            description: p.description,
+            category: personalPropertyCategoryLabel(p.category),
+            value: p.dodValue,
+            status: p.status,
+            href: isArt ? '/artwork' : '/personal-property',
+            transferStatus: p.transferStatus,
+            updatedAt: p.updatedAt,
+        })
+    }
+
+    for (const ins of insurance) {
+        rows.push({
+            id: ins.id,
+            kind: 'insurancePolicy',
+            name: ins.name,
+            description: ins.description,
+            category: 'Insurance',
+            value: ins.coverageAmount,
+            status: ins.status,
+            href: '/insurance',
+            // insurancePolicy has no transferStatus column — insurance is not
+            // a transferable estate asset.
+            transferStatus: null,
+            updatedAt: ins.updatedAt,
+        })
+    }
+
+    for (const f of firearms) {
+        rows.push({
+            id: f.id,
+            kind: 'firearm',
+            name: f.name,
+            description: f.description,
+            category: 'Firearm',
+            value: f.dodValue,
+            status: f.status,
+            href: '/firearms',
+            transferStatus: f.transferStatus,
+            updatedAt: f.updatedAt,
+        })
+    }
+
+    // Newest first by default; the client can resort.
+    rows.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+
+    return rows
+}
+
 export const assetRouter = createTRPCRouter({
     listAll: adminProcedure
         .input(z.object({ entityId: z.coerce.number() }))
-        .query(async ({ input }): Promise<AssetRow[]> => {
-            const { entityId } = input
-
-            // Fan out the seven asset tables in parallel. Each query is
-            // entityId-scoped so RLS still applies.
-            const [
-                vehicles,
-                homesteads,
-                rentals,
-                banks,
-                investments,
-                personal,
-                insurance,
-                firearms,
-            ] = await Promise.all([
-                db.select().from(vehicle).where(eq(vehicle.entityId, entityId)),
-                db
-                    .select()
-                    .from(homestead)
-                    .where(eq(homestead.entityId, entityId)),
-                db
-                    .select()
-                    .from(rentalProperty)
-                    .where(eq(rentalProperty.entityId, entityId)),
-                db
-                    .select()
-                    .from(bankAccount)
-                    .where(eq(bankAccount.entityId, entityId)),
-                db
-                    .select()
-                    .from(investmentAccount)
-                    .where(eq(investmentAccount.entityId, entityId)),
-                db
-                    .select()
-                    .from(personalProperty)
-                    .where(eq(personalProperty.entityId, entityId)),
-                db
-                    .select()
-                    .from(insurancePolicy)
-                    .where(eq(insurancePolicy.entityId, entityId)),
-                db.select().from(firearm).where(eq(firearm.entityId, entityId)),
-            ])
-
-            // Per-type mappers. name/description are real columns; the
-            // mappers only set the type-specific fields (kind, category,
-            // value, href) and pass name/description through.
-            const rows: AssetRow[] = []
-
-            for (const v of vehicles) {
-                rows.push({
-                    id: v.id,
-                    kind: 'vehicle',
-                    name: v.name,
-                    description: v.description,
-                    category: 'Vehicle',
-                    value: v.dodValue,
-                    status: v.status,
-                    href: '/vehicles',
-                    transferStatus: v.transferStatus,
-                    updatedAt: v.updatedAt,
-                })
-            }
-
-            for (const h of homesteads) {
-                rows.push({
-                    id: h.id,
-                    kind: 'homestead',
-                    name: h.name,
-                    description: h.description,
-                    category: 'Homestead',
-                    value: h.dodValue,
-                    status: h.status,
-                    href: '/properties',
-                    transferStatus: h.transferStatus,
-                    updatedAt: h.updatedAt,
-                })
-            }
-
-            for (const r of rentals) {
-                rows.push({
-                    id: r.id,
-                    kind: 'rentalProperty',
-                    name: r.name,
-                    description: r.description,
-                    category: 'Rental Property',
-                    value: r.dodValue,
-                    status: r.status,
-                    href: '/properties',
-                    transferStatus: r.transferStatus,
-                    updatedAt: r.updatedAt,
-                })
-            }
-
-            for (const b of banks) {
-                rows.push({
-                    id: b.id,
-                    kind: 'bankAccount',
-                    name: b.name,
-                    description: b.description,
-                    category: 'Bank Account',
-                    value: b.currentBalance ?? b.dodValue,
-                    status: b.status,
-                    href: '/accounts',
-                    transferStatus: b.transferStatus,
-                    updatedAt: b.updatedAt,
-                })
-            }
-
-            for (const i of investments) {
-                rows.push({
-                    id: i.id,
-                    kind: 'investmentAccount',
-                    name: i.name,
-                    description: i.description,
-                    category: 'Investment',
-                    value: i.currentBalance ?? i.dodValue,
-                    status: i.status,
-                    href: '/accounts',
-                    transferStatus: i.transferStatus,
-                    updatedAt: i.updatedAt,
-                })
-            }
-
-            for (const p of personal) {
-                // Artwork is just personalProperty filtered by category=ART;
-                // route the row click to the right admin page so the user
-                // lands where edits actually happen.
-                const isArt = p.category === 'ART'
-                rows.push({
-                    id: p.id,
-                    kind: 'personalProperty',
-                    name: p.name,
-                    description: p.description,
-                    category: personalPropertyCategoryLabel(p.category),
-                    value: p.dodValue,
-                    status: p.status,
-                    href: isArt ? '/artwork' : '/personal-property',
-                    transferStatus: p.transferStatus,
-                    updatedAt: p.updatedAt,
-                })
-            }
-
-            for (const ins of insurance) {
-                rows.push({
-                    id: ins.id,
-                    kind: 'insurancePolicy',
-                    name: ins.name,
-                    description: ins.description,
-                    category: 'Insurance',
-                    value: ins.coverageAmount,
-                    status: ins.status,
-                    href: '/insurance',
-                    // insurancePolicy has no transferStatus column — insurance
-                    // is not a transferable estate asset.
-                    transferStatus: null,
-                    updatedAt: ins.updatedAt,
-                })
-            }
-
-            for (const f of firearms) {
-                rows.push({
-                    id: f.id,
-                    kind: 'firearm',
-                    name: f.name,
-                    description: f.description,
-                    category: 'Firearm',
-                    value: f.dodValue,
-                    status: f.status,
-                    href: '/firearms',
-                    transferStatus: f.transferStatus,
-                    updatedAt: f.updatedAt,
-                })
-            }
-
-            // Newest first by default; the client can resort.
-            rows.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
-
-            return rows
-        }),
+        .query(
+            ({ input }): Promise<AssetRow[]> => listAssetRows(input.entityId),
+        ),
 })

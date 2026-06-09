@@ -71,6 +71,10 @@ export function AppSidebar({ role }: { role: AppRole }) {
             utils.beneficiary.list.prefetch({ entityId })
             utils.entity.list.prefetch()
         },
+        balanceSheet: () => {
+            utils.balanceSheet.listAll.prefetch({ entityId })
+            utils.entity.list.prefetch()
+        },
         accounting: () => {
             utils.trustAccounting.list.prefetch({ entityId })
             utils.bankAccount.list.prefetch({ entityId })
@@ -333,6 +337,21 @@ export function AppSidebar({ role }: { role: AppRole }) {
                 <SidebarGroup>
                     <SidebarGroupLabel>Financial</SidebarGroupLabel>
                     <SidebarMenu className="pl-2">
+                        <SidebarMenuItem>
+                            <SidebarMenuButton
+                                asChild
+                                isActive={pathname === '/balance-sheet'}
+                                tooltip="Balance Sheet"
+                            >
+                                <Link
+                                    href="/balance-sheet"
+                                    onMouseEnter={prefetch.balanceSheet}
+                                >
+                                    <span>Balance Sheet</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+
                         <SidebarMenuItem>
                             <SidebarMenuButton
                                 asChild
