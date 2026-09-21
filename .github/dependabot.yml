@@ -5,7 +5,11 @@
 
 version: 2
 updates:
-  - package-ecosystem: "npm"
+  # bun, not npm. This repo's lockfile is bun.lock, and CI installs with
+  # `bun install --frozen-lockfile`. The npm updater edits package.json but
+  # cannot write bun.lock, so every PR it opened failed at install with
+  # "lockfile had changes, but lockfile is frozen".
+  - package-ecosystem: "bun"
     directory: "/"
     schedule:
       interval: "daily"
